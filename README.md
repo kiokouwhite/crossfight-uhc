@@ -85,3 +85,8 @@ Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 
 - [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
 - [ ] 32 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
+
+## Télécharger le plugin sans compiler
+
+Le dernier jar compilé est dans le dossier `dist/` :
+https://github.com/kiokouwhite/crossfight-uhc/raw/main/dist/CrossfightUHC.jar
