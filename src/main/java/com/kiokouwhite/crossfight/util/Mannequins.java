@@ -32,6 +32,7 @@ import java.util.UUID;
 public final class Mannequins implements Listener {
 
     public static final String TAG = "cf_mannequin";
+    public static final String AGGRO_TAG = "cf_mannequin_aggro";
     public static final double MAX_HEALTH = 100.0;
 
     private static final Map<UUID, BukkitTask> REGEN = new HashMap<>();
@@ -40,12 +41,33 @@ public final class Mannequins implements Listener {
         return e != null && e.getScoreboardTags().contains(TAG);
     }
 
+    public static boolean isAggressive(Entity e) {
+        return e != null && e.getScoreboardTags().contains(AGGRO_TAG);
+    }
+
     public static LivingEntity spawn(Location loc) {
+        return spawn(loc, false);
+    }
+
+    /**
+     * @param aggressive true pour un mannequin qui poursuit et frappe les joueurs
+     *                   (2 coeurs par coup, vitesse d'un joueur qui marche).
+     */
+    public static LivingEntity spawn(Location loc, boolean aggressive) {
         World w = loc.getWorld();
         Zombie z = (Zombie) w.spawnEntity(loc, EntityType.ZOMBIE);
         z.addScoreboardTag(TAG);
+        if (aggressive) z.addScoreboardTag(AGGRO_TAG);
         z.setAdult();
-        z.setAI(false);
+        z.setAI(aggressive);
+        if (aggressive) {
+            var atk = z.getAttribute(Attribute.ATTACK_DAMAGE);
+            if (atk != null) atk.setBaseValue(4.0);
+            var spd = z.getAttribute(Attribute.MOVEMENT_SPEED);
+            if (spd != null) spd.setBaseValue(0.28);
+            var range = z.getAttribute(Attribute.FOLLOW_RANGE);
+            if (range != null) range.setBaseValue(48.0);
+        }
         z.setSilent(true);
         z.setShouldBurnInDay(false);
         z.setCanPickupItems(false);
@@ -77,7 +99,8 @@ public final class Mannequins implements Listener {
 
     private static void updateName(LivingEntity e) {
         double hp = Math.max(0, e.getHealth());
-        e.customName(Msg.mm("<gold>Mannequin <red>❤ " + fmt(hp / 2.0) + "<gray>/" + fmt(MAX_HEALTH / 2.0)));
+        String label = isAggressive(e) ? "<dark_red>Mannequin agressif" : "<gold>Mannequin";
+        e.customName(Msg.mm(label + " <red>❤ " + fmt(hp / 2.0) + "<gray>/" + fmt(MAX_HEALTH / 2.0)));
     }
 
     private static String fmt(double d) {
@@ -135,6 +158,9 @@ public final class Mannequins implements Listener {
 
     @EventHandler
     public void onTarget(EntityTargetEvent e) {
-        if (isMannequin(e.getEntity())) e.setCancelled(true);
+        if (!isMannequin(e.getEntity())) return;
+        // Les mannequins agressifs ne visent que des joueurs en survie.
+        if (isAggressive(e.getEntity()) && e.getTarget() instanceof Player t && t.getGameMode() == org.bukkit.GameMode.SURVIVAL) return;
+        e.setCancelled(true);
     }
 }

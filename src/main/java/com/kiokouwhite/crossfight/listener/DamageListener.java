@@ -31,6 +31,13 @@ public final class DamageListener implements Listener {
         return null;
     }
 
+    /** Idem mais accepte toute entite vivante (mannequins, boss). */
+    public static org.bukkit.entity.LivingEntity livingAttackerOf(Entity damager) {
+        if (damager instanceof org.bukkit.entity.LivingEntity le) return le;
+        if (damager instanceof Projectile proj && proj.getShooter() instanceof org.bukkit.entity.LivingEntity le) return le;
+        return null;
+    }
+
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onPvp(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Player victim)) return;
@@ -82,7 +89,20 @@ public final class DamageListener implements Listener {
     public void onUltimateCharge(EntityDamageByEntityEvent e) {
         if (!plugin.game().isRunning()) return;
         Player attacker = attackerOf(e.getDamager());
-        if (attacker == null || attacker == e.getEntity()) return;
+        if (attacker == null) {
+            // Coup d'un mannequin agressif sur un joueur : charge l'ultime de la victime.
+            if (e.getEntity() instanceof Player victim && com.kiokouwhite.crossfight.util.Mannequins.isMannequin(e.getDamager())) {
+                double percent = e.getFinalDamage() / 20.0 * 100.0;
+                double rate = plugin.getConfig().getDouble("ultimate.charge-per-percent-damage", 0.25);
+                CfPlayer v = plugin.players().get(victim);
+                v.addDamageTaken(percent);
+                boolean ready = v.isUltimateReady();
+                v.addUltimateCharge(percent * rate);
+                if (!ready && v.isUltimateReady()) announceReady(victim);
+            }
+            return;
+        }
+        if (attacker == e.getEntity()) return;
         boolean mannequin = com.kiokouwhite.crossfight.util.Mannequins.isMannequin(e.getEntity());
         if (!(e.getEntity() instanceof Player) && !mannequin) return;
 

@@ -138,7 +138,7 @@ public final class Marth extends Character {
             long until = st.get("counterUntil", 0L);
             if (System.currentTimeMillis() > until) return;
             if (!(e instanceof EntityDamageByEntityEvent ede)) return;
-            Player attacker = com.kiokouwhite.crossfight.listener.DamageListener.attackerOf(ede.getDamager());
+            org.bukkit.entity.LivingEntity attacker = com.kiokouwhite.crossfight.listener.DamageListener.livingAttackerOf(ede.getDamager());
             if (attacker == null || attacker == victim) return;
             double dmg = e.getFinalDamage();
             e.setCancelled(true);
@@ -148,7 +148,7 @@ public final class Marth extends Character {
             victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.8f);
             victim.getWorld().spawnParticle(Particle.CRIT, attacker.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3);
             Msg.actionBar(victim, "<gold>Contre reussi !");
-            Msg.actionBar(attacker, "<red>Marth a contre ton coup !");
+            if (attacker instanceof Player ap) Msg.actionBar(ap, "<red>Marth a contre ton coup !");
         }
     }
 
