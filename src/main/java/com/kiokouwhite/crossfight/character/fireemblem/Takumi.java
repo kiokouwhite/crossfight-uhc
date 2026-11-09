@@ -110,7 +110,7 @@ public final class Takumi extends Character implements Listener {
         }
 
         @Override
-        public void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e, AbilityState st) {
+        public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (e.getDamager() instanceof AbstractArrow) {
                 Effects.give(victim, PotionEffectType.SLOWNESS, 0, 20 * 10);
             }
@@ -248,8 +248,8 @@ public final class Takumi extends Character implements Listener {
         private void fire(Player p) {
             Location eye = p.getEyeLocation();
             Vector dir = eye.getDirection().normalize();
-            List<Player> hit = new ArrayList<>();
-            for (Player enemy : Effects.enemiesWithin(p, 35)) {
+            List<org.bukkit.entity.LivingEntity> hit = new ArrayList<>();
+            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, 35)) {
                 Vector rel = enemy.getLocation().add(0, 1, 0).toVector().subtract(eye.toVector());
                 double along = rel.dot(dir);
                 if (along < 0 || along > 30) continue;
@@ -258,7 +258,7 @@ public final class Takumi extends Character implements Listener {
                 if (!p.hasLineOfSight(enemy)) continue;
                 hit.add(enemy);
             }
-            for (Player enemy : hit) Effects.damage(enemy, 10.0, p);
+            for (org.bukkit.entity.LivingEntity enemy : hit) Effects.damage(enemy, 10.0, p);
             for (double d = 0; d <= 30; d += 1.0) {
                 Location l = eye.clone().add(dir.clone().multiply(d));
                 l.getWorld().spawnParticle(Particle.DRAGON_BREATH, l, 12, 1.5, 1.5, 1.5, 0.01);

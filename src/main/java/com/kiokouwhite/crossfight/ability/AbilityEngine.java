@@ -118,7 +118,7 @@ public final class AbilityEngine implements Listener {
     // ------------------------------------------------------------ dispatch
 
     /** Degats joueur contre joueur : previent les capacites de l'attaquant puis de la victime. */
-    public void dispatchDamage(Player attacker, Player victim, org.bukkit.event.entity.EntityDamageByEntityEvent e) {
+    public void dispatchDamage(Player attacker, org.bukkit.entity.LivingEntity victim, org.bukkit.event.entity.EntityDamageByEntityEvent e) {
         CfPlayer acf = plugin.players().get(attacker);
         if (acf.character() != null) {
             for (Ability a : acf.character().allAbilities()) {

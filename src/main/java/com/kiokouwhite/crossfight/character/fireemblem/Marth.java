@@ -192,8 +192,8 @@ public final class Marth extends Character {
             dir.normalize();
             Location start = p.getLocation();
             int hits = 0;
-            List<Player> touched = new ArrayList<>();
-            for (Player enemy : Effects.enemiesWithin(p, 12)) {
+            List<org.bukkit.entity.LivingEntity> touched = new ArrayList<>();
+            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, 12)) {
                 Vector rel = enemy.getLocation().toVector().subtract(start.toVector());
                 double along = rel.dot(dir);
                 if (along < 0 || along > 10.5) continue;
@@ -201,7 +201,7 @@ public final class Marth extends Character {
                 double dy = Math.abs(rel.getY());
                 if (perp <= 1.6 && dy <= 2.5) touched.add(enemy);
             }
-            for (Player enemy : touched) {
+            for (org.bukkit.entity.LivingEntity enemy : touched) {
                 Effects.damage(enemy, 10.0, p);
                 hits++;
             }

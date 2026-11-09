@@ -88,6 +88,25 @@ public final class CfCommand implements TabExecutor {
                             Msg.send(sender, "<green>Ultime de " + target.getName() + " a " + (int) plugin.players().get(target).ultimateCharge() + "%.");
                         } catch (NumberFormatException ex) { Msg.send(sender, "<red>Pourcentage invalide."); }
                     }
+                    case "mannequin", "mannequins" -> {
+                        if (!(sender instanceof Player sp)) return true;
+                        if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
+                            int n = com.kiokouwhite.crossfight.util.Mannequins.clearAll();
+                            Msg.send(sp, "<yellow>" + n + " mannequin(s) retire(s).");
+                            return true;
+                        }
+                        int count = 1;
+                        if (args.length > 1) { try { count = Math.max(1, Math.min(10, Integer.parseInt(args[1]))); } catch (NumberFormatException ignored) { } }
+                        var base = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(3));
+                        base.setY(sp.getWorld().getHighestBlockYAt(base) + 1);
+                        for (int i = 0; i < count; i++) {
+                            var loc = base.clone().add((i % 5) * 1.5, 0, (i / 5) * 1.5);
+                            loc.setY(sp.getWorld().getHighestBlockYAt(loc) + 1);
+                            loc.setYaw(sp.getLocation().getYaw() + 180);
+                            com.kiokouwhite.crossfight.util.Mannequins.spawn(loc);
+                        }
+                        Msg.send(sp, "<green>" + count + " mannequin(s) invoque(s). <gray>/cf mannequin clear pour les retirer.");
+                    }
                     case "heal" -> {
                         if (!(sender instanceof Player sp)) return true;
                         var mh = sp.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
@@ -129,6 +148,7 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf give <joueur> <perso> <gray>- forcer un personnage");
             Msg.raw(s, "<red>/cf ult [joueur] <pourcent> <gray>- regler la jauge d'ultime (test)");
             Msg.raw(s, "<red>/cf heal <gray>- se soigner (test)");
+            Msg.raw(s, "<red>/cf mannequin [nb|clear] <gray>- mannequins d'entrainement (test)");
         }
     }
 
@@ -215,7 +235,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -223,6 +243,7 @@ public final class CfCommand implements TabExecutor {
                 case "team" -> out.addAll(List.of("list", "create", "join", "leave", "add"));
                 case "perso" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "give" -> { for (Player p : Bukkit.getOnlinePlayers()) out.add(p.getName()); }
+                case "mannequin" -> out.addAll(List.of("1", "3", "5", "clear"));
                 default -> { }
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {

@@ -55,7 +55,8 @@ public final class DamageListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onAbilityHooks(EntityDamageByEntityEvent e) {
         if (!plugin.game().isRunning()) return;
-        if (!(e.getEntity() instanceof Player victim)) return;
+        if (!(e.getEntity() instanceof org.bukkit.entity.LivingEntity victim)) return;
+        if (!(victim instanceof Player) && !com.kiokouwhite.crossfight.util.Mannequins.isMannequin(victim)) return;
         Player attacker = attackerOf(e.getDamager());
         if (attacker != null && attacker != victim) {
             plugin.abilities().dispatchDamage(attacker, victim, e);
@@ -80,24 +81,28 @@ public final class DamageListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onUltimateCharge(EntityDamageByEntityEvent e) {
         if (!plugin.game().isRunning()) return;
-        if (!(e.getEntity() instanceof Player victim)) return;
         Player attacker = attackerOf(e.getDamager());
-        if (attacker == null || attacker == victim) return;
+        if (attacker == null || attacker == e.getEntity()) return;
+        boolean mannequin = com.kiokouwhite.crossfight.util.Mannequins.isMannequin(e.getEntity());
+        if (!(e.getEntity() instanceof Player) && !mannequin) return;
 
         double percentOfBar = e.getFinalDamage() / 20.0 * 100.0;
         if (percentOfBar <= 0) return;
         double rate = plugin.getConfig().getDouble("ultimate.charge-per-percent-damage", 0.25);
 
         CfPlayer a = plugin.players().get(attacker);
-        CfPlayer v = plugin.players().get(victim);
         a.addDamageDealt(percentOfBar);
-        v.addDamageTaken(percentOfBar);
         boolean aReady = a.isUltimateReady();
-        boolean vReady = v.isUltimateReady();
         a.addUltimateCharge(percentOfBar * rate);
-        v.addUltimateCharge(percentOfBar * rate);
         if (!aReady && a.isUltimateReady()) announceReady(attacker);
-        if (!vReady && v.isUltimateReady()) announceReady(victim);
+
+        if (e.getEntity() instanceof Player victim) {
+            CfPlayer v = plugin.players().get(victim);
+            v.addDamageTaken(percentOfBar);
+            boolean vReady = v.isUltimateReady();
+            v.addUltimateCharge(percentOfBar * rate);
+            if (!vReady && v.isUltimateReady()) announceReady(victim);
+        }
     }
 
     private void announceReady(Player p) {

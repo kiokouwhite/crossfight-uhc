@@ -260,6 +260,7 @@ public final class GameManager {
             plugin.players().get(p).setWaitingRespawn(false);
         }
         plugin.teams().clear();
+        com.kiokouwhite.crossfight.util.Mannequins.clearAll();
         elapsed = 0;
         pvpEnabled = false;
     }

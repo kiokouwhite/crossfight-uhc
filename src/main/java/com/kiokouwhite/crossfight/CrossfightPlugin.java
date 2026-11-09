@@ -57,6 +57,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(new RestrictionListener(this), this);
         pm.registerEvents(characterRegistry.selectMenu(this), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.util.Mannequins(), this);
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
         }

@@ -129,14 +129,14 @@ public final class Byleth extends Character implements Listener {
                         l.getWorld().spawnParticle(Particle.CRIT, l, 1, 0, 0, 0, 0);
                     }
                     Location tip = eye.clone().add(dir.clone().multiply(length));
-                    for (Player enemy : Effects.enemiesWithin(p, tip, 1.3)) {
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, tip, 1.3)) {
                         cancel();
                         Vector pull = p.getLocation().toVector().subtract(enemy.getLocation().toVector());
                         double dist = pull.length();
                         pull.normalize().multiply(Math.min(2.5, 0.4 + dist * 0.22)).setY(0.35);
                         enemy.setVelocity(pull);
                         enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
-                        Msg.actionBar(enemy, "<gold>Byleth t'attrape avec son epee !");
+                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<gold>Byleth t'attrape avec son epee !");
                         Msg.actionBar(p, "<gold>Attrape !");
                         return;
                     }
@@ -154,7 +154,7 @@ public final class Byleth extends Character implements Listener {
         }
 
         @Override
-        public void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e, AbilityState st) {
+        public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             double dmg = e.getFinalDamage();
             if (dmg <= 0) return;
             Bukkit.getScheduler().runTask(plugin(), () -> {
@@ -275,7 +275,7 @@ public final class Byleth extends Character implements Listener {
             }
             center.getWorld().playSound(center, Sound.BLOCK_SWEET_BERRY_BUSH_BREAK, 1f, 0.6f);
             int n = 0;
-            for (Player enemy : Effects.enemiesWithin(p, center, 2.5)) {
+            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, center, 2.5)) {
                 Effects.damage(enemy, 6.0, p);
                 Effects.knockbackFrom(enemy, center, 10);
                 n++;
@@ -311,7 +311,7 @@ public final class Byleth extends Character implements Listener {
                 Msg.actionBar(p, "<red>La dimension est deja occupee.");
                 return false;
             }
-            List<Player> enemies = Effects.enemiesWithin(p, 20);
+            List<Player> enemies = Effects.enemyPlayersWithin(p, 20);
             if (enemies.isEmpty()) {
                 Msg.actionBar(p, "<red>Aucun ennemi a moins de 20 blocs.");
                 return false;

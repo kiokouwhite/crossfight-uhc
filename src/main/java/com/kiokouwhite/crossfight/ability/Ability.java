@@ -47,7 +47,7 @@ public abstract class Ability {
     public void tick(Player player, CfPlayer cf, AbilityState state) {}
 
     /** Degats infliges par le porteur a un ennemi. Peut modifier ou annuler l'evenement. */
-    public void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e, AbilityState state) {}
+    public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e, AbilityState state) {}
 
     /** Degats recus par le porteur (toute source). Peut modifier ou annuler l'evenement. */
     public void onDamaged(Player victim, org.bukkit.event.entity.EntityDamageEvent e, AbilityState state) {}

@@ -306,12 +306,12 @@ public final class Corrin extends Character {
                         l.getWorld().spawnParticle(Particle.BUBBLE_POP, l.clone().add(0, 1, 0), 8, 0.3, 0.5, 0.3, 0);
                     }
                     front.getWorld().playSound(front, Sound.ENTITY_GENERIC_SPLASH, 0.8f, 0.7f);
-                    for (Player enemy : Effects.enemiesWithin(p, front, 2.2)) {
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, front, 2.2)) {
                         if (hit.contains(enemy.getUniqueId())) continue;
                         hit.add(enemy.getUniqueId());
                         Effects.launchUp(enemy, 15);
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 20 * 10);
-                        Msg.actionBar(enemy, "<aqua>Emporte par la vague de Corrin !");
+                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<aqua>Emporte par la vague de Corrin !");
                     }
                 }
             }.runTaskTimer(plugin(), 0L, 20L);

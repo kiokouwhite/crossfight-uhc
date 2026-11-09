@@ -100,7 +100,7 @@ public final class FireEmblem {
         }
 
         @Override
-        public void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e) {
+        public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e) {
             double percent = e.getFinalDamage() / 20.0 * 100.0;
             if (percent <= 0) return;
             for (Player ally : Effects.alliesWithin(attacker, SUPPORT_RANGE)) {

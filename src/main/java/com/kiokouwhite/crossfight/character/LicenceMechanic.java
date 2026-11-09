@@ -19,7 +19,7 @@ public interface LicenceMechanic {
     default void tick(Player p) {}
 
     /** Degats infliges par un joueur de la licence a un ennemi (apres calcul). */
-    default void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e) {}
+    default void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e) {}
 
     /** Un joueur de la licence vient de mourir (avant la perte de vie). */
     default void onDeath(Player p) {}

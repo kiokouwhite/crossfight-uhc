@@ -7,6 +7,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -41,14 +42,14 @@ public final class Effects {
     }
 
     /** Effet affiche normalement (particules), utile pour les buffs temporaires. */
-    public static void give(Player p, PotionEffectType type, int amplifier, int ticks) {
+    public static void give(LivingEntity p, PotionEffectType type, int amplifier, int ticks) {
         PotionEffect current = p.getPotionEffect(type);
         if (current != null && current.getAmplifier() > amplifier) return;
         p.addPotionEffect(new PotionEffect(type, ticks, amplifier, false, true, true));
     }
 
     /** Immobilise un joueur (plus de deplacement ni de saut) pendant un nombre de ticks. */
-    public static void root(Player p, int ticks) {
+    public static void root(LivingEntity p, int ticks) {
         AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
         AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
         if (speed != null) {
@@ -63,14 +64,14 @@ public final class Effects {
         Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> unroot(p), ticks);
     }
 
-    public static void unroot(Player p) {
+    public static void unroot(LivingEntity p) {
         AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
         AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
         if (speed != null) speed.removeModifier(ROOT_SPEED);
         if (jump != null) jump.removeModifier(ROOT_JUMP);
     }
 
-    public static boolean isRooted(Player p) {
+    public static boolean isRooted(LivingEntity p) {
         AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
         return speed != null && speed.getModifier(ROOT_SPEED) != null;
     }
@@ -81,13 +82,13 @@ public final class Effects {
     }
 
     /** Projette un joueur en l'air d'environ {@code height} blocs. */
-    public static void launchUp(Player p, double height) {
+    public static void launchUp(LivingEntity p, double height) {
         Vector v = p.getVelocity();
         p.setVelocity(new Vector(v.getX() * 0.2, launchVelocityFor(height), v.getZ() * 0.2));
     }
 
     /** Repousse un joueur loin d'un point, d'environ {@code distance} blocs. */
-    public static void knockbackFrom(Player p, Location from, double distance) {
+    public static void knockbackFrom(LivingEntity p, Location from, double distance) {
         Vector dir = p.getLocation().toVector().subtract(from.toVector());
         dir.setY(0);
         if (dir.lengthSquared() < 0.01) dir = p.getLocation().getDirection().setY(0).multiply(-1);
@@ -98,13 +99,23 @@ public final class Effects {
 
     // ------------------------------------------------------------ recherche
 
-    public static boolean isEnemy(Player self, Player other) {
-        if (self == other) return false;
+    /** Un ennemi : un joueur vivant d'une autre equipe, ou un mannequin d'entrainement. */
+    public static boolean isEnemy(Player self, LivingEntity entity) {
+        if (entity == self || entity == null || entity.isDead()) return false;
+        if (Mannequins.isMannequin(entity)) return true;
+        if (!(entity instanceof Player other)) return false;
         var plugin = CrossfightPlugin.get();
         var cf = plugin.players().get(other);
         if (cf.team() == null || !cf.isAlive() || cf.isWaitingRespawn()) return false;
         if (other.getGameMode() == org.bukkit.GameMode.SPECTATOR) return false;
         return !plugin.teams().sameTeam(self, other);
+    }
+
+    /** Joueurs ennemis uniquement (pour ce qui n'a de sens que sur un joueur). */
+    public static List<Player> enemyPlayersWithin(Player self, double radius) {
+        List<Player> out = new ArrayList<>();
+        for (LivingEntity e : enemiesWithin(self, radius)) if (e instanceof Player p) out.add(p);
+        return out;
     }
 
     public static boolean isAlly(Player self, Player other) {
@@ -115,20 +126,15 @@ public final class Effects {
         return plugin.teams().sameTeam(self, other);
     }
 
-    public static List<Player> enemiesWithin(Player self, double radius) {
-        List<Player> out = new ArrayList<>();
-        double r2 = radius * radius;
-        for (Player o : self.getWorld().getPlayers()) {
-            if (isEnemy(self, o) && o.getLocation().distanceSquared(self.getLocation()) <= r2) out.add(o);
-        }
-        return out;
+    public static List<LivingEntity> enemiesWithin(Player self, double radius) {
+        return enemiesWithin(self, self.getLocation(), radius);
     }
 
-    public static List<Player> enemiesWithin(Player self, Location center, double radius) {
-        List<Player> out = new ArrayList<>();
+    public static List<LivingEntity> enemiesWithin(Player self, Location center, double radius) {
+        List<LivingEntity> out = new ArrayList<>();
         double r2 = radius * radius;
-        for (Player o : center.getWorld().getPlayers()) {
-            if (isEnemy(self, o) && o.getLocation().distanceSquared(center) <= r2) out.add(o);
+        for (org.bukkit.entity.Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
+            if (e instanceof LivingEntity le && isEnemy(self, le) && le.getLocation().distanceSquared(center) <= r2) out.add(le);
         }
         return out;
     }
@@ -142,7 +148,7 @@ public final class Effects {
         return out;
     }
 
-    public static Player nearestEnemy(Player self, double radius) {
+    public static LivingEntity nearestEnemy(Player self, double radius) {
         return enemiesWithin(self, radius).stream()
                 .min(Comparator.comparingDouble(o -> o.getLocation().distanceSquared(self.getLocation())))
                 .orElse(null);
@@ -155,12 +161,12 @@ public final class Effects {
     }
 
     /** Degats "bruts" infliges par un joueur a un autre, en points de vie (2 = 1 coeur). */
-    public static void damage(Player victim, double amount, Player source) {
+    public static void damage(LivingEntity victim, double amount, Player source) {
         if (victim.isDead()) return;
         victim.damage(amount, source);
     }
 
-    public static void heal(Player p, double amount) {
+    public static void heal(LivingEntity p, double amount) {
         var attr = p.getAttribute(Attribute.MAX_HEALTH);
         double max = attr == null ? 20 : attr.getValue();
         p.setHealth(Math.min(max, p.getHealth() + amount));
