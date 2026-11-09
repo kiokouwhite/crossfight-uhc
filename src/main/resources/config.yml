@@ -1,0 +1,36 @@
+# Configuration de Crossfight UHC
+game:
+  # Taille des equipes : SOLO, DUO ou TRIO
+  team-size: TRIO
+  # Vies par joueur
+  lives: 3
+  # Minute a laquelle le PvP s'active
+  pvp-minute: 30
+  # Minutes des evenements
+  events:
+    lootbox: 20
+    regna-ferox: 30
+    match-found: 40
+    judgement: 50
+    omori: 60
+
+world:
+  # Nom du monde de jeu
+  name: world
+  # Demi-taille de la bordure au depart (modifiable en jeu avec /cf setborder)
+  border-radius: 1000
+  # Rayon de dispersion des joueurs au lancement
+  spread-radius: 800
+
+lives:
+  # Zone dans laquelle un joueur reapparait aleatoirement
+  respawn-radius: 500
+
+ultimate:
+  # Pourcentage d'ultime gagne par 1% de degats (1% = 0.2 PV, soit 1/10 de coeur)
+  charge-per-percent-damage: 0.25
+
+restrictions:
+  max-diamond-pieces: 2
+  max-protection-diamond: 2
+  max-protection-iron: 3
