@@ -77,6 +77,24 @@ public final class CfCommand implements TabExecutor {
                         plugin.saveConfig();
                         Msg.send(sender, "<green>PvP a la minute " + minute + ".");
                     }
+                    case "ult" -> {
+                        // /cf ult [joueur] <pourcent> : regle la jauge d'ultime (test)
+                        Player target = sender instanceof Player sp ? sp : null;
+                        String value = args.length > 1 ? args[1] : null;
+                        if (args.length > 2) { target = Bukkit.getPlayerExact(args[1]); value = args[2]; }
+                        if (target == null || value == null) { Msg.send(sender, "<red>Usage : /cf ult [joueur] <pourcent>"); return true; }
+                        try {
+                            plugin.players().get(target).setUltimateCharge(Double.parseDouble(value));
+                            Msg.send(sender, "<green>Ultime de " + target.getName() + " a " + (int) plugin.players().get(target).ultimateCharge() + "%.");
+                        } catch (NumberFormatException ex) { Msg.send(sender, "<red>Pourcentage invalide."); }
+                    }
+                    case "heal" -> {
+                        if (!(sender instanceof Player sp)) return true;
+                        var mh = sp.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                        sp.setHealth(mh == null ? 20 : mh.getValue());
+                        sp.setFoodLevel(20);
+                        Msg.send(sp, "<green>Soigne.");
+                    }
                     case "give" -> {
                         if (args.length < 3) { Msg.send(sender, "<red>Usage : /cf give <joueur> <perso>"); return true; }
                         Player target = Bukkit.getPlayerExact(args[1]);
@@ -109,6 +127,8 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf setpvp <minute> <gray>- minute du PvP");
             Msg.raw(s, "<red>/cf team add <joueur> <id> <gray>- forcer un joueur dans une equipe");
             Msg.raw(s, "<red>/cf give <joueur> <perso> <gray>- forcer un personnage");
+            Msg.raw(s, "<red>/cf ult [joueur] <pourcent> <gray>- regler la jauge d'ultime (test)");
+            Msg.raw(s, "<red>/cf heal <gray>- se soigner (test)");
         }
     }
 
@@ -195,7 +215,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
