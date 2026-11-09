@@ -24,8 +24,7 @@ public final class CharacterRegistry {
     /** Declare les licences du doc. Les personnages sont ajoutes licence par licence. */
     public void registerDefaults() {
         // Equipe de trois
-        register(new Licence("fire_emblem", "FIRE EMBLEM", TeamSize.TRIO,
-                "Soutien entre allies a moins de 10 blocs : chaque niveau (C a S) donne Force, Vitesse ou Resistance 0.5."));
+        register(com.kiokouwhite.crossfight.character.fireemblem.FireEmblem.create());
         register(new Licence("rwby", "RWBY", TeamSize.TRIO,
                 "Ultimes en duo, charges par les degats de deux allies a moins de 10 blocs (300 %)."));
         register(new Licence("valorant", "VALORANT", TeamSize.TRIO,

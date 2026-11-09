@@ -56,6 +56,10 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(new DeathListener(this), this);
         pm.registerEvents(new RestrictionListener(this), this);
         pm.registerEvents(characterRegistry.selectMenu(this), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
+        for (var licence : characterRegistry.licences()) {
+            for (var l : licence.listeners()) pm.registerEvents(l, this);
+        }
 
         var cf = getCommand("cf");
         var vivre = getCommand("vivre");
@@ -66,6 +70,13 @@ public final class CrossfightPlugin extends JavaPlugin {
         }
         if (vivre != null) {
             vivre.setExecutor(new VivreCommand(this));
+        }
+
+        // Pre-creation des mondes d'arene pour eviter un lag en pleine partie.
+        try {
+            com.kiokouwhite.crossfight.character.fireemblem.Byleth.dimension();
+        } catch (Exception ex) {
+            getLogger().warning("Impossible de preparer la dimension de Byleth : " + ex.getMessage());
         }
 
         abilityEngine.start();

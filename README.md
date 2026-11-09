@@ -53,7 +53,7 @@ com.kiokouwhite.crossfight
 ├── player/                 état des joueurs, vies et réapparition
 ├── ability/                moteur de capacités (passif, actif, activable, intervertible, ultime)
 ├── character/              licences, personnages, menu de sélection
-│   └── <licence>/          une classe par personnage (à venir)
+│   └── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -63,10 +63,25 @@ com.kiokouwhite.crossfight
 Une barre de vie pleine (10 cœurs) vaut 100 % de dégâts. Chaque 1 % infligé **ou** reçu
 charge l'Ultime de 0,25 % (`ultimate.charge-per-percent-damage` dans `config.yml`).
 
+### Bonus fractionnaires
+
+Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permettent pas, donc
+le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
+Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
+
+### Hypothèses prises sur Fire Emblem
+
+- Le Soutien est commun à la paire : les dégâts des deux alliés font progresser le même niveau, et chaque niveau tire au sort Force, Vitesse ou Résistance 0.5 pour les deux.
+- Takumi reçoit un arc Infinité et une flèche, sinon il ne peut pas tirer avant d'avoir des plumes.
+- Yato Alpha : « 15 ❤ » est lu comme 15 cœurs de vie maximum.
+- L'Épée du Créateur de Byleth fait 8 dégâts (non précisé dans le doc).
+- Le Soutien et les dégâts des capacités passent par l'armure comme un coup normal.
+
 ## Feuille de route
 
 - [x] Socle UHC : équipes, licences, vies, PvP, restrictions, scoreboard
 - [x] Moteur de capacités et Ultime
-- [ ] Systèmes de licence (Soutien, gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 36 personnages
+- [x] Fire Emblem : Soutien C à S, Marth, Corrin, Takumi, Byleth
+- [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
+- [ ] 32 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori

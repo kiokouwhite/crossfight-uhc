@@ -105,6 +105,8 @@ public final class ScoreboardManager {
                     lines.add("<white>Perso : <gold>" + (cf.character() == null ? "<gray>aucun" : cf.character().name()));
                     lines.add("<white>Vies : <red>" + "❤".repeat(Math.max(0, cf.lives())) + "<dark_gray>" + "❤".repeat(Math.max(0, plugin.getConfig().getInt("game.lives", 3) - cf.lives())));
                     lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
+                    String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
+                    if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
                     StringBuilder allies = new StringBuilder();
                     for (Player ally : t.onlineMembers()) {
                         if (ally == p) continue;

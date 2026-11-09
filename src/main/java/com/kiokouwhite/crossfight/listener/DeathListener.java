@@ -37,6 +37,7 @@ public final class DeathListener implements Listener {
         String msg = "<red>" + p.getName() + "</red> <gray>est tombe";
         if (killer != null && killer != p) {
             plugin.players().get(killer).addKill();
+            plugin.abilities().dispatchKill(killer, p);
             msg += " face a <red>" + killer.getName();
         }
         e.deathMessage(Msg.prefixed(msg + "."));

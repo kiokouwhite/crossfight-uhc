@@ -29,6 +29,10 @@ public final class LivesManager {
     public void onDeath(Player p) {
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
+        if (plugin.abilities().dispatchDeath(p)) {
+            // Une capacite prend la mort en charge (ex : Byleth dans sa dimension).
+            return;
+        }
         cf.addLife(-1);
         plugin.abilities().unequip(p);
 
@@ -90,7 +94,7 @@ public final class LivesManager {
         return true;
     }
 
-    private void respawnAt(Player p, Location loc) {
+    public void respawnAt(Player p, Location loc) {
         CfPlayer cf = plugin.players().get(p);
         cf.setWaitingRespawn(false);
         for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());

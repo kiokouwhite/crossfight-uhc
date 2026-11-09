@@ -3,6 +3,7 @@ package com.kiokouwhite.crossfight.ability;
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.character.Character;
 import com.kiokouwhite.crossfight.player.CfPlayer;
+import com.kiokouwhite.crossfight.util.Boosts;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
 import org.bukkit.Bukkit;
@@ -92,6 +93,8 @@ public final class AbilityEngine implements Listener {
         for (Ability a : ch.allAbilities()) {
             a.onEquip(p, cf);
         }
+        if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onEquip(p);
+        Boosts.apply(p);
     }
 
     /** Retire les items de capacite et appelle les hooks de fin. */
@@ -107,8 +110,72 @@ public final class AbilityEngine implements Listener {
                 }
                 a.onUnequip(p, cf);
             }
+            if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onUnequip(p);
         }
         removeAbilityItems(p.getInventory());
+    }
+
+    // ------------------------------------------------------------ dispatch
+
+    /** Degats joueur contre joueur : previent les capacites de l'attaquant puis de la victime. */
+    public void dispatchDamage(Player attacker, Player victim, org.bukkit.event.entity.EntityDamageByEntityEvent e) {
+        CfPlayer acf = plugin.players().get(attacker);
+        if (acf.character() != null) {
+            for (Ability a : acf.character().allAbilities()) {
+                try { a.onDealDamage(attacker, victim, e, state(attacker, a)); }
+                catch (Exception ex) { plugin.getLogger().warning("onDealDamage " + a.id() + " : " + ex); }
+            }
+        }
+    }
+
+    /** Degats recus par un joueur, toute source. */
+    public void dispatchDamaged(Player victim, org.bukkit.event.entity.EntityDamageEvent e) {
+        CfPlayer vcf = plugin.players().get(victim);
+        if (vcf.character() != null) {
+            for (Ability a : vcf.character().allAbilities()) {
+                try { a.onDamaged(victim, e, state(victim, a)); }
+                catch (Exception ex) { plugin.getLogger().warning("onDamaged " + a.id() + " : " + ex); }
+            }
+        }
+    }
+
+    public void dispatchKill(Player killer, Player victim) {
+        CfPlayer kcf = plugin.players().get(killer);
+        if (kcf.character() != null) {
+            for (Ability a : kcf.character().allAbilities()) {
+                try { a.onKill(killer, victim, state(killer, a)); }
+                catch (Exception ex) { plugin.getLogger().warning("onKill " + a.id() + " : " + ex); }
+            }
+            var lic = kcf.character().licence();
+            if (lic != null && lic.mechanic() != null) lic.mechanic().onKill(killer, victim);
+        }
+    }
+
+    /** Retourne true si une capacite prend la mort en charge (pas de perte de vie). */
+    public boolean dispatchDeath(Player p) {
+        CfPlayer cf = plugin.players().get(p);
+        boolean handled = false;
+        if (cf.character() != null) {
+            for (Ability a : cf.character().allAbilities()) {
+                try { if (a.onDeath(p, cf, state(p, a))) handled = true; }
+                catch (Exception ex) { plugin.getLogger().warning("onDeath " + a.id() + " : " + ex); }
+            }
+            var lic = cf.character().licence();
+            if (lic != null && lic.mechanic() != null) lic.mechanic().onDeath(p);
+        }
+        return handled;
+    }
+
+    /** Tick des particularites de licence, appele chaque seconde par la partie. */
+    public void tickMechanics() {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            CfPlayer cf = plugin.players().get(p);
+            Character ch = cf.character();
+            if (ch == null || ch.licence() == null || ch.licence().mechanic() == null) continue;
+            if (cf.isWaitingRespawn() || !cf.isAlive()) continue;
+            try { ch.licence().mechanic().tick(p); }
+            catch (Exception ex) { plugin.getLogger().warning("tick licence " + ch.licence().id() + " : " + ex); }
+        }
     }
 
     public static void removeAbilityItems(PlayerInventory inv) {
@@ -189,7 +256,13 @@ public final class AbilityEngine implements Listener {
         ItemStack item = e.getItem();
         String id = Items.tag(item, ABILITY_KEY);
         if (id == null) return;
-        e.setCancelled(true);
+        // Clic droit sur un coffre, une porte... : on laisse faire sauf si le joueur est accroupi.
+        if (e.getAction() == Action.RIGHT_CLICK_BLOCK && e.getClickedBlock() != null
+                && isInteractable(e.getClickedBlock().getType()) && !e.getPlayer().isSneaking()) {
+            return;
+        }
+        // L'arme garde son usage normal (arc, etc.) : on n'annule que pour les items purs de capacite.
+        if (!isWeaponItem(item)) e.setCancelled(true);
 
         Player p = e.getPlayer();
         if (!plugin.game().isRunning()) {
@@ -204,6 +277,18 @@ public final class AbilityEngine implements Listener {
         use(p, cf, a);
     }
 
+    /** Blocs dont le clic droit a un usage (coffres, portes, tables...). */
+    private static boolean isInteractable(org.bukkit.Material m) {
+        String n = m.name();
+        return n.contains("CHEST") || n.contains("DOOR") || n.contains("GATE") || n.contains("BUTTON") || n.contains("LEVER")
+                || n.contains("FURNACE") || n.contains("TABLE") || n.contains("ANVIL") || n.contains("BARREL") || n.contains("SHULKER")
+                || n.contains("BED") || n.contains("SIGN") || n.contains("TRAPDOOR") || n.contains("HOPPER") || n.contains("DISPENSER")
+                || n.contains("DROPPER") || n.contains("REPEATER") || n.contains("COMPARATOR") || n.contains("GRINDSTONE")
+                || n.contains("LOOM") || n.contains("STONECUTTER") || n.contains("LECTERN") || n.contains("BREWING")
+                || n.contains("BEACON") || n.contains("CAMPFIRE") || n.contains("NOTE_BLOCK") || n.contains("JUKEBOX")
+                || n.contains("CAULDRON") || n.contains("COMPOSTER") || n.contains("BELL") || n.contains("CRAFTER");
+    }
+
     public void use(Player p, CfPlayer cf, Ability a) {
         AbilityState st = state(p, a);
         switch (a) {
@@ -215,7 +300,7 @@ public final class AbilityEngine implements Listener {
                 }
                 boolean ok = active.activate(p, cf, st);
                 if (ok) {
-                    st.startCooldown(active.cooldownSeconds());
+                    st.startCooldown((int) Math.ceil(active.cooldownSeconds() * cf.cooldownFactor()));
                     p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.4f);
                 }
             }

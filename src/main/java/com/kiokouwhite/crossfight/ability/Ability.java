@@ -5,6 +5,7 @@ import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Items;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
@@ -45,7 +46,22 @@ public abstract class Ability {
     /** Appele une fois par seconde tant que le joueur possede la capacite et est en vie. */
     public void tick(Player player, CfPlayer cf, AbilityState state) {}
 
-    /** Les passifs n'ont pas d'item ; les autres oui. */
+    /** Degats infliges par le porteur a un ennemi. Peut modifier ou annuler l'evenement. */
+    public void onDealDamage(Player attacker, Player victim, EntityDamageByEntityEvent e, AbilityState state) {}
+
+    /** Degats recus par le porteur (toute source). Peut modifier ou annuler l'evenement. */
+    public void onDamaged(Player victim, org.bukkit.event.entity.EntityDamageEvent e, AbilityState state) {}
+
+    /** Le porteur vient de tuer un ennemi. */
+    public void onKill(Player killer, Player victim, AbilityState state) {}
+
+    /**
+     * Le porteur vient de mourir. Retourner true pour que la mort ne coute pas de vie
+     * (la capacite prend alors en charge la reapparition).
+     */
+    public boolean onDeath(Player player, CfPlayer cf, AbilityState state) { return false; }
+
+    /** Les passifs n'ont pas d'item ; les autres oui. Les capacites portees par l'arme renvoient false. */
     public boolean hasItem() { return type != AbilityType.PASSIVE; }
 
     /** Cree l'item d'activation de la capacite. */

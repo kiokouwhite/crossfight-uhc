@@ -69,18 +69,25 @@ public final class GameManager {
         }
         int lives = plugin.getConfig().getInt("game.lives", 3);
         for (Team t : plugin.teams().all()) t.setEliminated(false);
+        com.kiokouwhite.crossfight.util.Boosts.clearAll();
+        for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().reset();
         for (Player p : Bukkit.getOnlinePlayers()) {
             CfPlayer cf = plugin.players().get(p);
             cf.resetForNewGame(lives);
             plugin.abilities().clearStates(p);
             p.setGameMode(cf.team() == null ? GameMode.SPECTATOR : GameMode.ADVENTURE);
             p.getInventory().clear();
+            com.kiokouwhite.crossfight.util.Boosts.apply(p);
+            var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (mh != null) mh.setBaseValue(20.0);
             p.setHealth(20);
             p.setFoodLevel(20);
             p.setSaturation(20);
             p.setExp(0);
             p.setLevel(0);
             for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
+            com.kiokouwhite.crossfight.util.Effects.unroot(p);
+            p.setAllowFlight(false);
         }
         plugin.teams().assignLicences();
         prepareWorld();
@@ -187,6 +194,7 @@ public final class GameManager {
 
     private void tickRunning() {
         elapsed++;
+        plugin.abilities().tickMechanics();
         if (elapsed % 60 == 0) {
             int minute = elapsed / 60;
             int pvpMin = plugin.getConfig().getInt("game.pvp-minute", 30);

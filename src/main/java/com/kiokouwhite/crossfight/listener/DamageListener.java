@@ -51,6 +51,32 @@ public final class DamageListener implements Listener {
         }
     }
 
+    /** Capacites de l'attaquant et de la victime, puis resistance fractionnaire. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onAbilityHooks(EntityDamageByEntityEvent e) {
+        if (!plugin.game().isRunning()) return;
+        if (!(e.getEntity() instanceof Player victim)) return;
+        Player attacker = attackerOf(e.getDamager());
+        if (attacker != null && attacker != victim) {
+            plugin.abilities().dispatchDamage(attacker, victim, e);
+            if (e.isCancelled()) return;
+            var cf = plugin.players().get(attacker);
+            if (cf.character() != null && cf.character().licence() != null && cf.character().licence().mechanic() != null) {
+                cf.character().licence().mechanic().onDealDamage(attacker, victim, e);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onDamagedHooks(EntityDamageEvent e) {
+        if (!plugin.game().isRunning()) return;
+        if (!(e.getEntity() instanceof Player victim)) return;
+        plugin.abilities().dispatchDamaged(victim, e);
+        if (e.isCancelled()) return;
+        double mul = com.kiokouwhite.crossfight.util.Boosts.damageTakenMultiplier(victim);
+        if (mul < 0.999) e.setDamage(e.getDamage() * mul);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onUltimateCharge(EntityDamageByEntityEvent e) {
         if (!plugin.game().isRunning()) return;

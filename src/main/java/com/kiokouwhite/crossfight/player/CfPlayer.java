@@ -26,6 +26,8 @@ public final class CfPlayer {
     private double damageDealtPercent;
     private double damageTakenPercent;
     private int kills;
+    /** Multiplicateur des temps de chargement (1.0 = normal, 0.95 = -5 %). */
+    private double cooldownFactor = 1.0;
 
     public CfPlayer(UUID uuid, String name) {
         this.uuid = uuid;
@@ -65,6 +67,9 @@ public final class CfPlayer {
     public void addDamageDealt(double percent) { damageDealtPercent += percent; }
     public void addDamageTaken(double percent) { damageTakenPercent += percent; }
 
+    public double cooldownFactor() { return cooldownFactor; }
+    public void setCooldownFactor(double f) { this.cooldownFactor = Math.max(0.1, f); }
+
     public int kills() { return kills; }
     public void addKill() { kills++; }
 
@@ -77,5 +82,6 @@ public final class CfPlayer {
         this.damageTakenPercent = 0;
         this.kills = 0;
         this.character = null;
+        this.cooldownFactor = 1.0;
     }
 }
