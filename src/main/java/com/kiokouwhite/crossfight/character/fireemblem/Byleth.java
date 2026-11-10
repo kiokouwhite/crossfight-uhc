@@ -105,6 +105,68 @@ public final class Byleth extends Character implements Listener {
         return com.kiokouwhite.crossfight.CrossfightPlugin.get();
     }
 
+    // ------------------------------------------------------------- fouet d'os
+
+    /** Chaine de segments d'os (BlockDisplay) alignee sur une direction. */
+    static final class BoneWhip {
+        static final double SEGMENT = 0.5;
+        private final List<BlockDisplay> bones = new ArrayList<>();
+        private final boolean glowing;
+
+        BoneWhip(boolean glowing) { this.glowing = glowing; }
+
+        void layout(Location origin, Vector dir, double len) {
+            int needed = (int) Math.ceil(len / SEGMENT);
+            while (bones.size() < needed) bones.add(spawn(origin));
+            while (bones.size() > needed) bones.remove(bones.size() - 1).remove();
+            var rot = rotationFor(dir);
+            for (int i = 0; i < bones.size(); i++) {
+                Location l = origin.clone().add(dir.clone().multiply(0.6 + i * SEGMENT)).subtract(0, 0.25, 0);
+                BlockDisplay b = bones.get(i);
+                b.teleport(l);
+                b.setTransformation(transformFor(rot));
+            }
+        }
+
+        /** Position d'un point du fouet a une distance donnee. */
+        static Location pointAt(Location origin, Vector dir, double d) {
+            return origin.clone().add(dir.clone().multiply(d)).subtract(0, 0.25, 0);
+        }
+
+        void clear() {
+            for (BlockDisplay b : bones) b.remove();
+            bones.clear();
+        }
+
+        private BlockDisplay spawn(Location at) {
+            return at.getWorld().spawn(at, BlockDisplay.class, d -> {
+                d.setBlock(Material.BONE_BLOCK.createBlockData());
+                d.setTeleportDuration(1);
+                d.setInterpolationDuration(1);
+                d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                d.setPersistent(false);
+                if (glowing) {
+                    d.setGlowing(true);
+                    d.setGlowColorOverride(org.bukkit.Color.fromRGB(255, 40, 60));
+                }
+            });
+        }
+
+        /** Oriente l'axe Z local du bloc vers la direction donnee. */
+        private static org.joml.Quaternionf rotationFor(Vector dir) {
+            float yaw = (float) Math.atan2(dir.getX(), dir.getZ());
+            float pitch = (float) -Math.asin(Math.max(-1, Math.min(1, dir.getY())));
+            return new org.joml.Quaternionf().rotationY(yaw).rotateX(pitch);
+        }
+
+        private static org.bukkit.util.Transformation transformFor(org.joml.Quaternionf rot) {
+            org.joml.Vector3f scale = new org.joml.Vector3f(0.22f, 0.22f, (float) SEGMENT + 0.05f);
+            org.joml.Vector3f offset = new org.joml.Vector3f(-scale.x / 2, -scale.y / 2, -scale.z / 2);
+            rot.transform(offset);
+            return new org.bukkit.util.Transformation(offset, new org.joml.Quaternionf(rot), scale, new org.joml.Quaternionf());
+        }
+    }
+
     // ------------------------------------------------------------------ arme
 
     static final class EpeeDuCreateur extends ActiveAbility {
@@ -114,7 +176,6 @@ public final class Byleth extends Character implements Listener {
 
         @Override public boolean hasItem() { return false; }
 
-        private static final double SEGMENT = 0.5;
         /** Avancee par tick : 8 blocs par seconde. */
         private static final double SPEED_PER_TICK = 0.4;
 
@@ -123,7 +184,7 @@ public final class Byleth extends Character implements Listener {
             p.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
             // Byleth est immobilisee tant que le fouet est sorti (au plus 3 secondes de securite).
             Effects.root(p, 60);
-            List<BlockDisplay> bones = new ArrayList<>();
+            BoneWhip whip = new BoneWhip(false);
             // Direction figee au lancement : Byleth est verrouillee, le fouet ne suit plus le regard.
             final Vector lockedDir = p.getEyeLocation().getDirection().normalize();
             new BukkitRunnable() {
@@ -166,54 +227,16 @@ public final class Byleth extends Character implements Listener {
                     if (length >= 10) retracting = true;
                 }
 
-                /** Place les segments d'os le long de la direction du regard. */
                 void layout(Player p, double len) {
-                    Location eye = p.getEyeLocation();
-                    Vector dir = lockedDir;
-                    int needed = (int) Math.ceil(len / SEGMENT);
-                    while (bones.size() < needed) bones.add(spawnBone(eye));
-                    while (bones.size() > needed) bones.remove(bones.size() - 1).remove();
-                    var rot = rotationFor(dir);
-                    for (int i = 0; i < bones.size(); i++) {
-                        Location l = eye.clone().add(dir.clone().multiply(0.6 + i * SEGMENT)).subtract(0, 0.25, 0);
-                        BlockDisplay b = bones.get(i);
-                        b.teleport(l);
-                        b.setTransformation(transformFor(rot));
-                    }
+                    whip.layout(p.getEyeLocation(), lockedDir, len);
                 }
 
                 void clear() {
-                    for (BlockDisplay b : bones) b.remove();
-                    bones.clear();
+                    whip.clear();
                     Effects.unroot(p);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
             return true;
-        }
-
-        private static BlockDisplay spawnBone(Location at) {
-            return at.getWorld().spawn(at, BlockDisplay.class, d -> {
-                d.setBlock(Material.BONE_BLOCK.createBlockData());
-                d.setTeleportDuration(1);
-                d.setInterpolationDuration(1);
-                d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
-                d.setPersistent(false);
-            });
-        }
-
-        /** Oriente l'axe Z local du bloc vers la direction donnee. */
-        private static org.joml.Quaternionf rotationFor(Vector dir) {
-            float yaw = (float) Math.atan2(dir.getX(), dir.getZ());
-            float pitch = (float) -Math.asin(Math.max(-1, Math.min(1, dir.getY())));
-            return new org.joml.Quaternionf().rotationY(yaw).rotateX(pitch);
-        }
-
-        private static org.bukkit.util.Transformation transformFor(org.joml.Quaternionf rot) {
-            org.joml.Vector3f scale = new org.joml.Vector3f(0.22f, 0.22f, (float) SEGMENT + 0.05f);
-            // Centre le segment sur son point d'ancrage, en tenant compte de la rotation.
-            org.joml.Vector3f offset = new org.joml.Vector3f(-scale.x / 2, -scale.y / 2, -scale.z / 2);
-            rot.transform(offset);
-            return new org.bukkit.util.Transformation(offset, new org.joml.Quaternionf(rot), scale, new org.joml.Quaternionf());
         }
     }
 
@@ -329,30 +352,93 @@ public final class Byleth extends Character implements Listener {
 
     static final class DechainementDEpine extends ActiveAbility {
         DechainementDEpine() {
-            super("byleth_epine", "Dechainement d'Epine", "Une zone de 5 blocs devant Byleth ejecte les ennemis a 10 blocs et inflige 3 coeurs.",
+            super("byleth_epine", "Dechainement d'Epine", "Byleth balaie un grand arc avec son epee-fouet : les ennemis dans la zone de 5 blocs devant elle sont ejectes a 10 blocs et perdent 3 coeurs.",
                     Material.SWEET_BERRIES, 20);
         }
 
+        private static final int SWEEP_TICKS = 10;
+        private static final double WHIP_LENGTH = 6.0;
+        private static final double HALF_ARC = Math.toRadians(95);
+        private static final Particle.DustOptions RED = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 30, 50), 1.6f);
+        private static final Particle.DustOptions PINK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 120, 170), 1.1f);
+        private static final Particle.DustTransition FLASH = new Particle.DustTransition(
+                org.bukkit.Color.fromRGB(255, 240, 120), org.bukkit.Color.fromRGB(255, 60, 60), 2.2f);
+
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Vector dir = p.getLocation().getDirection().setY(0);
-            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-            dir.normalize();
-            Location center = p.getLocation().add(dir.multiply(3.5));
-            for (int i = 0; i < 40; i++) {
-                double a = Math.random() * Math.PI * 2, r = Math.random() * 2.5;
-                center.getWorld().spawnParticle(Particle.COMPOSTER, center.clone().add(Math.cos(a) * r, 0.2 + Math.random(), Math.sin(a) * r), 1);
-                center.getWorld().spawnParticle(Particle.CRIT, center.clone().add(Math.cos(a) * r, 0.5, Math.sin(a) * r), 1, 0, 0, 0, 0);
-            }
-            center.getWorld().playSound(center, Sound.BLOCK_SWEET_BERRY_BUSH_BREAK, 1f, 0.6f);
-            int n = 0;
-            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, center, 2.5)) {
-                Effects.damage(enemy, 6.0, p);
-                Effects.knockbackFrom(enemy, center, 10);
-                n++;
-            }
-            Msg.actionBar(p, n > 0 ? "<green>" + n + " ennemi(s) ejecte(s)" : "<gray>Aucun ennemi dans la zone");
+            Vector forward = p.getLocation().getDirection().setY(0);
+            if (forward.lengthSquared() < 0.01) forward = new Vector(1, 0, 0);
+            forward.normalize();
+            final Vector fwd = forward;
+            final double baseAngle = Math.atan2(fwd.getZ(), fwd.getX());
+            final Location center = p.getLocation().add(fwd.clone().multiply(3.5));
+            // Sens du balayage : de la gauche vers la droite de Byleth.
+            final List<org.bukkit.entity.LivingEntity> targets = Effects.enemiesWithin(p, center, 2.5);
+            final List<java.util.UUID> hit = new ArrayList<>();
+
+            Effects.root(p, SWEEP_TICKS + 4);
+            p.getWorld().playSound(p.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 1f, 0.6f);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.7f);
+            BoneWhip whip = new BoneWhip(true);
+
+            new BukkitRunnable() {
+                int tick = 0;
+
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || tick > SWEEP_TICKS + 3) { whip.clear(); Effects.unroot(p); cancel(); return; }
+                    if (tick > SWEEP_TICKS) { tick++; whip.clear(); return; }
+                    double t = (double) tick / SWEEP_TICKS;
+                    // Acceleration au milieu du mouvement, comme un vrai coup de fouet.
+                    double eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                    double angle = baseAngle - HALF_ARC + eased * 2 * HALF_ARC;
+                    Vector dir = new Vector(Math.cos(angle), -0.08, Math.sin(angle)).normalize();
+                    Location origin = p.getEyeLocation().subtract(0, 0.3, 0);
+                    whip.layout(origin, dir, WHIP_LENGTH);
+
+                    // Trainee rouge le long du fouet, plus dense vers la pointe.
+                    for (double d = 1.0; d <= WHIP_LENGTH; d += 0.5) {
+                        Location l = BoneWhip.pointAt(origin, dir, d);
+                        l.getWorld().spawnParticle(Particle.DUST, l, 2, 0.08, 0.08, 0.08, 0, d > 3.5 ? RED : PINK);
+                    }
+                    Location tip = BoneWhip.pointAt(origin, dir, WHIP_LENGTH);
+                    tip.getWorld().spawnParticle(Particle.SWEEP_ATTACK, tip, 1);
+                    tip.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, tip, 3, 0.2, 0.2, 0.2, 0, FLASH);
+
+                    // Un ennemi est frappe quand le fouet passe sur lui (angle depasse), ou au dernier tick.
+                    for (org.bukkit.entity.LivingEntity enemy : targets) {
+                        if (hit.contains(enemy.getUniqueId()) || enemy.isDead()) continue;
+                        Vector rel = enemy.getLocation().toVector().subtract(p.getLocation().toVector());
+                        double enemyAngle = Math.atan2(rel.getZ(), rel.getX());
+                        double delta = normalize(enemyAngle - baseAngle);
+                        double sweepDelta = normalize(angle - baseAngle);
+                        if (sweepDelta >= delta || tick == SWEEP_TICKS) {
+                            hit.add(enemy.getUniqueId());
+                            strike(p, enemy, center);
+                        }
+                    }
+                    tick++;
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> Msg.actionBar(p,
+                    hit.isEmpty() ? "<gray>Aucun ennemi dans la zone" : "<green>" + hit.size() + " ennemi(s) ejecte(s)"), SWEEP_TICKS + 1L);
             return true;
+        }
+
+        private static double normalize(double a) {
+            while (a > Math.PI) a -= 2 * Math.PI;
+            while (a < -Math.PI) a += 2 * Math.PI;
+            return a;
+        }
+
+        private static void strike(Player byleth, org.bukkit.entity.LivingEntity enemy, Location center) {
+            Effects.damage(enemy, 6.0, byleth);
+            Effects.knockbackFrom(enemy, center, 10);
+            Location at = enemy.getLocation().add(0, 1, 0);
+            at.getWorld().spawnParticle(Particle.FLASH, at, 1);
+            at.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, at, 25, 0.5, 0.6, 0.5, 0, FLASH);
+            at.getWorld().spawnParticle(Particle.CRIT, at, 20, 0.4, 0.5, 0.4, 0.2);
+            at.getWorld().playSound(at, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.6f);
+            at.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.6f);
         }
     }
 
