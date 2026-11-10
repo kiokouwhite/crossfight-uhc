@@ -225,7 +225,7 @@ public final class Weiss extends Character implements Listener {
     static final class GlyphsType2 extends ActiveAbility {
         GlyphsType2() {
             super("weiss_glyphs2", "Glyphs (Type 2)",
-                    "Rouge : fleche qui enflamme une zone de 5x5. Bleu : patinoire 10x10 avec Vitesse (10 s). Jaune : eclair sur tous les ennemis a 10 blocs. Cyan : barriere 3x3 qui tire 5 fleches a effet. Blanche : l'ennemi le plus proche s'envole de 10 blocs. Violette : l'ennemi le plus proche s'enfonce de 10 blocs.",
+                    "Rouge : fleche qui enflamme une zone de 5x5. Bleu : patinoire 10x10 avec Vitesse (10 s). Jaune : eclair sur tous les ennemis a 10 blocs. Cyan : barriere 3x3 qui tire 5 fleches a effet. Blanche : l'ennemi le plus proche s'envole de 10 blocs. Violette : le sol s'ouvre sous l'ennemi le plus proche, qui tombe 10 blocs plus bas.",
                     Material.ECHO_SHARD, 15);
         }
 
@@ -304,21 +304,28 @@ public final class Weiss extends Character implements Listener {
             return true;
         }
 
-        /** Enfonce la cible de N blocs dans le sol, dans une poche creusee pour elle. */
+        /** Enfonce la cible de N blocs dans le sol : la colonne au-dessus d'elle est detruite, elle tombe au fond du puits. */
         static void sink(LivingEntity t, int depth) {
             Location base = t.getLocation();
             World w = base.getWorld();
+            int x = base.getBlockX(), z = base.getBlockZ();
             int targetY = Math.max(w.getMinHeight() + 2, base.getBlockY() - depth);
-            Location pocket = new Location(w, base.getBlockX() + 0.5, targetY, base.getBlockZ() + 0.5);
-            for (int dy = 0; dy <= 1; dy++) {
-                Block b = w.getBlockAt(base.getBlockX(), targetY + dy, base.getBlockZ());
-                if (b.getType() != Material.BEDROCK && b.getType() != Material.BARRIER) b.setType(Material.AIR, false);
+            // Creuse le puits de 1x1 depuis les pieds de la cible jusqu'au fond.
+            for (int y = base.getBlockY() + 1; y >= targetY; y--) {
+                Block b = w.getBlockAt(x, y, z);
+                Material m = b.getType();
+                if (m.isAir() || m == Material.BEDROCK || m == Material.BARRIER || TempBlocks.isProtected(b)) continue;
+                w.spawnParticle(Particle.BLOCK, b.getLocation().add(0.5, 0.5, 0.5), 12, 0.3, 0.3, 0.3, 0, b.getBlockData());
+                b.setType(Material.AIR, false);
             }
-            Block floor = w.getBlockAt(base.getBlockX(), targetY - 1, base.getBlockZ());
+            Block floor = w.getBlockAt(x, targetY - 1, z);
             if (!floor.getType().isSolid()) floor.setType(Material.STONE, false);
-            w.spawnParticle(Particle.BLOCK, base.clone().add(0, 0.5, 0), 40, 0.5, 0.3, 0.5, 0, Material.DIRT.createBlockData());
             w.playSound(base, Sound.BLOCK_GRAVEL_BREAK, 1f, 0.6f);
-            t.teleport(pocket.setDirection(t.getLocation().getDirection()));
+            w.playSound(base, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.8f);
+            Location bottom = new Location(w, x + 0.5, targetY, z + 0.5);
+            bottom.setDirection(t.getLocation().getDirection());
+            t.teleport(bottom);
+            if (t instanceof Player tp) Ruby.noFallUntil(tp, 2000);
             Effects.say(t, "<dark_purple>Les Glyphs de Weiss t'enfoncent dans le sol !");
         }
     }
