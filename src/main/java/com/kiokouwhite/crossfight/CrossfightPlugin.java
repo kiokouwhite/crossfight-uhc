@@ -29,6 +29,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     private LivesManager livesManager;
     private GameManager gameManager;
     private ScoreboardManager scoreboardManager;
+    private com.kiokouwhite.crossfight.game.TestMode testMode;
 
     public static CrossfightPlugin get() {
         return instance;
@@ -46,6 +47,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         livesManager = new LivesManager(this);
         gameManager = new GameManager(this);
         scoreboardManager = new ScoreboardManager(this);
+        testMode = new com.kiokouwhite.crossfight.game.TestMode(this);
 
         characterRegistry.registerDefaults();
 
@@ -58,6 +60,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(characterRegistry.selectMenu(this), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Mannequins(), this);
+        pm.registerEvents(testMode, this);
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
         }
@@ -76,6 +79,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         // Pre-creation des mondes d'arene pour eviter un lag en pleine partie.
         try {
             com.kiokouwhite.crossfight.character.fireemblem.Byleth.dimension();
+            com.kiokouwhite.crossfight.game.TestMode.world();
         } catch (Exception ex) {
             getLogger().warning("Impossible de preparer la dimension de Byleth : " + ex.getMessage());
         }
@@ -101,4 +105,5 @@ public final class CrossfightPlugin extends JavaPlugin {
     public LivesManager lives() { return livesManager; }
     public GameManager game() { return gameManager; }
     public ScoreboardManager scoreboard() { return scoreboardManager; }
+    public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
 }

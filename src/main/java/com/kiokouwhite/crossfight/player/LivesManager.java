@@ -27,6 +27,10 @@ public final class LivesManager {
 
     /** Appele a la mort d'un joueur en partie. */
     public void onDeath(Player p) {
+        if (plugin.game().isTest()) {
+            plugin.testMode().onDeath(p);
+            return;
+        }
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
         if (plugin.abilities().dispatchDeath(p)) {

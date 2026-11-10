@@ -10,5 +10,7 @@ public enum GameState {
     /** La partie est en cours. */
     RUNNING,
     /** La partie est terminee. */
-    ENDED
+    ENDED,
+    /** Mode test : monde plat, personnages a volonte. */
+    TEST
 }

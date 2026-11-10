@@ -30,6 +30,7 @@ public final class DeathListener implements Listener {
         }
         // Les items de capacite et l'arme ne tombent jamais au sol.
         e.getDrops().removeIf(it -> AbilityEngine.isAbilityItem(it) || AbilityEngine.isWeaponItem(it));
+        if (plugin.game().isTest()) e.getDrops().clear();
         e.setKeepLevel(false);
 
         CfPlayer cf = plugin.players().get(p);

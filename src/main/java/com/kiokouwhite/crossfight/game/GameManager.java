@@ -44,12 +44,13 @@ public final class GameManager {
     }
 
     public GameState state() { return state; }
-    public boolean isRunning() { return state == GameState.RUNNING; }
+    public boolean isRunning() { return state == GameState.RUNNING || state == GameState.TEST; }
+    public boolean isTest() { return state == GameState.TEST; }
     public boolean isSelecting() { return state == GameState.SELECTING; }
     public boolean isLobby() { return state == GameState.LOBBY || state == GameState.ENDED; }
     public int elapsedSeconds() { return elapsed; }
     public int elapsedMinutes() { return elapsed / 60; }
-    public boolean isPvpEnabled() { return pvpEnabled; }
+    public boolean isPvpEnabled() { return pvpEnabled || state == GameState.TEST; }
     public GameEvents events() { return events; }
 
     public World world() {
@@ -134,6 +135,10 @@ public final class GameManager {
             case SELECTING -> tickSelecting();
             case STARTING -> tickStarting();
             case RUNNING -> tickRunning();
+            case TEST -> {
+                plugin.abilities().tickMechanics();
+                plugin.testMode().tick();
+            }
             default -> { }
         }
     }
@@ -209,6 +214,23 @@ public final class GameManager {
         }
     }
 
+    // ------------------------------------------------------------------ test
+
+    void enterTestState() {
+        plugin.teams().clear();
+        state = GameState.TEST;
+        elapsed = 0;
+        pvpEnabled = false;
+        startClock();
+    }
+
+    void leaveTestState() {
+        if (state != GameState.TEST) return;
+        if (clock != null) { clock.cancel(); clock = null; }
+        plugin.teams().clear();
+        state = GameState.LOBBY;
+    }
+
     // ------------------------------------------------------------------- end
 
     public void checkWin() {
@@ -248,6 +270,10 @@ public final class GameManager {
 
     /** Arret force par un administrateur : retour au lobby. */
     public void stop() {
+        if (state == GameState.TEST) {
+            plugin.testMode().leaveAll();
+            leaveTestState();
+        }
         if (state != GameState.LOBBY) {
             if (state != GameState.ENDED) end(null);
             state = GameState.LOBBY;

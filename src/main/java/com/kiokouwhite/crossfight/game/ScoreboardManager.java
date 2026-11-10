@@ -86,6 +86,14 @@ public final class ScoreboardManager {
                 Team t = cf.team();
                 lines.add("<white>Ton equipe : " + (t == null ? "<gray>aucune" : t.coloredName()));
             }
+            case TEST -> {
+                lines.add("<white>Etat : <aqua>Mode test");
+                lines.add("<white>Perso : <gold>" + (cf.character() == null ? "<gray>/cf change" : cf.character().name()));
+                lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
+                String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
+                if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
+                lines.add("<gray>/cf mannequin, /cf ult, /cf test");
+            }
             case SELECTING, STARTING -> {
                 lines.add("<white>Etat : <yellow>Preparation");
                 Team t = cf.team();

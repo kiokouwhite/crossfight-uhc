@@ -88,6 +88,19 @@ public final class CfCommand implements TabExecutor {
                             Msg.send(sender, "<green>Ultime de " + target.getName() + " a " + (int) plugin.players().get(target).ultimateCharge() + "%.");
                         } catch (NumberFormatException ex) { Msg.send(sender, "<red>Pourcentage invalide."); }
                     }
+                    case "test" -> {
+                        if (!(sender instanceof Player sp)) return true;
+                        if (plugin.testMode().isTester(sp)) plugin.testMode().leave(sp);
+                        else plugin.testMode().enter(sp);
+                    }
+                    case "change" -> {
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test (/cf test)."); return true; }
+                        if (args.length < 2) { plugin.testMode().openMenu(sp); return true; }
+                        Character c = plugin.characters().character(args[1]);
+                        if (c == null) { Msg.send(sp, "<red>Personnage inconnu."); return true; }
+                        plugin.testMode().change(sp, c);
+                    }
                     case "mannequin", "mannequins" -> {
                         if (!(sender instanceof Player sp)) return true;
                         if (args.length > 1 && args[1].equalsIgnoreCase("clear")) {
@@ -153,6 +166,8 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf ult [joueur] <pourcent> <gray>- regler la jauge d'ultime (test)");
             Msg.raw(s, "<red>/cf heal <gray>- se soigner (test)");
             Msg.raw(s, "<red>/cf mannequin [nb] [attaque|clear] <gray>- mannequins d'entrainement (test)");
+            Msg.raw(s, "<red>/cf test <gray>- entrer ou sortir du mode test");
+            Msg.raw(s, "<red>/cf change [perso] <gray>- changer de personnage en mode test");
         }
     }
 
@@ -239,7 +254,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -248,6 +263,7 @@ public final class CfCommand implements TabExecutor {
                 case "perso" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "give" -> { for (Player p : Bukkit.getOnlinePlayers()) out.add(p.getName()); }
                 case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "clear"));
+                case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
