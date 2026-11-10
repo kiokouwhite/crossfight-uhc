@@ -49,7 +49,7 @@ public final class Byleth extends Character implements Listener {
 
     public Byleth() {
         super("byleth", "Byleth", Voie.HARMONIE, Material.DIAMOND_SWORD);
-        addAbility(new EpeeDuCreateur());
+        addAbility(new EpeeDuCreateur().bindToWeapon());
         addAbility(new EmblemeDeFeu());
         addAbility(new Tutorat());
         addAbility(new DechainementDEpine());
@@ -58,12 +58,7 @@ public final class Byleth extends Character implements Listener {
 
     @Override
     public ItemStack createWeapon() {
-        List<String> lore = new ArrayList<>();
-        lore.add("<dark_gray>Actif");
-        lore.addAll(Items.wrap("Byleth se fige et son epee s'etend tout droit sur 10 blocs (8 blocs/s) pour ramener le joueur attrape."));
-        lore.add("");
-        lore.add("<yellow>Temps de chargement : <white>00:10");
-        ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 8, "<gold><bold>Epee du Createur", lore);
+        ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 8, "<gold><bold>Epee du Createur", List.of());
         Items.tag(sword, AbilityEngine.ABILITY_KEY, SWORD_ID);
         return sword;
     }
@@ -169,10 +164,8 @@ public final class Byleth extends Character implements Listener {
 
     static final class EpeeDuCreateur extends ActiveAbility {
         EpeeDuCreateur() {
-            super(SWORD_ID, "Epee du Createur", "Byleth se fige et son epee s'etend tout droit sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
+            super(SWORD_ID, "Epee du Createur", "Clic droit : Byleth se fige et son epee s'etend tout droit sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
         }
-
-        @Override public boolean hasItem() { return false; }
 
         /** Avancee par tick : 8 blocs par seconde. */
         private static final double SPEED_PER_TICK = 0.4;

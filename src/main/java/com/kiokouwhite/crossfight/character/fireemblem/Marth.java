@@ -37,7 +37,7 @@ public final class Marth extends Character {
 
     public Marth() {
         super("marth", "Marth", Voie.HARMONIE, Material.IRON_SWORD);
-        addAbility(new Falchion());
+        addAbility(new Falchion().bindToWeapon());
         addAbility(new Contre());
         addAbility(new Charisme());
         addAbility(new EspritDuLeader());
@@ -50,13 +50,9 @@ public final class Marth extends Character {
     }
 
     static ItemStack falchion(boolean holy) {
-        List<String> lore = new ArrayList<>();
-        lore.add("<dark_gray>Actif");
-        lore.addAll(Items.wrap("Marth regenere " + (holy ? 10 : 5) + " coeurs en 3 secondes sans pouvoir bouger."));
-        lore.add("");
-        lore.add("<yellow>Temps de chargement : <white>01:00");
         ItemStack sword = Weapons.melee(holy ? Material.DIAMOND_SWORD : Material.IRON_SWORD, holy ? 9 : 8,
-                holy ? "<aqua><bold>Sainte-Falchion" : "<gold><bold>Falchion", lore);
+                holy ? "<aqua><bold>Sainte-Falchion" : "<gold><bold>Falchion",
+                holy ? List.of("<aqua>L'Embleme de Feu a revele sa vraie forme.") : List.of());
         Items.tag(sword, AbilityEngine.ABILITY_KEY, FALCHION_ID);
         return sword;
     }
@@ -68,7 +64,7 @@ public final class Marth extends Character {
             ItemStack it = inv.getItem(i);
             if (FALCHION_ID.equals(Items.tag(it, AbilityEngine.ABILITY_KEY))) {
                 ItemStack holy = falchion(true);
-                Items.tag(holy, AbilityEngine.WEAPON_KEY, "marth");
+                AbilityEngine.decorateWeapon(holy, plugin().characters().character("marth"));
                 inv.setItem(i, holy);
             }
         }
@@ -91,10 +87,8 @@ public final class Marth extends Character {
 
     static final class Falchion extends ActiveAbility {
         Falchion() {
-            super(FALCHION_ID, "Falchion", "Marth regenere 5 coeurs en 3 secondes sans pouvoir bouger.", Material.IRON_SWORD, 60);
+            super(FALCHION_ID, "Falchion", "Clic droit : Marth regenere 5 coeurs (10 avec la Sainte-Falchion) en 3 secondes sans pouvoir bouger.", Material.IRON_SWORD, 60);
         }
-
-        @Override public boolean hasItem() { return false; }
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {

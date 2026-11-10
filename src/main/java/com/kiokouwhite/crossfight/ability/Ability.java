@@ -22,6 +22,8 @@ public abstract class Ability {
     private final String description;
     private final AbilityType type;
     private final Material icon;
+    /** Capacite portee par l'arme : pas d'item, son texte est dans la description de l'arme. */
+    private boolean weaponBound;
 
     protected Ability(String id, String name, String description, AbilityType type, Material icon) {
         this.id = id;
@@ -61,8 +63,22 @@ public abstract class Ability {
      */
     public boolean onDeath(Player player, CfPlayer cf, AbilityState state) { return false; }
 
-    /** Toutes les capacites ont un item d'information, sauf celles portees par l'arme (qui renvoient false). */
-    public boolean hasItem() { return true; }
+    /** Marque la capacite comme portee par l'arme. */
+    public Ability bindToWeapon() { this.weaponBound = true; return this; }
+    public boolean isWeaponBound() { return weaponBound; }
+
+    /** Toutes les capacites ont un item d'information, sauf celles portees par l'arme. */
+    public boolean hasItem() { return !weaponBound; }
+
+    /** Lignes de description a ajouter sur l'arme pour une capacite qui lui est liee. */
+    public List<String> weaponLore() {
+        List<String> lore = new ArrayList<>();
+        lore.add("");
+        lore.add("<gold>" + name + " <dark_gray>(" + type.label() + ")");
+        for (String line : Items.wrap(description)) lore.add("<gray>" + line);
+        lore.addAll(extraLore());
+        return lore;
+    }
 
     /** Cree l'item d'activation de la capacite. */
     public ItemStack createItem() {

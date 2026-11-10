@@ -78,7 +78,7 @@ public final class AbilityEngine implements Listener {
         PlayerInventory inv = p.getInventory();
         ItemStack weapon = ch.createWeapon();
         if (weapon != null) {
-            Items.tag(weapon, WEAPON_KEY, ch.id());
+            decorateWeapon(weapon, ch);
             inv.setItem(0, weapon);
         }
         int slot = 1;
@@ -96,6 +96,20 @@ public final class AbilityEngine implements Listener {
         if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onEquip(p);
         Boosts.apply(p);
         plugin.legacyCombat().apply(p);
+    }
+
+    /** Tague l'arme et y ajoute la description des capacites qui lui sont liees. */
+    public static ItemStack decorateWeapon(ItemStack weapon, Character ch) {
+        Items.tag(weapon, WEAPON_KEY, ch.id());
+        var meta = weapon.getItemMeta();
+        List<net.kyori.adventure.text.Component> lore = meta.lore() == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(meta.lore());
+        for (Ability a : ch.allAbilities()) {
+            if (!a.isWeaponBound()) continue;
+            for (String line : a.weaponLore()) lore.add(Msg.mm("<!italic>" + line));
+        }
+        meta.lore(lore);
+        weapon.setItemMeta(meta);
+        return weapon;
     }
 
     /** Retire les items de capacite et appelle les hooks de fin. */

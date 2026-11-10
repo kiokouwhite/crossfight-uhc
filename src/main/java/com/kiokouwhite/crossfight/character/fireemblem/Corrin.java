@@ -21,6 +21,11 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.World;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
@@ -39,7 +44,7 @@ public final class Corrin extends Character {
 
     public Corrin() {
         super("corrin", "Corrin", Voie.DESTRUCTION, Material.GOLDEN_SWORD);
-        addAbility(new Yato());
+        addAbility(new Yato().bindToWeapon());
         addAbility(new DragonGardien());
         addAbility(new SangDraconique());
         addAbility(new DragonDeLEau());
@@ -48,8 +53,7 @@ public final class Corrin extends Character {
 
     @Override
     public ItemStack createWeapon() {
-        return Weapons.melee(Material.GOLDEN_SWORD, 8.5, "<gold><bold>Yato",
-                Items.wrap("Evolue selon la voie choisie et les eliminations."));
+        return Weapons.melee(Material.GOLDEN_SWORD, 8.5, "<gold><bold>Yato", List.of());
     }
 
     @Override
@@ -68,8 +72,8 @@ public final class Corrin extends Character {
         for (int i = 0; i < inv.getSize(); i++) {
             ItemStack it = inv.getItem(i);
             if ("corrin".equals(Items.tag(it, AbilityEngine.WEAPON_KEY))) {
-                ItemStack sword = Weapons.melee(Material.GOLDEN_SWORD, damage, name, Items.wrap(desc));
-                Items.tag(sword, AbilityEngine.WEAPON_KEY, "corrin");
+                ItemStack sword = Weapons.melee(Material.GOLDEN_SWORD, damage, name, Items.wrap("<yellow>" + desc));
+                AbilityEngine.decorateWeapon(sword, com.kiokouwhite.crossfight.CrossfightPlugin.get().characters().character("corrin"));
                 inv.setItem(i, sword);
                 return;
             }
@@ -278,9 +282,30 @@ public final class Corrin extends Character {
     // ----------------------------------------------------------------- ultime
 
     static final class VaguesBleues extends UltimateAbility {
+
+        /** Un bloc de la vague : decalage derriere le front, hauteur au-dessus du sol, matiere. */
+        private record Cell(int back, int up, Material material) {}
+
+        /** Profil de la vague vu de cote : corps bleu, crete bleu clair, ecume blanche qui s'enroule vers l'avant. */
+        private static final List<Cell> PROFILE = List.of(
+                new Cell(0, 1, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(1, 1, Material.BLUE_STAINED_GLASS), new Cell(1, 2, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(2, 1, Material.BLUE_STAINED_GLASS), new Cell(2, 2, Material.BLUE_STAINED_GLASS), new Cell(2, 3, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(3, 1, Material.BLUE_STAINED_GLASS), new Cell(3, 2, Material.BLUE_STAINED_GLASS), new Cell(3, 3, Material.BLUE_STAINED_GLASS), new Cell(3, 4, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(4, 1, Material.BLUE_STAINED_GLASS), new Cell(4, 2, Material.BLUE_STAINED_GLASS), new Cell(4, 3, Material.BLUE_STAINED_GLASS), new Cell(4, 4, Material.LIGHT_BLUE_STAINED_GLASS),
+                // La crete s'enroule vers l'avant, au-dessus du front
+                new Cell(2, 4, Material.WHITE_STAINED_GLASS), new Cell(1, 4, Material.WHITE_STAINED_GLASS), new Cell(1, 5, Material.WHITE_STAINED_GLASS), new Cell(0, 5, Material.WHITE_STAINED_GLASS),
+                // La queue redescend
+                new Cell(5, 1, Material.BLUE_STAINED_GLASS), new Cell(5, 2, Material.BLUE_STAINED_GLASS), new Cell(5, 3, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(6, 1, Material.BLUE_STAINED_GLASS), new Cell(6, 2, Material.LIGHT_BLUE_STAINED_GLASS),
+                new Cell(7, 1, Material.LIGHT_BLUE_STAINED_GLASS));
+
+        private static final int STEPS = 10;
+        private static final int TICKS_PER_STEP = 20; // 1 bloc par seconde
+
         VaguesBleues() {
             super("corrin_ult", "Les Vagues Bleues de l'Ocean Gris",
-                    "Une vague de 3 blocs de large avance sur 10 blocs (1 bloc/s). Les ennemis touches sont ejectes a 15 blocs de haut et ont Lenteur 10 secondes.",
+                    "Une vraie vague de 3 blocs de large se dresse et avance sur 10 blocs (1 bloc/s). Les ennemis touches sont ejectes a 15 blocs de haut et ont Lenteur 10 secondes.",
                     Material.HEART_OF_THE_SEA);
         }
 
@@ -289,32 +314,116 @@ public final class Corrin extends Character {
             Vector dir = p.getLocation().getDirection().setY(0);
             if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
             dir.normalize();
-            Vector side = new Vector(-dir.getZ(), 0, dir.getX());
-            Location origin = p.getLocation();
-            List<UUID> hit = new ArrayList<>();
-            final Vector fDir = dir;
+            // On avance sur l'axe dominant pour que la vague reste alignee sur la grille de blocs.
+            final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
+                    ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
+            final Vector side = new Vector(-axis.getZ(), 0, axis.getX());
+            final Location origin = p.getLocation().getBlock().getLocation();
+            final World w = p.getWorld();
+            final Map<Block, BlockState> placed = new LinkedHashMap<>();
+            final List<BlockDisplay> cubes = new ArrayList<>();
+            final List<UUID> hit = new ArrayList<>();
+
+            w.playSound(p.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 0.8f, 1.6f);
+            w.playSound(p.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_3, 1f, 0.7f);
+
             new BukkitRunnable() {
                 int step = 0;
+
                 @Override public void run() {
-                    step++;
-                    if (step > 10 || !p.isOnline()) { cancel(); return; }
-                    Location front = origin.clone().add(fDir.clone().multiply(step));
-                    front.setY(front.getWorld().getHighestBlockYAt(front) + 1);
-                    for (double s = -1; s <= 1; s += 0.5) {
-                        Location l = front.clone().add(side.clone().multiply(s));
-                        l.getWorld().spawnParticle(Particle.SPLASH, l, 25, 0.3, 0.6, 0.3, 0);
-                        l.getWorld().spawnParticle(Particle.BUBBLE_POP, l.clone().add(0, 1, 0), 8, 0.3, 0.5, 0.3, 0);
+                    try {
+                        if (step >= STEPS || !p.isOnline()) { restoreAll(); clearCubes(); cancel(); return; }
+                        step++;
+                        int front = step + 1; // la vague part deux blocs devant Corrin
+                        restoreAll();
+                        build(front);
+                        splash(front);
+                        strike(front);
+                    } catch (Exception ex) {
+                        plugin().getLogger().warning("Vagues Bleues interrompues : " + ex);
+                        restoreAll();
+                        clearCubes();
+                        cancel();
                     }
-                    front.getWorld().playSound(front, Sound.ENTITY_GENERIC_SPLASH, 0.8f, 0.7f);
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, front, 2.2)) {
+                }
+
+                /** Pose les blocs de verre de la vague autour du front, colonne par colonne. */
+                void build(int front) {
+                    for (int lateral = -1; lateral <= 1; lateral++) {
+                        for (Cell c : PROFILE) {
+                            int along = front - c.back();
+                            if (along < 1) continue; // jamais sur Corrin
+                            // Les bords de la vague sont un bloc plus bas que le milieu.
+                            int up = lateral == 0 ? c.up() : c.up() - 1;
+                            if (up < 1) continue;
+                            int x = origin.getBlockX() + axis.getBlockX() * along + side.getBlockX() * lateral;
+                            int z = origin.getBlockZ() + axis.getBlockZ() * along + side.getBlockZ() * lateral;
+                            int ground = groundY(x, z);
+                            Block b = w.getBlockAt(x, ground + up, z);
+                            if (!(b.getType().isAir() || b.isReplaceable()) || placed.containsKey(b)) continue;
+                            placed.put(b, b.getState());
+                            b.setType(c.material(), false);
+                        }
+                    }
+                }
+
+                /** Hauteur du sol sous la vague, en suivant le relief autour de Corrin. */
+                int groundY(int x, int z) {
+                    int y = origin.getBlockY() - 1;
+                    // Monte si le sol est plus haut, descend s'il est plus bas (au plus 3 blocs).
+                    for (int i = 0; i < 3 && w.getBlockAt(x, y + 1, z).getType().isSolid(); i++) y++;
+                    for (int i = 0; i < 3 && !w.getBlockAt(x, y, z).getType().isSolid(); i++) y--;
+                    return y;
+                }
+
+                /** Eclaboussures, cubes de verre qui volent et bruit de vague. */
+                void splash(int front) {
+                    Location crest = origin.clone().add(0.5, 3.5, 0.5).add(axis.clone().multiply(front - 1));
+                    w.spawnParticle(Particle.SPLASH, crest, 60, 1.5, 1.0, 1.5, 0);
+                    w.spawnParticle(Particle.BUBBLE_POP, crest, 15, 1.5, 1.0, 1.5, 0);
+                    w.spawnParticle(Particle.CLOUD, crest.clone().add(0, 1, 0), 6, 1.2, 0.3, 1.2, 0.01);
+                    w.playSound(crest, Sound.ENTITY_GENERIC_SPLASH, 1f, 0.6f);
+                    w.playSound(crest, Sound.BLOCK_GLASS_BREAK, 0.4f, 1.4f);
+                    clearCubes();
+                    for (int i = 0; i < 6; i++) {
+                        Location l = crest.clone().add(axis.clone().multiply(Math.random() * 3)).add(side.clone().multiply(Math.random() * 4 - 2)).add(0, Math.random() * 2.5, 0);
+                        float size = 0.25f + (float) Math.random() * 0.45f;
+                        BlockDisplay d = w.spawn(l, BlockDisplay.class, disp -> {
+                            disp.setBlock((Math.random() < 0.5 ? Material.LIGHT_BLUE_STAINED_GLASS : Material.WHITE_STAINED_GLASS).createBlockData());
+                            var rot = new org.joml.Quaternionf().rotationXYZ((float) (Math.random() * 6.28), (float) (Math.random() * 6.28), 0);
+                            disp.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(-size / 2, -size / 2, -size / 2), rot,
+                                    new org.joml.Vector3f(size, size, size), new org.joml.Quaternionf()));
+                            disp.setPersistent(false);
+                        });
+                        cubes.add(d);
+                    }
+                }
+
+                /** Les ennemis au front de la vague sont emportes. */
+                void strike(int front) {
+                    Location check = origin.clone().add(0.5, 1, 0.5).add(axis.clone().multiply(front - 1));
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, check, 2.5)) {
                         if (hit.contains(enemy.getUniqueId())) continue;
                         hit.add(enemy.getUniqueId());
                         Effects.launchUp(enemy, 15);
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 20 * 10);
+                        enemy.getWorld().spawnParticle(Particle.SPLASH, enemy.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0);
                         if (enemy instanceof Player ep) Msg.actionBar(ep, "<aqua>Emporte par la vague de Corrin !");
                     }
                 }
-            }.runTaskTimer(plugin(), 0L, 20L);
+
+                void restoreAll() {
+                    List<Map.Entry<Block, BlockState>> entries = new ArrayList<>(placed.entrySet());
+                    java.util.Collections.reverse(entries);
+                    for (var e : entries) e.getValue().update(true, false);
+                    placed.clear();
+                }
+
+                void clearCubes() {
+                    for (BlockDisplay d : cubes) d.remove();
+                    cubes.clear();
+                }
+            }.runTaskTimer(plugin(), 0L, TICKS_PER_STEP);
             return true;
         }
     }

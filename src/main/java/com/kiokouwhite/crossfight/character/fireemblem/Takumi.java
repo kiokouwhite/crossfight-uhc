@@ -45,7 +45,7 @@ public final class Takumi extends Character implements Listener {
 
     public Takumi() {
         super("takumi", "Takumi", Voie.CHASSE, Material.BOW);
-        addAbility(new YumiFujin());
+        addAbility(new YumiFujin().bindToWeapon());
         addAbility(new ContreRapproche());
         addAbility(new Vengeance());
         addAbility(new Furie());
@@ -54,8 +54,7 @@ public final class Takumi extends Character implements Listener {
 
     @Override
     public ItemStack createWeapon() {
-        return Weapons.bow(BASE_POWER, true, "<gold><bold>Yumi Fujin",
-                Items.wrap("Puissance II. Les fleches infligent Lenteur pendant 10 secondes."));
+        return Weapons.bow(BASE_POWER, true, "<gold><bold>Yumi Fujin", List.of());
     }
 
     @Override
