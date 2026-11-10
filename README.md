@@ -76,7 +76,8 @@ com.kiokouwhite.crossfight
 │   ├── unordinary/         unOrdinary : épées d'Aura, Arlo, John, Remi, Seraphina
 │   ├── earthdelta/         Earth Delta : mutations, Kishi, Kura, Taka, Hano et ses 28 tomes
 │   ├── duo/                Synergie : second ultime commun aux groupes duo (jauge à 200 %)
-│   └── gunvolt/            Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov, six Synergies
+│   ├── gunvolt/            Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov, six Synergies
+│   └── shoja/              Shoja's Memories : Hiro, Pinkou, Aïda, Crystal, six Synergies
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -115,6 +116,14 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Kirin : les talismans sont des projectiles ; la marque dure 10 s. Le sabre se téléporte sur la cible marquée la plus proche (30 blocs) et retire sa marque ; Arc Chain est utilisable 4 s après et touche aussi l'adversaire visé par la téléportation (1 cœur par cible, 4 max) avec 10 s de recharge. Slash : en l'air Tensho, accroupi Ressen (deuxième clic pour retomber), sinon Issen ; un seul temps de recharge de 15 s.
 - Asimov : le fusil charge 3 s puis tire (9 dégâts, doublés à moins de 5 blocs). La tourelle tire ses salves à 5 s et 10 s. Les chaînes de l'ultime sont des segments tirés au hasard sur 30 blocs pendant 8 s.
 - Vol Électrique et Prison de Chaîne donnent le vol créatif pendant leur durée ; Double Électrocution est centrée sur le lanceur.
+
+### Hypothèses prises sur Shoja's Memories
+
+- Hiro : clic droit sur Pyra-Mira lance ou arrête la charge de Puissance (+3/s, barre en haut), Fire Resistance permanente. Grenade et Consumation utilisent le plus haut palier que la Puissance permet et le consomment ; les explosions blessent et enflamment sans casser le terrain, sauf l'ultime qui creuse un vrai cratère de 50 blocs de large (bol peu profond) tapissé de magma, définitif en partie (`/cf clear` en test). Le Dash Explosif est un vol en ligne droite (clic pour arrêter).
+- Pinkou : la Rapière soigne le duo de la totalité des dégâts infligés, répartis à parts égales (doublés dans le Cocon). L'Armure de Ronces inflige 2 cœurs à chaque attaquant pendant 10 s (clic sur un allié, sinon le partenaire, sinon elle-même). Les vignes sont un tapis de mousse ; les dégâts de poison soignent le duo tant que la cible est empoisonnée par Pinkou.
+- Aïda : les bulles d'eau restent 30 s ; le Clone d'eau annule le premier coup reçu. L'Éponge renvoie les mauvais effets à son dernier attaquant (à 30 blocs) et copie les bons effets de l'adversaire qui la frappe. La Pluie bouillante déclenche la pluie du monde 10 s et blesse les adversaires à ciel ouvert.
+- Crystal : ses pouvoirs coûtent de la vie directement (jamais mortel) ; la Lance Adamante est remplacée 5 s par une lance brisée. Œil pour Œil touche tous les joueurs ennemis en ligne.
+- Synergies : Pardon Temporaire construit une cage en bois de 11×11 autour de Pinkou (duo et ennemis téléportés dedans, Régénération II et coups enflammés 20 s). Bulles Bouillantes : 10 bulles à 50 blocs pendant 1 minute. Tir Curatif tire tout seul toutes les 2 s (soin de 2 cœurs à la touche).
 
 ### Hypothèses prises sur Earth Delta
 
@@ -171,8 +180,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] unOrdinary : épées d'Aura à crafter, Arlo, John (absorption), Remi, Seraphina
 - [x] Earth Delta : mutations à chaque mort, Kishi, Kura, Taka, Hano (28 tomes)
 - [x] Synergies des groupes duo ; Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov
+- [x] Shoja's Memories : Hiro, Pinkou, Aïda, Crystal
 - [ ] Burst des solitaires
-- [ ] 8 personnages restants (Shoja's Memories, Bloody Snow) et les solitaires
+- [ ] 4 personnages restants (Bloody Snow) et les solitaires
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8
