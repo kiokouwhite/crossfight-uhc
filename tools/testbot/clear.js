@@ -1,0 +1,22 @@
+const mineflayer = require('mineflayer'); const fs = require('fs');
+const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const t0 = Date.now(); const log = (...a) => console.log(((Date.now() - t0) / 1000).toFixed(2) + 's', ...a);
+const console_ = c => fs.appendFileSync('/home/user/testserver/console.in', c + '\n');
+bot.on('message', m => { const s = m.toString(); if (s.includes('nettoye') || s.includes('mannequin')) log('CHAT', s); });
+bot.on('windowOpen', w => bot.closeWindow(w));
+bot.once('spawn', async () => {
+  await sleep(1500); bot.chat('/cf test'); await sleep(2000);
+  bot.chat('/cf mannequin 3'); await sleep(800);
+  console_('execute in minecraft:crossfight_test run fill 5 65 5 8 70 8 minecraft:stone');
+  console_('execute in minecraft:crossfight_test run fill -5 64 -5 -8 62 -8 minecraft:air');
+  await sleep(1000);
+  const zombies = () => Object.values(bot.entities).filter(e => e.name === 'zombie').length;
+  log('avant : mannequins', zombies());
+  const t1 = Date.now(); bot.chat('/cf clear'); await sleep(2500);
+  log('apres : mannequins', zombies());
+  for (const m of ['stone', 'air']) console_(`execute in minecraft:crossfight_test if block 6 66 6 minecraft:${m} run say CHECK_HAUT=${m}`);
+  for (const m of ['grass_block', 'air']) console_(`execute in minecraft:crossfight_test if block -6 64 -6 minecraft:${m} run say CHECK_SOL=${m}`);
+  await sleep(1500);
+  bot.chat('/cf test'); await sleep(800); bot.quit(); process.exit(0);
+});

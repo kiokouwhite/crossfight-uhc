@@ -36,6 +36,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
 | `/cf change [perso]` | Changer de personnage en mode test |
+| `/cf clear` | Remettre le terrain de test à neuf (blocs, entités, mannequins) |
 | `/cf mannequin [nb] [attaque\|allie]` | Mannequins d'entraînement (ennemis, agressifs ou alliés), `/cf mannequin clear` pour les retirer |
 | `/cf ult [joueur] <pourcent>` | Régler la jauge d'Ultime (test) |
 | `/cf heal` | Se soigner (test) |

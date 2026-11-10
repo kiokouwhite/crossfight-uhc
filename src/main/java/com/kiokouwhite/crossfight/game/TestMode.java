@@ -70,6 +70,50 @@ public final class TestMode implements Listener {
         return w;
     }
 
+    /** Taille de la plateforme (demi-cote) et hauteur des murs. */
+    private static final int HALF = 45;
+    private static final int WALL = 12;
+
+    /**
+     * Remet le terrain de test a neuf : sol d'herbe, couches de terre, murs, lumieres,
+     * tout ce qui depasse est efface et toutes les entites (mannequins, items, fleches,
+     * affichages) sont retirees. Les joueurs sont reposes au centre.
+     */
+    public int clearTerrain() {
+        World w = world();
+        int changed = 0;
+        for (int x = -HALF; x <= HALF; x++) {
+            for (int z = -HALF; z <= HALF; z++) {
+                boolean edge = Math.abs(x) == HALF || Math.abs(z) == HALF;
+                for (int y = ArenaWorlds.FLOOR_Y - 5; y <= ArenaWorlds.FLOOR_Y + WALL + 1; y++) {
+                    Material want;
+                    if (y == ArenaWorlds.FLOOR_Y - 5) want = Material.BEDROCK;
+                    else if (y < ArenaWorlds.FLOOR_Y) want = Material.DIRT;
+                    else if (y == ArenaWorlds.FLOOR_Y) want = Material.GRASS_BLOCK;
+                    else if (edge && y <= ArenaWorlds.FLOOR_Y + WALL) want = Material.BARRIER;
+                    else want = Material.AIR;
+                    var b = w.getBlockAt(x, y, z);
+                    if (b.getType() != want) { b.setType(want, false); changed++; }
+                }
+            }
+        }
+        for (int x = -HALF + 2; x < HALF; x += 8) {
+            for (int z = -HALF + 2; z < HALF; z += 8) w.getBlockAt(x, ArenaWorlds.FLOOR_Y, z).setType(Material.SEA_LANTERN, false);
+        }
+        for (var e : w.getEntities()) {
+            if (!(e instanceof Player)) e.remove();
+        }
+        Mannequins.clearAll();
+        for (Player p : w.getPlayers()) {
+            p.teleport(ArenaWorlds.center(w));
+            p.setFireTicks(0);
+            var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            p.setHealth(mh == null ? 20 : mh.getValue());
+            if (isTester(p)) gear(p);
+        }
+        return changed;
+    }
+
     public boolean isTester(Player p) {
         return returnPoints.containsKey(p.getUniqueId());
     }

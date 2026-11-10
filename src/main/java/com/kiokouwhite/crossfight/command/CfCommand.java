@@ -93,6 +93,10 @@ public final class CfCommand implements TabExecutor {
                         if (plugin.testMode().isTester(sp)) plugin.testMode().leave(sp);
                         else plugin.testMode().enter(sp);
                     }
+                    case "clear" -> {
+                        int n = plugin.testMode().clearTerrain();
+                        Msg.send(sender, "<green>Terrain de test nettoye <gray>(" + n + " blocs remis en place, entites retirees).");
+                    }
                     case "change" -> {
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test (/cf test)."); return true; }
@@ -169,6 +173,7 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf mannequin [nb] [attaque|allie|clear] <gray>- mannequins d'entrainement (test)");
             Msg.raw(s, "<red>/cf test <gray>- entrer ou sortir du mode test");
             Msg.raw(s, "<red>/cf change [perso] <gray>- changer de personnage en mode test");
+            Msg.raw(s, "<red>/cf clear <gray>- remettre le terrain de test a neuf");
         }
     }
 
@@ -255,7 +260,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
