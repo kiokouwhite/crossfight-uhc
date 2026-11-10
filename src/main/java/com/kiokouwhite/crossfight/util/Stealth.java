@@ -90,6 +90,19 @@ public final class Stealth {
         }
     }
 
+    /** Cache uniquement les pieces d'armure (casque, plastron, jambieres, bottes), pas les objets en main. */
+    public static void hideArmorOnly(Player target) {
+        ARMOR_HIDDEN.add(target.getUniqueId());
+        org.bukkit.inventory.ItemStack air = new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR);
+        for (Player v : Bukkit.getOnlinePlayers()) {
+            if (v == target) continue;
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HEAD, air);
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.CHEST, air);
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.LEGS, air);
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.FEET, air);
+        }
+    }
+
     /** Renvoie l'equipement reel du joueur a tout le monde. */
     public static void showArmor(Player target) {
         if (!ARMOR_HIDDEN.remove(target.getUniqueId())) return;

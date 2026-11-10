@@ -268,7 +268,7 @@ final class DuoUltimates {
         enemies.sort(java.util.Comparator.comparingDouble(e -> e.getLocation().distanceSquared(yang.getLocation())));
         for (int i = 0; i < 3; i++) {
             LivingEntity target = i < enemies.size() ? enemies.get(i) : (enemies.isEmpty() ? null : enemies.get(i % enemies.size()));
-            Clones.spawn(yang, target, Color.YELLOW, 20 * 20, (clone, attacker) -> {
+            Clones.spawn(yang, target, 20 * 20, (clone, attacker) -> {
                 World w = clone.getWorld();
                 w.spawnParticle(Particle.EXPLOSION, clone.getLocation().add(0, 1, 0), 2);
                 w.spawnParticle(Particle.FLAME, clone.getLocation().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);

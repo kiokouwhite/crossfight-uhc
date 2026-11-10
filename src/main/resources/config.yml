@@ -30,6 +30,10 @@ ultimate:
   # Pourcentage d'ultime gagne par 1% de degats (1% = 0.2 PV, soit 1/10 de coeur)
   charge-per-percent-damage: 0.25
 
+visuals:
+  # L'armure portee n'est jamais visible sur les joueurs (chacun garde l'apparence de son personnage).
+  hide-armor: true
+
 pvp:
   # Combat facon 1.8 : pas de temps de recharge d'attaque, pas de balayage,
   # et maintenir le clic gauche enchaine les coups.

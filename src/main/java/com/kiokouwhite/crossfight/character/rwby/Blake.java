@@ -229,7 +229,7 @@ public final class Blake extends Character implements Listener {
 
     static final class Ombre extends ActiveAbility {
         Ombre() {
-            super("blake_ombre", "Ombre", "Blake cree 3 clones qui foncent sur l'adversaire. Si l'adversaire frappe un clone, il est aveugle pendant 4 secondes.", Material.BLACK_DYE, 20);
+            super("blake_ombre", "Ombre", "Blake cree 3 copies d'elle-meme qui courent vers l'adversaire sans attaquer. S'il frappe une copie, il est aveugle 4 secondes ; si une copie l'atteint, elle se dissipe.", Material.BLACK_DYE, 20);
         }
 
         @Override
@@ -237,7 +237,7 @@ public final class Blake extends Character implements Listener {
             LivingEntity target = Effects.nearestEnemy(p, 30);
             if (target == null) { Msg.actionBar(p, "<red>Ombre : aucun adversaire a moins de 30 blocs."); return false; }
             for (int i = 0; i < 3; i++) {
-                Clones.spawn(p, target, Color.BLACK, 20 * 15, (clone, attacker) -> {
+                Clones.spawn(p, target, 20 * 15, (clone, attacker) -> {
                     Effects.give(attacker, PotionEffectType.BLINDNESS, 0, 80);
                     Msg.actionBar(attacker, "<dark_gray>C'etait un clone de Blake !");
                 });

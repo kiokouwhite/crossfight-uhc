@@ -2,28 +2,28 @@ package com.kiokouwhite.crossfight.util;
 
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.listener.DamageListener;
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.attribute.Attribute;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
+import org.bukkit.entity.Mannequin;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Zombie;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityTargetEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,14 +31,18 @@ import java.util.UUID;
 import java.util.function.BiConsumer;
 
 /**
- * Clones de personnage (Ombre de Blake, duo Blake et Yang) : des leurres qui foncent
- * sur un ennemi et declenchent un effet quand cet ennemi les frappe.
+ * Clones de personnage (Ombre de Blake, duo Blake et Yang) : des copies du joueur
+ * (skin et equipement) qui courent vers un ennemi sans jamais attaquer. Si l'ennemi
+ * frappe un clone, un effet se declenche ; si le clone atteint l'ennemi sans etre
+ * frappe, il disparait.
  */
 public final class Clones implements Listener {
 
     public static final String TAG = "cf_clone";
     private static final NamespacedKey OWNER_KEY = new NamespacedKey("crossfight", "clone_owner");
     private static final Map<UUID, BiConsumer<LivingEntity, Player>> ON_HIT = new HashMap<>();
+    /** Vitesse de course des clones, en blocs par tick (7 blocs par seconde). */
+    private static final double SPEED = 0.35;
 
     public static boolean isClone(Entity e) {
         return e != null && e.getScoreboardTags().contains(TAG);
@@ -53,53 +57,91 @@ public final class Clones implements Listener {
      * Cree un clone de {@code owner} qui court vers {@code target}.
      * @param onHit appele (clone, attaquant) quand un joueur ennemi frappe le clone ; le clone est retire ensuite.
      */
-    public static LivingEntity spawn(Player owner, LivingEntity target, Color color, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
-        Location at = owner.getLocation().add(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
-        Zombie z = (Zombie) owner.getWorld().spawnEntity(at, EntityType.ZOMBIE);
-        z.addScoreboardTag(TAG);
-        z.getPersistentDataContainer().set(OWNER_KEY, PersistentDataType.STRING, owner.getUniqueId().toString());
-        z.setAdult();
-        z.setSilent(true);
-        z.setShouldBurnInDay(false);
-        z.setCanPickupItems(false);
-        z.setPersistent(false);
-        z.customName(Msg.mm("<gray>" + owner.getName() + " <dark_gray>(clone)"));
-        z.setCustomNameVisible(true);
-        var atk = z.getAttribute(Attribute.ATTACK_DAMAGE);
-        if (atk != null) atk.setBaseValue(0.0);
-        var spd = z.getAttribute(Attribute.MOVEMENT_SPEED);
-        if (spd != null) spd.setBaseValue(0.38);
-        var range = z.getAttribute(Attribute.FOLLOW_RANGE);
-        if (range != null) range.setBaseValue(64.0);
-        var reinf = z.getAttribute(Attribute.SPAWN_REINFORCEMENTS);
-        if (reinf != null) reinf.setBaseValue(0.0);
-        var mh = z.getAttribute(Attribute.MAX_HEALTH);
-        if (mh != null) mh.setBaseValue(20.0);
-        z.setHealth(20.0);
-        var eq = z.getEquipment();
-        eq.setHelmet(dyed(Material.LEATHER_HELMET, color));
-        eq.setChestplate(dyed(Material.LEATHER_CHESTPLATE, color));
-        eq.setLeggings(dyed(Material.LEATHER_LEGGINGS, color));
-        eq.setBoots(dyed(Material.LEATHER_BOOTS, color));
-        eq.setHelmetDropChance(0f); eq.setChestplateDropChance(0f); eq.setLeggingsDropChance(0f); eq.setBootsDropChance(0f);
-        if (target != null) z.setTarget(target);
-        if (onHit != null) ON_HIT.put(z.getUniqueId(), onHit);
-        owner.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, at.add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
-        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (z.isValid()) remove(z); }, lifetimeTicks);
-        return z;
+    public static LivingEntity spawn(Player owner, LivingEntity target, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
+        Location at = owner.getLocation().clone().add(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
+        at.setDirection(target != null ? target.getLocation().toVector().subtract(at.toVector()) : owner.getLocation().getDirection());
+        Mannequin m = (Mannequin) owner.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
+        m.addScoreboardTag(TAG);
+        m.getPersistentDataContainer().set(OWNER_KEY, PersistentDataType.STRING, owner.getUniqueId().toString());
+        m.setProfile(ResolvableProfile.resolvableProfile(owner.getPlayerProfile()));
+        m.setDescription(Component.empty());
+        m.setImmovable(false);
+        m.setSilent(true);
+        m.setPersistent(false);
+        try {
+            m.setSkinParts(owner.getClientOption(com.destroystokyo.paper.ClientOption.SKIN_PARTS));
+            m.setMainHand(owner.getClientOption(com.destroystokyo.paper.ClientOption.MAIN_HAND));
+        } catch (Exception ignored) { }
+        var src = owner.getEquipment();
+        var eq = m.getEquipment();
+        if (src != null && eq != null) {
+            if (!CrossfightPlugin.get().getConfig().getBoolean("visuals.hide-armor", true)) {
+                eq.setHelmet(src.getHelmet() == null ? null : src.getHelmet().clone());
+                eq.setChestplate(src.getChestplate() == null ? null : src.getChestplate().clone());
+                eq.setLeggings(src.getLeggings() == null ? null : src.getLeggings().clone());
+                eq.setBoots(src.getBoots() == null ? null : src.getBoots().clone());
+            }
+            eq.setItemInMainHand(src.getItemInMainHand().clone());
+            eq.setItemInOffHand(src.getItemInOffHand().clone());
+        }
+        if (onHit != null) ON_HIT.put(m.getUniqueId(), onHit);
+        owner.getWorld().spawnParticle(Particle.SMOKE, at.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
+        owner.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.5f, 1.8f);
+        run(m, target, lifetimeTicks);
+        return m;
     }
 
-    private static ItemStack dyed(Material m, Color c) {
-        ItemStack it = new ItemStack(m);
-        LeatherArmorMeta meta = (LeatherArmorMeta) it.getItemMeta();
-        meta.setColor(c);
-        it.setItemMeta(meta);
-        return it;
+    /** Fait courir le clone vers sa cible ; il disparait en l'atteignant ou a la fin de sa duree de vie. */
+    private static void run(Mannequin m, LivingEntity target, int lifetimeTicks) {
+        new BukkitRunnable() {
+            int ticks = 0;
+            @Override public void run() {
+                ticks++;
+                if (!m.isValid()) { cancel(); return; }
+                if (ticks > lifetimeTicks || target == null || !target.isValid() || target.isDead() || !target.getWorld().equals(m.getWorld())) {
+                    remove(m);
+                    cancel();
+                    return;
+                }
+                Location cur = m.getLocation();
+                Vector to = target.getLocation().toVector().subtract(cur.toVector());
+                double flat = Math.sqrt(to.getX() * to.getX() + to.getZ() * to.getZ());
+                if (flat <= 1.2 && Math.abs(to.getY()) < 2.5) {
+                    // Le clone atteint l'ennemi sans avoir ete frappe : il se dissipe.
+                    remove(m);
+                    cancel();
+                    return;
+                }
+                Vector dir = new Vector(to.getX(), 0, to.getZ()).normalize();
+                Location next = cur.clone().add(dir.multiply(Math.min(SPEED, flat)));
+                next = settle(next);
+                next.setDirection(new Vector(to.getX(), 0, to.getZ()));
+                m.teleport(next);
+                if (ticks % 3 == 0) m.getWorld().spawnParticle(Particle.SMOKE, cur.clone().add(0, 0.2, 0), 1, 0.1, 0, 0.1, 0);
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
+    }
+
+    /** Suit le relief : monte d'un bloc devant un obstacle d'un bloc, descend s'il y a du vide. */
+    private static Location settle(Location next) {
+        Block feet = next.getBlock();
+        Block head = feet.getRelative(0, 1, 0);
+        if (!feet.isPassable() || !head.isPassable()) {
+            Block up = feet.getRelative(0, 1, 0), up2 = feet.getRelative(0, 2, 0);
+            if (up.isPassable() && up2.isPassable()) return next.add(0, 1, 0);
+            return next.subtract(next.getDirection().setY(0).multiply(0.0)); // bloque : reste sur place
+        }
+        for (int i = 0; i < 3; i++) {
+            Block below = next.clone().subtract(0, 0.05, 0).getBlock();
+            if (below.isPassable() && next.getY() > next.getWorld().getMinHeight()) next.subtract(0, 1, 0); else break;
+        }
+        return next;
     }
 
     public static void remove(LivingEntity clone) {
         ON_HIT.remove(clone.getUniqueId());
-        clone.getWorld().spawnParticle(org.bukkit.Particle.SMOKE, clone.getLocation().add(0, 1, 0), 25, 0.3, 0.5, 0.3, 0.03);
+        clone.getWorld().spawnParticle(Particle.SMOKE, clone.getLocation().add(0, 1, 0), 25, 0.3, 0.5, 0.3, 0.03);
+        clone.getWorld().playSound(clone.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.4f, 1.4f);
         clone.remove();
     }
 
@@ -121,28 +163,18 @@ public final class Clones implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDamage(EntityDamageEvent e) {
         if (!isClone(e.getEntity())) return;
-        switch (e.getCause()) {
-            case FIRE, FIRE_TICK, LAVA, DROWNING, SUFFOCATION, FALL -> e.setCancelled(true);
-            default -> { }
-        }
+        if (!(e instanceof EntityDamageByEntityEvent)) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof LivingEntity clone) || !isClone(clone)) return;
-        Player attacker = DamageListener.attackerOf(e.getDamager());
-        if (attacker == null || sameTeam(clone, attacker)) { e.setCancelled(true); return; }
         e.setCancelled(true);
+        Player attacker = DamageListener.attackerOf(e.getDamager());
+        if (attacker == null || sameTeam(clone, attacker)) return;
         BiConsumer<LivingEntity, Player> cb = ON_HIT.remove(clone.getUniqueId());
         if (cb != null) cb.accept(clone, attacker);
         remove(clone);
-    }
-
-    @EventHandler
-    public void onTarget(EntityTargetEvent e) {
-        if (!isClone(e.getEntity())) return;
-        // Un clone ne change pas de cible tout seul.
-        if (e.getReason() != EntityTargetEvent.TargetReason.CUSTOM) e.setCancelled(true);
     }
 
     @EventHandler

@@ -247,10 +247,13 @@ public final class AbilityEngine implements Listener {
 
     private void tickAll() {
         if (!plugin.game().isRunning()) return;
+        boolean hideArmor = plugin.getConfig().getBoolean("visuals.hide-armor", true);
         for (Player p : Bukkit.getOnlinePlayers()) {
             CfPlayer cf = plugin.players().get(p);
             Character ch = cf.character();
             if (ch == null || cf.isWaitingRespawn() || !cf.isAlive()) continue;
+            // L'armure n'est jamais visible sur les joueurs : chacun garde l'apparence de son personnage.
+            if (hideArmor && !com.kiokouwhite.crossfight.util.Stealth.isArmorHidden(p)) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
             StringBuilder bar = new StringBuilder();
             for (Ability a : ch.allAbilities()) {
                 AbilityState st = state(p, a);

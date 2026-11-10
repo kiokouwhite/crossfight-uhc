@@ -126,6 +126,11 @@ public final class RestrictionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onArmorChange(PlayerArmorChangeEvent e) {
         Player p = e.getPlayer();
+        if (plugin.getConfig().getBoolean("visuals.hide-armor", true) && plugin.game().isRunning()) {
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                if (p.isOnline()) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
+            });
+        }
         ItemStack added = e.getNewItem();
         if (added == null || added.getType() == Material.AIR) return;
 
