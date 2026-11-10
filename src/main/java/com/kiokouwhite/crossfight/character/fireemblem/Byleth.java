@@ -390,16 +390,23 @@ public final class Byleth extends Character implements Listener {
 
                 @Override public void run() {
                     if (!p.isOnline() || p.isDead() || tick > TOTAL) { whip.clear(); Effects.unroot(p); cancel(); return; }
-                    World w = p.getWorld();
-                    if (tick < WINDUP_END) windup(w);
-                    else if (tick <= SWEEP_END) sweep(w);
-                    else if (tick == BLAST_TICK) blast(w);
-                    else aftermath(w);
-                    tick++;
+                    int current = tick++;
+                    try {
+                        World w = p.getWorld();
+                        if (current < WINDUP_END) windup(w, current);
+                        else if (current <= SWEEP_END) sweep(w, current);
+                        else if (current == BLAST_TICK) blast(w);
+                        else aftermath(w, current);
+                    } catch (Exception ex) {
+                        plugin().getLogger().warning("Dechainement d'Epine interrompu : " + ex);
+                        whip.clear();
+                        Effects.unroot(p);
+                        cancel();
+                    }
                 }
 
                 /** Fouet court tenu bas devant elle, etincelles blanches a la pointe. */
-                void windup(World w) {
+                void windup(World w, int tick) {
                     Location origin = p.getEyeLocation().subtract(0, 0.6, 0);
                     Vector dir = fwd.clone().setY(-0.45).normalize();
                     whip.layout(origin, dir, 2.5 + tick * 0.15);
@@ -412,12 +419,12 @@ public final class Byleth extends Character implements Listener {
                         p.setVelocity(fwd.clone().multiply(0.85).setY(0.12));
                         w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.5f);
                         w.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
-                        w.spawnParticle(Particle.FLASH, p.getEyeLocation().add(fwd), 1);
+                        w.spawnParticle(Particle.FLASH, p.getEyeLocation().add(fwd), 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 200, 220));
                     }
                 }
 
                 /** Grand coup horizontal au ras du sol, vague rouge et poussiere blanche. */
-                void sweep(World w) {
+                void sweep(World w, int tick) {
                     double t = (double) (tick - WINDUP_END) / (SWEEP_END - WINDUP_END);
                     double eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     double angle = baseAngle - HALF_ARC + eased * 2 * HALF_ARC;
@@ -450,7 +457,7 @@ public final class Byleth extends Character implements Listener {
                 void blast(World w) {
                     whip.clear();
                     Location c = center.clone().add(0, 1.0, 0);
-                    w.spawnParticle(Particle.FLASH, c, 2);
+                    w.spawnParticle(Particle.FLASH, c, 2, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 90, 120));
                     w.spawnParticle(Particle.EXPLOSION, c, 2, 0.6, 0.3, 0.6, 0);
                     w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c, 120, 2.2, 1.0, 2.2, 0, FLASH);
                     w.spawnParticle(Particle.DUST, c, 60, 2.5, 1.2, 2.5, 0, MIST);
@@ -467,7 +474,7 @@ public final class Byleth extends Character implements Listener {
                 }
 
                 /** Brume et poussiere qui retombent. */
-                void aftermath(World w) {
+                void aftermath(World w, int tick) {
                     Location c = center.clone().add(0, 0.5, 0);
                     w.spawnParticle(Particle.DUST, c, 8, 2.5, 0.8, 2.5, 0, MIST);
                     w.spawnParticle(Particle.CLOUD, c, 4, 2.5, 0.3, 2.5, 0.01);
@@ -485,8 +492,8 @@ public final class Byleth extends Character implements Listener {
 
         private static void strike(Player byleth, org.bukkit.entity.LivingEntity enemy, Location center) {
             Effects.damage(enemy, 6.0, byleth);
-            // Projection a 10 blocs, avec une bonne composante verticale comme dans le jeu.
-            Vector dir = enemy.getLocation().toVector().subtract(center.toVector()).setY(0);
+            // Projection a 10 blocs en s'eloignant de Byleth, avec une bonne composante verticale comme dans le jeu.
+            Vector dir = enemy.getLocation().toVector().subtract(byleth.getLocation().toVector()).setY(0);
             if (dir.lengthSquared() < 0.01) dir = byleth.getLocation().getDirection().setY(0);
             dir.normalize();
             enemy.setVelocity(dir.multiply(1.6).setY(0.9));
