@@ -294,9 +294,11 @@ public final class TestMode implements Listener {
     public void onDeath(Player p) {
         CfPlayer cf = plugin.players().get(p);
         cf.setWaitingRespawn(false);
+        // Les capacites qui gerent leur propre mort (dimension de Byleth) s'executent aussi en mode test.
+        boolean handled = plugin.abilities().dispatchDeath(p);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
-            p.teleport(ArenaWorlds.center(world()));
+            if (!handled) p.teleport(ArenaWorlds.center(world()));
             p.setGameMode(GameMode.SURVIVAL);
             var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
             p.setHealth(mh == null ? 20 : mh.getValue());

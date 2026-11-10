@@ -529,7 +529,7 @@ public final class Byleth extends Character implements Listener {
                 Msg.actionBar(p, "<red>La dimension est deja occupee.");
                 return false;
             }
-            List<Player> enemies = Effects.enemyPlayersWithin(p, 20);
+            List<org.bukkit.entity.LivingEntity> enemies = Effects.enemiesWithin(p, 20);
             if (enemies.isEmpty()) {
                 Msg.actionBar(p, "<red>Aucun ennemi a moins de 20 blocs.");
                 return false;
@@ -541,11 +541,13 @@ public final class Byleth extends Character implements Listener {
             p.teleport(ArenaWorlds.center(dim));
             Msg.send(p, "<dark_purple>Tu entraines " + enemies.size() + " ennemi(s) dans les Tenebres.");
             ThreadLocalRandom r = ThreadLocalRandom.current();
-            for (Player enemy : enemies) {
+            for (org.bukkit.entity.LivingEntity enemy : enemies) {
                 returnPoints.put(enemy.getUniqueId(), enemy.getLocation());
                 enemy.teleport(ArenaWorlds.center(dim).add(r.nextInt(-12, 13), 0, r.nextInt(-12, 13)));
-                Msg.send(enemy, "<dark_purple>Byleth t'a entraine dans les Tenebres. Tu n'en sortiras que par sa mort.");
-                enemy.playSound(enemy.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+                if (enemy instanceof Player ep) {
+                    Msg.send(ep, "<dark_purple>Byleth t'a entraine dans les Tenebres. Tu n'en sortiras que par sa mort.");
+                    ep.playSound(ep.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+                }
             }
             dim.playSound(ArenaWorlds.center(dim), Sound.ENTITY_WITHER_SPAWN, 1f, 0.6f);
             return true;
@@ -560,7 +562,7 @@ public final class Byleth extends Character implements Listener {
             Effects.refresh(p, PotionEffectType.RESISTANCE, 0, 45);
             // Plus aucun ennemi vivant dans la dimension : Byleth rentre.
             boolean enemyInside = false;
-            for (Player o : p.getWorld().getPlayers()) if (Effects.isEnemy(p, o)) { enemyInside = true; break; }
+            for (org.bukkit.entity.LivingEntity o : p.getWorld().getLivingEntities()) if (Effects.isEnemy(p, o)) { enemyInside = true; break; }
             if (!enemyInside) {
                 Location back = returnPoints.get(p.getUniqueId());
                 if (back != null) p.teleport(back);
@@ -575,18 +577,23 @@ public final class Byleth extends Character implements Listener {
             // Byleth meurt dans sa dimension : tout le monde sort, aucune vie perdue.
             Msg.broadcast("<dark_purple>Byleth est tombee dans les Tenebres : ses prisonniers sont liberes.");
             World dim = p.getWorld();
-            for (Player o : new ArrayList<>(dim.getPlayers())) {
-                if (o == p) continue;
-                Location back = returnPoints.get(o.getUniqueId());
-                o.teleport(back != null ? back : plugin().game().randomGroundLocation(300));
-                Msg.send(o, "<dark_purple>Tu es libere des Tenebres.");
-            }
+            releaseAll(dim, p);
             Location back = returnPoints.get(p.getUniqueId());
             Location target = back != null ? back : plugin().game().randomGroundLocation(300);
             finish();
             Bukkit.getScheduler().runTask(plugin(), () -> plugin().lives().respawnAt(p, target));
             Msg.send(p, "<green>Ta mort dans les Tenebres ne te coute aucune vie.");
             return true;
+        }
+
+        /** Renvoie tous les prisonniers (joueurs et mannequins) a leur position d'origine. */
+        private void releaseAll(World dim, Player byleth) {
+            for (org.bukkit.entity.LivingEntity o : new ArrayList<>(dim.getLivingEntities())) {
+                if (o == byleth || !returnPoints.containsKey(o.getUniqueId())) continue;
+                Location back = returnPoints.get(o.getUniqueId());
+                o.teleport(back != null ? back : plugin().game().randomGroundLocation(300));
+                if (o instanceof Player op) Msg.send(op, "<dark_purple>Tu es libere des Tenebres.");
+            }
         }
 
         private void finish() {
@@ -599,10 +606,7 @@ public final class Byleth extends Character implements Listener {
             // Fin de partie ou mort hors dimension pendant qu'elle est active : on libere tout le monde.
             if (p.getUniqueId().equals(activeByleth) && !p.getWorld().getName().equals(DIMENSION_WORLD)) {
                 World dim = Bukkit.getWorld(DIMENSION_WORLD);
-                if (dim != null) for (Player o : new ArrayList<>(dim.getPlayers())) {
-                    Location back = returnPoints.get(o.getUniqueId());
-                    o.teleport(back != null ? back : plugin().game().randomGroundLocation(300));
-                }
+                if (dim != null) releaseAll(dim, p);
                 finish();
             }
         }
