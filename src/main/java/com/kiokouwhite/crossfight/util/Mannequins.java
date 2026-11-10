@@ -221,7 +221,8 @@ public final class Mannequins implements Listener {
             var c = CrossfightPlugin.get().characters().character(characterOf(e));
             label = "<red>" + (c == null ? "Adversaire" : c.name()) + " <dark_red>(adversaire)";
         } else label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
-        e.customName(Msg.mm(label + " <red>❤ " + fmt(hp / 2.0) + "<gray>/" + fmt(MAX_HEALTH / 2.0)));
+        int pct = (int) Math.round(hp / MAX_HEALTH * 100);
+        e.customName(Msg.mm(label + " <red>❤ " + pct + "%"));
     }
 
     private static String fmt(double d) {
