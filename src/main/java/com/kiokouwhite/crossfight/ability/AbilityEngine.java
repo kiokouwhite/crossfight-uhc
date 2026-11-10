@@ -41,6 +41,8 @@ public final class AbilityEngine implements Listener {
     /** Etat par joueur puis par identifiant de capacite. */
     private final Map<UUID, Map<String, AbilityState>> states = new HashMap<>();
     private BukkitTask tickTask;
+    /** Barres de jauge affichees : joueur -> id de capacite -> barre. */
+    private final Map<UUID, Map<String, net.kyori.adventure.bossbar.BossBar>> gaugeBars = new HashMap<>();
 
     public AbilityEngine(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -52,7 +54,7 @@ public final class AbilityEngine implements Listener {
 
     public void stop() {
         if (tickTask != null) tickTask.cancel();
-        for (Player p : Bukkit.getOnlinePlayers()) unequip(p);
+        for (Player p : Bukkit.getOnlinePlayers()) { unequip(p); clearGaugeBars(p); }
         states.clear();
     }
 
@@ -65,6 +67,33 @@ public final class AbilityEngine implements Listener {
 
     public void clearStates(Player p) {
         states.remove(p.getUniqueId());
+    }
+
+    // ---------------------------------------------------------------- jauges
+
+    /** Met a jour (ou cree) la barre de jauge d'une capacite activable. */
+    private void updateGaugeBar(Player p, ToggleAbility t, AbilityState st) {
+        Map<String, net.kyori.adventure.bossbar.BossBar> bars = gaugeBars.computeIfAbsent(p.getUniqueId(), u -> new HashMap<>());
+        float progress = (float) Math.max(0.0, Math.min(1.0, st.gauge() / 100.0));
+        net.kyori.adventure.text.Component title = Msg.mm((st.isEnabled() ? "<aqua>" : "<gray>") + t.name()
+                + (st.isEnabled() ? " <white>(actif)" : "") + " <dark_gray>" + (int) st.gauge() + "%");
+        net.kyori.adventure.bossbar.BossBar.Color color = st.isEnabled() ? net.kyori.adventure.bossbar.BossBar.Color.BLUE : net.kyori.adventure.bossbar.BossBar.Color.WHITE;
+        net.kyori.adventure.bossbar.BossBar bar = bars.get(t.id());
+        if (bar == null) {
+            bar = net.kyori.adventure.bossbar.BossBar.bossBar(title, progress, color, net.kyori.adventure.bossbar.BossBar.Overlay.NOTCHED_10);
+            bars.put(t.id(), bar);
+            p.showBossBar(bar);
+        } else {
+            bar.name(title);
+            bar.progress(progress);
+            bar.color(color);
+        }
+    }
+
+    /** Retire toutes les barres de jauge d'un joueur. */
+    public void clearGaugeBars(Player p) {
+        Map<String, net.kyori.adventure.bossbar.BossBar> bars = gaugeBars.remove(p.getUniqueId());
+        if (bars != null) for (var bar : bars.values()) p.hideBossBar(bar);
     }
 
     // ------------------------------------------------------------ equipement
@@ -133,6 +162,7 @@ public final class AbilityEngine implements Listener {
         }
         removeAbilityItems(p.getInventory());
         com.kiokouwhite.crossfight.util.Stealth.revealAll(p);
+        clearGaugeBars(p);
     }
 
     // ------------------------------------------------------------ dispatch
@@ -226,7 +256,10 @@ public final class AbilityEngine implements Listener {
                 AbilityState st = state(p, a);
                 try {
                     a.tick(p, cf, st);
-                    if (a instanceof ToggleAbility t) tickToggle(p, cf, t, st);
+                    if (a instanceof ToggleAbility t) {
+                        tickToggle(p, cf, t, st);
+                        if (t.hasGauge()) updateGaugeBar(p, t, st);
+                    }
                 } catch (Exception ex) {
                     plugin.getLogger().warning("Erreur dans la capacite " + a.id() + " : " + ex);
                 }
@@ -263,7 +296,10 @@ public final class AbilityEngine implements Listener {
             case ACTIVE -> piece = st.onCooldown()
                     ? "<gray>" + a.name() + " <red>" + st.cooldownLeftSeconds() + "s"
                     : "<green>" + a.name() + " ✔";
-            case TOGGLE -> piece = (st.isEnabled() ? "<aqua>" : "<gray>") + a.name() + " " + (int) st.gauge() + "%";
+            case TOGGLE -> {
+                if (((ToggleAbility) a).hasGauge()) return; // affichee par sa barre de jauge
+                piece = (st.isEnabled() ? "<aqua>" : "<gray>") + a.name() + (st.isEnabled() ? " <white>actif" : "");
+            }
             case SWITCH -> piece = "<yellow>" + a.name() + " <white>[" + ((SwitchAbility) a).modeName(st.mode()) + "]";
             case ULTIMATE -> piece = cf.isUltimateLocked()
                     ? "<dark_purple>Ultime en cours"

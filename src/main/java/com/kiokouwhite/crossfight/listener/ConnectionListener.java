@@ -51,5 +51,6 @@ public final class ConnectionListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         e.quitMessage(Msg.prefixed("<gray>" + e.getPlayer().getName() + " est parti."));
         plugin.scoreboard().remove(e.getPlayer());
+        plugin.abilities().clearGaugeBars(e.getPlayer());
     }
 }

@@ -22,6 +22,9 @@ public abstract class ToggleAbility extends Ability {
         this.regenPerSecond = regenPerSecond;
     }
 
+    /** Une vraie jauge (qui se vide et se remplit) merite une barre a l'ecran. */
+    public boolean hasGauge() { return drainPerSecond > 0 || regenPerSecond > 0; }
+
     public double drainPerSecond() { return drainPerSecond; }
     public double regenPerSecond() { return regenPerSecond; }
 
