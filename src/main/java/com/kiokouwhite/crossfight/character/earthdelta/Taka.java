@@ -129,7 +129,8 @@ public final class Taka extends Character implements Listener {
             ItemStack weapon = new ItemStack(kind.item);
             if (ult) { var meta = weapon.getItemMeta(); meta.setEnchantmentGlintOverride(true); weapon.setItemMeta(meta); }
             s.getEquipment().setItemInMainHand(weapon);
-            s.setRightArmPose(kind == Kind.SWORD ? new EulerAngle(Math.PI / 2, 0, 0) : new EulerAngle(-Math.PI / 2, 0, 0));
+            // Epee : lame vers le bas (plantee). Lance et hache : a l'horizontale, pointees devant.
+            s.setRightArmPose(kind == Kind.SWORD ? new EulerAngle(Math.PI / 2, 0, 0) : new EulerAngle(0, 0, 0));
         });
         Summon s = new Summon(kind, stand, owner.getUniqueId(), ult, at.clone(), dir);
         SUMMONS.add(s);
@@ -224,7 +225,8 @@ public final class Taka extends Character implements Listener {
                 s.phase += 0.25;
                 Location center = s.ult ? s.origin : o.getLocation();
                 Location l = center.clone().add(Math.cos(s.phase) * 2.5, 0.2, Math.sin(s.phase) * 2.5);
-                l.setYaw((float) Math.toDegrees(s.phase) + 90);
+                // La hache tournoie sur elle-meme, a plat, tout en orbitant.
+                l.setYaw((float) (s.age * 30 % 360));
                 s.stand.teleport(l);
                 if (s.age % 2 == 0) w.spawnParticle(Particle.SWEEP_ATTACK, l.clone().add(0, 1.2, 0), 1, 0, 0, 0, 0);
                 strike(s, o, l.clone().add(0, 1, 0), 1.3);
