@@ -63,7 +63,7 @@ public final class Corrin extends Character {
                 "<white>Dragon Gardien : Resistance pres d'un allie",
                 "<white>Sang Draconique : vol 5 s, eau a l'atterrissage",
                 "<white>Dragon de l'eau : Agilite aquatique IV",
-                "<light_purple>Ultime : vague qui ejecte a 15 blocs");
+                "<light_purple>Ultime : vague de 40 blocs, ejecte a 30 blocs");
     }
 
     /** Remplace l'arme de Corrin dans son inventaire. */
@@ -300,13 +300,13 @@ public final class Corrin extends Character {
                 new Cell(6, 1, Material.BLUE_STAINED_GLASS), new Cell(6, 2, Material.LIGHT_BLUE_STAINED_GLASS),
                 new Cell(7, 1, Material.LIGHT_BLUE_STAINED_GLASS));
 
-        private static final int STEPS = 10;
+        private static final int STEPS = 40;
         private static final int TICKS_PER_STEP = 2; // 10 blocs par seconde
         private static final int HALF_WIDTH = 5;     // 10 blocs de large
 
         VaguesBleues() {
             super("corrin_ult", "Les Vagues Bleues de l'Ocean Gris",
-                    "Une vraie vague de 10 blocs de large se dresse et deferle sur 10 blocs en une seconde. Les ennemis touches sont ejectes a 15 blocs de haut et ont Lenteur 10 secondes.",
+                    "Une vraie vague de 10 blocs de large se dresse et deferle sur 40 blocs (10 blocs/s). Les ennemis touches sont ejectes a 30 blocs de haut et ont Lenteur III pendant 10 secondes.",
                     Material.HEART_OF_THE_SEA);
         }
 
@@ -373,8 +373,8 @@ public final class Corrin extends Character {
                 int groundY(int x, int z) {
                     int y = origin.getBlockY() - 1;
                     // Monte si le sol est plus haut, descend s'il est plus bas (au plus 3 blocs).
-                    for (int i = 0; i < 3 && w.getBlockAt(x, y + 1, z).getType().isSolid(); i++) y++;
-                    for (int i = 0; i < 3 && !w.getBlockAt(x, y, z).getType().isSolid(); i++) y--;
+                    for (int i = 0; i < 8 && w.getBlockAt(x, y + 1, z).getType().isSolid(); i++) y++;
+                    for (int i = 0; i < 8 && !w.getBlockAt(x, y, z).getType().isSolid(); i++) y--;
                     return y;
                 }
 
@@ -414,8 +414,8 @@ public final class Corrin extends Character {
                         Vector rel = enemy.getLocation().toVector().subtract(check.toVector());
                         if (Math.abs(rel.dot(axis)) > 2.5 || Math.abs(rel.dot(side)) > HALF_WIDTH + 0.5) continue;
                         hit.add(enemy.getUniqueId());
-                        Effects.launchUp(enemy, 15);
-                        Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 20 * 10);
+                        Effects.launchUp(enemy, 30);
+                        Effects.give(enemy, PotionEffectType.SLOWNESS, 2, 20 * 10);
                         enemy.getWorld().spawnParticle(Particle.SPLASH, enemy.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0);
                         if (enemy instanceof Player ep) Msg.actionBar(ep, "<aqua>Emporte par la vague de Corrin !");
                     }

@@ -78,7 +78,8 @@ public final class Effects {
 
     /** Vitesse verticale approximative pour atteindre une hauteur donnee en blocs. */
     public static double launchVelocityFor(double heightBlocks) {
-        return Math.sqrt(0.16 * heightBlocks) * 1.05;
+        // Le frottement de l'air freine davantage les grandes projections : on compense.
+        return Math.sqrt(0.16 * heightBlocks) * (heightBlocks >= 20 ? 1.18 : 1.05);
     }
 
     /** Projette un joueur en l'air d'environ {@code height} blocs. */
