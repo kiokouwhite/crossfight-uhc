@@ -62,7 +62,7 @@ public final class Corrin extends Character {
                 "<white>Yato (8.5) : evolue avec les kills",
                 "<white>Dragon Gardien : Resistance pres d'un allie",
                 "<white>Sang Draconique : vol 5 s, eau a l'atterrissage",
-                "<white>Dragon de l'eau : Agilite aquatique IV",
+                "<white>Dragon de l'eau : Agilite aquatique IV, Vitesse IV dans l'eau",
                 "<light_purple>Ultime : vague de 40 blocs, ejecte a 30 blocs");
     }
 
@@ -269,13 +269,14 @@ public final class Corrin extends Character {
 
     static final class DragonDeLEau extends PassiveAbility {
         DragonDeLEau() {
-            super("corrin_eau", "Dragon de l'eau", "Corrin a Agilite aquatique IV et respire sous l'eau.", Material.PRISMARINE_CRYSTALS);
+            super("corrin_eau", "Dragon de l'eau", "Corrin a Agilite aquatique IV, respire sous l'eau et gagne Vitesse IV tant qu'elle est dans l'eau.", Material.PRISMARINE_CRYSTALS);
         }
 
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.DOLPHINS_GRACE, 3, 45);
             Effects.refresh(p, PotionEffectType.WATER_BREATHING, 0, 45);
+            if (p.isInWater()) Effects.refresh(p, PotionEffectType.SPEED, 3, 45);
         }
     }
 
