@@ -44,6 +44,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf ally <testeur>` | Rejoindre l'équipe d'un autre testeur en mode test |
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY, test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
+| `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
 
 ## Déroulement d'une partie
 
@@ -65,7 +66,8 @@ com.kiokouwhite.crossfight
 ├── character/              licences, personnages, menu de sélection
 │   ├── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
 │   ├── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
-│   └── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
+│   ├── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
+│   └── snk/                Shingeki no Kyojin : équipement 3D, Eren, Mikasa, Livaï, Armin
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -96,6 +98,16 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
 - La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.
 
+### Hypothèses prises sur Shingeki no Kyojin
+
+- L'équipement tridimensionnel est un grappin (clic droit sur l'arc) : la flèche s'accroche à un bloc ou une entité à 30 blocs et le joueur est tiré jusqu'à elle, sans dégâts de chute. La jauge de gaz (barre en haut) baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.
+- Les styles : Eren fonce sur un adversaire attrapé (2 cœurs à l'impact, 10 s), Mikasa a Force en permanence, Livaï tournoie 5 s avec clic droit sur ses lames dans les airs, Armin fonce sur un allié attrapé à 20 blocs (10 s).
+- La forme de Titan d'Eren dure jusqu'à sa mort : le modèle est agrandi (×2), Force, Speed, 15 % de vol de vie, plus de Pommes Dorées, d'équipement ni de Charge. Clic droit sur l'ultime sous cette forme : régénération de 5 cœurs en 3 s (50 s).
+- Les 4 cibles primordiales sont tirées au sort parmi les adversaires au début de la partie ; chaque kill d'une cible vole un titan au hasard. Les pouvoirs volés s'utilisent dans un menu (item « Titans primordiaux ») sous forme de Titan seulement. Le Colossal n'a pas de temps de recharge indiqué : 20 s. Les armes du Marteau d'Armes : épée nétherite 12 dmg (4 coups), arbalète à un seul carreau de 4 cœurs, lance (trident) 8 dmg avec frappe à 5 blocs au clic droit (5 coups).
+- Mikasa sans Eren vivant dans l'équipe : l'ultime lui donne les bonus sans téléportation. « Eren a moins de 5 cœurs » se lit sur l'Eren de son équipe.
+- Les dégâts que Livaï s'inflige ignorent l'armure et ne peuvent pas le tuer. « Allié mort » pour ses camarades tombés = allié éliminé (plus de vies).
+- L'Annulation Tactique d'Armin rend l'adversaire incapable d'utiliser une capacité (hors passifs) pendant 5 s. Sa Stratégie et son Abnégation passent par des menus ; l'Abnégation s'applique aussi à Armin.
+
 ### Hypothèses prises sur RWBY
 
 - Les Ultimes en Duo ont un item commun « Ultime en Duo » : un clic lance l'ultime de la paire prête, ou ouvre un choix s'il y en a plusieurs. Chaque paire a sa propre jauge, chargée par les dégâts de l'un ou l'autre quand ils sont à moins de 10 blocs.
@@ -120,8 +132,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Fire Emblem : Soutien C à S, Marth, Corrin, Takumi, Byleth
 - [x] RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 - [x] Valorant : crédits et boutique de 17 armes à feu, paliers d'armes blanches, Neon, Sage, Sova, Jett
+- [x] Shingeki no Kyojin : équipement tridimensionnel et gaz, Eren (et ses 7 titans), Mikasa, Livaï, Armin
 - [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 24 personnages restants
+- [ ] 20 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

@@ -27,8 +27,7 @@ public final class CharacterRegistry {
         register(com.kiokouwhite.crossfight.character.fireemblem.FireEmblem.create());
         register(com.kiokouwhite.crossfight.character.rwby.RWBY.create());
         register(com.kiokouwhite.crossfight.character.valorant.Valorant.create());
-        register(new Licence("snk", "SHINGEKI NO KYOJIN", TeamSize.TRIO,
-                "Equipement tridimensionnel avec une jauge de gaz de 100."));
+        register(com.kiokouwhite.crossfight.character.snk.SNK.create());
         register(new Licence("unordinary", "UNORDINARY", TeamSize.TRIO,
                 "Chacun craft une epee d'Aura dont l'actif depend du craft."));
         register(new Licence("earth_delta", "EARTH DELTA", TeamSize.TRIO,

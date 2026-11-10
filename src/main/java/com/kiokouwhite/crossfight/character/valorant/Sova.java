@@ -90,21 +90,48 @@ public final class Sova extends Character implements Listener {
         com.kiokouwhite.crossfight.util.Items.tag(a, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY, AMMO_ID);
         if (inv.getItem(9) == null) inv.setItem(9, a); else inv.addItem(a);
     }
-    /** Pendant que l'arc est bande : l'arc crepite et un trait d'energie bleue monte le long de la corde. */
-    static void bowCharge(Player p, AbilityState st, String id) {
-        if (!p.isHandRaised() || !isElectricBow(p.getActiveItem(), id)) { st.set("charge", 0); return; }
-        int t = st.get("charge", 0) + 1; st.set("charge", t);
-        double f = Math.min(1.0, t / 20.0);
+    /** Pendant que l'arc est bande : l'arc crepite et un trait d'energie bleue monte le long de la corde (tache par tick). */
+    static void startCharge(Player p, AbilityState st, String id) {
+        if (st.get("charging", false)) return;
+        st.set("charging", true);
         World w = p.getWorld();
-        Location eye = p.getEyeLocation();
-        Vector dir = eye.getDirection();
-        Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
-        Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
-        w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 1 + (int) (f * 3), 0.15, 0.25, 0.15, 0.02);
-        for (double y = -0.45; y <= -0.45 + 0.9 * f; y += 0.12) w.spawnParticle(Particle.DUST, hand.clone().add(0, y + 0.3, 0), 1, 0, 0, 0, 0, ARC);
-        if (t % 4 == 0 && t <= 20) w.playSound(hand, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25f, 0.7f + (float) f * 1.0f);
-        if (t == 20) { w.playSound(hand, Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 2f); w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 20, 0.3, 0.4, 0.3, 0.15); }
+        new BukkitRunnable() {
+            int t = 0, idle = 0;
+            @Override public void run() {
+                try {
+                    if (!p.isOnline() || !isElectricBow(p.getActiveItem(), id) || !p.isHandRaised()) {
+                        // Quelques ticks de tolerance au tout debut, le temps que le client commence a bander.
+                        if (t > 0 || ++idle > 4) { st.set("charging", false); cancel(); }
+                        return;
+                    }
+                    t++;
+                    double f = Math.min(1.0, t / 20.0);
+                    Location eye = p.getEyeLocation();
+                    Vector dir = eye.getDirection();
+                    Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+                    Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 1 + (int) (f * 3), 0.15, 0.25, 0.15, 0.02);
+                    for (double y = -0.45; y <= -0.45 + 0.9 * f; y += 0.12) w.spawnParticle(Particle.DUST, hand.clone().add(0, y + 0.3, 0), 1, 0, 0, 0, 0, ARC);
+                    if (t % 4 == 0 && t <= 20) w.playSound(hand, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25f, 0.7f + (float) f * 1.0f);
+                    if (t == 20) { w.playSound(hand, Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 2f); w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 20, 0.3, 0.4, 0.3, 0.15); }
+                } catch (Exception ex) { st.set("charging", false); cancel(); }
+            }
+        }.runTaskTimer(plugin(), 1L, 1L);
     }
+
+    @EventHandler
+    public void onDrawBow(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || e.getItem() == null || e.getItem().getType() != Material.BOW) return;
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR && e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+        if (!plugin().game().isRunning()) return;
+        Player p = e.getPlayer();
+        CfPlayer cf = plugin().players().get(p);
+        if (cf.character() == null) return;
+        for (String id : new String[]{"sova_electro", "sova_reco"}) {
+            if (isElectricBow(e.getItem(), id) && cf.character().ability(id) != null) startCharge(p, plugin().abilities().state(p, cf.character().ability(id)), id);
+        }
+    }
+
     /** Tir d'un dard bleu a la vitesse de la charge. */
     static Arrow shootDart(Player p, double force, NamespacedKey tag) {
         Vector dir = p.getEyeLocation().getDirection();
@@ -138,7 +165,6 @@ public final class Sova extends Character implements Listener {
             int b = arrows(st);
             return "<aqua>Electro " + "●".repeat(b) + "<dark_gray>" + "●".repeat(MAX - b);
         }
-        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { bowCharge(p, st, "sova_electro"); }
         /** Tir de l'arc : on remplace la fleche vanilla par le dard electrique, a la vitesse de la charge. */
         boolean shoot(Player p, CfPlayer cf, AbilityState st, double force) {
             int b = arrows(st);
@@ -239,7 +265,6 @@ public final class Sova extends Character implements Listener {
         @Override public ItemStack createItem() { return electricBow(super.createItem()); }
         static boolean isBow(ItemStack it) { return isElectricBow(it, "sova_reco"); }
         @Override public void onEquip(Player p, CfPlayer cf) { giveAmmo(p); }
-        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { bowCharge(p, st, "sova_reco"); }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) { return false; }
     }
 

@@ -64,6 +64,12 @@ public final class CfPlayer {
         if (ultimateLocked && percent > 0) return;
         ultimateCharge = Math.min(100.0, Math.max(0.0, ultimateCharge + percent));
     }
+    private long silencedUntil;
+    /** Capacites annulees (Annulation Tactique d'Armin...) : aucune capacite ne peut etre utilisee. */
+    public boolean isSilenced() { return System.currentTimeMillis() < silencedUntil; }
+    public int silencedLeftSeconds() { return (int) Math.ceil(Math.max(0, silencedUntil - System.currentTimeMillis()) / 1000.0); }
+    public void silence(long millis) { silencedUntil = Math.max(silencedUntil, System.currentTimeMillis() + millis); }
+
     public boolean isUltimateLocked() { return ultimateLocked; }
     public void setUltimateLocked(boolean locked) { this.ultimateLocked = locked; }
     public void setUltimateCharge(double v) { ultimateCharge = Math.min(100.0, Math.max(0.0, v)); }

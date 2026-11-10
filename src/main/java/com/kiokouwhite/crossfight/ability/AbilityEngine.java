@@ -365,6 +365,11 @@ public final class AbilityEngine implements Listener {
 
     public void use(Player p, CfPlayer cf, Ability a) {
         AbilityState st = state(p, a);
+        if (cf.isSilenced() && a.type() != AbilityType.PASSIVE) {
+            Msg.actionBar(p, "<red>Capacites annulees : encore " + cf.silencedLeftSeconds() + "s");
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);
+            return;
+        }
         if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) return;
         switch (a) {
             case ActiveAbility active -> {

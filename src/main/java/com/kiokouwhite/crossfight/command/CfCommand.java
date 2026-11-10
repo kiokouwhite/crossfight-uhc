@@ -126,6 +126,15 @@ public final class CfCommand implements TabExecutor {
                             Msg.send(sp, "<gold>Credits : " + n);
                         }
                     }
+                    case "titan" -> {
+                        // Test : donne a Eren les pouvoirs d'un titan primordial (ou de tous).
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        String which = args.length > 1 ? args[1].toLowerCase() : "tous";
+                        int n = com.kiokouwhite.crossfight.character.snk.Eren.grantTitan(sp, which);
+                        if (n < 0) Msg.send(sp, "<red>Tu dois jouer Eren. Titans : " + String.join(", ", com.kiokouwhite.crossfight.character.snk.Eren.TITAN_IDS) + ", tous");
+                        else Msg.send(sp, "<green>" + n + " pouvoir(s) de titan obtenu(s).");
+                    }
                     case "clear" -> {
                         int n = plugin.testMode().clearTerrain();
                         Msg.send(sender, "<green>Terrain de test nettoye <gray>(" + n + " blocs remis en place, entites retirees).");
@@ -309,7 +318,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -318,6 +327,7 @@ public final class CfCommand implements TabExecutor {
                 case "perso" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "give" -> { for (Player p : Bukkit.getOnlinePlayers()) out.add(p.getName()); }
                 case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "allie", "adversaire", "clear"));
+                case "titan" -> { out.addAll(List.of(com.kiokouwhite.crossfight.character.snk.Eren.TITAN_IDS)); out.add("tous"); }
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }
