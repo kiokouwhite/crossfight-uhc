@@ -60,7 +60,7 @@ public final class Byleth extends Character implements Listener {
     public ItemStack createWeapon() {
         List<String> lore = new ArrayList<>();
         lore.add("<dark_gray>Actif");
-        lore.addAll(Items.wrap("L'epee s'etend sur 10 blocs (2 blocs/s) et ramene le joueur attrape."));
+        lore.addAll(Items.wrap("Byleth s'immobilise et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape."));
         lore.add("");
         lore.add("<yellow>Temps de chargement : <white>00:10");
         ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 8, "<gold><bold>Epee du Createur", lore);
@@ -109,16 +109,20 @@ public final class Byleth extends Character implements Listener {
 
     static final class EpeeDuCreateur extends ActiveAbility {
         EpeeDuCreateur() {
-            super(SWORD_ID, "Epee du Createur", "L'epee s'etend sur 10 blocs (2 blocs/s) et ramene le joueur attrape.", Material.DIAMOND_SWORD, 10);
+            super(SWORD_ID, "Epee du Createur", "Byleth s'immobilise et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
         }
 
         @Override public boolean hasItem() { return false; }
 
         private static final double SEGMENT = 0.5;
+        /** Avancee par tick : 8 blocs par seconde. */
+        private static final double SPEED_PER_TICK = 0.4;
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             p.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
+            // Byleth est immobilisee tant que le fouet est sorti (au plus 3 secondes de securite).
+            Effects.root(p, 60);
             List<BlockDisplay> bones = new ArrayList<>();
             new BukkitRunnable() {
                 double length = 0;
@@ -127,12 +131,12 @@ public final class Byleth extends Character implements Listener {
                 @Override public void run() {
                     if (!p.isOnline() || p.isDead()) { clear(); cancel(); return; }
                     if (retracting) {
-                        length -= 2.0;
+                        length -= 1.5;
                         if (length <= 0) { clear(); cancel(); return; }
                         layout(p, length);
                         return;
                     }
-                    length += SEGMENT; // 2 blocs par seconde, un segment tous les 5 ticks
+                    length += SPEED_PER_TICK;
                     Location eye = p.getEyeLocation();
                     Vector dir = eye.getDirection().normalize();
                     // Le fouet s'arrete sur un mur.
@@ -179,16 +183,17 @@ public final class Byleth extends Character implements Listener {
                 void clear() {
                     for (BlockDisplay b : bones) b.remove();
                     bones.clear();
+                    Effects.unroot(p);
                 }
-            }.runTaskTimer(plugin(), 0L, 5L);
+            }.runTaskTimer(plugin(), 0L, 1L);
             return true;
         }
 
         private static BlockDisplay spawnBone(Location at) {
             return at.getWorld().spawn(at, BlockDisplay.class, d -> {
                 d.setBlock(Material.BONE_BLOCK.createBlockData());
-                d.setTeleportDuration(5);
-                d.setInterpolationDuration(5);
+                d.setTeleportDuration(1);
+                d.setInterpolationDuration(1);
                 d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
                 d.setPersistent(false);
             });
