@@ -91,10 +91,13 @@ public final class Neon extends Character implements Listener {
     static final Particle.DustOptions YELLOW = new Particle.DustOptions(Color.fromRGB(255, 240, 80), 1.3f);
     static final Particle.DustOptions CYAN = new Particle.DustOptions(Color.fromRGB(90, 230, 255), 1.1f);
     static final Particle.DustTransition BLAST = new Particle.DustTransition(Color.fromRGB(255, 250, 120), Color.fromRGB(60, 200, 255), 2.4f);
+    /** Rayon de l'explosion (15 blocs de large) et delai avant l'explosion (1 seconde). */
+    static final double RELAY_RADIUS = 7.5;
+    static final int RELAY_DELAY_TICKS = 20;
 
     static final class EclairRelais extends ActiveAbility {
         EclairRelais() {
-            super("neon_relais", "Eclair Relais", "Neon lance un eclair qui rebondit une fois sur le sol. A chaque impact, un cercle electrique apparait puis explose 2 secondes plus tard sur 3x3, immobilisant les adversaires touches pendant 3 secondes.", Material.LIGHTNING_ROD, 10);
+            super("neon_relais", "Eclair Relais", "Neon lance un eclair qui rebondit une fois sur le sol. A chaque impact, un cercle electrique apparait puis explose une seconde plus tard sur 15 blocs de large, immobilisant les adversaires touches pendant 3 secondes.", Material.LIGHTNING_ROD, 10);
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -152,26 +155,29 @@ public final class Neon extends Character implements Listener {
             int t = 0;
             @Override public void run() {
                 t++;
-                if (t < 40) {
-                    double r = 1.5;
-                    for (double ang = 0; ang < Math.PI * 2; ang += 0.35) {
+                if (t < RELAY_DELAY_TICKS) {
+                    // Le cercle grandit jusqu'au rayon de l'explosion pendant la seconde d'amorce.
+                    double r = 1.0 + (RELAY_RADIUS - 1.0) * t / RELAY_DELAY_TICKS;
+                    for (double ang = 0; ang < Math.PI * 2; ang += 0.12) {
                         w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * r, 0.1, Math.sin(ang) * r), 1, 0, 0, 0, 0, YELLOW);
                     }
-                    w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 0.3, 0), 3 + t / 8, 0.8, 0.3, 0.8, 0.06);
-                    if (t % 10 == 0) w.playSound(c, Sound.BLOCK_BEACON_AMBIENT, 0.6f, 1.6f + t / 40f);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 0.3, 0), 6 + t, r * 0.6, 0.3, r * 0.6, 0.06);
+                    if (t % 5 == 0) w.playSound(c, Sound.BLOCK_BEACON_AMBIENT, 0.8f, 1.4f + t / 20f);
                     return;
                 }
-                // Explosion : flash jaune, gerbe jaune vers cyan, colonnes electriques.
-                w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 2, 0, 0, 0, 0, Color.fromRGB(255, 240, 120));
-                w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c.clone().add(0, 1, 0), 120, 1.5, 1.2, 1.5, 0, BLAST);
-                w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 1, 0), 120, 1.5, 1.5, 1.5, 0.3);
-                for (int i = 0; i < 6; i++) {
-                    double ang = Math.random() * Math.PI * 2, rr = Math.random() * 1.5;
-                    for (double y = 0; y < 3; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * rr, y, Math.sin(ang) * rr), 1, 0.05, 0.05, 0.05, 0, CYAN);
+                // Explosion : flash jaune, gerbe jaune vers cyan, colonnes electriques sur toute la zone.
+                w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 3, 0, 0, 0, 0, Color.fromRGB(255, 240, 120));
+                w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c.clone().add(0, 1.5, 0), 600, RELAY_RADIUS * 0.6, 2.0, RELAY_RADIUS * 0.6, 0, BLAST);
+                w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 1.5, 0), 400, RELAY_RADIUS * 0.6, 2.5, RELAY_RADIUS * 0.6, 0.4);
+                for (int i = 0; i < 30; i++) {
+                    double ang = Math.random() * Math.PI * 2, rr = Math.random() * RELAY_RADIUS;
+                    for (double y = 0; y < 4; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * rr, y, Math.sin(ang) * rr), 1, 0.05, 0.05, 0.05, 0, CYAN);
                 }
-                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 1.8f);
-                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.5f);
-                for (LivingEntity enemy : Effects.enemiesWithin(p, c, 1.5 + 1.0)) {
+                for (double ang = 0; ang < Math.PI * 2; ang += 0.06) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * RELAY_RADIUS, 0.2, Math.sin(ang) * RELAY_RADIUS), 1, 0, 0.3, 0, 0, YELLOW);
+                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.4f);
+                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.2f);
+                w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.5f);
+                for (LivingEntity enemy : Effects.enemiesWithin(p, c, RELAY_RADIUS)) {
                     Effects.root(enemy, 60);
                     Effects.say(enemy, "<yellow>Immobilise par l'Eclair Relais !");
                 }
