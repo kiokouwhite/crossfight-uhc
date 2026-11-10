@@ -24,6 +24,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -66,32 +67,97 @@ public final class Seraphina extends Character {
         w.spawnParticle(Particle.END_ROD, c.clone().add(0, 1, 0), 12, radius * 0.5, 0.5, radius * 0.5, 0.02);
     }
 
-    /** Une position par seconde, les 6 dernieres (le hook tick tourne une fois par seconde). */
+    static final Particle.DustOptions PINK = new Particle.DustOptions(Color.fromRGB(255, 90, 200), 1.1f);
+    static final Particle.DustOptions PINK_SOFT = new Particle.DustOptions(Color.fromRGB(255, 160, 230), 0.7f);
+
+    /** Un engrenage rose dans un plan vertical (axe "side"), dents comprises, tourne avec spin. */
+    static void gear(World w, Location c, org.bukkit.util.Vector side, double r, double spin) {
+        org.bukkit.util.Vector up = new org.bukkit.util.Vector(0, 1, 0);
+        int teeth = 8;
+        for (int i = 0; i < teeth * 4; i++) {
+            double a = i * 2 * Math.PI / (teeth * 4) + spin;
+            double rad = (i % 4 < 2) ? r + 0.28 : r;
+            w.spawnParticle(Particle.DUST, c.clone().add(side.clone().multiply(Math.cos(a) * rad)).add(up.clone().multiply(Math.sin(a) * rad)), 1, 0, 0, 0, 0, PINK);
+        }
+        for (int i = 0; i < 12; i++) {
+            double a = i * Math.PI / 6 - spin;
+            w.spawnParticle(Particle.DUST, c.clone().add(side.clone().multiply(Math.cos(a) * r * 0.45)).add(up.clone().multiply(Math.sin(a) * r * 0.45)), 1, 0, 0, 0, 0, PINK_SOFT);
+        }
+    }
+
+    /** Trois engrenages roses qui suivent Seraphina. */
+    static void gears(Player p, double spin) {
+        World w = p.getWorld();
+        org.bukkit.util.Vector dir = p.getLocation().getDirection().setY(0);
+        if (dir.lengthSquared() < 0.01) dir = new org.bukkit.util.Vector(1, 0, 0);
+        dir.normalize();
+        org.bukkit.util.Vector side = dir.clone().crossProduct(new org.bukkit.util.Vector(0, 1, 0)).normalize();
+        Location c = p.getLocation().add(0, 1.1, 0).subtract(dir.clone().multiply(0.6));
+        gear(w, c, side, 1.1, spin);
+        gear(w, c.clone().add(side.clone().multiply(1.6)).add(0, 0.6, 0), side, 0.5, -spin * 2.2);
+        gear(w, c.clone().add(side.clone().multiply(-1.5)).add(0, -0.4, 0), side, 0.6, -spin * 1.8);
+    }
+
+    /** Les positions sont relevees a chaque tick (5 secondes = 100 positions). */
     static final class RetourDansLeTemps extends ActiveAbility {
         private final Map<UUID, Deque<Location>> history = new HashMap<>();
         RetourDansLeTemps() {
-            super("seraphina_retour", "Retour dans le temps", "Seraphina revient a la position ou elle etait 5 secondes auparavant.", Material.CLOCK, 10);
+            super("seraphina_retour", "Retour dans le temps", "Seraphina rembobine son propre temps : elle refait a toute vitesse son trajet a l'envers jusqu'a la ou elle etait 5 secondes auparavant.", Material.CLOCK, 10);
         }
-        @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
-            Deque<Location> h = history.computeIfAbsent(p.getUniqueId(), u -> new ArrayDeque<>());
-            h.addLast(p.getLocation().clone());
-            while (h.size() > 6) h.removeFirst();
-        }
-        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Deque<Location> h = history.get(p.getUniqueId());
-            if (h == null || h.isEmpty()) { Msg.actionBar(p, "<red>Pas encore de passe a rejoindre."); return false; }
-            Location back = h.peekFirst();
-            World w = p.getWorld();
-            w.spawnParticle(Particle.REVERSE_PORTAL, p.getLocation().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.05);
-            w.playSound(p.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE, 1f, 1.6f);
-            Effects.noFallUntil(p, 3000);
-            p.teleport(back);
-            w.spawnParticle(Particle.REVERSE_PORTAL, back.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.05);
-            w.playSound(back, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1.4f);
-            h.clear();
-            return true;
+        @Override public void onEquip(Player p, CfPlayer cf) {
+            Deque<Location> h = new ArrayDeque<>();
+            history.put(p.getUniqueId(), h);
+            new BukkitRunnable() {
+                @Override public void run() {
+                    if (!p.isOnline() || history.get(p.getUniqueId()) != h) { cancel(); return; }
+                    AbilityState st = Unordinary.plugin().abilities().state(p, RetourDansLeTemps.this);
+                    if (st.get("rewinding", false)) return;
+                    h.addLast(p.getLocation().clone());
+                    while (h.size() > 100) h.removeFirst();
+                }
+            }.runTaskTimer(Unordinary.plugin(), 1L, 1L);
         }
         @Override public void onUnequip(Player p, CfPlayer cf) { history.remove(p.getUniqueId()); }
+
+        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
+            Deque<Location> h = history.get(p.getUniqueId());
+            if (h == null || h.size() < 5) { Msg.actionBar(p, "<red>Pas encore de passe a rembobiner."); return false; }
+            List<Location> path = new ArrayList<>(h);
+            java.util.Collections.reverse(path);
+            h.clear();
+            st.set("rewinding", true);
+            World w = p.getWorld();
+            Effects.noFallUntil(p, 4000);
+            Effects.invincible(p, 1500L);
+            w.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 2f);
+            w.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.5f);
+            final int perTick = 8; // 100 positions en ~12 ticks : comme une bobine qu'on remonte
+            new BukkitRunnable() {
+                int i = 0, t = 0;
+                @Override public void run() {
+                    t++;
+                    try {
+                        if (!p.isOnline() || p.isDead()) { st.set("rewinding", false); cancel(); return; }
+                        if (i < path.size()) {
+                            int next = Math.min(path.size() - 1, i + perTick - 1);
+                            Location from = p.getLocation();
+                            for (int k = i; k <= next; k++) {
+                                Location l = path.get(k);
+                                w.spawnParticle(Particle.DUST, l.clone().add(0, 1, 0), 2, 0.15, 0.3, 0.15, 0, PINK);
+                                w.spawnParticle(Particle.DUST, l.clone().add(0, 0.4, 0), 1, 0.2, 0.2, 0.2, 0, PINK_SOFT);
+                            }
+                            Location to = path.get(next).clone();
+                            to.setYaw(from.getYaw()); to.setPitch(from.getPitch());
+                            p.teleport(to);
+                            i = next + 1;
+                            if (t % 2 == 0) w.playSound(to, Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 2f - t * 0.08f);
+                        } else if (t > 24) { st.set("rewinding", false); cancel(); return; }
+                        gears(p, t * 0.35);
+                    } catch (Exception ex) { st.set("rewinding", false); cancel(); }
+                }
+            }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
+            return true;
+        }
     }
 
     static final class ChocTemporel extends PassiveAbility {
@@ -111,6 +177,37 @@ public final class Seraphina extends Character {
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) { return "<gold>Choc <white>" + st.get("hits", 0) + "/6"; }
     }
 
+    static final Material[] GREYS = {Material.LIGHT_GRAY_CONCRETE, Material.GRAY_CONCRETE, Material.LIGHT_GRAY_CONCRETE, Material.LIGHT_GRAY_CONCRETE_POWDER, Material.CYAN_TERRACOTTA};
+    static final Particle.DustOptions GREY = new Particle.DustOptions(Color.fromRGB(150, 150, 155), 1.3f);
+
+    /** Le temps s'arrete : le sol devient gris (blocs temporaires) et une brume grise flotte dans la zone. */
+    static void greyZone(Location c, int radius, int ticks) {
+        World w = c.getWorld();
+        com.kiokouwhite.crossfight.util.TempBlocks floor = new com.kiokouwhite.crossfight.util.TempBlocks().unbreakable();
+        for (int x = -radius; x <= radius; x++) for (int z = -radius; z <= radius; z++) {
+            double d = Math.sqrt(x * x + z * z);
+            if (d > radius) continue;
+            int y = Effects.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
+            if (y == Integer.MIN_VALUE) continue;
+            org.bukkit.block.Block top = w.getBlockAt(c.getBlockX() + x, y, c.getBlockZ() + z);
+            if (!top.getType().isSolid()) continue;
+            Material m = d > radius - 1.5 ? Material.GRAY_CONCRETE : GREYS[(int) (Math.random() * (GREYS.length - 1))];
+            floor.replace(top, m);
+        }
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t += 4;
+                if (t > ticks) { floor.restore(); cancel(); return; }
+                for (int i = 0; i < 14; i++) {
+                    double a = Math.random() * Math.PI * 2, r = Math.random() * radius;
+                    w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * r, 0.3 + Math.random() * 2.5, Math.sin(a) * r), 1, 0.1, 0.1, 0.1, 0, GREY);
+                }
+                w.spawnParticle(Particle.SMOKE, c.clone().add(0, 1, 0), 6, radius * 0.6, 0.8, radius * 0.6, 0.005);
+            }
+        }.runTaskTimer(Unordinary.plugin(), 0L, 4L);
+    }
+
     static final class ArretTemporel extends ActiveAbility {
         ArretTemporel() {
             super("seraphina_arret", "Arret Temporel", "Seraphina arrete le temps a 10 blocs : les ennemis sont immobilises et aveugles 3 secondes, elle gagne Vitesse III, mais ne peut pas les frapper pendant ce temps.", Material.RECOVERY_COMPASS, 15);
@@ -121,6 +218,7 @@ public final class Seraphina extends Character {
             w.playSound(p.getLocation(), Sound.BLOCK_BELL_USE, 1f, 0.6f);
             w.playSound(p.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 1f, 1.5f);
             clockBurst(w, p.getLocation(), 10, 60);
+            greyZone(p.getLocation(), 10, 60);
             Effects.give(p, PotionEffectType.SPEED, 2, 60);
             java.util.List<String> frozen = new java.util.ArrayList<>();
             for (LivingEntity enemy : enemies) {
