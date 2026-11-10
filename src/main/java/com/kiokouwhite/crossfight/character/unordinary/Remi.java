@@ -141,10 +141,10 @@ public final class Remi extends Character {
         }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
     }
 
-    /** L'eclair qui serpente : il avance de 2 blocs par seconde vers l'adversaire le plus proche devant Remi. */
+    /** L'eclair qui serpente : il avance de 8 blocs par seconde vers l'adversaire le plus proche devant Remi. */
     static final class Electricite extends ActiveAbility {
         Electricite() {
-            super("remi_electricite", "Electricite", "Remi lance un eclair qui serpente vers l'adversaire le plus proche devant elle, sur 10 blocs (2 blocs par seconde). S'il le touche, l'adversaire est electrise : immobilise 2 secondes et 1.5 coeur de degats.", Material.LIGHTNING_ROD, 10);
+            super("remi_electricite", "Electricite", "Remi lance un eclair qui serpente vers l'adversaire le plus proche devant elle, sur 10 blocs (8 blocs par seconde). S'il le touche, l'adversaire est electrise : immobilise 2 secondes et 1.5 coeur de degats.", Material.LIGHTNING_ROD, 10);
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             World w = p.getWorld();
@@ -172,14 +172,14 @@ public final class Remi extends Character {
                         // Le serpent se dirige vers sa cible.
                         if (aim != null && !aim.isDead()) {
                             Vector to = aim.getLocation().add(0, 1, 0).toVector().subtract(head.toVector());
-                            if (to.lengthSquared() > 0.01) d = d.clone().multiply(0.85).add(to.normalize().multiply(0.15)).normalize();
+                            if (to.lengthSquared() > 0.01) d = d.clone().multiply(0.6).add(to.normalize().multiply(0.4)).normalize();
                         }
-                        Vector step = d.clone().multiply(0.1);
+                        Vector step = d.clone().multiply(0.4);
                         Location next = head.clone().add(step);
                         if (!next.getBlock().isPassable()) { w.spawnParticle(Particle.ELECTRIC_SPARK, head, 15, 0.2, 0.2, 0.2, 0.1); cancel(); return; }
-                        head = next; travelled += 0.1;
-                        // Un nouveau zigzag tous les 4 ticks.
-                        if (t % 4 == 0) {
+                        head = next; travelled += 0.4;
+                        // Un nouveau zigzag a chaque tick (tous les 0,4 bloc).
+                        {
                             Vector side = d.clone().crossProduct(new Vector(0, 1, 0));
                             if (side.lengthSquared() < 0.01) side = new Vector(1, 0, 0);
                             side.normalize();
@@ -193,7 +193,7 @@ public final class Remi extends Character {
                         }
                         arc(w, points.get(points.size() - 1), head, true);
                         w.spawnParticle(Particle.ELECTRIC_SPARK, head, 3, 0.15, 0.15, 0.15, 0.05);
-                        if (t % 8 == 0) w.playSound(head, Sound.ENTITY_BEE_HURT, 0.3f, 2f);
+                        if (t % 3 == 0) w.playSound(head, Sound.ENTITY_BEE_HURT, 0.3f, 2f);
                         for (LivingEntity enemy : Effects.enemiesWithin(p, head, 1.2)) {
                             Effects.damage(enemy, 3.0, p);
                             Effects.root(enemy, 40);

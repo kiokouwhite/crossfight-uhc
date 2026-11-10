@@ -14,6 +14,6 @@ bot.once('spawn', async () => {
   await bot.lookAt(z.position.offset(2.0, 1, 0), true); await sleep(200);
   log('vie avant', await zHealth());
   bot.setQuickBarSlot(2); await sleep(150); bot.activateItem(); await sleep(60); bot.deactivateItem();
-  await sleep(2500); log('eclair (2.5 s) -> vie', await zHealth());
+  await sleep(700); log('eclair (0.7 s) -> vie', await zHealth());
   bot.chat('/cf mannequin clear'); await sleep(300); bot.chat('/cf test'); await sleep(800); bot.quit(); process.exit(0);
 });
