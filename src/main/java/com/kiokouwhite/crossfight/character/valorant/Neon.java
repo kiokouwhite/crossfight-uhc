@@ -153,37 +153,56 @@ public final class Neon extends Character implements Listener {
         w.playSound(c, Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 2f);
         new org.bukkit.scheduler.BukkitRunnable() {
             int t = 0;
+            boolean exploded = false;
             @Override public void run() {
                 t++;
                 if (t < RELAY_DELAY_TICKS) {
-                    // Le cercle grandit jusqu'au rayon de l'explosion pendant la seconde d'amorce.
-                    double r = 1.0 + (RELAY_RADIUS - 1.0) * t / RELAY_DELAY_TICKS;
-                    for (double ang = 0; ang < Math.PI * 2; ang += 0.12) {
-                        w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * r, 0.1, Math.sin(ang) * r), 1, 0, 0, 0, 0, YELLOW);
-                    }
-                    w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 0.3, 0), 6 + t, r * 0.6, 0.3, r * 0.6, 0.06);
+                    // Anneau exterieur a la taille reelle de l'explosion, et anneau interieur qui grandit vers lui.
+                    ring(w, c, RELAY_RADIUS, 0.15, YELLOW, 0.05);
+                    double inner = 1.0 + (RELAY_RADIUS - 1.0) * t / RELAY_DELAY_TICKS;
+                    ring(w, c, inner, 0.3, CYAN, 0.12);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 0.3, 0), 10 + t, RELAY_RADIUS * 0.5, 0.3, RELAY_RADIUS * 0.5, 0.06);
                     if (t % 5 == 0) w.playSound(c, Sound.BLOCK_BEACON_AMBIENT, 0.8f, 1.4f + t / 20f);
                     return;
                 }
-                // Explosion : flash jaune, gerbe jaune vers cyan, colonnes electriques sur toute la zone.
-                w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 3, 0, 0, 0, 0, Color.fromRGB(255, 240, 120));
-                w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c.clone().add(0, 1.5, 0), 600, RELAY_RADIUS * 0.6, 2.0, RELAY_RADIUS * 0.6, 0, BLAST);
-                w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 1.5, 0), 400, RELAY_RADIUS * 0.6, 2.5, RELAY_RADIUS * 0.6, 0.4);
-                for (int i = 0; i < 30; i++) {
-                    double ang = Math.random() * Math.PI * 2, rr = Math.random() * RELAY_RADIUS;
-                    for (double y = 0; y < 4; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * rr, y, Math.sin(ang) * rr), 1, 0.05, 0.05, 0.05, 0, CYAN);
+                if (!exploded) {
+                    exploded = true;
+                    // Explosion : flash, disque rempli uniformement, colonnes electriques sur toute la zone.
+                    w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 3, 0, 0, 0, 0, Color.fromRGB(255, 240, 120));
+                    for (int i = 0; i < 500; i++) {
+                        double ang = Math.random() * Math.PI * 2, rr = RELAY_RADIUS * Math.sqrt(Math.random());
+                        Location l = c.clone().add(Math.cos(ang) * rr, 0.2 + Math.random() * 2.5, Math.sin(ang) * rr);
+                        w.spawnParticle(Particle.DUST_COLOR_TRANSITION, l, 1, 0.1, 0.1, 0.1, 0, BLAST);
+                        if (i % 3 == 0) w.spawnParticle(Particle.ELECTRIC_SPARK, l, 1, 0.2, 0.2, 0.2, 0.3);
+                    }
+                    for (int i = 0; i < 40; i++) {
+                        double ang = Math.random() * Math.PI * 2, rr = RELAY_RADIUS * Math.sqrt(Math.random());
+                        for (double y = 0; y < 5; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * rr, y, Math.sin(ang) * rr), 1, 0.05, 0.05, 0.05, 0, CYAN);
+                    }
+                    w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.4f);
+                    w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.2f);
+                    w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.5f);
+                    for (LivingEntity enemy : Effects.enemiesWithin(p, c, RELAY_RADIUS)) {
+                        Effects.root(enemy, 60);
+                        Effects.say(enemy, "<yellow>Immobilise par l'Eclair Relais !");
+                    }
                 }
-                for (double ang = 0; ang < Math.PI * 2; ang += 0.06) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * RELAY_RADIUS, 0.2, Math.sin(ang) * RELAY_RADIUS), 1, 0, 0.3, 0, 0, YELLOW);
-                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.4f);
-                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.2f);
-                w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.5f);
-                for (LivingEntity enemy : Effects.enemiesWithin(p, c, RELAY_RADIUS)) {
-                    Effects.root(enemy, 60);
-                    Effects.say(enemy, "<yellow>Immobilise par l'Eclair Relais !");
-                }
-                cancel();
+                // Onde de choc : des anneaux qui s'etendent du centre jusqu'au bord pendant 8 ticks.
+                int since = t - RELAY_DELAY_TICKS;
+                if (since > 8) { cancel(); return; }
+                double r = RELAY_RADIUS * since / 8.0;
+                ring(w, c, r, 0.3, YELLOW, 0.06);
+                ring(w, c, r, 1.2, CYAN, 0.1);
+                ring(w, c, RELAY_RADIUS, 0.2, YELLOW, 0.05);
             }
         }.runTaskTimer(plugin(), 0L, 1L);
+    }
+
+    /** Anneau de particules au sol. */
+    static void ring(World w, Location c, double radius, double y, Particle.DustOptions dust, double step) {
+        for (double ang = 0; ang < Math.PI * 2; ang += step) {
+            w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * radius, y, Math.sin(ang) * radius), 1, 0, 0, 0, 0, dust);
+        }
     }
 
     static final class VoieRapide extends ActiveAbility {
