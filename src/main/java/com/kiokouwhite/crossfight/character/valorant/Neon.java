@@ -206,24 +206,62 @@ public final class Neon extends Character implements Listener {
     }
 
     static final class VoieRapide extends ActiveAbility {
+        static final int LENGTH = 50, HEIGHT = 8, DURATION_TICKS = 100, BLOCKS_PER_TICK = 10;
+        static final Particle.DustOptions ARC = new Particle.DustOptions(Color.fromRGB(255, 250, 170), 1.0f);
+        static final Particle.DustOptions GLOW = new Particle.DustOptions(Color.fromRGB(120, 220, 255), 1.4f);
+
         VoieRapide() {
-            super("neon_voie", "Voie Rapide", "A 2 blocs a droite et a gauche de Neon, deux murs incassables de 50 blocs de long et 8 de haut, pendant 5 secondes.", Material.LIGHT_BLUE_STAINED_GLASS, 15);
+            super("neon_voie", "Voie Rapide", "A 2 blocs a droite et a gauche de Neon, deux murs d'energie incassables de 50 blocs de long et 8 de haut se deploient, pendant 5 secondes.", Material.LIGHT_BLUE_STAINED_GLASS, 15);
         }
+
+        /** Degrade du mur : base blanche et jaune lumineuse, corps bleu clair, sommet bleu profond. */
+        static Material layer(int y) {
+            if (y == 0) return Material.WHITE_STAINED_GLASS;
+            if (y == 1) return Material.YELLOW_STAINED_GLASS;
+            if (y <= 4) return Material.LIGHT_BLUE_STAINED_GLASS;
+            if (y <= 6) return Material.CYAN_STAINED_GLASS;
+            return Material.BLUE_STAINED_GLASS;
+        }
+
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             Vector fwd = Effects.towards(p, null);
             Vector side = new Vector(-fwd.getZ(), 0, fwd.getX());
             TempBlocks walls = new TempBlocks().unbreakable();
             Location base = p.getLocation();
-            for (int s : new int[]{-2, 2}) {
-                for (int i = 0; i < 50; i++) {
-                    Location col = base.clone().add(side.clone().multiply(s)).add(fwd.clone().multiply(i));
-                    for (int y = 0; y < 8; y++) walls.place(col.clone().add(0, y, 0).getBlock(), Material.LIGHT_BLUE_STAINED_GLASS);
+            World w = p.getWorld();
+            w.playSound(base, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 2f);
+            w.playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.8f);
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int tick = 0;
+                @Override public void run() {
+                    tick++;
+                    if (tick > DURATION_TICKS || !p.isOnline()) { walls.restore(); w.playSound(base, Sound.BLOCK_BEACON_DEACTIVATE, 1f, 1.6f); cancel(); return; }
+                    // Deploiement : les murs avancent de 10 blocs par tick.
+                    int from = (tick - 1) * BLOCKS_PER_TICK, to = Math.min(LENGTH, tick * BLOCKS_PER_TICK);
+                    for (int i = from; i < to; i++) {
+                        for (int sgn : new int[]{-2, 2}) {
+                            Location col = base.clone().add(side.clone().multiply(sgn)).add(fwd.clone().multiply(i));
+                            for (int y = 0; y < HEIGHT; y++) walls.place(col.clone().add(0, y, 0).getBlock(), layer(y));
+                            w.spawnParticle(Particle.ELECTRIC_SPARK, col.clone().add(0.5, 1, 0.5), 6, 0.3, 2.5, 0.3, 0.1);
+                        }
+                    }
+                    if (to > from) w.playSound(base.clone().add(fwd.clone().multiply(to)), Sound.BLOCK_BEACON_POWER_SELECT, 0.8f, 1.9f);
+                    // Arcs electriques le long des parois pendant toute la duree.
+                    for (int n = 0; n < 12; n++) {
+                        int sgn = Math.random() < 0.5 ? -2 : 2;
+                        double along = Math.random() * Math.min(LENGTH, to);
+                        double y = Math.random() * HEIGHT;
+                        Location a = base.clone().add(side.clone().multiply(sgn + (sgn > 0 ? 0.55 : 0.45))).add(fwd.clone().multiply(along)).add(0, y, 0);
+                        Vector dir = fwd.clone().multiply(Math.random() * 2 - 1).add(new Vector(0, Math.random() * 1.5 - 0.75, 0));
+                        for (double d = 0; d < 1.5; d += 0.25) w.spawnParticle(Particle.DUST, a.clone().add(dir.clone().multiply(d)), 1, 0.05, 0.05, 0.05, 0, ARC);
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, a, 2, 0.2, 0.3, 0.2, 0.08);
+                        w.spawnParticle(Particle.DUST, a, 1, 0.3, 0.6, 0.3, 0, GLOW);
+                    }
+                    if (tick % 10 == 0) w.playSound(base.clone().add(fwd.clone().multiply(Math.random() * Math.min(LENGTH, to))), Sound.BLOCK_BEACON_AMBIENT, 0.7f, 1.9f);
                 }
-            }
-            walls.restoreAfter(100L);
-            p.getWorld().playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.6f);
-            Msg.actionBar(p, "<aqua>Voie Rapide : " + walls.size() + " blocs pendant 5 s");
+            }.runTaskTimer(plugin(), 0L, 1L);
+            Msg.actionBar(p, "<aqua>Voie Rapide deployee pendant 5 s");
             return true;
         }
     }
