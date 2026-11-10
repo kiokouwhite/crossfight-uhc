@@ -275,15 +275,21 @@ public final class Byleth extends Character implements Listener {
         private static final String[] CATEGORIES = {"Maitrise d'arme", "Entrainement physique", "Amelioration de capacite"};
 
         Tutorat() {
-            super("byleth_tutorat", "Tutorat", "Fait progresser l'allie le plus proche dans une categorie : arme, physique ou capacites.",
+            super("byleth_tutorat", "Tutorat", "Fait progresser un allie, ou qu'il soit, dans une categorie : arme, physique ou capacites.",
                     Material.BOOK, 15 * 60);
         }
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            List<org.bukkit.entity.LivingEntity> allies = Effects.alliesWithin(p, 10);
+            // Tous les allies vivants, quelle que soit la distance (meme dans un autre monde).
+            List<org.bukkit.entity.LivingEntity> allies = new ArrayList<>();
+            for (World world : Bukkit.getWorlds()) {
+                for (org.bukkit.entity.LivingEntity e : world.getLivingEntities()) {
+                    if (Effects.isAlly(p, e)) allies.add(e);
+                }
+            }
             if (allies.isEmpty()) {
-                Msg.actionBar(p, "<red>Tutorat : aucun allie a moins de 10 blocs.");
+                Msg.actionBar(p, "<red>Tutorat : aucun allie en vie.");
                 return false;
             }
             // Etape 1 : choisir l'allie a former.
@@ -292,7 +298,9 @@ public final class Byleth extends Character implements Listener {
                 Progress pr = progress.computeIfAbsent(ally.getUniqueId(), u -> new Progress());
                 List<String> lore = new ArrayList<>();
                 for (int i = 0; i < 3; i++) lore.add("<gray>" + CATEGORIES[i] + " : <white>" + pr.level[i] + "/4 <dark_gray>(" + (int) pr.xp[i] + " XP)");
-                lore.add("<gray>Distance : " + (int) ally.getLocation().distance(p.getLocation()) + " blocs");
+                lore.add(ally.getWorld().equals(p.getWorld())
+                        ? "<gray>Distance : " + (int) ally.getLocation().distance(p.getLocation()) + " blocs"
+                        : "<gray>Dans une autre dimension");
                 options.add(new ChoiceMenu.Option(ally instanceof Player ? Material.PLAYER_HEAD : Material.ZOMBIE_HEAD,
                         allyName(ally), lore, () -> chooseCategory(p, ally, pr, st)));
             }
@@ -304,8 +312,8 @@ public final class Byleth extends Character implements Listener {
 
         /** Etape 2 : choisir la categorie. */
         private void chooseCategory(Player p, org.bukkit.entity.LivingEntity ally, Progress pr, AbilityState st) {
-            if (!ally.isValid() || ally.isDead() || ally.getLocation().distance(p.getLocation()) > 12) {
-                Msg.actionBar(p, "<red>Tutorat : " + allyName(ally) + " n'est plus a portee.");
+            if (!ally.isValid() || ally.isDead()) {
+                Msg.actionBar(p, "<red>Tutorat : " + allyName(ally) + " n'est plus disponible.");
                 st.clearCooldown();
                 return;
             }
