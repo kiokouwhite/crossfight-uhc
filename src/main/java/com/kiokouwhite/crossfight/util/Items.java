@@ -18,6 +18,27 @@ public final class Items {
 
     private Items() {}
 
+    /**
+     * Icone sure pour un item de capacite : jamais une arme ni un outil, pour que personne ne frappe avec.
+     * Les epees deviennent des eclats d'amethyste, les haches du fer brut, les arcs des fleches, les tridents
+     * des eclats de prismarine...
+     */
+    public static Material safeIcon(Material m) {
+        String n = m.name();
+        if (n.endsWith("_SWORD")) return Material.AMETHYST_SHARD;
+        if (n.endsWith("_AXE")) return Material.RAW_IRON;
+        if (n.endsWith("_PICKAXE")) return Material.RAW_COPPER;
+        if (n.endsWith("_SHOVEL")) return Material.CLAY_BALL;
+        if (n.endsWith("_HOE")) return Material.IRON_NUGGET;
+        return switch (m) {
+            case BOW -> Material.ARROW;
+            case CROSSBOW -> Material.SPECTRAL_ARROW;
+            case TRIDENT -> Material.PRISMARINE_SHARD;
+            case MACE -> Material.HEAVY_CORE;
+            default -> m;
+        };
+    }
+
     public static ItemStack of(Material material, String miniName, List<String> miniLore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();

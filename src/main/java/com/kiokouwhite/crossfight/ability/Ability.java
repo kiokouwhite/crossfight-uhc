@@ -95,7 +95,8 @@ public abstract class Ability {
         lore.add("<dark_gray>" + type.label());
         lore.addAll(Items.wrap(description));
         lore.addAll(extraLore());
-        ItemStack item = Items.of(icon, "<gold>" + name, lore);
+        // Un item de capacite ne ressemble jamais a une arme (sauf s'il en est une, comme un arc a bander).
+        ItemStack item = Items.of(vanillaUse() ? icon : Items.safeIcon(icon), "<gold>" + name, lore);
         Items.tag(item, AbilityEngine.ABILITY_KEY, id);
         return Items.unbreakable(item);
     }

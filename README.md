@@ -98,6 +98,9 @@ Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permett
 le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
 Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
 
+### Items de capacité
+Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que personne ne frappe avec : les icônes en épée deviennent des éclats d'améthyste, les haches du fer brut, les arcs des flèches, les tridents des éclats de prismarine, les pioches, pelles et houes des matériaux bruts. Seuls les vrais arcs à bander (Sova) gardent leur apparence. L'arme du personnage reste en premier slot.
+
 ### Mode test
 
 En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé.
