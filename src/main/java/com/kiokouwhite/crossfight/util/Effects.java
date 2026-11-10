@@ -132,11 +132,19 @@ public final class Effects {
 
     public static List<LivingEntity> enemiesWithin(Player self, Location center, double radius) {
         List<LivingEntity> out = new ArrayList<>();
-        double r2 = radius * radius;
-        for (org.bukkit.entity.Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
-            if (e instanceof LivingEntity le && isEnemy(self, le) && le.getLocation().distanceSquared(center) <= r2) out.add(le);
+        for (org.bukkit.entity.Entity e : center.getWorld().getNearbyEntities(center, radius + 1, radius + 2, radius + 1)) {
+            if (e instanceof LivingEntity le && isEnemy(self, le) && distanceToBox(center, le) <= radius) out.add(le);
         }
         return out;
+    }
+
+    /** Distance entre un point et la boite de collision d'une entite (0 si le point est dedans). */
+    public static double distanceToBox(Location point, org.bukkit.entity.Entity e) {
+        var box = e.getBoundingBox();
+        double dx = Math.max(Math.max(box.getMinX() - point.getX(), 0), point.getX() - box.getMaxX());
+        double dy = Math.max(Math.max(box.getMinY() - point.getY(), 0), point.getY() - box.getMaxY());
+        double dz = Math.max(Math.max(box.getMinZ() - point.getZ(), 0), point.getZ() - box.getMaxZ());
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
     public static List<Player> alliesWithin(Player self, double radius) {

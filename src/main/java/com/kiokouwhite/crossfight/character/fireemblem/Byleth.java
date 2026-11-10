@@ -21,6 +21,7 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -113,36 +114,99 @@ public final class Byleth extends Character implements Listener {
 
         @Override public boolean hasItem() { return false; }
 
+        private static final double SEGMENT = 0.5;
+
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             p.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
+            List<BlockDisplay> bones = new ArrayList<>();
             new BukkitRunnable() {
                 double length = 0;
+                boolean retracting = false;
+
                 @Override public void run() {
-                    if (!p.isOnline() || p.isDead() || length >= 10) { cancel(); return; }
-                    length += 0.5; // 2 blocs par seconde, 4 ticks par pas
+                    if (!p.isOnline() || p.isDead()) { clear(); cancel(); return; }
+                    if (retracting) {
+                        length -= 2.0;
+                        if (length <= 0) { clear(); cancel(); return; }
+                        layout(p, length);
+                        return;
+                    }
+                    length += SEGMENT; // 2 blocs par seconde, un segment tous les 5 ticks
                     Location eye = p.getEyeLocation();
                     Vector dir = eye.getDirection().normalize();
+                    // Le fouet s'arrete sur un mur.
                     for (double d = 0.5; d <= length; d += 0.5) {
-                        Location l = eye.clone().add(dir.clone().multiply(d));
-                        if (!l.getBlock().isPassable()) { cancel(); return; }
-                        l.getWorld().spawnParticle(Particle.CRIT, l, 1, 0, 0, 0, 0);
+                        if (!eye.clone().add(dir.clone().multiply(d)).getBlock().isPassable()) {
+                            length = Math.max(0.5, d - 0.5);
+                            retracting = true;
+                            break;
+                        }
                     }
+                    layout(p, length);
                     Location tip = eye.clone().add(dir.clone().multiply(length));
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, tip, 1.3)) {
-                        cancel();
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, tip, 1.2)) {
                         Vector pull = p.getLocation().toVector().subtract(enemy.getLocation().toVector());
                         double dist = pull.length();
                         pull.normalize().multiply(Math.min(2.5, 0.4 + dist * 0.22)).setY(0.35);
                         enemy.setVelocity(pull);
                         enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
+                        enemy.getWorld().spawnParticle(Particle.CRIT, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.4, 0.3, 0.1);
                         if (enemy instanceof Player ep) Msg.actionBar(ep, "<gold>Byleth t'attrape avec son epee !");
                         Msg.actionBar(p, "<gold>Attrape !");
+                        retracting = true;
                         return;
                     }
+                    if (length >= 10) retracting = true;
                 }
-            }.runTaskTimer(plugin(), 0L, 4L);
+
+                /** Place les segments d'os le long de la direction du regard. */
+                void layout(Player p, double len) {
+                    Location eye = p.getEyeLocation();
+                    Vector dir = eye.getDirection().normalize();
+                    int needed = (int) Math.ceil(len / SEGMENT);
+                    while (bones.size() < needed) bones.add(spawnBone(eye));
+                    while (bones.size() > needed) bones.remove(bones.size() - 1).remove();
+                    var rot = rotationFor(dir);
+                    for (int i = 0; i < bones.size(); i++) {
+                        Location l = eye.clone().add(dir.clone().multiply(0.6 + i * SEGMENT)).subtract(0, 0.25, 0);
+                        BlockDisplay b = bones.get(i);
+                        b.teleport(l);
+                        b.setTransformation(transformFor(rot));
+                    }
+                }
+
+                void clear() {
+                    for (BlockDisplay b : bones) b.remove();
+                    bones.clear();
+                }
+            }.runTaskTimer(plugin(), 0L, 5L);
             return true;
+        }
+
+        private static BlockDisplay spawnBone(Location at) {
+            return at.getWorld().spawn(at, BlockDisplay.class, d -> {
+                d.setBlock(Material.BONE_BLOCK.createBlockData());
+                d.setTeleportDuration(5);
+                d.setInterpolationDuration(5);
+                d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                d.setPersistent(false);
+            });
+        }
+
+        /** Oriente l'axe Z local du bloc vers la direction donnee. */
+        private static org.joml.Quaternionf rotationFor(Vector dir) {
+            float yaw = (float) Math.atan2(dir.getX(), dir.getZ());
+            float pitch = (float) -Math.asin(Math.max(-1, Math.min(1, dir.getY())));
+            return new org.joml.Quaternionf().rotationY(yaw).rotateX(pitch);
+        }
+
+        private static org.bukkit.util.Transformation transformFor(org.joml.Quaternionf rot) {
+            org.joml.Vector3f scale = new org.joml.Vector3f(0.22f, 0.22f, (float) SEGMENT + 0.05f);
+            // Centre le segment sur son point d'ancrage, en tenant compte de la rotation.
+            org.joml.Vector3f offset = new org.joml.Vector3f(-scale.x / 2, -scale.y / 2, -scale.z / 2);
+            rot.transform(offset);
+            return new org.bukkit.util.Transformation(offset, new org.joml.Quaternionf(rot), scale, new org.joml.Quaternionf());
         }
     }
 

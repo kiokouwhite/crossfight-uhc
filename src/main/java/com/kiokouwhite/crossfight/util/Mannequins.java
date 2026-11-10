@@ -59,7 +59,13 @@ public final class Mannequins implements Listener {
         z.addScoreboardTag(TAG);
         if (aggressive) z.addScoreboardTag(AGGRO_TAG);
         z.setAdult();
-        z.setAI(aggressive);
+        // L'IA reste active pour que le mannequin subisse la gravite et les projections ;
+        // un mannequin passif a simplement une vitesse nulle et ne cible personne.
+        z.setAI(true);
+        if (!aggressive) {
+            var spd = z.getAttribute(Attribute.MOVEMENT_SPEED);
+            if (spd != null) spd.setBaseValue(0.0);
+        }
         if (aggressive) {
             var atk = z.getAttribute(Attribute.ATTACK_DAMAGE);
             if (atk != null) atk.setBaseValue(4.0);
