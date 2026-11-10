@@ -281,12 +281,34 @@ public final class Byleth extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            org.bukkit.entity.LivingEntity ally = Effects.nearestAlly(p, 10);
-            if (ally == null) {
+            List<org.bukkit.entity.LivingEntity> allies = Effects.alliesWithin(p, 10);
+            if (allies.isEmpty()) {
                 Msg.actionBar(p, "<red>Tutorat : aucun allie a moins de 10 blocs.");
                 return false;
             }
-            Progress pr = progress.computeIfAbsent(ally.getUniqueId(), u -> new Progress());
+            // Etape 1 : choisir l'allie a former.
+            List<ChoiceMenu.Option> options = new ArrayList<>();
+            for (org.bukkit.entity.LivingEntity ally : allies) {
+                Progress pr = progress.computeIfAbsent(ally.getUniqueId(), u -> new Progress());
+                List<String> lore = new ArrayList<>();
+                for (int i = 0; i < 3; i++) lore.add("<gray>" + CATEGORIES[i] + " : <white>" + pr.level[i] + "/4 <dark_gray>(" + (int) pr.xp[i] + " XP)");
+                lore.add("<gray>Distance : " + (int) ally.getLocation().distance(p.getLocation()) + " blocs");
+                options.add(new ChoiceMenu.Option(ally instanceof Player ? Material.PLAYER_HEAD : Material.ZOMBIE_HEAD,
+                        allyName(ally), lore, () -> chooseCategory(p, ally, pr, st)));
+            }
+            ChoiceMenu.open(p, "<dark_gray>Tutorat : quel allie former ?", options,
+                    pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); });
+            // Le temps de chargement ne part que si une categorie est choisie.
+            return true;
+        }
+
+        /** Etape 2 : choisir la categorie. */
+        private void chooseCategory(Player p, org.bukkit.entity.LivingEntity ally, Progress pr, AbilityState st) {
+            if (!ally.isValid() || ally.isDead() || ally.getLocation().distance(p.getLocation()) > 12) {
+                Msg.actionBar(p, "<red>Tutorat : " + allyName(ally) + " n'est plus a portee.");
+                st.clearCooldown();
+                return;
+            }
             List<ChoiceMenu.Option> options = new ArrayList<>();
             Material[] icons = {Material.IRON_SWORD, Material.LEATHER_CHESTPLATE, Material.CLOCK};
             String[] desc = {"+0.2 degats par niveau", "+0.2 Force, Resistance ou Vitesse par niveau", "-5 % de temps de chargement par niveau"};
@@ -299,8 +321,6 @@ public final class Byleth extends Character implements Listener {
             }
             ChoiceMenu.open(p, "<dark_gray>Tutorat : " + allyName(ally), options,
                     pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); });
-            // Le temps de chargement ne part que si une categorie est choisie.
-            return true;
         }
 
         private static String allyName(org.bukkit.entity.LivingEntity e) {

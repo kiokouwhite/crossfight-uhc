@@ -7,14 +7,15 @@ bot._client.on('action_bar', p => { const t = JSON.stringify(p); if (!t.includes
 bot.on('windowOpen', async w => {
   log('MENU ouvert, options :', w.slots.filter(Boolean).map(i => i.name).join(', '));
   await sleep(500);
-  const slot = w.slots.findIndex(i => i && i.name === 'iron_sword');
+  let slot = w.slots.findIndex(i => i && i.name === 'zombie_head');
+  if (slot < 0) slot = w.slots.findIndex(i => i && i.name === 'iron_sword');
   log('clic sur le slot', slot);
   await bot.clickWindow(slot, 0, 0);
 });
 bot.once('spawn', async () => {
   await sleep(1500); bot.chat('/cf test'); await sleep(2000);
   bot.chat('/cf change byleth'); await sleep(2000);
-  bot.chat('/cf mannequin allie'); await sleep(1000);
+  bot.chat('/cf mannequin 2 allie'); await sleep(1000);
   bot.setQuickBarSlot(2); await sleep(300);
   log('ACTIVATE tutorat'); bot.activateItem(); await sleep(3000);
   log('ACTIVATE tutorat (2e fois, doit etre en cooldown)'); bot.activateItem(); await sleep(1500);
