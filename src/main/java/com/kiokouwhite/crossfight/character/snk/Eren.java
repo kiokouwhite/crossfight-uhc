@@ -513,14 +513,29 @@ public final class Eren extends Character implements Listener {
             if (heal > 0) Bukkit.getScheduler().runTask(SNK.plugin(), () -> { if (attacker.isOnline() && !attacker.isDead()) Effects.heal(attacker, heal); });
         }
 
-        /** A la mort du Titan : retour a la normale, et la chaleur du Colossal si Eren l'a vole. */
+        /**
+         * A la mort du Titan : Eren sort de la nuque sans perdre de vie, la ou le Titan est tombe.
+         * Retour a la normale, et la chaleur du Colossal si Eren l'a vole.
+         */
         @Override public boolean onDeath(Player p, CfPlayer cf, AbilityState st) {
             if (!st.get("titan", false)) return false;
             Location at = p.getLocation().clone();
             boolean colossal = owns(p, "colossal");
             revert(p, cf, st);
+            World w = at.getWorld();
+            w.spawnParticle(Particle.CLOUD, at.clone().add(0, 1.5, 0), 150, 1.5, 1.5, 1.5, 0.1);
+            w.playSound(at, Sound.ENTITY_ENDER_DRAGON_DEATH, 0.5f, 1.6f);
+            SNK.plugin().game().broadcastNear(p, "<dark_red>Le Titan d'Eren s'effondre : <gray>Eren en sort, sans perdre de vie.");
             if (colossal) heatZone(p, at);
-            return false;
+            // Deux ticks plus tard : apres la reapparition vanilla declenchee par DeathListener.
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                if (!p.isOnline()) return;
+                if (SNK.plugin().game().isTest()) { p.teleport(at); p.setGameMode(org.bukkit.GameMode.SURVIVAL); }
+                else SNK.plugin().lives().respawnAt(p, at);
+                SNK.invincible(p, 3000L);
+                Msg.send(p, "<green>Tu sors de ton Titan : aucune vie perdue.");
+            }, 3L);
+            return true;
         }
 
         @Override public void onUnequip(Player p, CfPlayer cf) {
