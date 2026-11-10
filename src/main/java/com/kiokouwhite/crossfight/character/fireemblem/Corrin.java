@@ -207,14 +207,28 @@ public final class Corrin extends Character {
                     Material.FEATHER, 20);
         }
 
+        /** Les ailes de dragon de chaque joueur en vol. */
+        static final Map<UUID, com.kiokouwhite.crossfight.util.DragonWings> WINGS = new java.util.HashMap<>();
+
+        static void shedWings(Player p) {
+            var w = WINGS.remove(p.getUniqueId());
+            if (w != null) w.remove();
+        }
+
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             p.setAllowFlight(true);
             p.setFlying(true);
             st.set("noFallUntil", System.currentTimeMillis() + 15000L);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 1f, 1.2f);
+            shedWings(p);
+            WINGS.put(p.getUniqueId(), com.kiokouwhite.crossfight.util.DragonWings.grow(p));
+            World w = p.getWorld();
+            w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_FLAP, 1f, 1.2f);
+            w.playSound(p.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_2, 1f, 1.1f);
+            w.spawnParticle(Particle.SPLASH, p.getLocation().add(0, 1.2, 0), 120, 1.5, 1.0, 1.5, 0.2);
+            w.spawnParticle(Particle.BUBBLE_POP, p.getLocation().add(0, 1.2, 0), 40, 1.2, 0.8, 1.2, 0.1);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> {
-                if (!p.isOnline()) return;
+                if (!p.isOnline()) { shedWings(p); return; }
                 p.setFlying(false);
                 p.setAllowFlight(false);
                 waitLanding(p, st);
@@ -227,17 +241,20 @@ public final class Corrin extends Character {
                 int ticks = 0;
                 @Override public void run() {
                     ticks++;
-                    if (!p.isOnline() || p.isDead() || ticks > 200) { cancel(); return; }
+                    if (!p.isOnline() || p.isDead() || ticks > 200) { shedWings(p); cancel(); return; }
                     Location feet = p.getLocation();
                     boolean grounded = feet.clone().subtract(0, 0.1, 0).getBlock().getType().isSolid() || p.isInWater();
                     if (grounded) {
                         cancel();
                         st.set("noFallUntil", 0L);
+                        shedWings(p);
                         spawnWater(p.getLocation());
                     }
                 }
             }.runTaskTimer(plugin(), 1L, 1L);
         }
+
+        @Override public void onUnequip(Player p, CfPlayer cf) { shedWings(p); }
 
         private void spawnWater(Location loc) {
             List<Block> placed = new ArrayList<>();
