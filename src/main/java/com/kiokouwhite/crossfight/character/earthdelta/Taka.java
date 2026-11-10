@@ -123,9 +123,10 @@ public final class Taka extends Character implements Listener {
             s.setRemoveWhenFarAway(false);
             s.addScoreboardTag(TAG);
             s.getPersistentDataContainer().set(OWNER, PersistentDataType.STRING, owner.getUniqueId().toString());
-            s.getEquipment().setItemInMainHand(new ItemStack(kind.item));
+            ItemStack weapon = new ItemStack(kind.item);
+            if (ult) { var meta = weapon.getItemMeta(); meta.setEnchantmentGlintOverride(true); weapon.setItemMeta(meta); }
+            s.getEquipment().setItemInMainHand(weapon);
             s.setRightArmPose(kind == Kind.SWORD ? new EulerAngle(Math.PI, 0, 0) : new EulerAngle(-Math.PI / 2, 0, 0));
-            s.setGlowing(ult);
         });
         Summon s = new Summon(kind, stand, owner.getUniqueId(), ult, at.clone(), dir);
         SUMMONS.add(s);
