@@ -249,7 +249,7 @@ public final class Takumi extends Character implements Listener {
 
     // ----------------------------------------------------------------- ultime
 
-    static final class RayonDemoniaque extends UltimateAbility {
+    static final class RayonDemoniaque extends UltimateAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
 
         private static final int LENGTH = 30;
         private static final int HALF_WIDTH = 5;        // 10 blocs de large
@@ -269,13 +269,25 @@ public final class Takumi extends Character implements Listener {
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            charge(p, null, Effects.enemiesOf(p, null));
+            return true;
+        }
+
+        @Override
+        public boolean castOn(org.bukkit.entity.LivingEntity caster, Player target, AbilityState st) {
+            charge(caster, target, Effects.enemiesOf(caster, target));
+            return true;
+        }
+
+        /** Charge de 4 secondes puis tir. Avec une cible, le rayon part vers elle (direction figee au tir). */
+        static void charge(org.bukkit.entity.LivingEntity p, org.bukkit.entity.LivingEntity target, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
             Effects.give(p, PotionEffectType.SLOWNESS, 2, CHARGE_TICKS);
-            Msg.actionBar(p, "<light_purple>Rayon Demoniaque en charge...");
+            Effects.say(p, "<light_purple>Rayon Demoniaque en charge...");
             final World w = p.getWorld();
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override public void run() {
-                    if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                    if (!p.isValid() || p.isDead()) { cancel(); return; }
                     ticks++;
                     // L'energie rose converge vers la pointe de l'arc.
                     Location tip = p.getEyeLocation().add(p.getLocation().getDirection().multiply(1.2));
@@ -289,17 +301,13 @@ public final class Takumi extends Character implements Listener {
                     if (ticks % 10 == 0) w.playSound(p.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 1f, 0.5f + ticks / 80f);
                     if (ticks >= CHARGE_TICKS) {
                         cancel();
-                        fire(p, w);
+                        fire(p, w, Effects.towards(p, target), isTarget);
                     }
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
-            return true;
         }
 
-        private void fire(Player p, World w) {
-            Vector dir = p.getLocation().getDirection().setY(0);
-            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-            dir.normalize();
+        private static void fire(org.bukkit.entity.LivingEntity p, World w, Vector dir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
             final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
                     ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
             final Vector side = new Vector(-axis.getZ(), 0, axis.getX());
@@ -319,7 +327,7 @@ public final class Takumi extends Character implements Listener {
                 @Override public void run() {
                     try {
                         tick++;
-                        if (!p.isOnline()) { restoreAll(); cancel(); return; }
+                        if (!p.isValid()) { restoreAll(); cancel(); return; }
                         if (reach < LENGTH) {
                             for (int i = 0; i < BLOCKS_PER_TICK && reach < LENGTH; i++) { reach++; buildSlice(reach); }
                             strike(reach);
@@ -376,8 +384,8 @@ public final class Takumi extends Character implements Listener {
                 /** Les ennemis atteints par le front du rayon prennent 5 coeurs. */
                 void strike(int reachNow) {
                     Location base = origin.clone().add(0.5, 0.5, 0.5);
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, base.clone().add(axis.clone().multiply(reachNow / 2.0)), reachNow / 2.0 + HALF_WIDTH + 2)) {
-                        if (hit.contains(enemy.getUniqueId())) continue;
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.within(base.clone().add(axis.clone().multiply(reachNow / 2.0)), reachNow / 2.0 + HALF_WIDTH + 2, isTarget)) {
+                        if (enemy == p || hit.contains(enemy.getUniqueId())) continue;
                         Vector rel = enemy.getLocation().add(0, 1, 0).toVector().subtract(base.toVector());
                         double along = rel.dot(axis), lat = rel.dot(side);
                         if (along < 0.5 || along > reachNow + 0.5 || Math.abs(lat) > HALF_WIDTH + 0.5 || Math.abs(rel.getY()) > 4) continue;
@@ -386,7 +394,7 @@ public final class Takumi extends Character implements Listener {
                         Effects.damage(enemy, 10.0, p);
                         enemy.getWorld().spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 30, 0.5, 0.8, 0.5, 0, WHITE);
                         enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.7f);
-                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<light_purple>Frappe par le Rayon Demoniaque !");
+                        Effects.say(enemy, "<light_purple>Frappe par le Rayon Demoniaque !");
                     }
                 }
 

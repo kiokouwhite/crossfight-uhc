@@ -172,7 +172,7 @@ public final class Marth extends Character {
 
     // ----------------------------------------------------------------- ultime
 
-    static final class CoupCritique extends UltimateAbility {
+    static final class CoupCritique extends UltimateAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
         CoupCritique() {
             super("marth_ult", "Coup Critique",
                     "Marth fonce de 10 blocs, invulnerable pendant la charge. Les ennemis touches perdent 5 coeurs et tous les allies gagnent Force (1 niveau par ennemi touche) pendant 1 minute.",
@@ -181,33 +181,8 @@ public final class Marth extends Character {
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
-            Vector dir = p.getLocation().getDirection().setY(0);
-            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-            dir.normalize();
-            Location start = p.getLocation();
-            int hits = 0;
-            List<org.bukkit.entity.LivingEntity> touched = new ArrayList<>();
-            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, 12)) {
-                Vector rel = enemy.getLocation().toVector().subtract(start.toVector());
-                double along = rel.dot(dir);
-                if (along < 0 || along > 10.5) continue;
-                double perp = rel.clone().subtract(dir.clone().multiply(along)).setY(0).length();
-                double dy = Math.abs(rel.getY());
-                if (perp <= 1.6 && dy <= 2.5) touched.add(enemy);
-            }
-            for (org.bukkit.entity.LivingEntity enemy : touched) {
-                Effects.damage(enemy, 10.0, p);
-                hits++;
-            }
-            // Marth est invulnerable pendant toute la charge (environ 1,2 s).
             st.set("invulnUntil", System.currentTimeMillis() + 1200L);
-            p.setVelocity(dir.clone().multiply(2.6).setY(0.25));
-            for (double d = 0; d <= 10; d += 0.5) {
-                Location l = start.clone().add(dir.clone().multiply(d)).add(0, 1, 0);
-                p.getWorld().spawnParticle(Particle.SWEEP_ATTACK, l, 1);
-                p.getWorld().spawnParticle(Particle.CRIT, l, 3, 0.3, 0.3, 0.3, 0);
-            }
-            p.getWorld().playSound(start, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+            int hits = perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
             if (hits > 0) {
                 int level = Math.min(hits, 5) - 1;
                 Effects.give(p, PotionEffectType.STRENGTH, level, 20 * 60);
@@ -217,6 +192,34 @@ public final class Marth extends Character {
                 Msg.send(p, "<gray>Coup Critique : aucun ennemi touche.");
             }
             return true;
+        }
+
+        @Override
+        public boolean castOn(org.bukkit.entity.LivingEntity caster, Player target, AbilityState st) {
+            perform(caster, Effects.towards(caster, target), Effects.enemiesOf(caster, target));
+            return true;
+        }
+
+        /** La charge : fonce de 10 blocs et frappe tout ce qui passe le filtre sur le trajet. */
+        static int perform(org.bukkit.entity.LivingEntity caster, Vector dir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
+            Location start = caster.getLocation();
+            List<org.bukkit.entity.LivingEntity> touched = new ArrayList<>();
+            for (org.bukkit.entity.LivingEntity enemy : Effects.within(start, 12, isTarget)) {
+                Vector rel = enemy.getLocation().toVector().subtract(start.toVector());
+                double along = rel.dot(dir);
+                if (along < 0 || along > 10.5) continue;
+                double perp = rel.clone().subtract(dir.clone().multiply(along)).setY(0).length();
+                if (perp <= 1.6 && Math.abs(rel.getY()) <= 2.5) touched.add(enemy);
+            }
+            for (org.bukkit.entity.LivingEntity enemy : touched) Effects.damage(enemy, 10.0, caster);
+            caster.setVelocity(dir.clone().multiply(2.6).setY(0.25));
+            for (double d = 0; d <= 10; d += 0.5) {
+                Location l = start.clone().add(dir.clone().multiply(d)).add(0, 1, 0);
+                caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, l, 1);
+                caster.getWorld().spawnParticle(Particle.CRIT, l, 3, 0.3, 0.3, 0.3, 0);
+            }
+            caster.getWorld().playSound(start, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+            return touched.size();
         }
 
         @Override

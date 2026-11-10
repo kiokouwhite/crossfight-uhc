@@ -49,6 +49,10 @@ public final class Effects {
     }
 
     /** Immobilise un joueur (plus de deplacement ni de saut) pendant un nombre de ticks. */
+    public static void say(LivingEntity e, String actionBar) {
+        if (e instanceof Player p) Msg.actionBar(p, actionBar);
+    }
+
     public static void root(LivingEntity p, int ticks) {
         AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
         AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
@@ -142,11 +146,31 @@ public final class Effects {
     }
 
     public static List<LivingEntity> enemiesWithin(Player self, Location center, double radius) {
+        return within(center, radius, le -> isEnemy(self, le));
+    }
+
+    /** Entites vivantes dans un rayon (distance a la boite de collision) qui passent le filtre. */
+    public static List<LivingEntity> within(Location center, double radius, java.util.function.Predicate<LivingEntity> filter) {
         List<LivingEntity> out = new ArrayList<>();
         for (org.bukkit.entity.Entity e : center.getWorld().getNearbyEntities(center, radius + 1, radius + 2, radius + 1)) {
-            if (e instanceof LivingEntity le && isEnemy(self, le) && distanceToBox(center, le) <= radius) out.add(le);
+            if (e instanceof LivingEntity le && filter.test(le) && distanceToBox(center, le) <= radius) out.add(le);
         }
         return out;
+    }
+
+    /** Filtre "ennemi" pour un lanceur quelconque : les ennemis du joueur, ou la cible designee pour un mannequin. */
+    public static java.util.function.Predicate<LivingEntity> enemiesOf(LivingEntity caster, LivingEntity designated) {
+        if (caster instanceof Player p) return le -> isEnemy(p, le);
+        return le -> le == designated;
+    }
+
+    /** Direction horizontale d'un lanceur vers une cible (ou son regard s'il n'y a pas de cible). */
+    public static Vector towards(LivingEntity caster, LivingEntity target) {
+        Vector dir = target == null ? caster.getLocation().getDirection()
+                : target.getLocation().toVector().subtract(caster.getLocation().toVector());
+        dir.setY(0);
+        if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
+        return dir.normalize();
     }
 
     /** Distance entre un point et la boite de collision d'une entite (0 si le point est dedans). */

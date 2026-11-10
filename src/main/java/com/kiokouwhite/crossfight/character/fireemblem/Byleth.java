@@ -162,7 +162,7 @@ public final class Byleth extends Character implements Listener {
 
     // ------------------------------------------------------------------ arme
 
-    static final class EpeeDuCreateur extends ActiveAbility {
+    static final class EpeeDuCreateur extends ActiveAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
         EpeeDuCreateur() {
             super(SWORD_ID, "Epee du Createur", "Clic droit : Byleth se fige et son epee s'etend tout droit sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
         }
@@ -172,62 +172,69 @@ public final class Byleth extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            p.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
-            // Byleth est immobilisee tant que le fouet est sorti (au plus 3 secondes de securite).
-            Effects.root(p, 60);
+            perform(p, p.getEyeLocation().getDirection().normalize(), Effects.enemiesOf(p, null));
+            return true;
+        }
+
+        @Override
+        public boolean castOn(org.bukkit.entity.LivingEntity caster, Player target, AbilityState st) {
+            Vector dir = target.getEyeLocation().toVector().subtract(caster.getEyeLocation().toVector());
+            if (dir.lengthSquared() < 0.01) dir = caster.getLocation().getDirection();
+            perform(caster, dir.normalize(), Effects.enemiesOf(caster, target));
+            return true;
+        }
+
+        /** Le fouet d'os part tout droit depuis les yeux du lanceur et ramene la premiere cible attrapee. */
+        static void perform(org.bukkit.entity.LivingEntity caster, Vector lockedDir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
+            caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
+            // Le lanceur est immobilise tant que le fouet est sorti (au plus 3 secondes de securite).
+            Effects.root(caster, 60);
             BoneWhip whip = new BoneWhip(false);
-            // Direction figee au lancement : Byleth est verrouillee, le fouet ne suit plus le regard.
-            final Vector lockedDir = p.getEyeLocation().getDirection().normalize();
             new BukkitRunnable() {
                 double length = 0;
                 boolean retracting = false;
 
                 @Override public void run() {
-                    if (!p.isOnline() || p.isDead()) { clear(); cancel(); return; }
+                    if (!caster.isValid() || caster.isDead()) { clear(); cancel(); return; }
                     if (retracting) {
                         length -= 1.5;
                         if (length <= 0) { clear(); cancel(); return; }
-                        layout(p, length);
+                        whip.layout(caster.getEyeLocation(), lockedDir, length);
                         return;
                     }
                     length += SPEED_PER_TICK;
-                    Location eye = p.getEyeLocation();
-                    Vector dir = lockedDir;
+                    Location eye = caster.getEyeLocation();
                     // Le fouet s'arrete sur un mur.
                     for (double d = 0.5; d <= length; d += 0.5) {
-                        if (!eye.clone().add(dir.clone().multiply(d)).getBlock().isPassable()) {
+                        if (!eye.clone().add(lockedDir.clone().multiply(d)).getBlock().isPassable()) {
                             length = Math.max(0.5, d - 0.5);
                             retracting = true;
                             break;
                         }
                     }
-                    layout(p, length);
-                    Location tip = eye.clone().add(dir.clone().multiply(length));
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, tip, 1.2)) {
-                        Vector pull = p.getLocation().toVector().subtract(enemy.getLocation().toVector());
+                    whip.layout(eye, lockedDir, length);
+                    Location tip = eye.clone().add(lockedDir.clone().multiply(length));
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.within(tip, 1.2, isTarget)) {
+                        if (enemy == caster) continue;
+                        Vector pull = caster.getLocation().toVector().subtract(enemy.getLocation().toVector());
                         double dist = pull.length();
                         pull.normalize().multiply(Math.min(2.5, 0.4 + dist * 0.22)).setY(0.35);
                         enemy.setVelocity(pull);
                         enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
                         enemy.getWorld().spawnParticle(Particle.CRIT, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.4, 0.3, 0.1);
-                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<gold>Byleth t'attrape avec son epee !");
-                        Msg.actionBar(p, "<gold>Attrape !");
+                        Effects.say(enemy, "<gold>Byleth t'attrape avec son epee !");
+                        Effects.say(caster, "<gold>Attrape !");
                         retracting = true;
                         return;
                     }
                     if (length >= 10) retracting = true;
                 }
 
-                void layout(Player p, double len) {
-                    whip.layout(p.getEyeLocation(), lockedDir, len);
-                }
-
                 void clear() {
                     whip.clear();
-                    Effects.unroot(p);
+                    Effects.unroot(caster);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
-            return true;
         }
     }
 
@@ -378,7 +385,7 @@ public final class Byleth extends Character implements Listener {
         }
     }
 
-    static final class DechainementDEpine extends ActiveAbility {
+    static final class DechainementDEpine extends ActiveAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
         DechainementDEpine() {
             super("byleth_epine", "Dechainement d'Epine", "Byleth balaie un grand arc avec son epee-fouet : les ennemis dans la zone de 5 blocs devant elle sont ejectes a 10 blocs et perdent 3 coeurs.",
                     Material.RED_DYE, 20);
@@ -399,43 +406,50 @@ public final class Byleth extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Vector forward = p.getLocation().getDirection().setY(0);
-            if (forward.lengthSquared() < 0.01) forward = new Vector(1, 0, 0);
-            forward.normalize();
-            final Vector fwd = forward;
-            final double baseAngle = Math.atan2(fwd.getZ(), fwd.getX());
-            final Location center = p.getLocation().add(fwd.clone().multiply(3.5));
-            final double groundY = p.getLocation().getY();
-            final List<java.util.UUID> hit = new ArrayList<>();
+            perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
+            return true;
+        }
 
-            Effects.root(p, TOTAL + 5);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_EVOKER_PREPARE_ATTACK, 0.8f, 1.4f);
-            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.8f);
+        @Override
+        public boolean castOn(org.bukkit.entity.LivingEntity caster, Player target, AbilityState st) {
+            perform(caster, Effects.towards(caster, target), Effects.enemiesOf(caster, target));
+            return true;
+        }
+
+        static void perform(org.bukkit.entity.LivingEntity caster, Vector fwd, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
+            final double baseAngle = Math.atan2(fwd.getZ(), fwd.getX());
+            final Location center = caster.getLocation().add(fwd.clone().multiply(3.5));
+            final double groundY = caster.getLocation().getY();
+            final List<java.util.UUID> hit = new ArrayList<>();
+            final World w = caster.getWorld();
+
+            Effects.root(caster, TOTAL + 5);
+            w.playSound(caster.getLocation(), Sound.ENTITY_EVOKER_PREPARE_ATTACK, 0.8f, 1.4f);
+            w.playSound(caster.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.8f);
             BoneWhip whip = new BoneWhip(true);
 
             new BukkitRunnable() {
                 int tick = 0;
 
                 @Override public void run() {
-                    if (!p.isOnline() || p.isDead() || tick > TOTAL) { whip.clear(); Effects.unroot(p); cancel(); return; }
+                    if (!caster.isValid() || caster.isDead() || tick > TOTAL) { whip.clear(); Effects.unroot(caster); cancel(); return; }
                     int current = tick++;
                     try {
-                        World w = p.getWorld();
-                        if (current < WINDUP_END) windup(w, current);
-                        else if (current <= SWEEP_END) sweep(w, current);
-                        else if (current == BLAST_TICK) blast(w);
-                        else aftermath(w, current);
+                        if (current < WINDUP_END) windup(current);
+                        else if (current <= SWEEP_END) sweep(current);
+                        else if (current == BLAST_TICK) blast();
+                        else aftermath(current);
                     } catch (Exception ex) {
                         plugin().getLogger().warning("Dechainement d'Epine interrompu : " + ex);
                         whip.clear();
-                        Effects.unroot(p);
+                        Effects.unroot(caster);
                         cancel();
                     }
                 }
 
-                /** Fouet court tenu bas devant elle, etincelles blanches a la pointe. */
-                void windup(World w, int tick) {
-                    Location origin = p.getEyeLocation().subtract(0, 0.6, 0);
+                /** Fouet court tenu bas devant, etincelles blanches a la pointe. */
+                void windup(int tick) {
+                    Location origin = caster.getEyeLocation().subtract(0, 0.6, 0);
                     Vector dir = fwd.clone().setY(-0.45).normalize();
                     whip.layout(origin, dir, 2.5 + tick * 0.15);
                     Location tip = BoneWhip.pointAt(origin, dir, 2.5 + tick * 0.15);
@@ -444,31 +458,28 @@ public final class Byleth extends Character implements Listener {
                     w.spawnParticle(Particle.DUST, tip, 3, 0.15, 0.15, 0.15, 0, PINK);
                     if (tick == WINDUP_END - 1) {
                         // Ruee en avant d'environ deux blocs.
-                        p.setVelocity(fwd.clone().multiply(0.85).setY(0.12));
-                        w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.5f);
-                        w.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
-                        w.spawnParticle(Particle.FLASH, p.getEyeLocation().add(fwd), 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 200, 220));
+                        caster.setVelocity(fwd.clone().multiply(0.85).setY(0.12));
+                        w.playSound(caster.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.5f);
+                        w.playSound(caster.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
+                        w.spawnParticle(Particle.FLASH, caster.getEyeLocation().add(fwd), 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 200, 220));
                     }
                 }
 
                 /** Grand coup horizontal au ras du sol, vague rouge et poussiere blanche. */
-                void sweep(World w, int tick) {
+                void sweep(int tick) {
                     double t = (double) (tick - WINDUP_END) / (SWEEP_END - WINDUP_END);
                     double eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
                     double angle = baseAngle - HALF_ARC + eased * 2 * HALF_ARC;
                     Vector dir = new Vector(Math.cos(angle), -0.12, Math.sin(angle)).normalize();
-                    Location origin = p.getLocation().add(0, 1.0, 0);
+                    Location origin = caster.getLocation().add(0, 1.0, 0);
                     whip.layout(origin, dir, WHIP_LENGTH);
-
-                    // La vague : tout l'arc deja balaye reste visible au sol, en rouge vers l'exterieur.
+                    Location base = caster.getLocation();
                     for (double a = baseAngle - HALF_ARC; a <= angle; a += Math.toRadians(9)) {
                         for (double r = 1.5; r <= WHIP_LENGTH; r += 1.5) {
-                            Location l = new Location(w, p.getLocation().getX() + Math.cos(a) * r, groundY + 0.4 + Math.random() * 0.5,
-                                    p.getLocation().getZ() + Math.sin(a) * r);
+                            Location l = new Location(w, base.getX() + Math.cos(a) * r, groundY + 0.4 + Math.random() * 0.5, base.getZ() + Math.sin(a) * r);
                             w.spawnParticle(Particle.DUST, l, 1, 0.1, 0.1, 0.1, 0, r > 3.5 ? RED : PINK);
                         }
                     }
-                    // Brume rose qui monte et nuage de poussiere blanche sur le bord du fouet.
                     for (double r = 2.0; r <= WHIP_LENGTH; r += 1.0) {
                         Location l = BoneWhip.pointAt(origin, dir, r);
                         l.setY(groundY + 0.3);
@@ -482,7 +493,7 @@ public final class Byleth extends Character implements Listener {
                 }
 
                 /** Explosion rose-rouge au coeur de la zone : degats et projection. */
-                void blast(World w) {
+                void blast() {
                     whip.clear();
                     Location c = center.clone().add(0, 1.0, 0);
                     w.spawnParticle(Particle.FLASH, c, 2, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 90, 120));
@@ -493,23 +504,32 @@ public final class Byleth extends Character implements Listener {
                     w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.8f);
                     w.playSound(c, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.6f);
                     w.playSound(c, Sound.ITEM_TRIDENT_THUNDER, 0.6f, 1.6f);
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, center, 2.5)) {
-                        if (hit.contains(enemy.getUniqueId())) continue;
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.within(center, 2.5, isTarget)) {
+                        if (enemy == caster || hit.contains(enemy.getUniqueId())) continue;
                         hit.add(enemy.getUniqueId());
-                        strike(p, enemy, center);
+                        strike(caster, enemy);
                     }
-                    Msg.actionBar(p, hit.isEmpty() ? "<gray>Aucun ennemi dans la zone" : "<green>" + hit.size() + " ennemi(s) ejecte(s)");
+                    Effects.say(caster, hit.isEmpty() ? "<gray>Aucun ennemi dans la zone" : "<green>" + hit.size() + " ennemi(s) ejecte(s)");
                 }
 
-                /** Brume et poussiere qui retombent. */
-                void aftermath(World w, int tick) {
+                void aftermath(int tick) {
                     Location c = center.clone().add(0, 0.5, 0);
                     w.spawnParticle(Particle.DUST, c, 8, 2.5, 0.8, 2.5, 0, MIST);
                     w.spawnParticle(Particle.CLOUD, c, 4, 2.5, 0.3, 2.5, 0.01);
-                    if (tick == BLAST_TICK + 3) Effects.unroot(p);
+                    if (tick == BLAST_TICK + 3) Effects.unroot(caster);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
-            return true;
+        }
+
+        private static void strike(org.bukkit.entity.LivingEntity caster, org.bukkit.entity.LivingEntity enemy) {
+            Effects.damage(enemy, 6.0, caster);
+            Vector dir = enemy.getLocation().toVector().subtract(caster.getLocation().toVector()).setY(0);
+            if (dir.lengthSquared() < 0.01) dir = caster.getLocation().getDirection().setY(0);
+            dir.normalize();
+            enemy.setVelocity(dir.multiply(1.6).setY(0.9));
+            Location at = enemy.getLocation().add(0, 1, 0);
+            at.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, at, 25, 0.5, 0.6, 0.5, 0, FLASH);
+            at.getWorld().spawnParticle(Particle.CRIT, at, 20, 0.4, 0.5, 0.4, 0.2);
         }
 
         private static double normalize(double a) {

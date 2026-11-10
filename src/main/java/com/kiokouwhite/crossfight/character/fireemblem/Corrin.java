@@ -282,7 +282,7 @@ public final class Corrin extends Character {
 
     // ----------------------------------------------------------------- ultime
 
-    static final class VaguesBleues extends UltimateAbility {
+    static final class VaguesBleues extends UltimateAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
 
         /** Un bloc de la vague : decalage derriere le front, hauteur au-dessus du sol, matiere. */
         private record Cell(int back, int up, Material material) {}
@@ -313,9 +313,17 @@ public final class Corrin extends Character {
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
-            Vector dir = p.getLocation().getDirection().setY(0);
-            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-            dir.normalize();
+            perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
+            return true;
+        }
+
+        @Override
+        public boolean castOn(org.bukkit.entity.LivingEntity caster, Player target, AbilityState st) {
+            perform(caster, Effects.towards(caster, target), Effects.enemiesOf(caster, target));
+            return true;
+        }
+
+        static void perform(org.bukkit.entity.LivingEntity p, Vector dir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
             // On avance sur l'axe dominant pour que la vague reste alignee sur la grille de blocs.
             final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
                     ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
@@ -334,7 +342,7 @@ public final class Corrin extends Character {
 
                 @Override public void run() {
                     try {
-                        if (step >= STEPS || !p.isOnline()) { restoreAll(); clearCubes(); cancel(); return; }
+                        if (step >= STEPS || !p.isValid()) { restoreAll(); clearCubes(); cancel(); return; }
                         step++;
                         int front = step + 1; // la vague part deux blocs devant Corrin
                         restoreAll();
@@ -409,8 +417,8 @@ public final class Corrin extends Character {
                 /** Les ennemis au front de la vague sont emportes. */
                 void strike(int front) {
                     Location check = origin.clone().add(0.5, 1, 0.5).add(axis.clone().multiply(front - 1));
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, check, HALF_WIDTH + 2.0)) {
-                        if (hit.contains(enemy.getUniqueId())) continue;
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.within(check, HALF_WIDTH + 2.0, isTarget)) {
+                        if (enemy == p || hit.contains(enemy.getUniqueId())) continue;
                         // Zone rectangulaire : 2 blocs devant/derriere le front, toute la largeur.
                         Vector rel = enemy.getLocation().toVector().subtract(check.toVector());
                         if (Math.abs(rel.dot(axis)) > 2.5 || Math.abs(rel.dot(side)) > HALF_WIDTH + 0.5) continue;
@@ -418,7 +426,7 @@ public final class Corrin extends Character {
                         Effects.launchUp(enemy, 30);
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 2, 20 * 10);
                         enemy.getWorld().spawnParticle(Particle.SPLASH, enemy.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0);
-                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<aqua>Emporte par la vague de Corrin !");
+                        Effects.say(enemy, "<aqua>Emporte par la vague de Corrin !");
                     }
                 }
 
@@ -434,7 +442,6 @@ public final class Corrin extends Character {
                     cubes.clear();
                 }
             }.runTaskTimer(plugin(), 0L, TICKS_PER_STEP);
-            return true;
         }
     }
 }

@@ -34,6 +34,9 @@ public final class Mannequins implements Listener {
     public static final String TAG = "cf_mannequin";
     public static final String AGGRO_TAG = "cf_mannequin_aggro";
     public static final String ALLY_TAG = "cf_mannequin_ally";
+    public static final String ADVERSARY_TAG = "cf_mannequin_adversary";
+    public static final org.bukkit.NamespacedKey CHARACTER_KEY = new org.bukkit.NamespacedKey("crossfight", "mannequin_character");
+    public static final org.bukkit.NamespacedKey ADVERSARY_ITEM_KEY = new org.bukkit.NamespacedKey("crossfight", "adversary_ability");
     public static final double MAX_HEALTH = 100.0;
 
     private static final Map<UUID, BukkitTask> REGEN = new HashMap<>();
@@ -54,6 +57,80 @@ public final class Mannequins implements Listener {
      * @param aggressive true pour un mannequin qui poursuit et frappe les joueurs
      *                   (2 coeurs par coup, vitesse d'un joueur qui marche).
      */
+    public static boolean isAdversary(Entity e) {
+        return e != null && e.getScoreboardTags().contains(ADVERSARY_TAG);
+    }
+
+    /** Identifiant du personnage incarne par un mannequin adversaire, ou null. */
+    public static String characterOf(Entity e) {
+        if (!isAdversary(e)) return null;
+        return e.getPersistentDataContainer().get(CHARACTER_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+    }
+
+    /**
+     * Mannequin adversaire : il incarne un personnage et le joueur recoit des items pour
+     * lui faire lancer ses capacites contre lui-meme.
+     */
+    public static LivingEntity spawnAdversary(Location loc, com.kiokouwhite.crossfight.character.Character character, Player tester) {
+        LivingEntity m = spawn(loc, false, false);
+        m.addScoreboardTag(ADVERSARY_TAG);
+        m.getPersistentDataContainer().set(CHARACTER_KEY, org.bukkit.persistence.PersistentDataType.STRING, character.id());
+        var weapon = character.createWeapon();
+        if (weapon != null && m.getEquipment() != null) {
+            m.getEquipment().setItemInMainHand(weapon);
+            m.getEquipment().setItemInMainHandDropChance(0f);
+        }
+        updateName(m);
+        giveAdversaryItems(tester, character);
+        return m;
+    }
+
+    /** Items de commande : un par capacite simulable du personnage, sur la deuxieme ligne de l'inventaire. */
+    public static int giveAdversaryItems(Player p, com.kiokouwhite.crossfight.character.Character character) {
+        removeAdversaryItems(p, character.id());
+        var inv = p.getInventory();
+        int slot = 9, given = 0;
+        for (var a : character.allAbilities()) {
+            if (!(a instanceof com.kiokouwhite.crossfight.ability.EnemyCastable)) continue;
+            java.util.List<String> lore = new java.util.ArrayList<>();
+            lore.add("<dark_gray>" + a.type().label() + " de " + character.name());
+            lore.addAll(Items.wrap(a.description()));
+            lore.add("");
+            lore.add("<red>Clic droit : " + character.name() + " l'utilise contre toi.");
+            org.bukkit.inventory.ItemStack it = Items.of(a.icon(), "<red>[" + character.name() + "] " + a.name(), lore);
+            Items.tag(it, ADVERSARY_ITEM_KEY, character.id() + ":" + a.id());
+            while (slot < 36 && inv.getItem(slot) != null) slot++;
+            if (slot >= 36) break;
+            inv.setItem(slot++, it);
+            given++;
+        }
+        return given;
+    }
+
+    public static void removeAdversaryItems(Player p, String characterId) {
+        var inv = p.getInventory();
+        for (int i = 0; i < inv.getSize(); i++) {
+            String tag = Items.tag(inv.getItem(i), ADVERSARY_ITEM_KEY);
+            if (tag != null && (characterId == null || tag.startsWith(characterId + ":"))) inv.setItem(i, null);
+        }
+    }
+
+    public static boolean isAdversaryItem(org.bukkit.inventory.ItemStack it) {
+        return Items.tag(it, ADVERSARY_ITEM_KEY) != null;
+    }
+
+    /** Le mannequin adversaire le plus proche incarnant ce personnage. */
+    public static LivingEntity nearestAdversary(Player p, String characterId, double radius) {
+        LivingEntity best = null;
+        double bestD = Double.MAX_VALUE;
+        for (Entity e : p.getNearbyEntities(radius, radius, radius)) {
+            if (!(e instanceof LivingEntity le) || !characterId.equals(characterOf(e))) continue;
+            double d = le.getLocation().distanceSquared(p.getLocation());
+            if (d < bestD) { bestD = d; best = le; }
+        }
+        return best;
+    }
+
     public static boolean isAlly(Entity e) {
         return e != null && e.getScoreboardTags().contains(ALLY_TAG);
     }
@@ -124,6 +201,8 @@ public final class Mannequins implements Listener {
         }
         for (BukkitTask t : REGEN.values()) t.cancel();
         REGEN.clear();
+        ADVERSARY_STATES.clear();
+        for (Player p : Bukkit.getOnlinePlayers()) removeAdversaryItems(p, null);
         return n;
     }
 
@@ -138,7 +217,11 @@ public final class Mannequins implements Listener {
 
     private static void updateName(LivingEntity e) {
         double hp = Math.max(0, e.getHealth());
-        String label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
+        String label;
+        if (isAdversary(e)) {
+            var c = CrossfightPlugin.get().characters().character(characterOf(e));
+            label = "<red>" + (c == null ? "Adversaire" : c.name()) + " <dark_red>(adversaire)";
+        } else label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
         e.customName(Msg.mm(label + " <red>❤ " + fmt(hp / 2.0) + "<gray>/" + fmt(MAX_HEALTH / 2.0)));
     }
 
@@ -188,6 +271,43 @@ public final class Mannequins implements Listener {
             }
             REGEN.remove(m.getUniqueId());
         }, 100L));
+    }
+
+    /** Etats des capacites par mannequin adversaire. */
+    private static final Map<UUID, Map<String, com.kiokouwhite.crossfight.ability.AbilityState>> ADVERSARY_STATES = new HashMap<>();
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onUseAdversaryItem(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR && e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+        String tag = Items.tag(e.getItem(), ADVERSARY_ITEM_KEY);
+        if (tag == null) return;
+        e.setCancelled(true);
+        Player p = e.getPlayer();
+        String[] parts = tag.split(":", 2);
+        var character = CrossfightPlugin.get().characters().character(parts[0]);
+        var ability = character == null ? null : character.ability(parts[1]);
+        if (!(ability instanceof com.kiokouwhite.crossfight.ability.EnemyCastable castable)) return;
+        LivingEntity adversary = nearestAdversary(p, parts[0], 80);
+        if (adversary == null) {
+            Msg.actionBar(p, "<red>Aucun mannequin " + character.name() + " a proximite.");
+            return;
+        }
+        var state = ADVERSARY_STATES.computeIfAbsent(adversary.getUniqueId(), u -> new HashMap<>())
+                .computeIfAbsent(ability.id(), k -> new com.kiokouwhite.crossfight.ability.AbilityState());
+        try {
+            if (castable.castOn(adversary, p, state)) {
+                Msg.actionBar(p, "<red>" + character.name() + " utilise " + ability.name() + " contre toi !");
+            }
+        } catch (Exception ex) {
+            CrossfightPlugin.get().getLogger().warning("Capacite adverse " + ability.id() + " : " + ex);
+            Msg.actionBar(p, "<red>Erreur dans la capacite adverse, voir la console.");
+        }
+    }
+
+    @EventHandler
+    public void onDropAdversaryItem(org.bukkit.event.player.PlayerDropItemEvent e) {
+        if (isAdversaryItem(e.getItemDrop().getItemStack())) e.setCancelled(true);
     }
 
     @EventHandler

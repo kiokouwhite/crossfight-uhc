@@ -37,6 +37,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
 | `/cf change [perso]` | Changer de personnage en mode test |
 | `/cf clear` | Remettre le terrain de test à neuf (blocs, entités, mannequins) |
+| `/cf mannequin adversaire <perso>` | Un mannequin qui incarne le personnage : ses capacités offensives sont données en items, et les activer les lance depuis le mannequin contre toi |
 | `/cf mannequin [nb] [attaque\|allie]` | Mannequins d'entraînement (ennemis, agressifs ou alliés), `/cf mannequin clear` pour les retirer |
 | `/cf ult [joueur] <pourcent>` | Régler la jauge d'Ultime (test) |
 | `/cf heal` | Se soigner (test) |
@@ -96,6 +97,14 @@ Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 
 
 Activé par `pvp.legacy-combat` dans `config.yml` : aucun temps de recharge d'attaque, pas
 d'attaque balayante, et maintenir le clic gauche sur un ennemi à portée enchaîne les coups.
+
+### Mannequins adversaires
+
+Une capacité peut être « simulée » par un mannequin si elle implémente `EnemyCastable` : elle
+est alors écrite pour un lanceur quelconque (position, direction, filtre de cibles) et non pour
+un joueur. C'est le cas des capacités qui visent les ennemis : Coup Critique, Épée du Créateur,
+Déchaînement d'Épine, Vagues Bleues, Rayon Démoniaque. Les passifs, les soins et les buffs
+personnels n'ont pas d'item adverse.
 
 ## Télécharger le plugin sans compiler
 
