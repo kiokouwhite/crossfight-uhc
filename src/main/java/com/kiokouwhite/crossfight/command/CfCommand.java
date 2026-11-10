@@ -118,7 +118,12 @@ public final class CfCommand implements TabExecutor {
                         var lic = plugin.characters().licence("rwby");
                         if (lic != null && lic.mechanic() instanceof com.kiokouwhite.crossfight.character.rwby.RWBY.Duo duo) {
                             int n = duo.fill(sp, pct);
-                            Msg.send(sp, "<green>Jauges de Duo a " + (int) pct + "% avec " + n + " allie(s).");
+                            if (n > 0) Msg.send(sp, "<green>Jauges de Duo a " + (int) pct + "% avec " + n + " allie(s).");
+                        }
+                        var syn = com.kiokouwhite.crossfight.character.duo.Synergy.of(sp);
+                        if (syn != null) {
+                            int n = syn.fill(sp, pct);
+                            Msg.send(sp, "<green>Synergie a " + (int) pct + "% avec " + n + " partenaire(s).");
                         }
                     }
                     case "credits" -> {

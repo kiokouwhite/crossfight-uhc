@@ -31,8 +31,7 @@ public final class CharacterRegistry {
         register(com.kiokouwhite.crossfight.character.unordinary.Unordinary.create());
         register(com.kiokouwhite.crossfight.character.earthdelta.EarthDelta.create());
         // Groupe duo
-        register(new Licence("gunvolt", "ARMED BLUE GUNVOLT", TeamSize.DUO,
-                "Synergie : second ultime commun, charge a 200 % de degats a deux."));
+        register(com.kiokouwhite.crossfight.character.gunvolt.ABG.create());
         register(new Licence("shojas_memories", "SHOJA'S MEMORIES", TeamSize.DUO,
                 "Synergie : second ultime commun, charge a 200 % de degats a deux."));
         register(new Licence("bloody_snow", "BLOODY SNOW", TeamSize.DUO,

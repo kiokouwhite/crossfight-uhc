@@ -42,7 +42,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf ult [joueur] <pourcent>` | Régler la jauge d'Ultime (test) |
 | `/cf heal` | Se soigner (test) |
 | `/cf ally <testeur>` | Rejoindre l'équipe d'un autre testeur en mode test |
-| `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY, test) |
+| `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY) et de Synergie (groupes duo) (test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
 | `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
@@ -74,7 +74,9 @@ com.kiokouwhite.crossfight
 │   ├── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
 │   ├── snk/                Shingeki no Kyojin : équipement 3D, Eren, Mikasa, Livaï, Armin
 │   ├── unordinary/         unOrdinary : épées d'Aura, Arlo, John, Remi, Seraphina
-│   └── earthdelta/         Earth Delta : mutations, Kishi, Kura, Taka, Hano et ses 28 tomes
+│   ├── earthdelta/         Earth Delta : mutations, Kishi, Kura, Taka, Hano et ses 28 tomes
+│   ├── duo/                Synergie : second ultime commun aux groupes duo (jauge à 200 %)
+│   └── gunvolt/            Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov, six Synergies
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -104,6 +106,15 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Le drone de Sova est un allay qui suit Sova et tire une flèche de Faiblesse par seconde sur l'ennemi le plus proche à 20 blocs.
 - L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
 - La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.
+
+### Hypothèses prises sur les groupes duo et Armed Blue Gunvolt
+
+- La Synergie est un item commun (« Synergie ») : la jauge d'une paire monte avec les dégâts infligés par les deux partenaires, sans condition de distance, jusqu'à 200 % (40 cœurs cumulés). En mode test, elle se lance même sans jauge, et `/cf duo` la remplit. Les Synergies « à clics » (Dash Double Lame, Talisman Électrifiant) se réutilisent en recliquant sur l'item pendant leur durée.
+- Gunvolt : Cerbère tire au clic droit (1,5 s entre deux balles, 7 dégâts). Le Champ Électrique a sa propre jauge (−5/s actif, +1/s) et frappe aussi, à 40 blocs, tout adversaire marqué par l'Électricité Septimale. La Télesquive fait un petit pas de côté dans un éclair et annule le coup. L'Astrasphère suit Gunvolt.
+- Acura : le Pod tire tout seul toutes les 2 s sur la cible verrouillée par l'Avenger Dash si elle est à 10 blocs (clic droit : tir droit devant). Les Ex-Weapons partagent une jauge d'Énergie Mécanique (+1/s) : accroupi + clic pour choisir, clic pour utiliser ou activer. Anchor Nexus coûte 15 par percussion. Rising Cyclone reste là où elle a été lancée. Twin Shredder suit Acura (2 cœurs/s pendant 3 s, 4 sur la cible).
+- Kirin : les talismans sont des projectiles ; la marque dure 10 s. Le sabre se téléporte sur la cible marquée la plus proche (30 blocs) et retire sa marque ; Arc Chain est utilisable 4 s après et touche aussi l'adversaire visé par la téléportation (1 cœur par cible, 4 max) avec 10 s de recharge. Slash : en l'air Tensho, accroupi Ressen (deuxième clic pour retomber), sinon Issen ; un seul temps de recharge de 15 s.
+- Asimov : le fusil charge 3 s puis tire (9 dégâts, doublés à moins de 5 blocs). La tourelle tire ses salves à 5 s et 10 s. Les chaînes de l'ultime sont des segments tirés au hasard sur 30 blocs pendant 8 s.
+- Vol Électrique et Prison de Chaîne donnent le vol créatif pendant leur durée ; Double Électrocution est centrée sur le lanceur.
 
 ### Hypothèses prises sur Earth Delta
 
@@ -159,8 +170,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Shingeki no Kyojin : équipement tridimensionnel et gaz, Eren (et ses 7 titans), Mikasa, Livaï, Armin
 - [x] unOrdinary : épées d'Aura à crafter, Arlo, John (absorption), Remi, Seraphina
 - [x] Earth Delta : mutations à chaque mort, Kishi, Kura, Taka, Hano (28 tomes)
-- [ ] Systèmes de licence restants (Synergie des duos, Burst des solitaires)
-- [ ] 12 personnages restants
+- [x] Synergies des groupes duo ; Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov
+- [ ] Burst des solitaires
+- [ ] 8 personnages restants (Shoja's Memories, Bloody Snow) et les solitaires
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8
