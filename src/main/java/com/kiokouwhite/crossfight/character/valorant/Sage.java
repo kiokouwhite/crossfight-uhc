@@ -98,7 +98,7 @@ public final class Sage extends Character implements Listener {
 
     static final class OrbeDeLenteur extends ActiveAbility {
         OrbeDeLenteur() {
-            super("sage_lenteur", "Orbe de Lenteur", "Sage tire un orbe au sol qui eclate en un tapis de cristaux : pendant 5 secondes, une zone de 5 blocs donne Lenteur II aux ennemis.", Material.SNOWBALL, 10);
+            super("sage_lenteur", "Orbe de Lenteur", "Sage tire un orbe au sol qui eclate en un tapis de cristaux : pendant 5 secondes, une zone de 10 blocs de large donne Lenteur II aux ennemis.", Material.SNOWBALL, 10);
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -111,7 +111,7 @@ public final class Sage extends Character implements Listener {
     static final Particle.DustOptions ICE = new Particle.DustOptions(Color.fromRGB(110, 240, 225), 1.3f);
     static final Material[] CRYSTAL_FLOOR = {Material.CYAN_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.DIAMOND_BLOCK, Material.CYAN_STAINED_GLASS, Material.PRISMARINE_BRICKS};
     static final Material[] CRYSTAL_SHARD = {Material.CYAN_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.WHITE_STAINED_GLASS};
-    static final double SLOW_RADIUS = 2.5;
+    static final double SLOW_RADIUS = 5.0;
 
     @EventHandler
     public void onSlowOrbLand(ProjectileHitEvent e) {
@@ -138,7 +138,7 @@ public final class Sage extends Character implements Listener {
                 // Le tapis de cristal s'etend du centre vers le bord pendant les 5 premiers ticks.
                 if (tick <= 5) {
                     double rNow = SLOW_RADIUS * tick / 5.0, rPrev = SLOW_RADIUS * (tick - 1) / 5.0;
-                    for (int x = -3; x <= 3; x++) for (int z = -3; z <= 3; z++) {
+                    for (int x = -5; x <= 5; x++) for (int z = -5; z <= 5; z++) {
                         double d = Math.sqrt(x * x + z * z);
                         if (d > rNow || d <= rPrev) continue;
                         int y = Effects.groundAround(w, center.getBlockX() + x, center.getBlockZ() + z, center.getBlockY());
@@ -146,7 +146,7 @@ public final class Sage extends Character implements Listener {
                         org.bukkit.block.Block top = w.getBlockAt(center.getBlockX() + x, y, center.getBlockZ() + z);
                         if (top.getType().isSolid()) floor.replace(top, CRYSTAL_FLOOR[(int) (Math.random() * CRYSTAL_FLOOR.length)]);
                         // Eclats de cristal plantes de travers dans le sol.
-                        if (Math.random() < 0.6) {
+                        if (Math.random() < 0.4) {
                             Location at = new Location(w, center.getBlockX() + x + Math.random(), y + 1, center.getBlockZ() + z + Math.random());
                             float size = 0.3f + (float) Math.random() * 0.5f;
                             shards.add(w.spawn(at, org.bukkit.entity.BlockDisplay.class, disp -> {
