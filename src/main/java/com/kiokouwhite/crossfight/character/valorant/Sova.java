@@ -62,43 +62,69 @@ public final class Sova extends Character implements Listener {
     public List<String> summary() {
         return List.of(
                 "<white>Electrofleche : arc a bander, sphere electrique de 6 blocs, 2 coeurs",
-                "<white>Fleche de reco : ennemis en surbrillance a 40 blocs",
+                "<white>Fleche de reco : arc a bander, 3 ondes revelent a 40 blocs",
                 "<white>Drone Rapace : tire des fleches de Faiblesse 10 s",
                 "<light_purple>Ultime : 3 rayons de 10 blocs, 3 coeurs");
+    }
+
+    static final String AMMO_ID = "sova_electro_ammo";
+    static final Color BLUE = Color.fromRGB(70, 150, 255), PALE = Color.fromRGB(170, 220, 255);
+    static final Particle.DustOptions ARC = new Particle.DustOptions(BLUE, 0.7f);
+
+    /** Transforme l'item de capacite en arc Infinite (bande comme un arc normal). */
+    static ItemStack electricBow(ItemStack bow) {
+        var meta = bow.getItemMeta();
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.INFINITY, 1, true);
+        meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
+        bow.setItemMeta(meta);
+        return bow;
+    }
+    static boolean isElectricBow(ItemStack it, String id) {
+        return it != null && it.getType() == Material.BOW && id.equals(com.kiokouwhite.crossfight.util.Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY));
+    }
+    /** La fleche "munition" qui permet de bander les arcs de Sova (jamais consommee grace a Infinite). */
+    static void giveAmmo(Player p) {
+        var inv = p.getInventory();
+        for (ItemStack it : inv.getContents()) if (it != null && AMMO_ID.equals(com.kiokouwhite.crossfight.util.Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY))) return;
+        ItemStack a = com.kiokouwhite.crossfight.util.Items.of(Material.ARROW, "<aqua>Fleches de Sova", List.of("Munitions de l'Electrofleche et de la", "Fleche de reconnaissance."));
+        com.kiokouwhite.crossfight.util.Items.tag(a, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY, AMMO_ID);
+        if (inv.getItem(9) == null) inv.setItem(9, a); else inv.addItem(a);
+    }
+    /** Pendant que l'arc est bande : l'arc crepite et un trait d'energie bleue monte le long de la corde. */
+    static void bowCharge(Player p, AbilityState st, String id) {
+        if (!p.isHandRaised() || !isElectricBow(p.getActiveItem(), id)) { st.set("charge", 0); return; }
+        int t = st.get("charge", 0) + 1; st.set("charge", t);
+        double f = Math.min(1.0, t / 20.0);
+        World w = p.getWorld();
+        Location eye = p.getEyeLocation();
+        Vector dir = eye.getDirection();
+        Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+        Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
+        w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 1 + (int) (f * 3), 0.15, 0.25, 0.15, 0.02);
+        for (double y = -0.45; y <= -0.45 + 0.9 * f; y += 0.12) w.spawnParticle(Particle.DUST, hand.clone().add(0, y + 0.3, 0), 1, 0, 0, 0, 0, ARC);
+        if (t % 4 == 0 && t <= 20) w.playSound(hand, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25f, 0.7f + (float) f * 1.0f);
+        if (t == 20) { w.playSound(hand, Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 2f); w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 20, 0.3, 0.4, 0.3, 0.15); }
+    }
+    /** Tir d'un dard bleu a la vitesse de la charge. */
+    static Arrow shootDart(Player p, double force, NamespacedKey tag) {
+        Vector dir = p.getEyeLocation().getDirection();
+        Arrow a = Bullets.shoot(p, dir, 0.6 + 2.4 * force, 1.0, Material.LIGHT_BLUE_CONCRETE, PALE);
+        a.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
+        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.8f);
+        p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getEyeLocation().add(dir), 15, 0.2, 0.2, 0.2, 0.1);
+        return a;
     }
 
     /** Deux fleches en reserve, une revient toutes les 6 secondes. L'item est un vrai arc a bander. */
     static final class Electrofleche extends ActiveAbility {
         static final int MAX = 2; static final long RELOAD_MS = 6000L;
-        static final String AMMO_ID = "sova_electro_ammo";
-        static final Color BLUE = Color.fromRGB(70, 150, 255), PALE = Color.fromRGB(170, 220, 255);
-        static final Particle.DustOptions ARC = new Particle.DustOptions(BLUE, 0.7f);
         Electrofleche() {
             super("sova_electro", "Electrofleche", "Sova bande son arc : la fleche se plante, clignote une seconde puis explose en une sphere electrique de 6 blocs qui inflige 2 coeurs et immobilise 1 seconde. 2 fleches, une revient toutes les 6 secondes.", Material.BOW, 0);
         }
         @Override public boolean vanillaUse() { return true; }
-        @Override public ItemStack createItem() {
-            ItemStack bow = super.createItem();
-            var meta = bow.getItemMeta();
-            meta.addEnchant(org.bukkit.enchantments.Enchantment.INFINITY, 1, true);
-            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ENCHANTS);
-            bow.setItemMeta(meta);
-            return bow;
-        }
-        /** La fleche "munition" qui permet de bander l'arc (jamais consommee grace a Infinite). */
-        static ItemStack ammo() {
-            ItemStack a = com.kiokouwhite.crossfight.util.Items.of(Material.ARROW, "<aqua>Fleches electriques", List.of("Munitions de l'Electrofleche."));
-            com.kiokouwhite.crossfight.util.Items.tag(a, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY, AMMO_ID);
-            return a;
-        }
-        static boolean isBow(ItemStack it) {
-            return it != null && it.getType() == Material.BOW && "sova_electro".equals(com.kiokouwhite.crossfight.util.Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY));
-        }
-        @Override public void onEquip(Player p, CfPlayer cf) {
-            var inv = p.getInventory();
-            for (ItemStack it : inv.getContents()) if (it != null && AMMO_ID.equals(com.kiokouwhite.crossfight.util.Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY))) return;
-            if (inv.getItem(9) == null) inv.setItem(9, ammo()); else inv.addItem(ammo());
-        }
+        @Override public ItemStack createItem() { return electricBow(super.createItem()); }
+        static boolean isBow(ItemStack it) { return isElectricBow(it, "sova_electro"); }
+        @Override public void onEquip(Player p, CfPlayer cf) { giveAmmo(p); }
         int arrows(AbilityState st) {
             int b = st.get("arrows", MAX); long last = st.get("reloadAt", 0L); long now = System.currentTimeMillis();
             if (b < MAX) {
@@ -112,33 +138,14 @@ public final class Sova extends Character implements Listener {
             int b = arrows(st);
             return "<aqua>Electro " + "●".repeat(b) + "<dark_gray>" + "●".repeat(MAX - b);
         }
-        /** Pendant que l'arc est bande : l'arc crepite et un trait d'energie bleue s'allume le long de la corde. */
-        @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
-            if (!p.isHandRaised() || !isBow(p.getActiveItem())) { st.set("charge", 0); return; }
-            int t = st.get("charge", 0) + 1; st.set("charge", t);
-            double f = Math.min(1.0, t / 20.0);
-            World w = p.getWorld();
-            Location eye = p.getEyeLocation();
-            Vector dir = eye.getDirection();
-            Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
-            Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
-            w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 1 + (int) (f * 3), 0.15, 0.25, 0.15, 0.02);
-            // Trait d'energie qui monte le long de l'arc avec la charge.
-            for (double y = -0.45; y <= -0.45 + 0.9 * f; y += 0.12) w.spawnParticle(Particle.DUST, hand.clone().add(0, y + 0.3, 0), 1, 0, 0, 0, 0, ARC);
-            if (t % 4 == 0 && t <= 20) w.playSound(hand, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25f, 0.7f + (float) f * 1.0f);
-            if (t == 20) { w.playSound(hand, Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 2f); w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 20, 0.3, 0.4, 0.3, 0.15); }
-        }
+        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { bowCharge(p, st, "sova_electro"); }
         /** Tir de l'arc : on remplace la fleche vanilla par le dard electrique, a la vitesse de la charge. */
         boolean shoot(Player p, CfPlayer cf, AbilityState st, double force) {
             int b = arrows(st);
             if (b <= 0) { Msg.actionBar(p, "<red>Electrofleche : aucune fleche prete."); return false; }
             if (b == MAX) st.set("reloadAt", System.currentTimeMillis());
             st.set("arrows", b - 1);
-            Vector dir = p.getEyeLocation().getDirection();
-            Arrow a = Bullets.shoot(p, dir, 0.6 + 2.4 * force, 1.0, Material.LIGHT_BLUE_CONCRETE, PALE);
-            a.getPersistentDataContainer().set(SHOCK, PersistentDataType.BYTE, (byte) 1);
-            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.8f);
-            p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getEyeLocation().add(dir), 15, 0.2, 0.2, 0.2, 0.1);
+            shootDart(p, force, SHOCK);
             return true;
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) { return false; }
@@ -146,28 +153,37 @@ public final class Sova extends Character implements Listener {
 
     @EventHandler
     public void onShootBow(org.bukkit.event.entity.EntityShootBowEvent e) {
-        if (!(e.getEntity() instanceof Player p) || !Electrofleche.isBow(e.getBow())) return;
+        if (!(e.getEntity() instanceof Player p)) return;
+        boolean electro = Electrofleche.isBow(e.getBow()), reco = FlecheDeReconnaissance.isBow(e.getBow());
+        if (!electro && !reco) return;
         e.setCancelled(true);
         CfPlayer cf = plugin().players().get(p);
-        if (cf.character() == null || !(cf.character().ability("sova_electro") instanceof Electrofleche el)) return;
+        if (cf.character() == null) return;
         if (!plugin().game().isRunning()) { Msg.send(p, "<red>La partie n'a pas commence."); return; }
         // getForce() vaut la puissance de bandage, de 0 a 1 (arc tendu a fond).
         double force = Math.max(0.1, Math.min(1.0, e.getForce()));
-        el.shoot(p, cf, plugin().abilities().state(p, el), force);
+        if (electro && cf.character().ability("sova_electro") instanceof Electrofleche el) {
+            el.shoot(p, cf, plugin().abilities().state(p, el), force);
+        } else if (reco && cf.character().ability("sova_reco") instanceof FlecheDeReconnaissance fr) {
+            AbilityState st = plugin().abilities().state(p, fr);
+            if (st.onCooldown()) { Msg.actionBar(p, "<red>Fleche de reconnaissance : encore " + st.cooldownLeftSeconds() + "s"); return; }
+            shootDart(p, force, RECON);
+            st.startCooldown((int) Math.ceil(fr.cooldownSeconds() * cf.cooldownFactor()));
+        }
     }
 
     /** Le dard se plante, clignote une seconde, puis libere une sphere electrique bleue. */
     static void shockDart(Player p, Location c) {
         World w = c.getWorld();
         final double R = 3.0;
-        Particle.DustOptions shell = new Particle.DustOptions(Electrofleche.BLUE, 1.6f);
-        Particle.DustOptions pulse = new Particle.DustOptions(Electrofleche.PALE, 0.8f);
+        Particle.DustOptions shell = new Particle.DustOptions(BLUE, 1.6f);
+        Particle.DustOptions pulse = new Particle.DustOptions(PALE, 0.8f);
         org.bukkit.entity.BlockDisplay dart = w.spawn(c, org.bukkit.entity.BlockDisplay.class, d -> {
             d.setBlock(Material.LIGHT_BLUE_CONCRETE.createBlockData());
             float s = 0.2f;
             d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(-s / 2, -s / 2, -s / 2), new org.joml.Quaternionf(), new org.joml.Vector3f(s, s, s), new org.joml.Quaternionf()));
             d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
-            d.setGlowing(true); d.setGlowColorOverride(Electrofleche.BLUE); d.setPersistent(false);
+            d.setGlowing(true); d.setGlowColorOverride(BLUE); d.setPersistent(false);
         });
         w.playSound(c, Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1.6f);
         // Points repartis uniformement sur une sphere (spirale de Fibonacci).
@@ -191,7 +207,7 @@ public final class Sova extends Character implements Listener {
                     int t = tick - 21;
                     if (t == 0) {
                         dart.remove();
-                        w.spawnParticle(Particle.FLASH, c, 1, 0, 0, 0, 0, Electrofleche.PALE);
+                        w.spawnParticle(Particle.FLASH, c, 1, 0, 0, 0, 0, PALE);
                         w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.6f);
                         w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.8f);
                         w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 1f, 1.4f);
@@ -217,13 +233,66 @@ public final class Sova extends Character implements Listener {
 
     static final class FlecheDeReconnaissance extends ActiveAbility {
         FlecheDeReconnaissance() {
-            super("sova_reco", "Fleche de reconnaissance", "La ou la fleche atterrit, les ennemis a 40 blocs sont en surbrillance et ralentis pendant 10 secondes.", Material.ENDER_EYE, 40);
+            super("sova_reco", "Fleche de reconnaissance", "Sova bande son arc : la ou la fleche se plante, elle emet 3 impulsions pendant 6 secondes qui revelent et ralentissent les ennemis a 40 blocs.", Material.BOW, 40);
         }
-        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Arrow a = Bullets.shoot(p, p.getEyeLocation().getDirection(), 2.5, 0.5, Material.LIME_CONCRETE, Color.LIME);
-            a.getPersistentDataContainer().set(RECON, PersistentDataType.BYTE, (byte) 1);
-            return true;
-        }
+        @Override public boolean vanillaUse() { return true; }
+        @Override public ItemStack createItem() { return electricBow(super.createItem()); }
+        static boolean isBow(ItemStack it) { return isElectricBow(it, "sova_reco"); }
+        @Override public void onEquip(Player p, CfPlayer cf) { giveAmmo(p); }
+        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { bowCharge(p, st, "sova_reco"); }
+        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) { return false; }
+    }
+
+    /** Le dard de reconnaissance se plante et emet trois ondes bleues qui balaient le sol sur 40 blocs. */
+    static void reconBolt(Player p, Location c) {
+        World w = c.getWorld();
+        final double RANGE = 40.0;
+        Particle.DustOptions ring = new Particle.DustOptions(PALE, 1.2f);
+        Particle.DustOptions core = new Particle.DustOptions(BLUE, 1.0f);
+        org.bukkit.entity.BlockDisplay bolt = w.spawn(c, org.bukkit.entity.BlockDisplay.class, d -> {
+            d.setBlock(Material.LIGHT_BLUE_CONCRETE.createBlockData());
+            float s = 0.2f;
+            d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(-s / 2, -s / 2, -s / 2), new org.joml.Quaternionf(), new org.joml.Vector3f(s, s, s), new org.joml.Quaternionf()));
+            d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+            d.setGlowing(true); d.setGlowColorOverride(BLUE); d.setPersistent(false);
+        });
+        w.playSound(c, Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1.6f);
+        new BukkitRunnable() {
+            int tick = 0; int pulses = 0;
+            @Override public void run() {
+                tick++;
+                try {
+                    if (tick > 120) { bolt.remove(); w.spawnParticle(Particle.ELECTRIC_SPARK, c, 25, 0.3, 0.3, 0.3, 0.1); w.playSound(c, Sound.BLOCK_GLASS_BREAK, 0.8f, 1.6f); cancel(); return; }
+                    // Le dard respire en bleu entre les impulsions.
+                    w.spawnParticle(Particle.DUST, c, 2, 0.12, 0.12, 0.12, 0, core);
+                    if (tick % 8 == 0) w.spawnParticle(Particle.ELECTRIC_SPARK, c, 3, 0.15, 0.15, 0.15, 0.03);
+                    // Trois impulsions : tick 1, 31, 61 ; chaque onde s'elargit de 2 blocs par tick pendant 1 s.
+                    int phase = (tick - 1) % 30, k = (tick - 1) / 30;
+                    if (k < 3 && phase < 20) {
+                        if (phase == 0) {
+                            pulses++;
+                            w.playSound(c, Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.6f);
+                            w.playSound(c, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 0.6f);
+                            w.spawnParticle(Particle.FLASH, c, 1, 0, 0, 0, 0, PALE);
+                            for (double y = 0.3; y <= 3; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(0, y, 0), 1, 0, 0, 0, 0, ring);
+                            int n = 0;
+                            for (LivingEntity enemy : Effects.enemiesWithin(p, c, RANGE)) {
+                                Effects.give(enemy, PotionEffectType.GLOWING, 0, 80);
+                                if (pulses == 1) Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 200);
+                                n++;
+                            }
+                            if (pulses == 1) Msg.actionBar(p, "<green>Reconnaissance : " + n + " ennemi(s) revele(s)");
+                        }
+                        double r = 2.0 * (phase + 1);
+                        int pts = Math.max(12, (int) (2 * Math.PI * r));
+                        for (int i = 0; i < pts; i++) {
+                            double ang = i * 2 * Math.PI / pts;
+                            w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * r, 0.25, Math.sin(ang) * r), 1, 0, 0.05, 0, 0, ring);
+                        }
+                    }
+                } catch (Exception ex) { bolt.remove(); cancel(); }
+            }
+        }.runTaskTimer(plugin(), 0L, 1L);
     }
 
     @EventHandler
@@ -234,15 +303,7 @@ public final class Sova extends Character implements Listener {
         if (a.getPersistentDataContainer().has(SHOCK)) {
             shockDart(p, e.getHitEntity() != null ? e.getHitEntity().getLocation().add(0, 1, 0) : c);
         } else if (a.getPersistentDataContainer().has(RECON)) {
-            w.spawnParticle(Particle.END_ROD, c, 60, 2, 2, 2, 0.1);
-            w.playSound(c, Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.5f);
-            int n = 0;
-            for (LivingEntity enemy : Effects.enemiesWithin(p, c, 40)) {
-                Effects.give(enemy, PotionEffectType.GLOWING, 0, 200);
-                Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 200);
-                n++;
-            }
-            Msg.actionBar(p, "<green>Reconnaissance : " + n + " ennemi(s) revele(s)");
+            reconBolt(p, e.getHitEntity() != null ? e.getHitEntity().getLocation().add(0, 1, 0) : c);
         }
     }
 
