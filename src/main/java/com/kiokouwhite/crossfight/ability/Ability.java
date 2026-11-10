@@ -73,6 +73,9 @@ public abstract class Ability {
     /** Toutes les capacites ont un item d'information, sauf celles portees par l'arme. */
     public boolean hasItem() { return !weaponBound; }
 
+    /** Vrai si l'item garde son usage vanilla (arc a bander...) : le moteur ne l'intercepte pas au clic droit. */
+    public boolean vanillaUse() { return false; }
+
     /** Lignes de description a ajouter sur l'arme pour une capacite qui lui est liee. */
     public List<String> weaponLore() {
         List<String> lore = new ArrayList<>();

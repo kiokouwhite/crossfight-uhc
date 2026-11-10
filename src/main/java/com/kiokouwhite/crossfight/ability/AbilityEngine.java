@@ -334,6 +334,8 @@ public final class AbilityEngine implements Listener {
         // sauf si la capacite de l'arme gere elle-meme le clic.
         CfPlayer cfEarly = plugin.players().get(e.getPlayer());
         Ability early = cfEarly.character() == null ? null : cfEarly.character().ability(id);
+        // Certains items de capacite se bandent / s'utilisent comme en vanilla (arc) : la capacite ecoute ses propres events.
+        if (early != null && early.vanillaUse() && plugin.game().isRunning()) return;
         if (!isWeaponItem(item) || (early != null && early.type() != AbilityType.PASSIVE)) e.setCancelled(true);
 
         Player p = e.getPlayer();
