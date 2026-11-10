@@ -45,6 +45,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY, test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
+| `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
+| `/cf choose` | John : choisir ses pouvoirs absorbés |
 
 ## Déroulement d'une partie
 
@@ -67,7 +69,8 @@ com.kiokouwhite.crossfight
 │   ├── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
 │   ├── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 │   ├── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
-│   └── snk/                Shingeki no Kyojin : équipement 3D, Eren, Mikasa, Livaï, Armin
+│   ├── snk/                Shingeki no Kyojin : équipement 3D, Eren, Mikasa, Livaï, Armin
+│   └── unordinary/         unOrdinary : épées d'Aura, Arlo, John, Remi, Seraphina
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -97,6 +100,15 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Le drone de Sova est un allay qui suit Sova et tire une flèche de Faiblesse par seconde sur l'ennemi le plus proche à 20 blocs.
 - L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
 - La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.
+
+### Hypothèses prises sur unOrdinary
+
+- Les épées d'Aura se craftent sur une table (ou la grille 2×2 ne suffit pas) avec une colonne : ingrédient du haut, ingrédient du milieu, bâton. Soin : liane + éclat d'améthyste. Immunité : poche d'encre + coquille de nautile. Laser : redstone + lingot de cuivre. Chaleur Augmentée : seau de lave + brique du Nether. Glue : boule de slime + émeraude. Seuls les personnages unOrdinary peuvent les crafter ; on peut en crafter autant qu'on a d'ingrédients.
+- Le clic droit avec l'épée lance son actif (le temps de recharge est commun à toutes les épées du joueur). Soin donne Régénération II. Le Laser touche tout ce qui est sur une ligne de 20 blocs. La zone de Chaleur suit le joueur.
+- Arlo : une seule jauge d'Aura (barre en haut) pour tout. Barrière et Barrière Ultime s'excluent. Chaque cage coûte son prix par seconde (5 ou 10) et l'adversaire est immobilisé dedans ; quand l'Aura manque, les cages s'ouvrent. La cage est en verre incassable autour du bloc de l'adversaire. La Bulle géante est une sphère de verre incassable de 30 blocs de rayon, posée en quelques ticks.
+- John : frapper un personnage d'une Équipe de Trois (ou un mannequin adversaire) rend ses pouvoirs disponibles ; `/cf choose` (ou l'item Absorption) ouvre le menu pour en prendre jusqu'à 3, chacun pendant 5 minutes. Les capacités liées à une arme, les ultimes et la liste du doc (Sova, Eren, ultimes de Mikasa et Livaï) ne se copient pas. L'ultime de John ouvre le menu des personnages en vie (hors lui) et lance aussitôt l'ultime choisi comme s'il était le sien ; les ultimes « à clics » (Fureur, Pro 3D, Titan…) lui restent 2 minutes.
+- Remi : l'onde d'Électricité avance de 2 blocs par seconde (5 s pour 10 blocs) et s'arrête aux murs. Le Dôme électrique est fixe à l'endroit du lancement (rayon 5).
+- Seraphina : la position est relevée une fois par seconde ; Retour dans le temps ramène à la plus ancienne des 6 dernières. Pendant l'Arrêt Temporel, ses coups sur les ennemis figés sont annulés.
 
 ### Hypothèses prises sur Shingeki no Kyojin
 
@@ -133,8 +145,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 - [x] Valorant : crédits et boutique de 17 armes à feu, paliers d'armes blanches, Neon, Sage, Sova, Jett
 - [x] Shingeki no Kyojin : équipement tridimensionnel et gaz, Eren (et ses 7 titans), Mikasa, Livaï, Armin
+- [x] unOrdinary : épées d'Aura à crafter, Arlo, John (absorption), Remi, Seraphina
 - [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 20 personnages restants
+- [ ] 16 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

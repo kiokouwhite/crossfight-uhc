@@ -79,6 +79,11 @@ public final class DamageListener implements Listener {
     public void onDamagedHooks(EntityDamageEvent e) {
         if (!plugin.game().isRunning()) return;
         if (!(e.getEntity() instanceof Player victim)) return;
+        if (com.kiokouwhite.crossfight.util.Effects.isInvincible(victim)) {
+            e.setCancelled(true);
+            victim.getWorld().spawnParticle(org.bukkit.Particle.ENCHANTED_HIT, victim.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3);
+            return;
+        }
         plugin.abilities().dispatchDamaged(victim, e);
         if (e.isCancelled()) return;
         double mul = com.kiokouwhite.crossfight.util.Boosts.damageTakenMultiplier(victim);

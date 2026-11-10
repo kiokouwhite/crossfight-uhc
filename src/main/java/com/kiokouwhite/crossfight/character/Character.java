@@ -57,6 +57,14 @@ public abstract class Character {
         return null;
     }
 
+    /** Capacites + ultime pour un joueur donne (John y ajoute ses pouvoirs absorbes). */
+    public List<Ability> allAbilities(org.bukkit.entity.Player p) { return allAbilities(); }
+
+    public Ability ability(org.bukkit.entity.Player p, String id) {
+        for (Ability a : allAbilities(p)) if (a.id().equals(id)) return a;
+        return null;
+    }
+
     /** L'arme fournie au personnage, deja enchantee. Null si le personnage n'en a pas. */
     public abstract ItemStack createWeapon();
 

@@ -119,7 +119,7 @@ public final class AbilityEngine implements Listener {
         if (ch.ultimate() != null) {
             inv.setItem(8, ch.ultimate().createItem());
         }
-        for (Ability a : ch.allAbilities()) {
+        for (Ability a : ch.allAbilities(p)) {
             a.onEquip(p, cf);
         }
         if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onEquip(p);
@@ -150,7 +150,7 @@ public final class AbilityEngine implements Listener {
         CfPlayer cf = plugin.players().get(p);
         Character ch = cf.character();
         if (ch != null) {
-            for (Ability a : ch.allAbilities()) {
+            for (Ability a : ch.allAbilities(p)) {
                 AbilityState st = state(p, a);
                 if (a instanceof ToggleAbility t && st.isEnabled()) {
                     st.setEnabled(false);
@@ -171,7 +171,7 @@ public final class AbilityEngine implements Listener {
     public void dispatchDamage(Player attacker, org.bukkit.entity.LivingEntity victim, org.bukkit.event.entity.EntityDamageByEntityEvent e) {
         CfPlayer acf = plugin.players().get(attacker);
         if (acf.character() != null) {
-            for (Ability a : acf.character().allAbilities()) {
+            for (Ability a : acf.character().allAbilities(attacker)) {
                 try { a.onDealDamage(attacker, victim, e, state(attacker, a)); }
                 catch (Exception ex) { plugin.getLogger().warning("onDealDamage " + a.id() + " : " + ex); }
             }
@@ -182,7 +182,7 @@ public final class AbilityEngine implements Listener {
     public void dispatchDamaged(Player victim, org.bukkit.event.entity.EntityDamageEvent e) {
         CfPlayer vcf = plugin.players().get(victim);
         if (vcf.character() != null) {
-            for (Ability a : vcf.character().allAbilities()) {
+            for (Ability a : vcf.character().allAbilities(victim)) {
                 try { a.onDamaged(victim, e, state(victim, a)); }
                 catch (Exception ex) { plugin.getLogger().warning("onDamaged " + a.id() + " : " + ex); }
             }
@@ -192,7 +192,7 @@ public final class AbilityEngine implements Listener {
     public void dispatchKill(Player killer, Player victim) {
         CfPlayer kcf = plugin.players().get(killer);
         if (kcf.character() != null) {
-            for (Ability a : kcf.character().allAbilities()) {
+            for (Ability a : kcf.character().allAbilities(killer)) {
                 try { a.onKill(killer, victim, state(killer, a)); }
                 catch (Exception ex) { plugin.getLogger().warning("onKill " + a.id() + " : " + ex); }
             }
@@ -206,7 +206,7 @@ public final class AbilityEngine implements Listener {
         CfPlayer cf = plugin.players().get(p);
         boolean handled = false;
         if (cf.character() != null) {
-            for (Ability a : cf.character().allAbilities()) {
+            for (Ability a : cf.character().allAbilities(p)) {
                 try { if (a.onDeath(p, cf, state(p, a))) handled = true; }
                 catch (Exception ex) { plugin.getLogger().warning("onDeath " + a.id() + " : " + ex); }
             }
@@ -256,7 +256,7 @@ public final class AbilityEngine implements Listener {
             // L'armure n'est jamais visible sur les joueurs : chacun garde l'apparence de son personnage.
             if (hideArmor && !com.kiokouwhite.crossfight.util.Stealth.isArmorHidden(p)) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
             StringBuilder bar = new StringBuilder();
-            for (Ability a : ch.allAbilities()) {
+            for (Ability a : ch.allAbilities(p)) {
                 AbilityState st = state(p, a);
                 try {
                     a.tick(p, cf, st);
@@ -334,7 +334,7 @@ public final class AbilityEngine implements Listener {
         // L'arme garde son usage normal (arc, etc.) : on n'annule que pour les items purs de capacite,
         // sauf si la capacite de l'arme gere elle-meme le clic.
         CfPlayer cfEarly = plugin.players().get(e.getPlayer());
-        Ability early = cfEarly.character() == null ? null : cfEarly.character().ability(id);
+        Ability early = cfEarly.character() == null ? null : cfEarly.character().ability(e.getPlayer(), id);
         // Certains items de capacite se bandent / s'utilisent comme en vanilla (arc) : la capacite ecoute ses propres events.
         if (early != null && early.vanillaUse() && plugin.game().isRunning()) return;
         if (!isWeaponItem(item) || (early != null && early.type() != AbilityType.PASSIVE)) e.setCancelled(true);
@@ -347,7 +347,7 @@ public final class AbilityEngine implements Listener {
         CfPlayer cf = plugin.players().get(p);
         Character ch = cf.character();
         if (ch == null) return;
-        Ability a = ch.ability(id);
+        Ability a = ch.ability(p, id);
         if (a == null) return;
         use(p, cf, a);
     }
@@ -458,6 +458,6 @@ public final class AbilityEngine implements Listener {
 
     public List<Ability> abilitiesOf(Player p) {
         Character ch = plugin.players().get(p).character();
-        return ch == null ? List.of() : ch.allAbilities();
+        return ch == null ? List.of() : ch.allAbilities(p);
     }
 }

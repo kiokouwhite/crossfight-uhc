@@ -232,6 +232,44 @@ public final class Effects {
                 .orElse(null);
     }
 
+    /** Ruee quasi instantanee vers un point : teleportations par etapes (une par tick), arretees par les murs. */
+    public static void rush(Player p, Location to, int ticks, org.bukkit.Particle particle) {
+        Location from = p.getLocation();
+        Vector path = to.toVector().subtract(from.toVector());
+        if (path.length() < 0.5) return;
+        int steps = Math.max(1, ticks);
+        Vector step = path.clone().multiply(1.0 / steps);
+        noFallUntil(p, 4000);
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int i = 0;
+            Location current = from.clone();
+            @Override public void run() {
+                i++;
+                if (!p.isOnline() || p.isDead() || i > steps) { cancel(); return; }
+                Location next = current.clone().add(step);
+                next.setDirection(p.getLocation().getDirection());
+                if (!next.getBlock().isPassable() || !next.clone().add(0, 1, 0).getBlock().isPassable()) { cancel(); return; }
+                Vector unit = step.clone().normalize();
+                for (double d = 0; d < step.length(); d += 0.6) {
+                    p.getWorld().spawnParticle(particle, current.clone().add(unit.clone().multiply(d)).add(0, 1, 0), 1, 0.1, 0.2, 0.1, 0.01);
+                }
+                p.teleport(next);
+                current = next;
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 0L, 1L);
+    }
+
+    private static final java.util.Map<java.util.UUID, Long> INVINCIBLE = new java.util.HashMap<>();
+
+    /** Rend une entite invulnerable a tous les degats pendant un temps (verifie dans DamageListener). */
+    public static void invincible(LivingEntity e, long millis) {
+        INVINCIBLE.merge(e.getUniqueId(), System.currentTimeMillis() + millis, Math::max);
+    }
+    public static boolean isInvincible(org.bukkit.entity.Entity e) {
+        Long until = INVINCIBLE.get(e.getUniqueId());
+        return until != null && System.currentTimeMillis() < until;
+    }
+
     /** Degats "bruts" infliges par un joueur a un autre, en points de vie (2 = 1 coeur). */
     public static void damage(LivingEntity victim, double amount, org.bukkit.entity.Entity source) {
         if (victim.isDead()) return;

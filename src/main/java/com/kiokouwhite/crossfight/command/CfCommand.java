@@ -40,6 +40,11 @@ public final class CfCommand implements TabExecutor {
             case "licences", "licenses" -> licences(sender);
             case "perso", "character" -> character(sender, args);
             case "team" -> team(sender, args);
+            case "choose" -> {
+                // John : choisir ses pouvoirs absorbes.
+                if (!(sender instanceof Player sp)) return true;
+                if (!com.kiokouwhite.crossfight.character.unordinary.John.openChoose(sp)) Msg.send(sp, "<red>Seul John peut choisir ses pouvoirs absorbes.");
+            }
             default -> {
                 if (!sender.hasPermission("crossfight.admin")) {
                     Msg.send(sender, "<red>Tu n'as pas la permission.");
@@ -125,6 +130,14 @@ public final class CfCommand implements TabExecutor {
                             eco.set(sp, n);
                             Msg.send(sp, "<gold>Credits : " + n);
                         }
+                    }
+                    case "aura" -> {
+                        // Test : une epee d'Aura directement, sans craft.
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        String type = args.length > 1 ? args[1].toLowerCase() : "";
+                        if (!com.kiokouwhite.crossfight.character.unordinary.Unordinary.giveAura(sp, type)) Msg.send(sp, "<red>Usage : /cf aura <soin|immunite|laser|chaleur|glue>");
+                        else Msg.send(sp, "<green>Epee d'Aura - " + type + " donnee.");
                     }
                     case "titan" -> {
                         // Test : donne a Eren les pouvoirs d'un titan primordial (ou de tous).
@@ -317,8 +330,8 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -328,6 +341,7 @@ public final class CfCommand implements TabExecutor {
                 case "give" -> { for (Player p : Bukkit.getOnlinePlayers()) out.add(p.getName()); }
                 case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "allie", "adversaire", "clear"));
                 case "titan" -> { out.addAll(List.of(com.kiokouwhite.crossfight.character.snk.Eren.TITAN_IDS)); out.add("tous"); }
+                case "aura" -> out.addAll(List.of("soin", "immunite", "laser", "chaleur", "glue"));
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }

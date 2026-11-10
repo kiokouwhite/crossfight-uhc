@@ -28,8 +28,7 @@ public final class CharacterRegistry {
         register(com.kiokouwhite.crossfight.character.rwby.RWBY.create());
         register(com.kiokouwhite.crossfight.character.valorant.Valorant.create());
         register(com.kiokouwhite.crossfight.character.snk.SNK.create());
-        register(new Licence("unordinary", "UNORDINARY", TeamSize.TRIO,
-                "Chacun craft une epee d'Aura dont l'actif depend du craft."));
+        register(com.kiokouwhite.crossfight.character.unordinary.Unordinary.create());
         register(new Licence("earth_delta", "EARTH DELTA", TeamSize.TRIO,
                 "Un effet passif aleatoire cumulable a chaque mort."));
         // Groupe duo

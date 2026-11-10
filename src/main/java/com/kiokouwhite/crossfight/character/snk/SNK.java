@@ -100,43 +100,12 @@ public final class SNK {
 
     // ------------------------------------------------------------ invincibilite
 
-    private static final Map<UUID, Long> INVINCIBLE = new HashMap<>();
-
-    static void invincible(Player p, long millis) { INVINCIBLE.put(p.getUniqueId(), System.currentTimeMillis() + millis); }
-    static boolean isInvincible(Entity e) {
-        Long until = INVINCIBLE.get(e.getUniqueId());
-        return until != null && System.currentTimeMillis() < until;
-    }
+    static void invincible(Player p, long millis) { Effects.invincible(p, millis); }
+    static boolean isInvincible(Entity e) { return Effects.isInvincible(e); }
 
     // ----------------------------------------------------------------- ruees
 
-    /** Ruee quasi instantanee vers un point : teleportations par etapes, arretees par les murs. */
-    static void rush(Player p, Location to, int ticks, Particle particle) {
-        Location from = p.getLocation();
-        Vector path = to.toVector().subtract(from.toVector());
-        double dist = path.length();
-        if (dist < 0.5) return;
-        int steps = Math.max(1, ticks);
-        Vector step = path.clone().multiply(1.0 / steps);
-        Effects.noFallUntil(p, 4000);
-        new BukkitRunnable() {
-            int i = 0;
-            Location current = from.clone();
-            @Override public void run() {
-                i++;
-                if (!p.isOnline() || p.isDead() || i > steps) { cancel(); return; }
-                Location next = current.clone().add(step);
-                next.setDirection(p.getLocation().getDirection());
-                if (!next.getBlock().isPassable() || !next.clone().add(0, 1, 0).getBlock().isPassable()) { cancel(); return; }
-                Vector unit = step.clone().normalize();
-                for (double d = 0; d < step.length(); d += 0.6) {
-                    p.getWorld().spawnParticle(particle, current.clone().add(unit.clone().multiply(d)).add(0, 1, 0), 1, 0.1, 0.2, 0.1, 0.01);
-                }
-                p.teleport(next);
-                current = next;
-            }
-        }.runTaskTimer(plugin(), 0L, 1L);
-    }
+    static void rush(Player p, Location to, int ticks, Particle particle) { Effects.rush(p, to, ticks, particle); }
 
     /** Degats directs a soi-meme (ignorent l'armure), sans jamais tuer. */
     static void selfDamage(Player p, double amount) {
@@ -294,13 +263,6 @@ public final class SNK {
             gear.onHit(p, cf, plugin().abilities().state(p, gear), e, a);
         }
 
-        /** Invincibilite (Eren protege par Mikasa, Titan Feminin). */
-        @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-        public void onDamage(EntityDamageEvent e) {
-            if (!(e.getEntity() instanceof Player p) || !isInvincible(p)) return;
-            e.setCancelled(true);
-            p.getWorld().spawnParticle(Particle.ENCHANTED_HIT, p.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3);
-        }
     }
 
     /** Boost "Force" nomme, pose ou retire selon une condition. */

@@ -51,6 +51,7 @@ public final class RestrictionListener implements Listener {
     @EventHandler
     public void onCraft(PrepareItemCraftEvent e) {
         ItemStack result = e.getInventory().getResult();
+        if (e.getRecipe() instanceof org.bukkit.Keyed k && k.getKey().getNamespace().equals("crossfight")) return;
         if (isWeapon(result)) {
             e.getInventory().setResult(null);
             if (!e.getViewers().isEmpty() && e.getViewers().get(0) instanceof Player p) {
