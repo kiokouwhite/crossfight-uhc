@@ -301,11 +301,12 @@ public final class Corrin extends Character {
                 new Cell(7, 1, Material.LIGHT_BLUE_STAINED_GLASS));
 
         private static final int STEPS = 10;
-        private static final int TICKS_PER_STEP = 20; // 1 bloc par seconde
+        private static final int TICKS_PER_STEP = 2; // 10 blocs par seconde
+        private static final int HALF_WIDTH = 5;     // 10 blocs de large
 
         VaguesBleues() {
             super("corrin_ult", "Les Vagues Bleues de l'Ocean Gris",
-                    "Une vraie vague de 3 blocs de large se dresse et avance sur 10 blocs (1 bloc/s). Les ennemis touches sont ejectes a 15 blocs de haut et ont Lenteur 10 secondes.",
+                    "Une vraie vague de 10 blocs de large se dresse et deferle sur 10 blocs en une seconde. Les ennemis touches sont ejectes a 15 blocs de haut et ont Lenteur 10 secondes.",
                     Material.HEART_OF_THE_SEA);
         }
 
@@ -349,12 +350,13 @@ public final class Corrin extends Character {
 
                 /** Pose les blocs de verre de la vague autour du front, colonne par colonne. */
                 void build(int front) {
-                    for (int lateral = -1; lateral <= 1; lateral++) {
+                    for (int lateral = -HALF_WIDTH + 1; lateral <= HALF_WIDTH; lateral++) {
+                        int edge = Math.max(0, Math.abs(lateral - (lateral > 0 ? 1 : 0)) - (HALF_WIDTH - 3));
                         for (Cell c : PROFILE) {
                             int along = front - c.back();
                             if (along < 1) continue; // jamais sur Corrin
-                            // Les bords de la vague sont un bloc plus bas que le milieu.
-                            int up = lateral == 0 ? c.up() : c.up() - 1;
+                            // Les deux dernieres colonnes de chaque bord sont plus basses, pour arrondir la vague.
+                            int up = c.up() - edge;
                             if (up < 1) continue;
                             int x = origin.getBlockX() + axis.getBlockX() * along + side.getBlockX() * lateral;
                             int z = origin.getBlockZ() + axis.getBlockZ() * along + side.getBlockZ() * lateral;
@@ -379,14 +381,18 @@ public final class Corrin extends Character {
                 /** Eclaboussures, cubes de verre qui volent et bruit de vague. */
                 void splash(int front) {
                     Location crest = origin.clone().add(0.5, 3.5, 0.5).add(axis.clone().multiply(front - 1));
-                    w.spawnParticle(Particle.SPLASH, crest, 60, 1.5, 1.0, 1.5, 0);
-                    w.spawnParticle(Particle.BUBBLE_POP, crest, 15, 1.5, 1.0, 1.5, 0);
-                    w.spawnParticle(Particle.CLOUD, crest.clone().add(0, 1, 0), 6, 1.2, 0.3, 1.2, 0.01);
-                    w.playSound(crest, Sound.ENTITY_GENERIC_SPLASH, 1f, 0.6f);
-                    w.playSound(crest, Sound.BLOCK_GLASS_BREAK, 0.4f, 1.4f);
+                    double sx = Math.abs(side.getX()) * HALF_WIDTH + Math.abs(axis.getX()) * 1.5;
+                    double sz = Math.abs(side.getZ()) * HALF_WIDTH + Math.abs(axis.getZ()) * 1.5;
+                    w.spawnParticle(Particle.SPLASH, crest, 80, sx, 1.0, sz, 0);
+                    w.spawnParticle(Particle.BUBBLE_POP, crest, 20, sx, 1.0, sz, 0);
+                    w.spawnParticle(Particle.CLOUD, crest.clone().add(0, 1, 0), 8, sx, 0.3, sz, 0.01);
+                    if (front % 2 == 0) {
+                        w.playSound(crest, Sound.ENTITY_GENERIC_SPLASH, 1f, 0.6f);
+                        w.playSound(crest, Sound.BLOCK_GLASS_BREAK, 0.4f, 1.4f);
+                    }
                     clearCubes();
-                    for (int i = 0; i < 6; i++) {
-                        Location l = crest.clone().add(axis.clone().multiply(Math.random() * 3)).add(side.clone().multiply(Math.random() * 4 - 2)).add(0, Math.random() * 2.5, 0);
+                    for (int i = 0; i < 8; i++) {
+                        Location l = crest.clone().add(axis.clone().multiply(Math.random() * 3)).add(side.clone().multiply(Math.random() * 2 * HALF_WIDTH - HALF_WIDTH)).add(0, Math.random() * 2.5, 0);
                         float size = 0.25f + (float) Math.random() * 0.45f;
                         BlockDisplay d = w.spawn(l, BlockDisplay.class, disp -> {
                             disp.setBlock((Math.random() < 0.5 ? Material.LIGHT_BLUE_STAINED_GLASS : Material.WHITE_STAINED_GLASS).createBlockData());
@@ -402,8 +408,11 @@ public final class Corrin extends Character {
                 /** Les ennemis au front de la vague sont emportes. */
                 void strike(int front) {
                     Location check = origin.clone().add(0.5, 1, 0.5).add(axis.clone().multiply(front - 1));
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, check, 2.5)) {
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, check, HALF_WIDTH + 2.0)) {
                         if (hit.contains(enemy.getUniqueId())) continue;
+                        // Zone rectangulaire : 2 blocs devant/derriere le front, toute la largeur.
+                        Vector rel = enemy.getLocation().toVector().subtract(check.toVector());
+                        if (Math.abs(rel.dot(axis)) > 2.5 || Math.abs(rel.dot(side)) > HALF_WIDTH + 0.5) continue;
                         hit.add(enemy.getUniqueId());
                         Effects.launchUp(enemy, 15);
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 20 * 10);
