@@ -48,6 +48,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         gameManager = new GameManager(this);
         scoreboardManager = new ScoreboardManager(this);
         testMode = new com.kiokouwhite.crossfight.game.TestMode(this);
+        testMode.load();
 
         characterRegistry.registerDefaults();
 
@@ -92,6 +93,7 @@ public final class CrossfightPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (testMode != null) testMode.save();
         if (gameManager != null) gameManager.shutdown();
         if (abilityEngine != null) abilityEngine.stop();
         if (scoreboardManager != null) scoreboardManager.stop();

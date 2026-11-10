@@ -48,6 +48,8 @@ public final class TestMode implements Listener {
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, Location> returnPoints = new HashMap<>();
+    /** Testeurs connus lors du dernier arret du serveur : uuid -> id de personnage (ou ""). */
+    private final Map<UUID, String> pending = new HashMap<>();
 
     public TestMode(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -70,6 +72,61 @@ public final class TestMode implements Listener {
 
     public boolean isTester(Player p) {
         return returnPoints.containsKey(p.getUniqueId());
+    }
+
+    // ----------------------------------------------------------- persistance
+
+    private java.io.File file() {
+        return new java.io.File(plugin.getDataFolder(), "testmode.yml");
+    }
+
+    /** Sauvegarde les testeurs en cours pour les remettre en mode test apres un redemarrage. */
+    public void save() {
+        org.bukkit.configuration.file.YamlConfiguration yml = new org.bukkit.configuration.file.YamlConfiguration();
+        for (UUID u : returnPoints.keySet()) {
+            CfPlayer cf = plugin.players().get(u);
+            String ch = cf != null && cf.character() != null ? cf.character().id() : "";
+            yml.set("testers." + u, ch);
+            Location back = returnPoints.get(u);
+            if (back != null) yml.set("return." + u, back);
+        }
+        for (Map.Entry<UUID, String> e : pending.entrySet()) {
+            if (!returnPoints.containsKey(e.getKey())) yml.set("testers." + e.getKey(), e.getValue());
+        }
+        try {
+            yml.save(file());
+        } catch (java.io.IOException ex) {
+            plugin.getLogger().warning("Impossible de sauvegarder le mode test : " + ex.getMessage());
+        }
+    }
+
+    /** Charge les testeurs du dernier arret ; ils reprendront le mode test a leur connexion. */
+    public void load() {
+        pending.clear();
+        if (!file().exists()) return;
+        var yml = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file());
+        var section = yml.getConfigurationSection("testers");
+        if (section == null) return;
+        for (String key : section.getKeys(false)) {
+            try {
+                pending.put(UUID.fromString(key), section.getString(key, ""));
+            } catch (IllegalArgumentException ignored) { }
+        }
+        if (!pending.isEmpty()) plugin.getLogger().info(pending.size() + " testeur(s) seront remis en mode test a leur connexion.");
+    }
+
+    /** A appeler a la connexion : remet le joueur en mode test s'il y etait avant le redemarrage. */
+    public boolean resumeIfPending(Player p) {
+        String charId = pending.remove(p.getUniqueId());
+        if (charId == null) return false;
+        if (!enter(p)) return false;
+        Character c = charId.isEmpty() ? null : plugin.characters().character(charId);
+        if (c != null) {
+            p.closeInventory();
+            change(p, c);
+        }
+        Msg.send(p, "<gray>Mode test repris apres le redemarrage du serveur.");
+        return true;
     }
 
     public boolean isActive() {
@@ -109,6 +166,7 @@ public final class TestMode implements Listener {
         p.setSaturation(20);
         gear(p);
         Msg.send(p, "<green>Mode test active. <gray>/cf change pour choisir un personnage, /cf mannequin pour des cibles, /cf test pour sortir.");
+        save();
         openMenu(p);
         return true;
     }
@@ -129,6 +187,8 @@ public final class TestMode implements Listener {
         p.setGameMode(GameMode.ADVENTURE);
         p.teleport(back != null && !back.getWorld().getName().equals(WORLD) ? back : plugin.game().world().getSpawnLocation());
         Msg.send(p, "<yellow>Mode test quitte.");
+        pending.remove(p.getUniqueId());
+        save();
         if (returnPoints.isEmpty() && plugin.game().state() == GameState.TEST) {
             Mannequins.clearAll();
             plugin.game().leaveTestState();
@@ -171,6 +231,7 @@ public final class TestMode implements Listener {
         plugin.abilities().equip(p);
         gear(p);
         Msg.send(p, "<green>Tu incarnes <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.licence().name() + ")");
+        save();
     }
 
     // ------------------------------------------------------------ equipement
