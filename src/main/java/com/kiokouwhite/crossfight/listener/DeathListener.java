@@ -44,10 +44,14 @@ public final class DeathListener implements Listener {
         e.deathMessage(Msg.prefixed(msg + "."));
         if (cf.team() == null) return;
 
+        // Les capacites qui gerent leur propre mort (dimension de Byleth) doivent voir le joueur
+        // la ou il est mort : on les previent maintenant, avant la reapparition.
+        boolean handled = plugin.abilities().dispatchDeath(p);
+
         // On laisse la mort se produire (drops), puis on gere les vies au tick suivant.
         Bukkit.getScheduler().runTask(plugin, () -> {
             p.spigot().respawn();
-            Bukkit.getScheduler().runTask(plugin, () -> plugin.lives().onDeath(p));
+            Bukkit.getScheduler().runTask(plugin, () -> plugin.lives().onDeath(p, handled));
         });
     }
 

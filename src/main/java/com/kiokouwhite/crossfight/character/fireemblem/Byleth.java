@@ -516,6 +516,7 @@ public final class Byleth extends Character implements Listener {
         /** Positions de retour, pour Byleth et ses prisonniers. */
         private final Map<UUID, Location> returnPoints = new HashMap<>();
         private UUID activeByleth;
+        private long castAt;
 
         Tenebres() {
             super("byleth_ult", "Les Tenebres se consumeront elles-memes",
@@ -536,6 +537,7 @@ public final class Byleth extends Character implements Listener {
             }
             World dim = dimension();
             activeByleth = p.getUniqueId();
+            castAt = System.currentTimeMillis();
             returnPoints.clear();
             returnPoints.put(p.getUniqueId(), p.getLocation());
             p.teleport(ArenaWorlds.center(dim));
@@ -560,9 +562,16 @@ public final class Byleth extends Character implements Listener {
             Effects.refresh(p, PotionEffectType.STRENGTH, 0, 45);
             Effects.refresh(p, PotionEffectType.SPEED, 0, 45);
             Effects.refresh(p, PotionEffectType.RESISTANCE, 0, 45);
-            // Plus aucun ennemi vivant dans la dimension : Byleth rentre.
+            // Plus aucun ennemi vivant dans la dimension : Byleth rentre. On laisse 3 secondes aux
+            // teleportations inter-mondes pour se terminer avant de verifier.
+            if (System.currentTimeMillis() - castAt < 3000) return;
             boolean enemyInside = false;
-            for (org.bukkit.entity.LivingEntity o : p.getWorld().getLivingEntities()) if (Effects.isEnemy(p, o)) { enemyInside = true; break; }
+            for (UUID u : returnPoints.keySet()) {
+                if (u.equals(p.getUniqueId())) continue;
+                org.bukkit.entity.Entity e = Bukkit.getEntity(u);
+                if (e instanceof org.bukkit.entity.LivingEntity le && le.isValid() && !le.isDead()
+                        && le.getWorld().getName().equals(DIMENSION_WORLD) && Effects.isEnemy(p, le)) { enemyInside = true; break; }
+            }
             if (!enemyInside) {
                 Location back = returnPoints.get(p.getUniqueId());
                 if (back != null) p.teleport(back);

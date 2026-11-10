@@ -25,15 +25,18 @@ public final class LivesManager {
         this.plugin = plugin;
     }
 
-    /** Appele a la mort d'un joueur en partie. */
-    public void onDeath(Player p) {
+    /**
+     * Appele apres la reapparition d'un joueur mort en partie.
+     * @param handled true si une capacite a pris la mort en charge (pas de perte de vie).
+     */
+    public void onDeath(Player p, boolean handled) {
         if (plugin.game().isTest()) {
-            plugin.testMode().onDeath(p);
+            plugin.testMode().onDeath(p, handled);
             return;
         }
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
-        if (plugin.abilities().dispatchDeath(p)) {
+        if (handled) {
             // Une capacite prend la mort en charge (ex : Byleth dans sa dimension).
             return;
         }

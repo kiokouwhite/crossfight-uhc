@@ -291,11 +291,9 @@ public final class TestMode implements Listener {
     }
 
     /** Mort en mode test : reapparition immediate au centre, sans perte de vie. */
-    public void onDeath(Player p) {
+    public void onDeath(Player p, boolean handled) {
         CfPlayer cf = plugin.players().get(p);
         cf.setWaitingRespawn(false);
-        // Les capacites qui gerent leur propre mort (dimension de Byleth) s'executent aussi en mode test.
-        boolean handled = plugin.abilities().dispatchDeath(p);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
             if (!handled) p.teleport(ArenaWorlds.center(world()));
