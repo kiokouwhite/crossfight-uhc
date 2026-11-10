@@ -60,7 +60,7 @@ public final class Byleth extends Character implements Listener {
     public ItemStack createWeapon() {
         List<String> lore = new ArrayList<>();
         lore.add("<dark_gray>Actif");
-        lore.addAll(Items.wrap("Byleth s'immobilise et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape."));
+        lore.addAll(Items.wrap("Byleth se fige, camera verrouillee, et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape."));
         lore.add("");
         lore.add("<yellow>Temps de chargement : <white>00:10");
         ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 8, "<gold><bold>Epee du Createur", lore);
@@ -109,7 +109,7 @@ public final class Byleth extends Character implements Listener {
 
     static final class EpeeDuCreateur extends ActiveAbility {
         EpeeDuCreateur() {
-            super(SWORD_ID, "Epee du Createur", "Byleth s'immobilise et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
+            super(SWORD_ID, "Epee du Createur", "Byleth se fige, camera verrouillee, et son epee s'etend sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
         }
 
         @Override public boolean hasItem() { return false; }
@@ -124,12 +124,18 @@ public final class Byleth extends Character implements Listener {
             // Byleth est immobilisee tant que le fouet est sorti (au plus 3 secondes de securite).
             Effects.root(p, 60);
             List<BlockDisplay> bones = new ArrayList<>();
+            // Direction figee au lancement : Byleth est verrouillee, le fouet ne suit plus le regard.
+            final Vector lockedDir = p.getEyeLocation().getDirection().normalize();
+            final float lockedYaw = p.getLocation().getYaw();
+            final float lockedPitch = p.getLocation().getPitch();
             new BukkitRunnable() {
                 double length = 0;
                 boolean retracting = false;
 
                 @Override public void run() {
                     if (!p.isOnline() || p.isDead()) { clear(); cancel(); return; }
+                    // Verrouillage de la camera : on remet l'orientation a chaque tick.
+                    p.setRotation(lockedYaw, lockedPitch);
                     if (retracting) {
                         length -= 1.5;
                         if (length <= 0) { clear(); cancel(); return; }
@@ -138,7 +144,7 @@ public final class Byleth extends Character implements Listener {
                     }
                     length += SPEED_PER_TICK;
                     Location eye = p.getEyeLocation();
-                    Vector dir = eye.getDirection().normalize();
+                    Vector dir = lockedDir;
                     // Le fouet s'arrete sur un mur.
                     for (double d = 0.5; d <= length; d += 0.5) {
                         if (!eye.clone().add(dir.clone().multiply(d)).getBlock().isPassable()) {
@@ -167,7 +173,7 @@ public final class Byleth extends Character implements Listener {
                 /** Place les segments d'os le long de la direction du regard. */
                 void layout(Player p, double len) {
                     Location eye = p.getEyeLocation();
-                    Vector dir = eye.getDirection().normalize();
+                    Vector dir = lockedDir;
                     int needed = (int) Math.ceil(len / SEGMENT);
                     while (bones.size() < needed) bones.add(spawnBone(eye));
                     while (bones.size() > needed) bones.remove(bones.size() - 1).remove();
