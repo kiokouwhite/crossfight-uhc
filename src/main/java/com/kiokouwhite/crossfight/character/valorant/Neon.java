@@ -69,7 +69,7 @@ public final class Neon extends Character implements Listener {
 
     static final class VitesseSuperieure extends ToggleAbility {
         VitesseSuperieure() {
-            super("neon_vitesse", "Vitesse Superieure", "Neon gagne Vitesse II. Jauge de 100 : -5 par seconde active, +1 par seconde au repos.", Material.SUGAR, 5.0, 1.0);
+            super("neon_vitesse", "Vitesse Superieure", "Neon gagne Vitesse II mais ne peut pas frapper au corps a corps. Jauge de 100 : -5 par seconde active, +1 par seconde au repos.", Material.SUGAR, 5.0, 1.0);
         }
         @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) { return true; }
         @Override public void tickActive(Player p, CfPlayer cf, AbilityState st) {
@@ -77,6 +77,15 @@ public final class Neon extends Character implements Listener {
             p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 0.5, 0), 4, 0.3, 0.3, 0.3, 0.05);
         }
         @Override public void onDisable(Player p, CfPlayer cf, AbilityState st) { }
+
+        /** Pendant Vitesse Superieure, Neon ne peut pas frapper au corps a corps, sauf avec la lame electrique de son Ultime. */
+        @Override
+        public void onDealDamage(Player attacker, LivingEntity victim, org.bukkit.event.entity.EntityDamageByEntityEvent e, AbilityState st) {
+            if (!st.isEnabled() || e.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
+            if (Items.tag(attacker.getInventory().getItemInMainHand(), ULT_SWORD) != null) return;
+            e.setCancelled(true);
+            Msg.actionBar(attacker, "<red>Impossible de frapper pendant Vitesse Superieure.");
+        }
     }
 
     static final Particle.DustOptions YELLOW = new Particle.DustOptions(Color.fromRGB(255, 240, 80), 1.3f);
