@@ -25,8 +25,7 @@ public final class CharacterRegistry {
     public void registerDefaults() {
         // Equipe de trois
         register(com.kiokouwhite.crossfight.character.fireemblem.FireEmblem.create());
-        register(new Licence("rwby", "RWBY", TeamSize.TRIO,
-                "Ultimes en duo, charges par les degats de deux allies a moins de 10 blocs (300 %)."));
+        register(com.kiokouwhite.crossfight.character.rwby.RWBY.create());
         register(new Licence("valorant", "VALORANT", TeamSize.TRIO,
                 "Pas d'arme attitree : armes blanches par tiers et armes a feu achetees avec des credits."));
         register(new Licence("snk", "SHINGEKI NO KYOJIN", TeamSize.TRIO,

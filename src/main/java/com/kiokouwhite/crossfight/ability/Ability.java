@@ -65,6 +65,9 @@ public abstract class Ability {
 
     /** Marque la capacite comme portee par l'arme. */
     public Ability bindToWeapon() { this.weaponBound = true; return this; }
+
+    /** Texte a afficher dans la barre d'action a la place du statut standard (null = standard). */
+    public String barText(Player player, CfPlayer cf, AbilityState state) { return null; }
     public boolean isWeaponBound() { return weaponBound; }
 
     /** Toutes les capacites ont un item d'information, sauf celles portees par l'arme. */

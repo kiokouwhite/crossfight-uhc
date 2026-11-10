@@ -93,6 +93,29 @@ public final class CfCommand implements TabExecutor {
                         if (plugin.testMode().isTester(sp)) plugin.testMode().leave(sp);
                         else plugin.testMode().enter(sp);
                     }
+                    case "ally", "allie" -> {
+                        // Mode test : rejoindre l'equipe d'un autre testeur pour essayer les capacites a deux.
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        Player other = args.length > 1 ? Bukkit.getPlayerExact(args[1]) : null;
+                        if (other == null || !plugin.testMode().isTester(other)) { Msg.send(sp, "<red>Usage : /cf ally <testeur>"); return true; }
+                        Team t = plugin.teams().teamOf(other);
+                        if (t == null) { Msg.send(sp, "<red>Ce joueur n'a pas d'equipe."); return true; }
+                        plugin.teams().forceJoin(sp, t);
+                        Msg.send(sp, "<green>Tu es maintenant dans l'equipe de " + other.getName() + ".");
+                        Msg.send(other, "<green>" + sp.getName() + " rejoint ton equipe.");
+                    }
+                    case "duo" -> {
+                        // Test : remplit les jauges d'Ultime en Duo du joueur (RWBY).
+                        if (!(sender instanceof Player sp)) return true;
+                        double pct = 100;
+                        if (args.length > 1) { try { pct = Double.parseDouble(args[1]); } catch (NumberFormatException ignored) { } }
+                        var lic = plugin.characters().licence("rwby");
+                        if (lic != null && lic.mechanic() instanceof com.kiokouwhite.crossfight.character.rwby.RWBY.Duo duo) {
+                            int n = duo.fill(sp, pct);
+                            Msg.send(sp, "<green>Jauges de Duo a " + (int) pct + "% avec " + n + " allie(s).");
+                        }
+                    }
                     case "clear" -> {
                         int n = plugin.testMode().clearTerrain();
                         Msg.send(sender, "<green>Terrain de test nettoye <gray>(" + n + " blocs remis en place, entites retirees).");
@@ -187,6 +210,8 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf test <gray>- entrer ou sortir du mode test");
             Msg.raw(s, "<red>/cf change [perso] <gray>- changer de personnage en mode test");
             Msg.raw(s, "<red>/cf clear <gray>- remettre le terrain de test a neuf");
+            Msg.raw(s, "<red>/cf ally <testeur> <gray>- rejoindre l'equipe d'un autre testeur (mode test)");
+            Msg.raw(s, "<red>/cf duo [pourcent] <gray>- remplir les jauges d'Ultime en Duo (test)");
         }
     }
 
@@ -273,7 +298,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {

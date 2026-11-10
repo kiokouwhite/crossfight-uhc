@@ -1,0 +1,83 @@
+package com.kiokouwhite.crossfight.util;
+
+import com.kiokouwhite.crossfight.CrossfightPlugin;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+/**
+ * Invisibilite totale : le joueur est retire de l'ecran des spectateurs choisis
+ * (armure comprise), contrairement a l'effet de potion qui laisse l'equipement visible.
+ * Chaque "source" (une capacite) gere sa propre liste, et un joueur reste cache tant
+ * qu'au moins une source le cache.
+ */
+public final class Stealth {
+
+    /** cible -> source -> spectateurs qui ne la voient plus. */
+    private static final Map<UUID, Map<String, Set<UUID>>> HIDDEN = new HashMap<>();
+
+    private Stealth() {}
+
+    public static void hide(Player target, Player viewer, String source) {
+        if (target == viewer) return;
+        Set<UUID> set = HIDDEN.computeIfAbsent(target.getUniqueId(), u -> new HashMap<>()).computeIfAbsent(source, s -> new HashSet<>());
+        if (set.add(viewer.getUniqueId())) refresh(target, viewer);
+    }
+
+    public static void show(Player target, Player viewer, String source) {
+        Map<String, Set<UUID>> bySource = HIDDEN.get(target.getUniqueId());
+        if (bySource == null) return;
+        Set<UUID> set = bySource.get(source);
+        if (set != null && set.remove(viewer.getUniqueId())) refresh(target, viewer);
+    }
+
+    /** Cache la cible a tous les joueurs qui passent le filtre, la montre aux autres. */
+    public static void hideFromAll(Player target, String source, java.util.function.Predicate<Player> viewers) {
+        for (Player v : Bukkit.getOnlinePlayers()) {
+            if (v == target) continue;
+            if (viewers.test(v)) hide(target, v, source); else show(target, v, source);
+        }
+    }
+
+    /** Retire une source : la cible redevient visible pour tout le monde (sauf autres sources). */
+    public static void reveal(Player target, String source) {
+        Map<String, Set<UUID>> bySource = HIDDEN.get(target.getUniqueId());
+        if (bySource == null) return;
+        Set<UUID> set = bySource.remove(source);
+        if (set == null) return;
+        for (UUID u : set) {
+            Player v = Bukkit.getPlayer(u);
+            if (v != null) refresh(target, v);
+        }
+        if (bySource.isEmpty()) HIDDEN.remove(target.getUniqueId());
+    }
+
+    /** Tout retirer (fin de partie, mort). */
+    public static void revealAll(Player target) {
+        Map<String, Set<UUID>> bySource = HIDDEN.remove(target.getUniqueId());
+        if (bySource == null) return;
+        for (Set<UUID> set : bySource.values()) {
+            for (UUID u : set) {
+                Player v = Bukkit.getPlayer(u);
+                if (v != null) v.showPlayer(CrossfightPlugin.get(), target);
+            }
+        }
+    }
+
+    public static boolean isHiddenFrom(Player target, Player viewer) {
+        Map<String, Set<UUID>> bySource = HIDDEN.get(target.getUniqueId());
+        if (bySource == null) return false;
+        for (Set<UUID> set : bySource.values()) if (set.contains(viewer.getUniqueId())) return true;
+        return false;
+    }
+
+    private static void refresh(Player target, Player viewer) {
+        if (isHiddenFrom(target, viewer)) viewer.hidePlayer(CrossfightPlugin.get(), target);
+        else viewer.showPlayer(CrossfightPlugin.get(), target);
+    }
+}

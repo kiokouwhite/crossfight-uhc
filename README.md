@@ -41,6 +41,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf mannequin [nb] [attaque\|allie]` | Mannequins d'entraînement (ennemis, agressifs ou alliés), `/cf mannequin clear` pour les retirer |
 | `/cf ult [joueur] <pourcent>` | Régler la jauge d'Ultime (test) |
 | `/cf heal` | Se soigner (test) |
+| `/cf ally <testeur>` | Rejoindre l'équipe d'un autre testeur en mode test |
+| `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY, test) |
 
 ## Déroulement d'une partie
 
@@ -60,7 +62,8 @@ com.kiokouwhite.crossfight
 ├── player/                 état des joueurs, vies et réapparition
 ├── ability/                moteur de capacités (passif, actif, activable, intervertible, ultime)
 ├── character/              licences, personnages, menu de sélection
-│   └── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
+│   ├── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
+│   └── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -76,6 +79,15 @@ Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permett
 le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
 Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
 
+### Hypothèses prises sur RWBY
+
+- Les Ultimes en Duo ont un item commun « Ultime en Duo » : un clic lance l'ultime de la paire prête, ou ouvre un choix s'il y en a plusieurs. Chaque paire a sa propre jauge, chargée par les dégâts de l'un ou l'autre quand ils sont à moins de 10 blocs.
+- Ember Celica inflige 2 cœurs en plus de l'explosion et du feu (non précisé).
+- L'invisibilité « totale » (Blake, Ruby, duos) retire vraiment le joueur de l'écran des ennemis, armure comprise ; les alliés le voient toujours.
+- La Patinoire dure 30 secondes ; les piques de glace 30 secondes ; la barrière de verre de Weiss 10 secondes.
+- Gambol Shroud : accroupi + clic droit change de mode, clic droit seul utilise le mode.
+- L'Invocation de Weiss ramène un joueur ennemi définitivement éliminé dans son équipe avec une vie, Faiblesse permanente et interdiction de plastron.
+
 ### Hypothèses prises sur Fire Emblem
 
 - Le Soutien est commun à la paire : les dégâts des deux alliés font progresser le même niveau, et chaque niveau tire au sort Force, Vitesse ou Résistance 0.5 pour les deux.
@@ -89,8 +101,9 @@ Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 
 - [x] Socle UHC : équipes, licences, vies, PvP, restrictions, scoreboard
 - [x] Moteur de capacités et Ultime
 - [x] Fire Emblem : Soutien C à S, Marth, Corrin, Takumi, Byleth
+- [x] RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 - [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 32 personnages restants
+- [ ] 28 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

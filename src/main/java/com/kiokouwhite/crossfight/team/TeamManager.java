@@ -83,6 +83,14 @@ public final class TeamManager {
         return true;
     }
 
+    /** Ajoute un joueur a une equipe sans verifier la taille (invocation de Weiss). */
+    public void forceJoin(Player p, Team team) {
+        Team old = teamOf(p);
+        if (old != null) old.remove(p.getUniqueId());
+        team.add(p.getUniqueId());
+        plugin.players().get(p).setTeam(team);
+    }
+
     public void leave(Player p) {
         Team old = teamOf(p);
         if (old != null) old.remove(p.getUniqueId());

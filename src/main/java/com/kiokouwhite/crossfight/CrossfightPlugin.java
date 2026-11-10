@@ -62,6 +62,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(characterRegistry.selectMenu(this), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Mannequins(), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.util.Clones(), this);
         pm.registerEvents(testMode, this);
         legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
         pm.registerEvents(legacyCombat, this);

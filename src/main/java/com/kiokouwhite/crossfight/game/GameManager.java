@@ -266,6 +266,8 @@ public final class GameManager {
             plugin.abilities().unequip(p);
             p.setGameMode(GameMode.SPECTATOR);
         }
+        com.kiokouwhite.crossfight.util.TempBlocks.restoreAll();
+        com.kiokouwhite.crossfight.util.Clones.removeAll();
     }
 
     /** Arret force par un administrateur : retour au lobby. */

@@ -101,6 +101,10 @@ public final class AbilityEngine implements Listener {
     /** Tague l'arme et y ajoute la description des capacites qui lui sont liees. */
     public static ItemStack decorateWeapon(ItemStack weapon, Character ch) {
         Items.tag(weapon, WEAPON_KEY, ch.id());
+        // La premiere capacite non passive portee par l'arme repond au clic droit sur celle-ci.
+        for (Ability a : ch.allAbilities()) {
+            if (a.isWeaponBound() && a.type() != AbilityType.PASSIVE) { Items.tag(weapon, ABILITY_KEY, a.id()); break; }
+        }
         var meta = weapon.getItemMeta();
         List<net.kyori.adventure.text.Component> lore = meta.lore() == null ? new java.util.ArrayList<>() : new java.util.ArrayList<>(meta.lore());
         for (Ability a : ch.allAbilities()) {
@@ -128,6 +132,7 @@ public final class AbilityEngine implements Listener {
             if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onUnequip(p);
         }
         removeAbilityItems(p.getInventory());
+        com.kiokouwhite.crossfight.util.Stealth.revealAll(p);
     }
 
     // ------------------------------------------------------------ dispatch
@@ -247,6 +252,13 @@ public final class AbilityEngine implements Listener {
 
     private void appendBar(StringBuilder bar, Ability a, AbilityState st, CfPlayer cf) {
         String piece;
+        Player owner = cf.bukkit();
+        String custom = owner == null ? null : a.barText(owner, cf, st);
+        if (custom != null) {
+            if (!bar.isEmpty()) bar.append(" <dark_gray>| ");
+            bar.append(custom);
+            return;
+        }
         switch (a.type()) {
             case ACTIVE -> piece = st.onCooldown()
                     ? "<gray>" + a.name() + " <red>" + st.cooldownLeftSeconds() + "s"
@@ -278,8 +290,11 @@ public final class AbilityEngine implements Listener {
                 && isInteractable(e.getClickedBlock().getType()) && !e.getPlayer().isSneaking()) {
             return;
         }
-        // L'arme garde son usage normal (arc, etc.) : on n'annule que pour les items purs de capacite.
-        if (!isWeaponItem(item)) e.setCancelled(true);
+        // L'arme garde son usage normal (arc, etc.) : on n'annule que pour les items purs de capacite,
+        // sauf si la capacite de l'arme gere elle-meme le clic.
+        CfPlayer cfEarly = plugin.players().get(e.getPlayer());
+        Ability early = cfEarly.character() == null ? null : cfEarly.character().ability(id);
+        if (!isWeaponItem(item) || (early != null && early.type() != AbilityType.PASSIVE)) e.setCancelled(true);
 
         Player p = e.getPlayer();
         if (!plugin.game().isRunning()) {
@@ -308,6 +323,7 @@ public final class AbilityEngine implements Listener {
 
     public void use(Player p, CfPlayer cf, Ability a) {
         AbilityState st = state(p, a);
+        if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) return;
         switch (a) {
             case ActiveAbility active -> {
                 if (st.onCooldown()) {

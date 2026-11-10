@@ -108,6 +108,7 @@ public final class Effects {
     public static boolean isEnemy(Player self, LivingEntity entity) {
         if (entity == self || entity == null || entity.isDead()) return false;
         if (Mannequins.isMannequin(entity)) return !Mannequins.isAlly(entity);
+        if (Clones.isClone(entity)) return !Clones.sameTeam(entity, self);
         if (!(entity instanceof Player other)) return false;
         var plugin = CrossfightPlugin.get();
         var cf = plugin.players().get(other);
@@ -223,6 +224,24 @@ public final class Effects {
             if (a.clone().add(d.clone().multiply(t)).getBlock().getType().isOccluding()) return false;
         }
         return true;
+    }
+
+    /** Tire une fleche quasi instantanee la ou l'on vise, sans tirer a l'arc. */
+    public static org.bukkit.entity.Arrow shootInstantArrow(LivingEntity shooter, Vector dir, double speed, double damage) {
+        Location from = shooter.getEyeLocation().add(dir.clone().multiply(0.5));
+        org.bukkit.entity.Arrow arrow = shooter.getWorld().spawnArrow(from, dir, (float) speed, 0f);
+        arrow.setShooter(shooter);
+        arrow.setDamage(damage);
+        arrow.setCritical(true);
+        arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
+        shooter.getWorld().playSound(from, org.bukkit.Sound.ENTITY_ARROW_SHOOT, 1f, 1.2f);
+        return arrow;
+    }
+
+    /** Eclair visuel sur une entite, avec des degats attribues au lanceur. */
+    public static void lightning(LivingEntity target, double damage, org.bukkit.entity.Entity source) {
+        target.getWorld().strikeLightningEffect(target.getLocation());
+        damage(target, damage, source);
     }
 
     public static void heal(LivingEntity p, double amount) {

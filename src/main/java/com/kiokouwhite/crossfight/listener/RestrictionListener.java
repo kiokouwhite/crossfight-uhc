@@ -41,6 +41,14 @@ public final class RestrictionListener implements Listener {
     }
 
     @EventHandler
+    public void onBreakProtected(org.bukkit.event.block.BlockBreakEvent e) {
+        if (com.kiokouwhite.crossfight.util.TempBlocks.isProtected(e.getBlock())) {
+            e.setCancelled(true);
+            Msg.actionBar(e.getPlayer(), "<red>Ce bloc est incassable pour le moment.");
+        }
+    }
+
+    @EventHandler
     public void onCraft(PrepareItemCraftEvent e) {
         ItemStack result = e.getInventory().getResult();
         if (isWeapon(result)) {
