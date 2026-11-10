@@ -181,7 +181,7 @@ public final class Marth extends Character {
     static final class CoupCritique extends UltimateAbility {
         CoupCritique() {
             super("marth_ult", "Coup Critique",
-                    "Marth fonce de 10 blocs. Les ennemis touches perdent 5 coeurs et tous les allies gagnent Force (1 niveau par ennemi touche) pendant 1 minute.",
+                    "Marth fonce de 10 blocs, invulnerable pendant la charge. Les ennemis touches perdent 5 coeurs et tous les allies gagnent Force (1 niveau par ennemi touche) pendant 1 minute.",
                     Material.NETHER_STAR);
         }
 
@@ -205,6 +205,8 @@ public final class Marth extends Character {
                 Effects.damage(enemy, 10.0, p);
                 hits++;
             }
+            // Marth est invulnerable pendant toute la charge (environ 1,2 s).
+            st.set("invulnUntil", System.currentTimeMillis() + 1200L);
             p.setVelocity(dir.clone().multiply(2.6).setY(0.25));
             for (double d = 0; d <= 10; d += 0.5) {
                 Location l = start.clone().add(dir.clone().multiply(d)).add(0, 1, 0);
@@ -221,6 +223,14 @@ public final class Marth extends Character {
                 Msg.send(p, "<gray>Coup Critique : aucun ennemi touche.");
             }
             return true;
+        }
+
+        @Override
+        public void onDamaged(Player victim, EntityDamageEvent e, AbilityState st) {
+            if (System.currentTimeMillis() < (long) st.get("invulnUntil", 0L)) {
+                e.setCancelled(true);
+                victim.getWorld().spawnParticle(Particle.ENCHANTED_HIT, victim.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3);
+            }
         }
     }
 
