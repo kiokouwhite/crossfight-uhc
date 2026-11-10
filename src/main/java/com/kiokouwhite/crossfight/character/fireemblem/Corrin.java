@@ -188,7 +188,7 @@ public final class Corrin extends Character {
 
     static final class DragonGardien extends PassiveAbility {
         DragonGardien() {
-            super("corrin_gardien", "Dragon Gardien", "A moins de 10 blocs d'un allie, Corrin a Resistance.", Material.IRON_CHESTPLATE);
+            super("corrin_gardien", "Dragon Gardien", "A moins de 10 blocs d'un allie, Corrin a Resistance.", Material.IRON_INGOT);
         }
 
         @Override

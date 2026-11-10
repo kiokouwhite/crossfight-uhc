@@ -242,7 +242,7 @@ public final class Byleth extends Character implements Listener {
 
     static final class EmblemeDeFeu extends PassiveAbility {
         EmblemeDeFeu() {
-            super("byleth_embleme", "Embleme de Feu", "Byleth regenere 25 % des degats qu'elle inflige, ses allies a moins de 10 blocs 10 %.", Material.FIRE_CHARGE);
+            super("byleth_embleme", "Embleme de Feu", "Byleth regenere 25 % des degats qu'elle inflige, ses allies a moins de 10 blocs 10 %.", Material.BLAZE_ROD);
         }
 
         @Override
@@ -276,7 +276,7 @@ public final class Byleth extends Character implements Listener {
 
         Tutorat() {
             super("byleth_tutorat", "Tutorat", "Fait progresser l'allie le plus proche dans une categorie : arme, physique ou capacites.",
-                    Material.WRITABLE_BOOK, 15 * 60);
+                    Material.BOOK, 15 * 60);
         }
 
         @Override
@@ -360,7 +360,7 @@ public final class Byleth extends Character implements Listener {
     static final class DechainementDEpine extends ActiveAbility {
         DechainementDEpine() {
             super("byleth_epine", "Dechainement d'Epine", "Byleth balaie un grand arc avec son epee-fouet : les ennemis dans la zone de 5 blocs devant elle sont ejectes a 10 blocs et perdent 3 coeurs.",
-                    Material.SWEET_BERRIES, 20);
+                    Material.RED_DYE, 20);
         }
 
         // Chronologie (ticks) : preparation 0-7, ruee a 8, balayage 8-16, explosion a 17, fin a 24.
@@ -528,7 +528,7 @@ public final class Byleth extends Character implements Listener {
         Tenebres() {
             super("byleth_ult", "Les Tenebres se consumeront elles-memes",
                     "Teleporte les ennemis a 20 blocs dans une autre dimension avec Byleth. Ils n'en sortent que si elle meurt, ce qui ne lui coute pas de vie.",
-                    Material.ENDER_EYE);
+                    Material.ECHO_SHARD);
         }
 
         // Chronologie (ticks) : Byleth enveloppee 0-30, vague 30-70, zone emportee a 80.

@@ -122,7 +122,7 @@ public final class Marth extends Character {
         Contre() {
             super("marth_contre", "Contre",
                     "Si Marth prend un coup dans la seconde qui suit, il ne subit rien, renvoie les degats et immobilise l'adversaire 1 seconde.",
-                    Material.SHIELD, 5);
+                    Material.NAUTILUS_SHELL, 5);
         }
 
         @Override
@@ -166,7 +166,7 @@ public final class Marth extends Character {
 
     static final class EspritDuLeader extends PassiveAbility {
         EspritDuLeader() {
-            super("marth_leader", "Esprit du Leader", "Tant que Marth a plus de 5 coeurs, ses allies ont Force.", Material.GOLDEN_HELMET);
+            super("marth_leader", "Esprit du Leader", "Tant que Marth a plus de 5 coeurs, ses allies ont Force.", Material.GOLD_INGOT);
         }
 
         @Override

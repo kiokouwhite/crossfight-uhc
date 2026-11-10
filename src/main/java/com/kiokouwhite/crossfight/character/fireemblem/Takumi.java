@@ -166,7 +166,7 @@ public final class Takumi extends Character implements Listener {
     static final class Vengeance extends ActiveAbility {
         Vengeance() {
             super("takumi_vengeance", "Vengeance", "Takumi gagne un niveau de Puissance par tranche de 3 coeurs perdus, pendant 5 secondes.",
-                    Material.REDSTONE, 30);
+                    Material.GLOWSTONE_DUST, 30);
         }
 
         @Override
@@ -222,7 +222,7 @@ public final class Takumi extends Character implements Listener {
         RayonDemoniaque() {
             super("takumi_ult", "Rayon Demoniaque",
                     "Takumi charge 4 secondes puis tire un rayon de 10 blocs de large et 30 de long infligeant 5 coeurs a tous les ennemis visibles.",
-                    Material.END_ROD);
+                    Material.AMETHYST_SHARD);
         }
 
         @Override
