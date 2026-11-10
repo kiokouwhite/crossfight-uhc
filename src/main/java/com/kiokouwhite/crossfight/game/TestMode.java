@@ -82,10 +82,12 @@ public final class TestMode implements Listener {
     public int clearTerrain() {
         World w = world();
         int changed = 0;
+        com.kiokouwhite.crossfight.util.TempBlocks.restoreAll();
         for (int x = -HALF; x <= HALF; x++) {
             for (int z = -HALF; z <= HALF; z++) {
                 boolean edge = Math.abs(x) == HALF || Math.abs(z) == HALF;
-                for (int y = ArenaWorlds.FLOOR_Y - 5; y <= ArenaWorlds.FLOOR_Y + WALL + 1; y++) {
+                // Jusqu'a 64 blocs au-dessus du sol : un dome ou une bulle oubliee par un redemarrage disparait aussi.
+                for (int y = ArenaWorlds.FLOOR_Y - 5; y <= ArenaWorlds.FLOOR_Y + 64; y++) {
                     Material want;
                     if (y == ArenaWorlds.FLOOR_Y - 5) want = Material.BEDROCK;
                     else if (y < ArenaWorlds.FLOOR_Y) want = Material.DIRT;

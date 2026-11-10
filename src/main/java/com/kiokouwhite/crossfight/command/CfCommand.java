@@ -193,8 +193,7 @@ public final class CfCommand implements TabExecutor {
                         if (args.length > 1 && (args[1].equalsIgnoreCase("adversaire") || args[1].equalsIgnoreCase("adversary"))) {
                             Character c = args.length > 2 ? plugin.characters().character(args[2]) : null;
                             if (c == null) { Msg.send(sp, "<red>Usage : /cf mannequin adversaire <perso>"); return true; }
-                            var loc = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(6));
-                            loc.setY(sp.getWorld().getHighestBlockYAt(loc) + 1);
+                            var loc = groundNear(sp, sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(6)));
                             loc.setYaw(sp.getLocation().getYaw() + 180);
                             com.kiokouwhite.crossfight.util.Mannequins.spawnAdversary(loc, c, sp);
                             int n = 0;
@@ -210,10 +209,8 @@ public final class CfCommand implements TabExecutor {
                             else { try { count = Math.max(1, Math.min(10, Integer.parseInt(args[i]))); } catch (NumberFormatException ignored) { } }
                         }
                         var base = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(3));
-                        base.setY(sp.getWorld().getHighestBlockYAt(base) + 1);
                         for (int i = 0; i < count; i++) {
-                            var loc = base.clone().add((i % 5) * 1.5, 0, (i / 5) * 1.5);
-                            loc.setY(sp.getWorld().getHighestBlockYAt(loc) + 1);
+                            var loc = groundNear(sp, base.clone().add((i % 5) * 1.5, 0, (i / 5) * 1.5));
                             loc.setYaw(sp.getLocation().getYaw() + 180);
                             com.kiokouwhite.crossfight.util.Mannequins.spawn(loc, aggressive, ally);
                         }
@@ -242,6 +239,14 @@ public final class CfCommand implements TabExecutor {
             }
         }
         return true;
+    }
+
+    /** Le sol le plus proche de la hauteur du joueur (pas le bloc le plus haut : un toit ou une bulle fausserait tout). */
+    private static org.bukkit.Location groundNear(Player p, org.bukkit.Location around) {
+        int y = com.kiokouwhite.crossfight.util.Effects.groundAround(p.getWorld(), around.getBlockX(), around.getBlockZ(), p.getLocation().getBlockY());
+        org.bukkit.Location loc = around.clone();
+        loc.setY(y == Integer.MIN_VALUE ? p.getLocation().getY() : y + 1);
+        return loc;
     }
 
     private void help(CommandSender s) {
