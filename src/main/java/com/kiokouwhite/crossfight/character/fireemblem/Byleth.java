@@ -356,13 +356,18 @@ public final class Byleth extends Character implements Listener {
                     Material.SWEET_BERRIES, 20);
         }
 
-        private static final int SWEEP_TICKS = 10;
+        // Chronologie (ticks) : preparation 0-7, ruee a 8, balayage 8-16, explosion a 17, fin a 24.
+        private static final int WINDUP_END = 8;
+        private static final int SWEEP_END = 16;
+        private static final int BLAST_TICK = 17;
+        private static final int TOTAL = 24;
         private static final double WHIP_LENGTH = 6.0;
-        private static final double HALF_ARC = Math.toRadians(95);
-        private static final Particle.DustOptions RED = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 30, 50), 1.6f);
-        private static final Particle.DustOptions PINK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 120, 170), 1.1f);
+        private static final double HALF_ARC = Math.toRadians(100);
+        private static final Particle.DustOptions RED = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 30, 50), 1.8f);
+        private static final Particle.DustOptions PINK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 110, 160), 1.3f);
+        private static final Particle.DustOptions MIST = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 150, 190), 3.5f);
         private static final Particle.DustTransition FLASH = new Particle.DustTransition(
-                org.bukkit.Color.fromRGB(255, 240, 120), org.bukkit.Color.fromRGB(255, 60, 60), 2.2f);
+                org.bukkit.Color.fromRGB(255, 235, 200), org.bukkit.Color.fromRGB(255, 50, 70), 2.6f);
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -372,55 +377,103 @@ public final class Byleth extends Character implements Listener {
             final Vector fwd = forward;
             final double baseAngle = Math.atan2(fwd.getZ(), fwd.getX());
             final Location center = p.getLocation().add(fwd.clone().multiply(3.5));
-            // Sens du balayage : de la gauche vers la droite de Byleth.
-            final List<org.bukkit.entity.LivingEntity> targets = Effects.enemiesWithin(p, center, 2.5);
+            final double groundY = p.getLocation().getY();
             final List<java.util.UUID> hit = new ArrayList<>();
 
-            Effects.root(p, SWEEP_TICKS + 4);
-            p.getWorld().playSound(p.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 1f, 0.6f);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.7f);
+            Effects.root(p, TOTAL + 5);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_EVOKER_PREPARE_ATTACK, 0.8f, 1.4f);
+            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.8f);
             BoneWhip whip = new BoneWhip(true);
 
             new BukkitRunnable() {
                 int tick = 0;
 
                 @Override public void run() {
-                    if (!p.isOnline() || p.isDead() || tick > SWEEP_TICKS + 3) { whip.clear(); Effects.unroot(p); cancel(); return; }
-                    if (tick > SWEEP_TICKS) { tick++; whip.clear(); return; }
-                    double t = (double) tick / SWEEP_TICKS;
-                    // Acceleration au milieu du mouvement, comme un vrai coup de fouet.
-                    double eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-                    double angle = baseAngle - HALF_ARC + eased * 2 * HALF_ARC;
-                    Vector dir = new Vector(Math.cos(angle), -0.08, Math.sin(angle)).normalize();
-                    Location origin = p.getEyeLocation().subtract(0, 0.3, 0);
-                    whip.layout(origin, dir, WHIP_LENGTH);
-
-                    // Trainee rouge le long du fouet, plus dense vers la pointe.
-                    for (double d = 1.0; d <= WHIP_LENGTH; d += 0.5) {
-                        Location l = BoneWhip.pointAt(origin, dir, d);
-                        l.getWorld().spawnParticle(Particle.DUST, l, 2, 0.08, 0.08, 0.08, 0, d > 3.5 ? RED : PINK);
-                    }
-                    Location tip = BoneWhip.pointAt(origin, dir, WHIP_LENGTH);
-                    tip.getWorld().spawnParticle(Particle.SWEEP_ATTACK, tip, 1);
-                    tip.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, tip, 3, 0.2, 0.2, 0.2, 0, FLASH);
-
-                    // Un ennemi est frappe quand le fouet passe sur lui (angle depasse), ou au dernier tick.
-                    for (org.bukkit.entity.LivingEntity enemy : targets) {
-                        if (hit.contains(enemy.getUniqueId()) || enemy.isDead()) continue;
-                        Vector rel = enemy.getLocation().toVector().subtract(p.getLocation().toVector());
-                        double enemyAngle = Math.atan2(rel.getZ(), rel.getX());
-                        double delta = normalize(enemyAngle - baseAngle);
-                        double sweepDelta = normalize(angle - baseAngle);
-                        if (sweepDelta >= delta || tick == SWEEP_TICKS) {
-                            hit.add(enemy.getUniqueId());
-                            strike(p, enemy, center);
-                        }
-                    }
+                    if (!p.isOnline() || p.isDead() || tick > TOTAL) { whip.clear(); Effects.unroot(p); cancel(); return; }
+                    World w = p.getWorld();
+                    if (tick < WINDUP_END) windup(w);
+                    else if (tick <= SWEEP_END) sweep(w);
+                    else if (tick == BLAST_TICK) blast(w);
+                    else aftermath(w);
                     tick++;
                 }
+
+                /** Fouet court tenu bas devant elle, etincelles blanches a la pointe. */
+                void windup(World w) {
+                    Location origin = p.getEyeLocation().subtract(0, 0.6, 0);
+                    Vector dir = fwd.clone().setY(-0.45).normalize();
+                    whip.layout(origin, dir, 2.5 + tick * 0.15);
+                    Location tip = BoneWhip.pointAt(origin, dir, 2.5 + tick * 0.15);
+                    w.spawnParticle(Particle.END_ROD, tip, 4, 0.25, 0.25, 0.25, 0.03);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, tip, 6, 0.4, 0.3, 0.4, 0.1);
+                    w.spawnParticle(Particle.DUST, tip, 3, 0.15, 0.15, 0.15, 0, PINK);
+                    if (tick == WINDUP_END - 1) {
+                        // Ruee en avant d'environ deux blocs.
+                        p.setVelocity(fwd.clone().multiply(0.85).setY(0.12));
+                        w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.5f);
+                        w.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
+                        w.spawnParticle(Particle.FLASH, p.getEyeLocation().add(fwd), 1);
+                    }
+                }
+
+                /** Grand coup horizontal au ras du sol, vague rouge et poussiere blanche. */
+                void sweep(World w) {
+                    double t = (double) (tick - WINDUP_END) / (SWEEP_END - WINDUP_END);
+                    double eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+                    double angle = baseAngle - HALF_ARC + eased * 2 * HALF_ARC;
+                    Vector dir = new Vector(Math.cos(angle), -0.12, Math.sin(angle)).normalize();
+                    Location origin = p.getLocation().add(0, 1.0, 0);
+                    whip.layout(origin, dir, WHIP_LENGTH);
+
+                    // La vague : tout l'arc deja balaye reste visible au sol, en rouge vers l'exterieur.
+                    for (double a = baseAngle - HALF_ARC; a <= angle; a += Math.toRadians(9)) {
+                        for (double r = 1.5; r <= WHIP_LENGTH; r += 1.5) {
+                            Location l = new Location(w, p.getLocation().getX() + Math.cos(a) * r, groundY + 0.4 + Math.random() * 0.5,
+                                    p.getLocation().getZ() + Math.sin(a) * r);
+                            w.spawnParticle(Particle.DUST, l, 1, 0.1, 0.1, 0.1, 0, r > 3.5 ? RED : PINK);
+                        }
+                    }
+                    // Brume rose qui monte et nuage de poussiere blanche sur le bord du fouet.
+                    for (double r = 2.0; r <= WHIP_LENGTH; r += 1.0) {
+                        Location l = BoneWhip.pointAt(origin, dir, r);
+                        l.setY(groundY + 0.3);
+                        w.spawnParticle(Particle.DUST, l, 2, 0.5, 0.4, 0.5, 0, MIST);
+                        w.spawnParticle(Particle.CLOUD, l, 2, 0.3, 0.1, 0.3, 0.02);
+                    }
+                    Location tip = BoneWhip.pointAt(origin, dir, WHIP_LENGTH);
+                    w.spawnParticle(Particle.SWEEP_ATTACK, tip, 1);
+                    w.spawnParticle(Particle.DUST_COLOR_TRANSITION, tip, 3, 0.2, 0.2, 0.2, 0, FLASH);
+                    if ((tick - WINDUP_END) % 3 == 0) w.playSound(tip, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.7f, 0.7f);
+                }
+
+                /** Explosion rose-rouge au coeur de la zone : degats et projection. */
+                void blast(World w) {
+                    whip.clear();
+                    Location c = center.clone().add(0, 1.0, 0);
+                    w.spawnParticle(Particle.FLASH, c, 2);
+                    w.spawnParticle(Particle.EXPLOSION, c, 2, 0.6, 0.3, 0.6, 0);
+                    w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c, 120, 2.2, 1.0, 2.2, 0, FLASH);
+                    w.spawnParticle(Particle.DUST, c, 60, 2.5, 1.2, 2.5, 0, MIST);
+                    w.spawnParticle(Particle.CRIT, c, 50, 2.0, 1.0, 2.0, 0.3);
+                    w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.8f);
+                    w.playSound(c, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.6f);
+                    w.playSound(c, Sound.ITEM_TRIDENT_THUNDER, 0.6f, 1.6f);
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, center, 2.5)) {
+                        if (hit.contains(enemy.getUniqueId())) continue;
+                        hit.add(enemy.getUniqueId());
+                        strike(p, enemy, center);
+                    }
+                    Msg.actionBar(p, hit.isEmpty() ? "<gray>Aucun ennemi dans la zone" : "<green>" + hit.size() + " ennemi(s) ejecte(s)");
+                }
+
+                /** Brume et poussiere qui retombent. */
+                void aftermath(World w) {
+                    Location c = center.clone().add(0, 0.5, 0);
+                    w.spawnParticle(Particle.DUST, c, 8, 2.5, 0.8, 2.5, 0, MIST);
+                    w.spawnParticle(Particle.CLOUD, c, 4, 2.5, 0.3, 2.5, 0.01);
+                    if (tick == BLAST_TICK + 3) Effects.unroot(p);
+                }
             }.runTaskTimer(plugin(), 0L, 1L);
-            Bukkit.getScheduler().runTaskLater(plugin(), () -> Msg.actionBar(p,
-                    hit.isEmpty() ? "<gray>Aucun ennemi dans la zone" : "<green>" + hit.size() + " ennemi(s) ejecte(s)"), SWEEP_TICKS + 1L);
             return true;
         }
 
@@ -432,13 +485,14 @@ public final class Byleth extends Character implements Listener {
 
         private static void strike(Player byleth, org.bukkit.entity.LivingEntity enemy, Location center) {
             Effects.damage(enemy, 6.0, byleth);
-            Effects.knockbackFrom(enemy, center, 10);
+            // Projection a 10 blocs, avec une bonne composante verticale comme dans le jeu.
+            Vector dir = enemy.getLocation().toVector().subtract(center.toVector()).setY(0);
+            if (dir.lengthSquared() < 0.01) dir = byleth.getLocation().getDirection().setY(0);
+            dir.normalize();
+            enemy.setVelocity(dir.multiply(1.6).setY(0.9));
             Location at = enemy.getLocation().add(0, 1, 0);
-            at.getWorld().spawnParticle(Particle.FLASH, at, 1);
             at.getWorld().spawnParticle(Particle.DUST_COLOR_TRANSITION, at, 25, 0.5, 0.6, 0.5, 0, FLASH);
             at.getWorld().spawnParticle(Particle.CRIT, at, 20, 0.4, 0.5, 0.4, 0.2);
-            at.getWorld().playSound(at, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.6f);
-            at.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.6f);
         }
     }
 
