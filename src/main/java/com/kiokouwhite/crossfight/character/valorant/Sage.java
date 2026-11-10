@@ -98,7 +98,7 @@ public final class Sage extends Character implements Listener {
 
     static final class OrbeDeLenteur extends ActiveAbility {
         OrbeDeLenteur() {
-            super("sage_lenteur", "Orbe de Lenteur", "Sage tire un orbe au sol : pendant 5 secondes, une zone de 5 blocs donne Lenteur II aux ennemis.", Material.SNOWBALL, 10);
+            super("sage_lenteur", "Orbe de Lenteur", "Sage tire un orbe au sol qui eclate en un tapis de cristaux : pendant 5 secondes, une zone de 5 blocs donne Lenteur II aux ennemis.", Material.SNOWBALL, 10);
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -108,22 +108,70 @@ public final class Sage extends Character implements Listener {
         }
     }
 
+    static final Particle.DustOptions ICE = new Particle.DustOptions(Color.fromRGB(110, 240, 225), 1.3f);
+    static final Material[] CRYSTAL_FLOOR = {Material.CYAN_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.DIAMOND_BLOCK, Material.CYAN_STAINED_GLASS, Material.PRISMARINE_BRICKS};
+    static final Material[] CRYSTAL_SHARD = {Material.CYAN_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.WHITE_STAINED_GLASS};
+    static final double SLOW_RADIUS = 2.5;
+
     @EventHandler
     public void onSlowOrbLand(ProjectileHitEvent e) {
         if (!(e.getEntity() instanceof Arrow a) || !a.getPersistentDataContainer().has(SLOW_ORB)) return;
         if (!(a.getShooter() instanceof Player p)) return;
         Location c = a.getLocation();
         World w = c.getWorld();
+        int gy = Effects.groundAround(w, c.getBlockX(), c.getBlockZ(), c.getBlockY());
+        if (gy == Integer.MIN_VALUE) gy = c.getBlockY() - 1;
+        final Location center = new Location(w, c.getBlockX() + 0.5, gy + 1, c.getBlockZ() + 0.5);
+        // Eclatement de l'orbe.
+        w.spawnParticle(Particle.FLASH, center.clone().add(0, 0.5, 0), 1, 0, 0, 0, 0, Color.fromRGB(150, 255, 240));
+        w.spawnParticle(Particle.DUST, center.clone().add(0, 0.5, 0), 60, 1.0, 0.5, 1.0, 0, ICE);
+        w.playSound(center, Sound.BLOCK_GLASS_BREAK, 1f, 1.4f);
+        w.playSound(center, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1f, 0.8f);
+
+        TempBlocks floor = new TempBlocks();
+        List<org.bukkit.entity.BlockDisplay> shards = new ArrayList<>();
         new BukkitRunnable() {
-            int s = 0;
+            int tick = 0;
             @Override public void run() {
-                if (s++ >= 5) { cancel(); return; }
-                for (double ang = 0; ang < Math.PI * 2; ang += 0.25) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * 2.5, 0.3, Math.sin(ang) * 2.5), 1, 0, 0, 0, 0, new Particle.DustOptions(Color.fromRGB(100, 230, 220), 1.4f));
-                w.spawnParticle(Particle.SNOWFLAKE, c, 12, 1.5, 0.5, 1.5, 0.01);
-                for (LivingEntity enemy : Effects.enemiesWithin(p, c, 2.5)) Effects.give(enemy, PotionEffectType.SLOWNESS, 1, 30);
+                tick++;
+                if (tick > 100) { floor.restore(); for (var d : shards) d.remove(); shards.clear(); cancel(); return; }
+                // Le tapis de cristal s'etend du centre vers le bord pendant les 5 premiers ticks.
+                if (tick <= 5) {
+                    double rNow = SLOW_RADIUS * tick / 5.0, rPrev = SLOW_RADIUS * (tick - 1) / 5.0;
+                    for (int x = -3; x <= 3; x++) for (int z = -3; z <= 3; z++) {
+                        double d = Math.sqrt(x * x + z * z);
+                        if (d > rNow || d <= rPrev) continue;
+                        int y = Effects.groundAround(w, center.getBlockX() + x, center.getBlockZ() + z, center.getBlockY());
+                        if (y == Integer.MIN_VALUE) continue;
+                        org.bukkit.block.Block top = w.getBlockAt(center.getBlockX() + x, y, center.getBlockZ() + z);
+                        if (top.getType().isSolid()) floor.replace(top, CRYSTAL_FLOOR[(int) (Math.random() * CRYSTAL_FLOOR.length)]);
+                        // Eclats de cristal plantes de travers dans le sol.
+                        if (Math.random() < 0.6) {
+                            Location at = new Location(w, center.getBlockX() + x + Math.random(), y + 1, center.getBlockZ() + z + Math.random());
+                            float size = 0.3f + (float) Math.random() * 0.5f;
+                            shards.add(w.spawn(at, org.bukkit.entity.BlockDisplay.class, disp -> {
+                                disp.setBlock(CRYSTAL_SHARD[(int) (Math.random() * CRYSTAL_SHARD.length)].createBlockData());
+                                var rot = new org.joml.Quaternionf().rotationXYZ((float) (Math.random() * 0.8 - 0.4), (float) (Math.random() * 6.28), (float) (Math.random() * 0.8 - 0.4));
+                                disp.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(-size / 2, -0.15f, -size / 2), rot,
+                                        new org.joml.Vector3f(size, size * 1.8f, size), new org.joml.Quaternionf()));
+                                disp.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                                disp.setPersistent(false);
+                            }));
+                        }
+                    }
+                    w.playSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f + tick * 0.1f);
+                }
+                // Scintillement et effet de lenteur chaque seconde.
+                if (tick % 4 == 0) {
+                    double ang = Math.random() * Math.PI * 2, r = Math.random() * SLOW_RADIUS;
+                    w.spawnParticle(Particle.DUST, center.clone().add(Math.cos(ang) * r, 0.3 + Math.random(), Math.sin(ang) * r), 2, 0.2, 0.2, 0.2, 0, ICE);
+                    w.spawnParticle(Particle.SNOWFLAKE, center.clone().add(0, 0.5, 0), 2, SLOW_RADIUS * 0.6, 0.3, SLOW_RADIUS * 0.6, 0.01);
+                }
+                if (tick % 20 == 0) {
+                    for (LivingEntity enemy : Effects.enemiesWithin(p, center, SLOW_RADIUS)) Effects.give(enemy, PotionEffectType.SLOWNESS, 1, 30);
+                }
             }
-        }.runTaskTimer(plugin(), 0L, 20L);
-        w.playSound(c, Sound.BLOCK_GLASS_BREAK, 1f, 0.8f);
+        }.runTaskTimer(plugin(), 0L, 1L);
     }
 
     static final class OrbeBarriere extends ActiveAbility {

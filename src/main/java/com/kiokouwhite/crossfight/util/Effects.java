@@ -3,6 +3,9 @@ package com.kiokouwhite.crossfight.util;
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -22,6 +25,19 @@ import java.util.List;
  * projection, recherche d'allies et d'ennemis.
  */
 public final class Effects {
+
+    /** Hauteur du bloc de surface dans une colonne, proche de la hauteur de reference (MIN_VALUE si aucune). */
+    public static int groundAround(World w, int x, int z, int refY) {
+        for (int dy = 0; dy <= 6; dy++) {
+            for (int y : new int[]{refY - 1 - dy, refY - 1 + dy}) {
+                Block b = w.getBlockAt(x, y, z);
+                Block above = w.getBlockAt(x, y + 1, z);
+                if ((b.getType().isSolid() || b.getType() == Material.WATER || b.getType() == Material.LAVA) && !above.getType().isSolid()) return y;
+            }
+        }
+        return Integer.MIN_VALUE;
+    }
+
 
     private static final NamespacedKey ROOT_SPEED = new NamespacedKey("crossfight", "root_speed");
     private static final NamespacedKey ROOT_JUMP = new NamespacedKey("crossfight", "root_jump");

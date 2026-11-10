@@ -242,7 +242,7 @@ public final class Weiss extends Character implements Listener {
                     TempBlocks rink = new TempBlocks();
                     Location c = p.getLocation();
                     for (int x = -5; x <= 5; x++) for (int z = -5; z <= 5; z++) {
-                        int y = DuoUltimates.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
+                        int y = Effects.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
                         if (y != Integer.MIN_VALUE) rink.replace(w.getBlockAt(c.getBlockX() + x, y, c.getBlockZ() + z), Material.PACKED_ICE);
                     }
                     rink.restoreAfter(200L);
@@ -335,7 +335,7 @@ public final class Weiss extends Character implements Listener {
         World w = c.getWorld();
         TempBlocks fire = new TempBlocks();
         for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) {
-            int y = DuoUltimates.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
+            int y = Effects.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
             if (y == Integer.MIN_VALUE) continue;
             fire.place(w.getBlockAt(c.getBlockX() + x, y + 1, c.getBlockZ() + z), Material.FIRE);
         }

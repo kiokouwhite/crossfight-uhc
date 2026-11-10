@@ -90,7 +90,7 @@ final class DuoUltimates {
             for (int z = -radius; z <= radius; z++) {
                 if (x * x + z * z > radius * radius) continue;
                 int bx = c.getBlockX() + x, bz = c.getBlockZ() + z;
-                int y = groundAround(w, bx, bz, c.getBlockY());
+                int y = Effects.groundAround(w, bx, bz, c.getBlockY());
                 if (y == Integer.MIN_VALUE) continue;
                 Block top = w.getBlockAt(bx, y, bz);
                 if (top.getType() == Material.WATER || top.getType() == Material.LAVA) { rink.replace(top, Material.PACKED_ICE); continue; }
@@ -112,18 +112,6 @@ final class DuoUltimates {
             }
         }.runTaskTimer(CrossfightPlugin.get(), 0L, 20L);
         return true;
-    }
-
-    /** Hauteur du bloc de surface dans une colonne, proche de la hauteur de reference. */
-    static int groundAround(World w, int x, int z, int refY) {
-        for (int dy = 0; dy <= 6; dy++) {
-            for (int y : new int[]{refY - 1 - dy, refY - 1 + dy}) {
-                Block b = w.getBlockAt(x, y, z);
-                Block above = w.getBlockAt(x, y + 1, z);
-                if ((b.getType().isSolid() || b.getType() == Material.WATER || b.getType() == Material.LAVA) && !above.getType().isSolid()) return y;
-            }
-        }
-        return Integer.MIN_VALUE;
     }
 
     // ------------------------------------------------------------- Ruby + Yang
@@ -200,7 +188,7 @@ final class DuoUltimates {
                 double a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 7;
                 c = weiss.getLocation().add(Math.cos(a) * r, 0, Math.sin(a) * r);
             }
-            int y = groundAround(w, c.getBlockX(), c.getBlockZ(), c.getBlockY());
+            int y = Effects.groundAround(w, c.getBlockX(), c.getBlockZ(), c.getBlockY());
             if (y == Integer.MIN_VALUE) y = c.getBlockY() - 1;
             centers.add(new Location(w, c.getBlockX(), y + 1, c.getBlockZ()));
         }
