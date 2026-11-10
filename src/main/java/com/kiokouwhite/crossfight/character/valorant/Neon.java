@@ -63,7 +63,7 @@ public final class Neon extends Character implements Listener {
         return List.of(
                 "<white>Vitesse Superieure : Vitesse II a jauge",
                 "<white>Eclair Relais : fleche qui explose et immobilise",
-                "<white>Voie Rapide : deux murs de 15 blocs pendant 5 s",
+                "<white>Voie Rapide : deux murs de 50 blocs pendant 5 s",
                 "<light_purple>Ultime : Force, vitesse auto et epee electrique");
     }
 
@@ -79,38 +79,101 @@ public final class Neon extends Character implements Listener {
         @Override public void onDisable(Player p, CfPlayer cf, AbilityState st) { }
     }
 
+    static final Particle.DustOptions YELLOW = new Particle.DustOptions(Color.fromRGB(255, 240, 80), 1.3f);
+    static final Particle.DustOptions CYAN = new Particle.DustOptions(Color.fromRGB(90, 230, 255), 1.1f);
+    static final Particle.DustTransition BLAST = new Particle.DustTransition(Color.fromRGB(255, 250, 120), Color.fromRGB(60, 200, 255), 2.4f);
+
     static final class EclairRelais extends ActiveAbility {
         EclairRelais() {
-            super("neon_relais", "Eclair Relais", "Neon tire une fleche au sol ; 2 secondes apres l'impact, une explosion de 3x3 immobilise les adversaires touches pendant 3 secondes.", Material.LIGHTNING_ROD, 10);
+            super("neon_relais", "Eclair Relais", "Neon lance un eclair qui rebondit une fois sur le sol. A chaque impact, un cercle electrique apparait puis explose 2 secondes plus tard sur 3x3, immobilisant les adversaires touches pendant 3 secondes.", Material.LIGHTNING_ROD, 10);
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Arrow a = Bullets.shoot(p, p.getEyeLocation().getDirection(), 2.0, 0.5, Material.LIGHT_BLUE_CONCRETE, Color.fromRGB(80, 200, 255));
-            a.getPersistentDataContainer().set(RELAY_ARROW, PersistentDataType.BYTE, (byte) 1);
+            throwBolt(p, p.getEyeLocation().add(p.getEyeLocation().getDirection()), p.getEyeLocation().getDirection(), 2.0, 1);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BEE_STING, 1f, 1.8f);
             return true;
         }
+    }
+
+    /** Lance l'eclair (une fleche habillee) avec son nombre de rebonds restants. */
+    static void throwBolt(Player p, Location from, Vector dir, double speed, int bounces) {
+        Arrow a = p.getWorld().spawnArrow(from, dir, (float) speed, 0f);
+        a.setShooter(p);
+        a.setDamage(0.5);
+        a.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
+        a.setInvisible(true);
+        a.getPersistentDataContainer().set(RELAY_ARROW, PersistentDataType.INTEGER, bounces);
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (!a.isValid() || t++ > 60) { cancel(); return; }
+                Location l = a.getLocation();
+                a.getWorld().spawnParticle(Particle.DUST, l, 3, 0.12, 0.12, 0.12, 0, YELLOW);
+                a.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, l, 2, 0.15, 0.15, 0.15, 0.05);
+                a.getWorld().spawnParticle(Particle.DUST, l, 1, 0.2, 0.2, 0.2, 0, CYAN);
+            }
+        }.runTaskTimer(plugin(), 0L, 1L);
     }
 
     @EventHandler
     public void onRelayLand(ProjectileHitEvent e) {
         if (!(e.getEntity() instanceof Arrow a) || !a.getPersistentDataContainer().has(RELAY_ARROW)) return;
         if (!(a.getShooter() instanceof Player p)) return;
-        Location c = a.getLocation();
-        World w = c.getWorld();
-        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
-            w.spawnParticle(Particle.ELECTRIC_SPARK, c, 80, 1.5, 1, 1.5, 0.2);
-            w.spawnParticle(Particle.FLASH, c, 1, 0, 0, 0, 0, Color.fromRGB(120, 220, 255));
-            w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.8f, 1.6f);
-            for (LivingEntity enemy : Effects.enemiesWithin(p, c, 1.5 + 1.0)) {
-                Effects.root(enemy, 60);
-                Effects.say(enemy, "<aqua>Immobilise par l'Eclair Relais !");
+        int bounces = a.getPersistentDataContainer().getOrDefault(RELAY_ARROW, PersistentDataType.INTEGER, 0);
+        Location impact = a.getLocation();
+        World w = impact.getWorld();
+        Vector velocity = a.getVelocity();
+        a.remove();
+        // Rebond sur un bloc : l'eclair repart dans la direction reflechie, moins vite.
+        if (bounces > 0 && e.getHitBlock() != null && e.getHitBlockFace() != null) {
+            Vector normal = e.getHitBlockFace().getDirection();
+            Vector reflected = velocity.clone().subtract(normal.clone().multiply(2 * velocity.dot(normal)));
+            if (reflected.lengthSquared() > 0.01) {
+                Location from = impact.clone().add(normal.clone().multiply(0.3));
+                w.playSound(impact, Sound.ENTITY_BEE_STING, 1f, 2f);
+                throwBolt(p, from, reflected.normalize(), Math.max(0.8, velocity.length() * 0.6), bounces - 1);
             }
-        }, 40L);
+        }
+        // Cercle electrique au sol, puis explosion 2 secondes plus tard.
+        Location ground = impact.clone();
+        while (ground.getY() > w.getMinHeight() && ground.clone().subtract(0, 0.5, 0).getBlock().isPassable() && impact.getY() - ground.getY() < 3) ground.subtract(0, 0.5, 0);
+        final Location c = ground;
+        w.playSound(c, Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 2f);
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (t < 40) {
+                    double r = 1.5;
+                    for (double ang = 0; ang < Math.PI * 2; ang += 0.35) {
+                        w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * r, 0.1, Math.sin(ang) * r), 1, 0, 0, 0, 0, YELLOW);
+                    }
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 0.3, 0), 3 + t / 8, 0.8, 0.3, 0.8, 0.06);
+                    if (t % 10 == 0) w.playSound(c, Sound.BLOCK_BEACON_AMBIENT, 0.6f, 1.6f + t / 40f);
+                    return;
+                }
+                // Explosion : flash jaune, gerbe jaune vers cyan, colonnes electriques.
+                w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 2, 0, 0, 0, 0, Color.fromRGB(255, 240, 120));
+                w.spawnParticle(Particle.DUST_COLOR_TRANSITION, c.clone().add(0, 1, 0), 120, 1.5, 1.2, 1.5, 0, BLAST);
+                w.spawnParticle(Particle.ELECTRIC_SPARK, c.clone().add(0, 1, 0), 120, 1.5, 1.5, 1.5, 0.3);
+                for (int i = 0; i < 6; i++) {
+                    double ang = Math.random() * Math.PI * 2, rr = Math.random() * 1.5;
+                    for (double y = 0; y < 3; y += 0.3) w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(ang) * rr, y, Math.sin(ang) * rr), 1, 0.05, 0.05, 0.05, 0, CYAN);
+                }
+                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 1.8f);
+                w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.5f);
+                for (LivingEntity enemy : Effects.enemiesWithin(p, c, 1.5 + 1.0)) {
+                    Effects.root(enemy, 60);
+                    Effects.say(enemy, "<yellow>Immobilise par l'Eclair Relais !");
+                }
+                cancel();
+            }
+        }.runTaskTimer(plugin(), 0L, 1L);
     }
 
     static final class VoieRapide extends ActiveAbility {
         VoieRapide() {
-            super("neon_voie", "Voie Rapide", "A 2 blocs a droite et a gauche de Neon, deux murs incassables de 15 blocs de long et 8 de haut, pendant 5 secondes.", Material.LIGHT_BLUE_STAINED_GLASS, 15);
+            super("neon_voie", "Voie Rapide", "A 2 blocs a droite et a gauche de Neon, deux murs incassables de 50 blocs de long et 8 de haut, pendant 5 secondes.", Material.LIGHT_BLUE_STAINED_GLASS, 15);
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -119,7 +182,7 @@ public final class Neon extends Character implements Listener {
             TempBlocks walls = new TempBlocks().unbreakable();
             Location base = p.getLocation();
             for (int s : new int[]{-2, 2}) {
-                for (int i = 0; i < 15; i++) {
+                for (int i = 0; i < 50; i++) {
                     Location col = base.clone().add(side.clone().multiply(s)).add(fwd.clone().multiply(i));
                     for (int y = 0; y < 8; y++) walls.place(col.clone().add(0, y, 0).getBlock(), Material.LIGHT_BLUE_STAINED_GLASS);
                 }
