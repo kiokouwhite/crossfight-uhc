@@ -101,41 +101,110 @@ public final class Remi extends Character {
         }
     }
 
+    static final Particle.DustOptions BOLT = new Particle.DustOptions(Color.fromRGB(140, 220, 255), 1.0f);
+    static final Particle.DustOptions BOLT_CORE = new Particle.DustOptions(Color.fromRGB(235, 250, 255), 0.6f);
+
+    /** Un trait d'eclair entre deux points. */
+    static void arc(World w, Location a, Location b, boolean core) {
+        Vector d = b.toVector().subtract(a.toVector());
+        double len = d.length();
+        if (len < 0.05) return;
+        d.normalize();
+        for (double x = 0; x <= len; x += 0.22) {
+            Location l = a.clone().add(d.clone().multiply(x));
+            w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, core ? BOLT_CORE : BOLT);
+        }
+    }
+
+    /** L'adversaire est electrise : arcs qui crepitent autour de son corps pendant un temps. */
+    static void electrify(LivingEntity target, int ticks) {
+        World w = target.getWorld();
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (t > ticks || target.isDead()) { cancel(); return; }
+                Location c = target.getLocation().add(0, 1, 0);
+                for (int k = 0; k < 3; k++) {
+                    Location from = c.clone().add((Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 1.6, (Math.random() - 0.5) * 0.6);
+                    Location cur = from.clone();
+                    for (int seg = 0; seg < 4; seg++) {
+                        Location next = cur.clone().add((Math.random() - 0.5) * 1.2, (Math.random() - 0.5) * 1.0, (Math.random() - 0.5) * 1.2);
+                        arc(w, cur, next, seg == 0);
+                        cur = next;
+                    }
+                }
+                w.spawnParticle(Particle.ELECTRIC_SPARK, c, 6, 0.4, 0.7, 0.4, 0.1);
+                if (t % 5 == 1) w.playSound(c, Sound.ENTITY_BEE_HURT, 0.6f, 1.9f + (float) Math.random() * 0.2f);
+                if (t % 10 == 1) w.playSound(c, Sound.BLOCK_BEACON_DEACTIVATE, 0.4f, 2f);
+            }
+        }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
+    }
+
+    /** L'eclair qui serpente : il avance de 2 blocs par seconde vers l'adversaire le plus proche devant Remi. */
     static final class Electricite extends ActiveAbility {
         Electricite() {
-            super("remi_electricite", "Electricite", "Remi envoie une onde electrique devant elle sur 10 blocs (2 blocs par seconde) : les ennemis touches sont immobilises 2 secondes et perdent 1.5 coeur.", Material.LIGHTNING_ROD, 10);
+            super("remi_electricite", "Electricite", "Remi lance un eclair qui serpente vers l'adversaire le plus proche devant elle, sur 10 blocs (2 blocs par seconde). S'il le touche, l'adversaire est electrise : immobilise 2 secondes et 1.5 coeur de degats.", Material.LIGHTNING_ROD, 10);
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Vector dir = p.getLocation().getDirection().setY(0);
-            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-            dir.normalize();
-            Location start = p.getLocation().add(0, 0.2, 0);
-            Vector side = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
             World w = p.getWorld();
+            Location start = p.getEyeLocation().add(0, -0.3, 0);
+            Vector dir = p.getEyeLocation().getDirection().normalize();
+            // Cible : l'ennemi le plus proche dans un cone de 60 degres devant Remi, a 12 blocs.
+            LivingEntity target = null; double best = 99;
+            for (LivingEntity e : Effects.enemiesWithin(p, 12)) {
+                Vector to = e.getLocation().add(0, 1, 0).toVector().subtract(start.toVector());
+                double dist = to.length();
+                if (dist < 0.5 || to.normalize().dot(dir) < 0.5) continue;
+                if (dist < best) { best = dist; target = e; }
+            }
+            final LivingEntity aim = target;
+            w.playSound(start, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 1.9f);
             w.playSound(start, Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
-            final Vector d = dir;
-            Set<UUID> hit = new HashSet<>();
+            List<Location> points = new ArrayList<>();
+            points.add(start.clone());
             new BukkitRunnable() {
-                int t = 0;
+                int t = 0; double travelled = 0; Vector d = dir.clone(); Location head = start.clone();
                 @Override public void run() {
                     t++;
-                    if (!p.isOnline() || t > 100) { cancel(); return; }
-                    double dist = t * 0.1;
-                    Location front = start.clone().add(d.clone().multiply(dist));
-                    if (!front.getBlock().isPassable()) { cancel(); return; }
-                    for (double s = -1; s <= 1; s += 0.5) {
-                        Location l = front.clone().add(side.clone().multiply(s));
-                        w.spawnParticle(Particle.ELECTRIC_SPARK, l.clone().add(0, 0.4 + Math.random() * 0.8, 0), 2, 0.1, 0.1, 0.1, 0.05);
-                        if (t % 2 == 0) w.spawnParticle(Particle.DUST, l.clone().add(0, 0.5, 0), 1, 0.1, 0.3, 0.1, 0, SPARK);
-                    }
-                    if (t % 10 == 0) w.playSound(front, Sound.ENTITY_BEE_HURT, 0.4f, 2f);
-                    for (LivingEntity enemy : Effects.enemiesWithin(p, front, 1.4)) {
-                        if (!hit.add(enemy.getUniqueId())) continue;
-                        Effects.damage(enemy, 3.0, p);
-                        Effects.root(enemy, 40);
-                        w.spawnParticle(Particle.ELECTRIC_SPARK, enemy.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.2);
-                        w.playSound(enemy.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.7f, 1.8f);
-                    }
+                    try {
+                        if (!p.isOnline() || travelled >= 10) { cancel(); return; }
+                        // Le serpent se dirige vers sa cible.
+                        if (aim != null && !aim.isDead()) {
+                            Vector to = aim.getLocation().add(0, 1, 0).toVector().subtract(head.toVector());
+                            if (to.lengthSquared() > 0.01) d = d.clone().multiply(0.85).add(to.normalize().multiply(0.15)).normalize();
+                        }
+                        Vector step = d.clone().multiply(0.1);
+                        Location next = head.clone().add(step);
+                        if (!next.getBlock().isPassable()) { w.spawnParticle(Particle.ELECTRIC_SPARK, head, 15, 0.2, 0.2, 0.2, 0.1); cancel(); return; }
+                        head = next; travelled += 0.1;
+                        // Un nouveau zigzag tous les 4 ticks.
+                        if (t % 4 == 0) {
+                            Vector side = d.clone().crossProduct(new Vector(0, 1, 0));
+                            if (side.lengthSquared() < 0.01) side = new Vector(1, 0, 0);
+                            side.normalize();
+                            points.add(head.clone().add(side.multiply((Math.random() - 0.5) * 1.2)).add(0, (Math.random() - 0.5) * 0.8, 0));
+                            while (points.size() > 40) points.remove(0);
+                        }
+                        // Dessin de l'eclair : segments en zigzag, certains clignotent.
+                        for (int i = 1; i < points.size(); i++) {
+                            if (Math.random() < 0.15) continue;
+                            arc(w, points.get(i - 1), points.get(i), i == points.size() - 1);
+                        }
+                        arc(w, points.get(points.size() - 1), head, true);
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, head, 3, 0.15, 0.15, 0.15, 0.05);
+                        if (t % 8 == 0) w.playSound(head, Sound.ENTITY_BEE_HURT, 0.3f, 2f);
+                        for (LivingEntity enemy : Effects.enemiesWithin(p, head, 1.2)) {
+                            Effects.damage(enemy, 3.0, p);
+                            Effects.root(enemy, 40);
+                            electrify(enemy, 40);
+                            w.spawnParticle(Particle.FLASH, enemy.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0, Color.fromRGB(180, 230, 255));
+                            w.playSound(enemy.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.9f, 1.7f);
+                            Effects.say(enemy, "<aqua>Electrise par " + p.getName() + " !");
+                            cancel();
+                            return;
+                        }
+                    } catch (Exception ex) { cancel(); }
                 }
             }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
             return true;
