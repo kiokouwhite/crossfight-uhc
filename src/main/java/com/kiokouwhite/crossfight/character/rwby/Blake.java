@@ -160,7 +160,7 @@ public final class Blake extends Character implements Listener {
             if (b == MAX_BULLETS) st.set("reloadAt", now);
             st.set("bullets", b - 1);
             st.set("lastShot", now);
-            Effects.shootInstantArrow(p, p.getEyeLocation().getDirection(), 4.0, 2.2);
+            com.kiokouwhite.crossfight.util.Bullets.shoot(p, p.getEyeLocation().getDirection(), 4.0, 2.2, Material.BLACK_CONCRETE, Color.fromRGB(40, 0, 60));
         }
 
         @Override

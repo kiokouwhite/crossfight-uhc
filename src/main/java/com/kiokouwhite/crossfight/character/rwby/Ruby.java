@@ -92,7 +92,7 @@ public final class Ruby extends Character {
         static final long RELOAD_MS = 7000L;
 
         CrescentRose() {
-            super("ruby_crescent", "Crescent Rose", "Clic droit : Ruby tire instantanement une fleche Puissance III. 3 balles, une balle revient toutes les 7 secondes.", Material.DIAMOND_HOE, 0);
+            super("ruby_crescent", "Crescent Rose", "Clic droit : Ruby tire instantanement une balle rouge (puissance d'une fleche Puissance III). 3 balles, une balle revient toutes les 7 secondes.", Material.DIAMOND_HOE, 0);
         }
 
         int bullets(AbilityState st) {
@@ -125,7 +125,7 @@ public final class Ruby extends Character {
             }
             if (b == MAX) st.set("reloadAt", System.currentTimeMillis());
             st.set("bullets", b - 1);
-            Effects.shootInstantArrow(p, p.getEyeLocation().getDirection(), 4.0, 2.75);
+            com.kiokouwhite.crossfight.util.Bullets.shoot(p, p.getEyeLocation().getDirection(), 4.0, 2.75, Material.RED_CONCRETE, Color.fromRGB(255, 30, 40));
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 1.6f);
             return true;
         }
