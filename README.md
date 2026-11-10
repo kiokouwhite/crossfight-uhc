@@ -77,7 +77,8 @@ com.kiokouwhite.crossfight
 │   ├── earthdelta/         Earth Delta : mutations, Kishi, Kura, Taka, Hano et ses 28 tomes
 │   ├── duo/                Synergie : second ultime commun aux groupes duo (jauge à 200 %)
 │   ├── gunvolt/            Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov, six Synergies
-│   └── shoja/              Shoja's Memories : Hiro, Pinkou, Aïda, Crystal, six Synergies
+│   ├── shoja/              Shoja's Memories : Hiro, Pinkou, Aïda, Crystal, six Synergies
+│   └── bloodysnow/         Bloody Snow : Netsu, Kaze, Hannah, Eirika, Marques de Sang, six Synergies
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -116,6 +117,15 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Kirin : les talismans sont des projectiles ; la marque dure 10 s. Le sabre se téléporte sur la cible marquée la plus proche (30 blocs) et retire sa marque ; Arc Chain est utilisable 4 s après et touche aussi l'adversaire visé par la téléportation (1 cœur par cible, 4 max) avec 10 s de recharge. Slash : en l'air Tensho, accroupi Ressen (deuxième clic pour retomber), sinon Issen ; un seul temps de recharge de 15 s.
 - Asimov : le fusil charge 3 s puis tire (9 dégâts, doublés à moins de 5 blocs). La tourelle tire ses salves à 5 s et 10 s. Les chaînes de l'ultime sont des segments tirés au hasard sur 30 blocs pendant 8 s.
 - Vol Électrique et Prison de Chaîne donnent le vol créatif pendant leur durée ; Double Électrocution est centrée sur le lanceur.
+
+### Hypothèses prises sur Bloody Snow
+
+- La portée de frappe (« Reach ») passe par l'attribut de portée d'interaction de Minecraft, que le combat façon 1.8 respecte aussi : Crawnatus en mode défensif 3,5 blocs, Vision Trigonométrique et certaines Synergies 4 blocs, Goût du risque limité à 2 blocs.
+- Marques de Sang : Eirika (et ceux que les Synergies y autorisent) en pose une tous les 5 coups ; 5 maximum par adversaire, 6 s chacune ; un adversaire marqué perd 0,5 cœur toutes les 2 s. L'Effroi sanglant et l'Exécution Atroce portent sur les adversaires à 30 blocs.
+- Netsu : les coups qu'elle reçoit frappent son clone (4 cœurs de dégâts après armure) pendant 30 s ; quand il est détruit elle vole en papillons 10 s, invisible et intouchable, et un clic droit sur l'item la fait réapparaître où elle vise (30 blocs). L'ultime dure 30 s ; les distances sont des textes flottants visibles d'elle seule ; clic droit sur l'ultime en visant un ennemi (à 100 blocs) pour se téléporter à 4 blocs de lui.
+- Kaze : Power Hit s'active quand au plus un adversaire est à 10 blocs. Home Run propulse Kaze et l'ennemi visé (4 blocs) dans son regard. Amour du danger : cœurs = 10 − distance (1 à 9).
+- Hannah : Résistance II tant que l'Aldifae Blade est en main ; la barre monte d'un par coup reçu (10 max). Protection chevaleresque donne l'absorption à Hannah et à son partenaire ; les adversaires provoqués ne peuvent blesser qu'elle pendant 10 s ; Relâchement de Rage dure 30 s.
+- Synergies : Complémentarité fraternelle donne à Netsu le Power Hit et un Home Run (clic sur la Synergie) ; Invincibles ensemble vérifie la distance chaque seconde ; Défense et Attaque convertit 10 cœurs de dégâts de Kaze sur la dernière minute en 1 Force (IV max) ; Hémorragie Puissante et Défense Acérée durent 30 s et s'appliquent aux deux partenaires.
 
 ### Hypothèses prises sur Shoja's Memories
 
@@ -181,8 +191,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Earth Delta : mutations à chaque mort, Kishi, Kura, Taka, Hano (28 tomes)
 - [x] Synergies des groupes duo ; Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov
 - [x] Shoja's Memories : Hiro, Pinkou, Aïda, Crystal
+- [x] Bloody Snow : Netsu, Kaze, Hannah, Eirika
 - [ ] Burst des solitaires
-- [ ] 4 personnages restants (Bloody Snow) et les solitaires
+- [ ] Personnages solitaires (Burst)
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

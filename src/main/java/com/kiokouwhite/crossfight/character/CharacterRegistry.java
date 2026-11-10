@@ -33,8 +33,7 @@ public final class CharacterRegistry {
         // Groupe duo
         register(com.kiokouwhite.crossfight.character.gunvolt.ABG.create());
         register(com.kiokouwhite.crossfight.character.shoja.Shoja.create());
-        register(new Licence("bloody_snow", "BLOODY SNOW", TeamSize.DUO,
-                "Synergie : second ultime commun, charge a 200 % de degats a deux."));
+        register(com.kiokouwhite.crossfight.character.bloodysnow.BloodySnow.create());
         // Solitaire
         register(new Licence("solitaire", "PERSONNAGE SOLITAIRE", TeamSize.SOLO,
                 "Burst : second ultime charge a 1000 % de degats, conserve entre les morts."));

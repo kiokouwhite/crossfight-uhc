@@ -81,11 +81,14 @@ public final class LegacyCombatListener implements Listener {
         Integer last = lastHitTick.get(p.getUniqueId());
         int now = Bukkit.getCurrentTick();
         if (last != null && now - last <= 1) return;
-        RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), REACH, 0.3,
+        // La portee suit l'attribut de portee d'interaction (capacites de "Reach").
+        var range = p.getAttribute(org.bukkit.attribute.Attribute.ENTITY_INTERACTION_RANGE);
+        double reach = range == null ? REACH : Math.max(1.0, range.getValue());
+        RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach, 0.3,
                 ent -> ent != p && ent instanceof LivingEntity le && (Effects.isEnemy(p, le) || Mannequins.isMannequin(le)));
         if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) return;
         // Un bloc entre les deux ? On ne frappe pas a travers les murs.
-        var block = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), REACH);
+        var block = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach);
         if (block != null && block.getHitPosition().distanceSquared(p.getEyeLocation().toVector())
                 < hit.getHitPosition().distanceSquared(p.getEyeLocation().toVector())) return;
         lastHitTick.put(p.getUniqueId(), now);
