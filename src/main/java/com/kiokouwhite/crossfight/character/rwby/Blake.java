@@ -96,7 +96,7 @@ public final class Blake extends Character implements Listener {
 
         GambolShroud() {
             super("blake_gambol", "Gambol Shroud",
-                    "Accroupi + clic droit : change de mode. Couperet (9.5) : Resistance. Katana (8) : clic droit lance la lame et te teleporte ou elle tombe (10 s). Pistolet (Puissance II) : clic droit tire une balle par seconde, 10 balles, une revient toutes les 3 s.",
+                    "Accroupi + clic droit : change de mode. Couperet (9.5) : Resistance. Katana (8) : clic droit lance la lame et fonce quasi instantanement la ou elle tombe (10 s). Pistolet (Puissance II) : clic droit tire une balle par seconde, 10 balles, une revient toutes les 3 s.",
                     AbilityType.SWITCH, Material.NETHERITE_SWORD);
         }
 
@@ -190,11 +190,39 @@ public final class Blake extends Character implements Listener {
         if (!(s.getShooter() instanceof Player p)) return;
         Location to = s.getLocation();
         if (e.getHitBlock() != null && e.getHitBlockFace() != null) to = e.getHitBlock().getRelative(e.getHitBlockFace()).getLocation().add(0.5, 0, 0.5);
-        to.setDirection(p.getLocation().getDirection());
-        p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
-        p.teleport(to);
-        p.getWorld().spawnParticle(Particle.SMOKE, to.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
-        p.getWorld().playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1.5f);
+        dash(p, to);
+    }
+
+    /** Ruee quasi instantanee vers un point : Blake traverse la distance en quelques ticks, en ligne droite. */
+    static void dash(Player p, Location to) {
+        Location from = p.getLocation();
+        Vector path = to.toVector().subtract(from.toVector());
+        double dist = path.length();
+        if (dist < 0.5) return;
+        int steps = (int) Math.max(2, Math.min(8, Math.ceil(dist / 4.0)));
+        Vector step = path.clone().multiply(1.0 / steps);
+        Ruby.noFallUntil(p, 3000);
+        p.getWorld().playSound(from, Sound.ENTITY_PHANTOM_FLAP, 1f, 2f);
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int i = 0;
+            Location current = from.clone();
+            @Override public void run() {
+                i++;
+                if (!p.isOnline() || p.isDead() || i > steps) { cancel(); return; }
+                Location next = current.clone().add(step);
+                next.setDirection(p.getLocation().getDirection());
+                // Un mur sur le chemin arrete la ruee juste devant.
+                if (!next.getBlock().isPassable() || !next.clone().add(0, 1, 0).getBlock().isPassable()) { cancel(); return; }
+                for (double d = 0; d < step.length(); d += 0.5) {
+                    Location l = current.clone().add(step.clone().normalize().multiply(d)).add(0, 1, 0);
+                    p.getWorld().spawnParticle(Particle.SMOKE, l, 2, 0.1, 0.2, 0.1, 0.01);
+                    p.getWorld().spawnParticle(Particle.DUST, l, 1, 0.1, 0.2, 0.1, 0, new Particle.DustOptions(Color.fromRGB(60, 0, 90), 1.2f));
+                }
+                p.teleport(next);
+                current = next;
+                if (i == steps) p.getWorld().playSound(next, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.6f);
+            }
+        }.runTaskTimer(plugin(), 0L, 1L);
     }
 
     // --------------------------------------------------------------- pouvoirs
