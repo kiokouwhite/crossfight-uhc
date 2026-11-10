@@ -64,7 +64,7 @@ public final class Sova extends Character implements Listener {
                 "<white>Electrofleche : arc a bander, sphere electrique de 6 blocs, 2 coeurs",
                 "<white>Fleche de reco : arc a bander, 3 ondes revelent a 40 blocs",
                 "<white>Drone Rapace : tire des fleches de Faiblesse 10 s",
-                "<light_purple>Ultime : 3 rayons de 10 blocs, 3 coeurs");
+                "<light_purple>Ultime : 6 s, 3 rayons au clic qui traversent les murs (60 blocs, 3 coeurs)");
     }
 
     static final String AMMO_ID = "sova_electro_ammo";
@@ -347,40 +347,161 @@ public final class Sova extends Character implements Listener {
         }
     }
 
-    static final class FureurDuChasseur extends UltimateAbility {
+    /**
+     * Fureur du Chasseur : pendant 6 secondes, Sova a trois tirs d'energie a declencher au clic droit.
+     * Chaque rayon traverse les murs sur 60 blocs, inflige 3 coeurs et revele les ennemis touches.
+     */
+    static final class FureurDuChasseur extends UltimateAbility implements com.kiokouwhite.crossfight.ability.CustomUse {
+        static final int SHOTS = 3; static final long DURATION_MS = 6000L; static final double RANGE = 60.0;
+        static final Particle.DustOptions CORE = new Particle.DustOptions(Color.fromRGB(200, 240, 255), 2.2f);
+        static final Particle.DustOptions BEAM = new Particle.DustOptions(BLUE, 1.6f);
+        static final Particle.DustOptions BOLT = new Particle.DustOptions(Color.fromRGB(120, 200, 255), 0.9f);
         FureurDuChasseur() {
-            super("sova_ult", "Fureur du Chasseur", "Sova s'immobilise et tire trois rayons de 10 blocs devant lui, infligeant 3 coeurs aux adversaires touches.", Material.END_CRYSTAL);
+            super("sova_ult", "Fureur du Chasseur", "Pendant 6 secondes, Sova dispose de 3 tirs d'energie (clic droit) : chaque rayon traverse les murs sur 60 blocs, inflige 3 coeurs et revele les adversaires touches.", Material.END_CRYSTAL);
         }
-        @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
-            Effects.root(p, 60);
-            new BukkitRunnable() {
-                int shots = 0;
-                @Override public void run() {
-                    if (shots >= 3 || !p.isOnline()) { Effects.unroot(p); cancel(); return; }
-                    shots++;
-                    ray(p);
-                }
-            }.runTaskTimer(plugin(), 10L, 14L);
+        static boolean active(AbilityState st) { return System.currentTimeMillis() < st.get("furyUntil", 0L) && st.get("shots", 0) > 0; }
+
+        /** Clic pendant la Fureur : un tir. Sinon, lancement normal de l'ultime. */
+        @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
+            if (!active(st)) return false;
+            if (st.get("winding", false)) return true;
+            st.set("winding", true);
+            windUp(p, cf, st);
             return true;
         }
+        @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            st.set("furyUntil", System.currentTimeMillis() + DURATION_MS);
+            st.set("shots", SHOTS);
+            st.set("winding", false);
+            // Pas de charge d'ultime pendant la Fureur ; Sova est ralenti tant que l'arc est charge.
+            org.bukkit.Bukkit.getScheduler().runTask(plugin(), () -> cf.setUltimateLocked(true));
+            Effects.give(p, PotionEffectType.SLOWNESS, 0, (int) (DURATION_MS / 50));
+            World w = p.getWorld();
+            w.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.5f);
+            w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.5f, 1.8f);
+            w.spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1, 0), 60, 0.6, 0.8, 0.6, 0.2);
+            new BukkitRunnable() {
+                @Override public void run() {
+                    if (!p.isOnline() || !active(st)) { end(p, cf, st); cancel(); return; }
+                    // L'arc crepite en permanence tant que la Fureur est active.
+                    Location eye = p.getEyeLocation();
+                    Vector dir = eye.getDirection();
+                    Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+                    Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 3, 0.2, 0.3, 0.2, 0.04);
+                    w.spawnParticle(Particle.DUST, hand, 2, 0.1, 0.3, 0.1, 0, BOLT);
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+            return true;
+        }
+        static void end(Player p, CfPlayer cf, AbilityState st) {
+            st.set("furyUntil", 0L); st.set("shots", 0); st.set("winding", false);
+            cf.setUltimateLocked(false);
+            p.removePotionEffect(PotionEffectType.SLOWNESS);
+            if (p.isOnline()) p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.2f);
+        }
+        @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
+            if (!active(st)) return null;
+            long left = Math.max(0, st.get("furyUntil", 0L) - System.currentTimeMillis());
+            int shots = st.get("shots", 0);
+            return "<aqua><bold>FUREUR</bold> " + "<white>" + "➶".repeat(shots) + "<dark_gray>" + "➶".repeat(SHOTS - shots) + " <aqua>" + String.format(java.util.Locale.US, "%.1f", left / 1000.0) + "s";
+        }
 
-        static void ray(Player p) {
+        /** Mise en tension d'un tir : 8 ticks ou l'energie se concentre dans l'arc, puis le rayon part. */
+        static void windUp(Player p, CfPlayer cf, AbilityState st) {
+            World w = p.getWorld();
+            w.playSound(p.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    try {
+                        if (!p.isOnline() || !active(st)) { st.set("winding", false); cancel(); return; }
+                        Location eye = p.getEyeLocation();
+                        Vector dir = eye.getDirection();
+                        Vector right = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+                        Location hand = eye.clone().add(dir.clone().multiply(0.9)).add(right.multiply(0.35)).add(0, -0.3, 0);
+                        // L'energie se rassemble en une boule qui grossit devant l'arc.
+                        double r = 0.15 + t * 0.06;
+                        for (int i = 0; i < 6; i++) {
+                            double a = Math.random() * Math.PI * 2, b = Math.random() * Math.PI;
+                            w.spawnParticle(Particle.DUST, hand.clone().add(Math.sin(b) * Math.cos(a) * r, Math.cos(b) * r, Math.sin(b) * Math.sin(a) * r), 1, 0, 0, 0, 0, BEAM);
+                        }
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 6, r, r, r, 0.08);
+                        w.playSound(hand, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.4f, 0.8f + t * 0.15f);
+                        if (t >= 8) {
+                            st.set("winding", false);
+                            st.set("shots", st.get("shots", 0) - 1);
+                            blast(p, cf);
+                            cancel();
+                        }
+                    } catch (Exception ex) { st.set("winding", false); cancel(); }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
+
+        /** Le rayon : un trait epais bleu-blanc entoure d'eclairs, qui traverse tout sur 60 blocs. */
+        static void blast(Player p, CfPlayer cf) {
             Location eye = p.getEyeLocation();
             Vector dir = eye.getDirection().normalize();
             World w = p.getWorld();
+            w.playSound(eye, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.9f);
+            w.playSound(eye, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.5f);
+            w.playSound(eye, Sound.BLOCK_BEACON_DEACTIVATE, 1f, 1.6f);
+            w.spawnParticle(Particle.FLASH, eye.clone().add(dir), 1, 0, 0, 0, 0, PALE);
+            // Degats et revelation : tout ennemi a moins de 1,5 bloc de la ligne, murs compris.
             List<UUID> hit = new ArrayList<>();
-            for (double d = 0.5; d <= 10; d += 0.5) {
+            int touched = 0;
+            for (double d = 1.0; d <= RANGE; d += 0.5) {
                 Location l = eye.clone().add(dir.clone().multiply(d));
-                if (!l.getBlock().isPassable()) break;
-                w.spawnParticle(Particle.DUST, l, 2, 0.1, 0.1, 0.1, 0, new Particle.DustOptions(Color.fromRGB(80, 200, 255), 1.6f));
-                w.spawnParticle(Particle.ELECTRIC_SPARK, l, 1, 0.1, 0.1, 0.1, 0.02);
-                for (LivingEntity enemy : Effects.enemiesWithin(p, l, 1.0)) {
+                for (LivingEntity enemy : Effects.enemiesWithin(p, l, 1.5)) {
                     if (hit.contains(enemy.getUniqueId())) continue;
                     hit.add(enemy.getUniqueId());
                     Effects.damage(enemy, 6.0, p);
+                    Effects.give(enemy, PotionEffectType.GLOWING, 0, 60);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, enemy.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.2);
+                    w.playSound(enemy.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 1f, 1.2f);
+                    touched++;
                 }
             }
-            w.playSound(eye, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.7f, 1.9f);
+            if (touched > 0) Msg.actionBar(p, "<aqua>Fureur : " + touched + " adversaire(s) touche(s) !");
+            // Le trait se dessine en 3 ticks (20 blocs par tick) puis s'estompe.
+            Vector up = Math.abs(dir.getY()) > 0.9 ? new Vector(1, 0, 0) : new Vector(0, 1, 0);
+            Vector side = dir.clone().crossProduct(up).normalize();
+            Vector norm = side.clone().crossProduct(dir).normalize();
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    try {
+                        if (t > 7) { cancel(); return; }
+                        double from = t <= 3 ? (t - 1) * 20.0 : 0, to = t <= 3 ? t * 20.0 : RANGE;
+                        double step = t <= 3 ? 0.3 : 1.0;
+                        for (double d = Math.max(1.0, from); d < to; d += step) {
+                            Location l = eye.clone().add(dir.clone().multiply(d));
+                            if (t <= 3) {
+                                w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, CORE);
+                                w.spawnParticle(Particle.DUST, l, 2, 0.35, 0.35, 0.35, 0, BEAM);
+                                if (Math.random() < 0.3) w.spawnParticle(Particle.ELECTRIC_SPARK, l, 1, 0.3, 0.3, 0.3, 0.02);
+                            } else {
+                                w.spawnParticle(Particle.DUST, l, 1, 0.3, 0.3, 0.3, 0, BEAM);
+                            }
+                        }
+                        // Eclairs en zigzag qui serpentent autour du trait.
+                        if (t <= 4) for (int k = 0; k < 3; k++) {
+                            double d = Math.random() * Math.min(to, RANGE - 6);
+                            double ang = Math.random() * Math.PI * 2, rad = 0.6;
+                            for (int seg = 0; seg < 8; seg++) {
+                                ang += (Math.random() - 0.5) * 1.6; rad = Math.max(0.2, Math.min(1.6, rad + (Math.random() - 0.5) * 0.8));
+                                d += 0.8;
+                                Location l = eye.clone().add(dir.clone().multiply(d)).add(side.clone().multiply(Math.cos(ang) * rad)).add(norm.clone().multiply(Math.sin(ang) * rad));
+                                w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, BOLT);
+                                w.spawnParticle(Particle.ELECTRIC_SPARK, l, 1, 0.05, 0.05, 0.05, 0.01);
+                            }
+                        }
+                    } catch (Exception ex) { cancel(); }
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
         }
     }
 }
