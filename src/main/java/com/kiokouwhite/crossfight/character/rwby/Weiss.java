@@ -144,7 +144,7 @@ public final class Weiss extends Character implements Listener {
     static final class GlyphsType1 extends ActiveAbility {
         GlyphsType1() {
             super("weiss_glyphs1", "Glyphs (Type 1)",
-                    "Rouge : Fire Aspect 10 s. Bleu : le prochain ennemi touche est emprisonne dans la glace. Jaune : zone de Vitesse II pour l'equipe (10 s). Cyan : barriere de verre 5x5 incassable (10 s). Blanche : prochain coup Recul III. Violette : prochain coup Lenteur II 10 s.",
+                    "Rouge : Fire Aspect 10 s. Bleu : le prochain ennemi touche est emprisonne dans une cage de glace a casser. Jaune : zone de Vitesse II pour l'equipe (10 s). Cyan : barriere de verre 5x5 incassable (10 s). Blanche : prochain coup Recul III. Violette : prochain coup Lenteur II 10 s.",
                     Material.AMETHYST_SHARD, 15);
         }
 
@@ -205,7 +205,7 @@ public final class Weiss extends Character implements Listener {
             }
         }
 
-        /** Cage de glace de 3x3x3 autour de la victime pendant 4 secondes. */
+        /** Cage de glace de 3x3x3 autour de la victime. Elle ne disparait pas : il faut la casser. */
         static void icePrison(LivingEntity victim) {
             Location c = victim.getLocation().getBlock().getLocation();
             TempBlocks cage = new TempBlocks();
@@ -214,7 +214,6 @@ public final class Weiss extends Character implements Listener {
                 if (!shell || (dx == 0 && dz == 0 && (dy == 0 || dy == 1 || dy == 2))) continue;
                 cage.place(c.clone().add(dx, dy, dz).getBlock(), Material.PACKED_ICE);
             }
-            cage.restoreAfter(80L);
             victim.getWorld().playSound(c, Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.8f);
             victim.getWorld().spawnParticle(Particle.SNOWFLAKE, c.clone().add(0.5, 1, 0.5), 40, 1, 1, 1, 0.02);
             Effects.say(victim, "<blue>Emprisonne dans la glace !");
