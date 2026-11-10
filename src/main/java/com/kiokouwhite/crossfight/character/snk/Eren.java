@@ -11,7 +11,6 @@ import com.kiokouwhite.crossfight.character.Voie;
 import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Boosts;
 import com.kiokouwhite.crossfight.util.Bullets;
-import com.kiokouwhite.crossfight.util.ChoiceMenu;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
@@ -83,6 +82,7 @@ public final class Eren extends Character implements Listener {
         addAbility(new ChargeTridimensionnelle());
         addAbility(new EliminationMorale());
         addAbility(new TitansPrimordiaux());
+        for (String id : TITAN_IDS) addAbility(new TitanPower(id));
         setUltimate(new TitanAssaillant());
     }
 
@@ -141,7 +141,8 @@ public final class Eren extends Character implements Listener {
             Msg.send(p, "<gold>Pouvoir obtenu : <white>" + TITAN_NAMES[index(id)]);
         }
         if (n > 0) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.6f);
-        if (isTitan(p) && owned.contains("cuirasse")) TitanAssaillant.applyCuirasse(p, titansState(p));
+        if (isTitan(p)) { TitanAssaillant.giveTitanItems(p); if (owned.contains("cuirasse")) TitanAssaillant.applyCuirasse(p, titansState(p)); }
+        TitansPrimordiaux.refreshItem(p);
         return n;
     }
 
@@ -227,15 +228,38 @@ public final class Eren extends Character implements Listener {
         }
     }
 
-    /** Les pouvoirs des titans voles : un menu, utilisable sous forme de Titan seulement. */
-    static final class TitansPrimordiaux extends PassiveAbility implements CustomUse {
+    /** Les pouvoirs des titans voles. Sous forme de Titan, chaque pouvoir devient un item a part. */
+    static final class TitansPrimordiaux extends PassiveAbility {
         TitansPrimordiaux() {
-            super("eren_titans", "Titans primordiaux", "4 adversaires sont choisis au hasard au debut de la partie : chaque fois qu'Eren en tue un, il vole les pouvoirs d'un des 7 titans primordiaux. Clic droit sous forme de Titan pour les utiliser.", Material.NETHER_STAR);
+            super("eren_titans", "Titans primordiaux", "4 adversaires sont choisis au hasard au debut de la partie : chaque fois qu'Eren en tue un, il vole les pouvoirs d'un des 7 titans primordiaux. Sous forme de Titan, chaque pouvoir vole devient un item dans la barre.", Material.NETHER_STAR);
         }
-        @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit (Titan) : pouvoirs voles"); }
+
+        /** Remet a jour la liste des titans voles dans la description de l'item. */
+        static void refreshItem(Player p) {
+            var inv = p.getInventory();
+            CfPlayer cf = SNK.plugin().players().get(p);
+            if (cf.character() == null) return;
+            Ability a = cf.character().ability("eren_titans");
+            if (a == null) return;
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack it = inv.getItem(i);
+                if (it == null || !"eren_titans".equals(Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY))) continue;
+                ItemStack fresh = a.createItem();
+                var meta = fresh.getItemMeta();
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.lore() == null ? List.of() : meta.lore());
+                lore.add(Msg.mm(""));
+                List<String> owned = titansOf(p);
+                lore.add(Msg.mm("<!italic><gold>Titans voles : <white>" + (owned.isEmpty() ? "aucun" : owned.size() + "/7")));
+                for (String id : owned) lore.add(Msg.mm("<!italic><gray> - " + TITAN_NAMES[index(id)]));
+                meta.lore(lore);
+                fresh.setItemMeta(meta);
+                inv.setItem(i, fresh);
+            }
+        }
 
         @Override public void onEquip(Player p, CfPlayer cf) {
             AbilityState st = SNK.plugin().abilities().state(p, this);
+            Bukkit.getScheduler().runTask(SNK.plugin(), () -> refreshItem(p));
             if (SNK.plugin().game().isTest() || st.get("targets", null) != null) return;
             List<Player> candidates = new ArrayList<>();
             for (Player o : Bukkit.getOnlinePlayers()) {
@@ -263,41 +287,8 @@ public final class Eren extends Character implements Listener {
             owned.add(id);
             Msg.send(killer, "<gold>Tu as devore " + victim.getName() + " et vole le pouvoir du <white>" + TITAN_NAMES[index(id)] + "</white> !");
             killer.playSound(killer.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.5f, 1.6f);
-            if (isTitan(killer) && id.equals("cuirasse")) TitanAssaillant.applyCuirasse(killer, st);
-        }
-
-        @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
-            if (!isTitan(p)) { Msg.actionBar(p, "<red>Les pouvoirs des titans ne s'utilisent que sous forme de Titan."); return true; }
-            List<String> owned = titansOf(p);
-            if (owned.isEmpty()) { Msg.actionBar(p, "<red>Aucun pouvoir de titan vole pour l'instant."); return true; }
-            List<ChoiceMenu.Option> options = new ArrayList<>();
-            for (String id : owned) {
-                int i = index(id);
-                List<String> lore = new ArrayList<>(Items.wrap(TITAN_DESC[i]));
-                if (id.equals("cuirasse")) lore.add("<yellow>Mode actuel : <white>" + ("speed".equals(st.get("cuirasse", "res")) ? "Speed" : "Resistance"));
-                else if (!cdReady(st, "cd_" + id)) lore.add("<red>Encore " + cdLeft(st, "cd_" + id) + "s");
-                else lore.add("<green>Pret");
-                options.add(new ChoiceMenu.Option(TITAN_ICONS[i], TITAN_NAMES[i], lore, () -> usePower(p, cf, st, id)));
-            }
-            ChoiceMenu.open(p, "<dark_red><bold>Pouvoirs de Titan", options);
-            return true;
-        }
-
-        void usePower(Player p, CfPlayer cf, AbilityState st, String id) {
-            if (!isTitan(p)) return;
-            int i = index(id);
-            if (!id.equals("cuirasse") && !cdReady(st, "cd_" + id)) { Msg.actionBar(p, "<red>" + TITAN_NAMES[i] + " : encore " + cdLeft(st, "cd_" + id) + "s"); return; }
-            boolean ok = switch (id) {
-                case "colossal" -> colossal(p);
-                case "feminin" -> feminin(p);
-                case "cuirasse" -> { st.set("cuirasse", "speed".equals(st.get("cuirasse", "res")) ? "res" : "speed"); TitanAssaillant.applyCuirasse(p, st); yield false; }
-                case "bestial" -> bestial(p);
-                case "machoire" -> machoire(p);
-                case "charrette" -> charrette(p);
-                case "marteau" -> marteau(p);
-                default -> false;
-            };
-            if (ok) startCd(p, st, "cd_" + id, TITAN_CD[i]);
+            if (isTitan(killer)) { TitanAssaillant.giveTitanItems(killer); if (id.equals("cuirasse")) TitanAssaillant.applyCuirasse(killer, st); }
+            refreshItem(killer);
         }
 
         static boolean colossal(Player p) {
@@ -396,6 +387,43 @@ public final class Eren extends Character implements Listener {
         }
     }
 
+    /** Un pouvoir de titan : item individuel, donne a la transformation, utilisable sous forme de Titan. */
+    static final class TitanPower extends ActiveAbility {
+        final String titan;
+        TitanPower(String titan) {
+            super("eren_t_" + titan, TITAN_NAMES[index(titan)], TITAN_DESC[index(titan)], TITAN_ICONS[index(titan)], TITAN_CD[index(titan)]);
+            this.titan = titan;
+        }
+        @Override public boolean hasItem() { return false; }
+        @Override public boolean showInBar(Player p, CfPlayer cf, AbilityState st) { return isTitan(p) && owns(p, titan); }
+        @Override protected List<String> extraLore() {
+            return titan.equals("cuirasse") ? List.of("", "<yellow>Clic droit : intervertir") : super.extraLore();
+        }
+        @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
+            if (!titan.equals("cuirasse")) return null;
+            AbilityState ts = titansState(p);
+            return "<yellow>Cuirasse <white>[" + ("speed".equals(ts == null ? "res" : ts.get("cuirasse", "res")) ? "Speed" : "Resistance") + "]";
+        }
+        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
+            if (!isTitan(p)) { Msg.actionBar(p, "<red>Les pouvoirs des titans ne s'utilisent que sous forme de Titan."); return false; }
+            if (!owns(p, titan)) { Msg.actionBar(p, "<red>Tu n'as pas vole ce titan."); return false; }
+            return switch (titan) {
+                case "colossal" -> TitansPrimordiaux.colossal(p);
+                case "feminin" -> TitansPrimordiaux.feminin(p);
+                case "cuirasse" -> {
+                    AbilityState ts = titansState(p);
+                    if (ts != null) { ts.set("cuirasse", "speed".equals(ts.get("cuirasse", "res")) ? "res" : "speed"); TitanAssaillant.applyCuirasse(p, ts); }
+                    yield true;
+                }
+                case "bestial" -> TitansPrimordiaux.bestial(p);
+                case "machoire" -> TitansPrimordiaux.machoire(p);
+                case "charrette" -> TitansPrimordiaux.charrette(p);
+                case "marteau" -> TitansPrimordiaux.marteau(p);
+                default -> false;
+            };
+        }
+    }
+
     static void setWeapon(ItemStack it, String kind, int uses) {
         var meta = it.getItemMeta();
         meta.getPersistentDataContainer().set(TITAN_WEAPON, PersistentDataType.STRING, kind);
@@ -469,6 +497,7 @@ public final class Eren extends Character implements Listener {
             var step = p.getAttribute(Attribute.STEP_HEIGHT);
             if (step != null) step.setBaseValue(1.1);
             if (owns(p, "cuirasse")) applyCuirasse(p, titansState(p));
+            giveTitanItems(p);
             World w = p.getWorld();
             w.strikeLightningEffect(p.getLocation());
             w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 0.8f);
@@ -488,6 +517,44 @@ public final class Eren extends Character implements Listener {
             }.runTaskTimer(SNK.plugin(), 10L, 10L);
         }
 
+        /**
+         * Sous forme de Titan : l'equipement, la Charge et l'item des Titans primordiaux laissent la place
+         * a un item par pouvoir vole (barre d'abord, puis inventaire).
+         */
+        static void giveTitanItems(Player p) {
+            CfPlayer cf = SNK.plugin().players().get(p);
+            if (cf.character() == null) return;
+            var inv = p.getInventory();
+            var key = com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY;
+            java.util.Set<String> present = new java.util.HashSet<>();
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack it = inv.getItem(i);
+                String id = Items.tag(it, key);
+                if (id == null) continue;
+                if (id.equals("snk_odm") || id.equals("eren_charge") || id.equals("eren_titans")) inv.setItem(i, null);
+                else present.add(id);
+            }
+            for (String titan : titansOf(p)) {
+                String id = "eren_t_" + titan;
+                if (present.contains(id)) continue;
+                Ability a = cf.character().ability(id);
+                if (a == null) continue;
+                ItemStack item = a.createItem();
+                int slot = -1;
+                for (int i = 1; i <= 7 && slot < 0; i++) if (inv.getItem(i) == null) slot = i;
+                for (int i = 9; i < 36 && slot < 0; i++) if (inv.getItem(i) == null) slot = i;
+                if (slot >= 0) inv.setItem(slot, item); else inv.addItem(item);
+            }
+        }
+
+        static void removeTitanItems(Player p) {
+            var inv = p.getInventory();
+            for (int i = 0; i < inv.getSize(); i++) {
+                String id = Items.tag(inv.getItem(i), com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY);
+                if (id != null && id.startsWith("eren_t_")) inv.setItem(i, null);
+            }
+        }
+
         static void applyCuirasse(Player p, AbilityState titans) {
             if (titans == null || !isTitan(p)) return;
             boolean speed = "speed".equals(titans.get("cuirasse", "res"));
@@ -497,6 +564,7 @@ public final class Eren extends Character implements Listener {
 
         static void revert(Player p, CfPlayer cf, AbilityState st) {
             st.set("titan", false);
+            removeTitanItems(p);
             cf.setUltimateLocked(false);
             Boosts.remove(p, "eren_titan");
             Boosts.remove(p, "eren_cuirasse");

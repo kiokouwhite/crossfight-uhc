@@ -76,6 +76,9 @@ public abstract class Ability {
     /** Vrai si l'item garde son usage vanilla (arc a bander...) : le moteur ne l'intercepte pas au clic droit. */
     public boolean vanillaUse() { return false; }
 
+    /** Faux pour cacher la capacite de la barre d'action (pouvoir pas encore obtenu...). */
+    public boolean showInBar(Player player, CfPlayer cf, AbilityState state) { return true; }
+
     /** Lignes de description a ajouter sur l'arme pour une capacite qui lui est liee. */
     public List<String> weaponLore() {
         List<String> lore = new ArrayList<>();

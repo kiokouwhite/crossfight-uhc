@@ -290,6 +290,7 @@ public final class AbilityEngine implements Listener {
     private void appendBar(StringBuilder bar, Ability a, AbilityState st, CfPlayer cf) {
         String piece;
         Player owner = cf.bukkit();
+        if (owner != null && !a.showInBar(owner, cf, st)) return;
         String custom = owner == null ? null : a.barText(owner, cf, st);
         if (custom != null) {
             if (!bar.isEmpty()) bar.append(" <dark_gray>| ");
