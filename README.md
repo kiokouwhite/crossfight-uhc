@@ -189,6 +189,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Yato Alpha : « 15 ❤ » est lu comme 15 cœurs de vie maximum.
 - L'Épée du Créateur de Byleth fait 8 dégâts (non précisé dans le doc).
 - Le Soutien et les dégâts des capacités passent par l'armure comme un coup normal.
+- Le Contre de Marth reprend celui de Smash Bros Melee : pendant la seconde de pose il scintille en blanc ; au coup reçu il se tourne vers l'attaquant, un grand croissant d'épée balaye devant lui, les dégâts sont renvoyés et l'adversaire est projeté au loin (environ 10 blocs) avant d'être immobilisé 1 s.
 
 ## Feuille de route
 

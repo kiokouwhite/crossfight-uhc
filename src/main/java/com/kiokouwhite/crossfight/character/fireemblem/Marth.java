@@ -113,17 +113,33 @@ public final class Marth extends Character {
     // --------------------------------------------------------------- pouvoirs
 
     static final class Contre extends ActiveAbility {
+        static final Particle.DustOptions WHITE = new Particle.DustOptions(org.bukkit.Color.fromRGB(250, 250, 255), 1.3f);
+        static final Particle.DustOptions PALE_BLUE = new Particle.DustOptions(org.bukkit.Color.fromRGB(170, 215, 255), 1.1f);
+
         Contre() {
             super("marth_contre", "Contre",
-                    "Si Marth prend un coup dans la seconde qui suit, il ne subit rien, renvoie les degats et immobilise l'adversaire 1 seconde.",
+                    "Marth prend la pose : s'il recoit un coup dans la seconde, il ne subit rien, renvoie les degats d'un grand coup d'epee qui projette l'adversaire au loin, puis l'immobilise 1 seconde.",
                     Material.NAUTILUS_SHELL, 5);
         }
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            st.set("counterUntil", System.currentTimeMillis() + 1000L);
-            p.getWorld().spawnParticle(Particle.ENCHANTED_HIT, p.getLocation().add(0, 1, 0), 15, 0.4, 0.5, 0.4);
-            p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1.3f);
+            long until = System.currentTimeMillis() + 1000L;
+            st.set("counterUntil", until);
+            p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.6f);
+            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 1.4f);
+            // La pose : Marth scintille en blanc, comme le flash du Contre de Melee.
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (t > 20 || !p.isOnline() || st.get("counterUntil", 0L) != until) { cancel(); return; }
+                    Location c = p.getLocation().add(0, 1, 0);
+                    p.getWorld().spawnParticle(Particle.DUST, c, 6, 0.35, 0.6, 0.35, 0, WHITE);
+                    p.getWorld().spawnParticle(Particle.END_ROD, c, 2, 0.3, 0.5, 0.3, 0.01);
+                    if (t % 5 == 0) p.getWorld().spawnParticle(Particle.FIREWORK, c.clone().add(0, 0.6, 0), 3, 0.2, 0.2, 0.2, 0.02);
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
             return true;
         }
 
@@ -137,12 +153,52 @@ public final class Marth extends Character {
             double dmg = e.getFinalDamage();
             e.setCancelled(true);
             st.set("counterUntil", 0L);
+            // Marth se tourne vers l'adversaire et riposte d'un grand coup d'epee.
+            Vector toward = attacker.getLocation().toVector().subtract(victim.getLocation().toVector()).setY(0);
+            if (toward.lengthSquared() < 0.01) toward = victim.getLocation().getDirection().setY(0);
+            toward.normalize();
+            Location face = victim.getLocation().clone(); face.setDirection(toward);
+            victim.teleport(face);
+            attacker.setNoDamageTicks(0);
             Effects.damage(attacker, dmg, victim);
-            Effects.root(attacker, 20);
-            victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.8f);
-            victim.getWorld().spawnParticle(Particle.CRIT, attacker.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3);
+            // Projection au loin, comme dans Melee : l'adversaire part en cloche, puis reste immobilise 1 s en retombant.
+            attacker.setVelocity(toward.clone().multiply(2.2).setY(0.85));
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (!attacker.isDead()) Effects.root(attacker, 20); }, 16L);
+            crescent(victim, toward);
+            org.bukkit.World w = victim.getWorld();
+            w.spawnParticle(Particle.FLASH, attacker.getLocation().add(0, 1, 0), 1);
+            w.spawnParticle(Particle.CRIT, attacker.getLocation().add(0, 1, 0), 30, 0.3, 0.5, 0.3, 0.3);
+            w.playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.5f, 0.7f);
+            w.playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.5f, 0.6f);
+            w.playSound(victim.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.4f, 1.9f);
+            w.playSound(attacker.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.4f);
             Msg.actionBar(victim, "<gold>Contre reussi !");
             if (attacker instanceof Player ap) Msg.actionBar(ap, "<red>Marth a contre ton coup !");
+        }
+
+        /** Le croissant du coup d'epee : un grand arc blanc balaye devant Marth en quelques ticks. */
+        static void crescent(Player p, Vector dir) {
+            org.bukkit.World w = p.getWorld();
+            Location o = p.getLocation().add(0, 1.1, 0);
+            Vector side = new Vector(-dir.getZ(), 0, dir.getX());
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (t > 5) { cancel(); return; }
+                    // L'arc va du haut-gauche au bas-droit, de plus en plus large.
+                    double from = -Math.PI / 2 + (t - 1) * Math.PI / 5, to = from + Math.PI / 5;
+                    for (double a = from; a <= to; a += Math.PI / 40) {
+                        for (double r = 1.0; r <= 2.6; r += 0.4) {
+                            Vector v = dir.clone().multiply(Math.cos(a * 0.6) * r).add(side.clone().multiply(Math.sin(a) * r));
+                            Location at = o.clone().add(v).add(0, -Math.sin(a) * 1.1, 0);
+                            w.spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, r > 2.2 ? PALE_BLUE : WHITE);
+                        }
+                    }
+                    w.spawnParticle(Particle.SWEEP_ATTACK, o.clone().add(dir.clone().multiply(1.6)), 1);
+                    w.spawnParticle(Particle.END_ROD, o.clone().add(dir.clone().multiply(1.8)), 4, 0.5, 0.5, 0.5, 0.05);
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
         }
     }
 
