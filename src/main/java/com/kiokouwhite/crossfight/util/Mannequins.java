@@ -1,7 +1,6 @@
 package com.kiokouwhite.crossfight.util;
 
 import com.kiokouwhite.crossfight.CrossfightPlugin;
-import com.kiokouwhite.crossfight.listener.DamageListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -243,11 +242,6 @@ public final class Mannequins implements Listener {
         if (!(e.getEntity() instanceof LivingEntity m) || !isMannequin(m)) return;
         double dmg = e.getFinalDamage();
         boolean lethal = dmg >= m.getHealth();
-        Player attacker = e instanceof org.bukkit.event.entity.EntityDamageByEntityEvent ede ? DamageListener.attackerOf(ede.getDamager()) : null;
-        if (attacker != null) {
-            Msg.actionBar(attacker, "<gold>Mannequin : <red>" + fmt(dmg / 2.0) + " coeur(s)</red> <gray>(" + fmt(dmg) + " PV)"
-                    + (lethal ? " <dark_red>K.O." : " <gray>reste " + fmt(Math.max(0, m.getHealth() - dmg) / 2.0) + " coeurs"));
-        }
         if (lethal) {
             // Le mannequin ne meurt jamais : on encaisse puis on le remet a neuf.
             e.setDamage(0);
