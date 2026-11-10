@@ -83,9 +83,9 @@ public final class AbilityEngine implements Listener {
         }
         int slot = 1;
         for (Ability a : ch.abilities()) {
-            if (a.hasItem()) {
-                inv.setItem(slot++, a.createItem());
-            }
+            if (!a.hasItem()) continue;
+            if (slot == 8) slot = 9; // le slot 8 est reserve a l'ultime
+            inv.setItem(slot++, a.createItem());
         }
         if (ch.ultimate() != null) {
             inv.setItem(8, ch.ultimate().createItem());
@@ -327,6 +327,9 @@ public final class AbilityEngine implements Listener {
                 sw.onSwitch(p, cf, st, old, next);
                 Msg.actionBar(p, "<yellow>" + a.name() + " : <white>" + sw.modeName(next));
                 p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+            }
+            case PassiveAbility passive -> {
+                Msg.actionBar(p, "<gray>" + a.name() + " est un passif : toujours actif.");
             }
             case UltimateAbility ult -> {
                 if (!cf.isUltimateReady()) {

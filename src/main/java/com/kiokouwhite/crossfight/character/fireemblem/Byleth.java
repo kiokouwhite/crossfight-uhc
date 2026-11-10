@@ -221,7 +221,7 @@ public final class Byleth extends Character implements Listener {
 
     static final class EmblemeDeFeu extends PassiveAbility {
         EmblemeDeFeu() {
-            super("byleth_embleme", "Embleme de Feu", "Byleth regenere 25 % des degats qu'elle inflige, ses allies a moins de 10 blocs 10 %.");
+            super("byleth_embleme", "Embleme de Feu", "Byleth regenere 25 % des degats qu'elle inflige, ses allies a moins de 10 blocs 10 %.", Material.FIRE_CHARGE);
         }
 
         @Override

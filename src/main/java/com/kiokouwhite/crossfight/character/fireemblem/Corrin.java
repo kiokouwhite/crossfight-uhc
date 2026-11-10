@@ -86,7 +86,7 @@ public final class Corrin extends Character {
      */
     static final class Yato extends PassiveAbility {
         Yato() {
-            super("corrin_yato", "Yato", "Choisis ta voie en debut de partie ; la Yato evolue avec les eliminations.");
+            super("corrin_yato", "Yato", "Choisis ta voie en debut de partie ; la Yato evolue avec les eliminations.", Material.BOOK);
         }
 
         @Override
@@ -188,7 +188,7 @@ public final class Corrin extends Character {
 
     static final class DragonGardien extends PassiveAbility {
         DragonGardien() {
-            super("corrin_gardien", "Dragon Gardien", "A moins de 10 blocs d'un allie, Corrin a Resistance.");
+            super("corrin_gardien", "Dragon Gardien", "A moins de 10 blocs d'un allie, Corrin a Resistance.", Material.IRON_CHESTPLATE);
         }
 
         @Override
@@ -265,7 +265,7 @@ public final class Corrin extends Character {
 
     static final class DragonDeLEau extends PassiveAbility {
         DragonDeLEau() {
-            super("corrin_eau", "Dragon de l'eau", "Corrin a Agilite aquatique IV et respire sous l'eau.");
+            super("corrin_eau", "Dragon de l'eau", "Corrin a Agilite aquatique IV et respire sous l'eau.", Material.PRISMARINE_CRYSTALS);
         }
 
         @Override

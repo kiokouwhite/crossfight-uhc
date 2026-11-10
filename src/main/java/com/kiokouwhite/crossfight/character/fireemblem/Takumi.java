@@ -106,7 +106,7 @@ public final class Takumi extends Character implements Listener {
 
     static final class YumiFujin extends PassiveAbility {
         YumiFujin() {
-            super("takumi_yumi", "Yumi Fujin", "Les fleches infligent Lenteur pendant 10 secondes.");
+            super("takumi_yumi", "Yumi Fujin", "Les fleches infligent Lenteur pendant 10 secondes.", Material.ARROW);
         }
 
         @Override

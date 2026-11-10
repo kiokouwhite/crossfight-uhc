@@ -154,7 +154,7 @@ public final class Marth extends Character {
 
     static final class Charisme extends PassiveAbility {
         Charisme() {
-            super("marth_charisme", "Charisme", "Marth a Vitesse. Ses allies a moins de 10 blocs aussi.");
+            super("marth_charisme", "Charisme", "Marth a Vitesse. Ses allies a moins de 10 blocs aussi.", Material.SUGAR);
         }
 
         @Override
@@ -166,7 +166,7 @@ public final class Marth extends Character {
 
     static final class EspritDuLeader extends PassiveAbility {
         EspritDuLeader() {
-            super("marth_leader", "Esprit du Leader", "Tant que Marth a plus de 5 coeurs, ses allies ont Force.");
+            super("marth_leader", "Esprit du Leader", "Tant que Marth a plus de 5 coeurs, ses allies ont Force.", Material.GOLDEN_HELMET);
         }
 
         @Override

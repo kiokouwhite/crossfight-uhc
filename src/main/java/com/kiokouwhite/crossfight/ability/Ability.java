@@ -61,8 +61,8 @@ public abstract class Ability {
      */
     public boolean onDeath(Player player, CfPlayer cf, AbilityState state) { return false; }
 
-    /** Les passifs n'ont pas d'item ; les autres oui. Les capacites portees par l'arme renvoient false. */
-    public boolean hasItem() { return type != AbilityType.PASSIVE; }
+    /** Toutes les capacites ont un item d'information, sauf celles portees par l'arme (qui renvoient false). */
+    public boolean hasItem() { return true; }
 
     /** Cree l'item d'activation de la capacite. */
     public ItemStack createItem() {
