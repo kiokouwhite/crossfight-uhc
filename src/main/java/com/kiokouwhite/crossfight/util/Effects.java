@@ -180,9 +180,25 @@ public final class Effects {
     }
 
     /** Degats "bruts" infliges par un joueur a un autre, en points de vie (2 = 1 coeur). */
-    public static void damage(LivingEntity victim, double amount, Player source) {
+    public static void damage(LivingEntity victim, double amount, org.bukkit.entity.Entity source) {
         if (victim.isDead()) return;
         victim.damage(amount, source);
+    }
+
+    /**
+     * Ligne de vue "de jeu" : seuls les blocs opaques (pierre, terre...) bloquent ;
+     * le verre, l'eau, les feuilles ou les blocs d'une capacite en cours ne comptent pas.
+     */
+    public static boolean canSee(LivingEntity from, LivingEntity to) {
+        Location a = from.getEyeLocation();
+        Vector d = to.getEyeLocation().toVector().subtract(a.toVector());
+        double dist = d.length();
+        if (dist < 0.01) return true;
+        d.normalize();
+        for (double t = 0.5; t < dist; t += 0.5) {
+            if (a.clone().add(d.clone().multiply(t)).getBlock().getType().isOccluding()) return false;
+        }
+        return true;
     }
 
     public static void heal(LivingEntity p, double amount) {

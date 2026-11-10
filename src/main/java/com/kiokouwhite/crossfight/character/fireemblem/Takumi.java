@@ -18,7 +18,13 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.AbstractArrow;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -64,7 +70,7 @@ public final class Takumi extends Character implements Listener {
                 "<white>Contre Rapproche : l'arc devient une epee 9 dmg 30 s",
                 "<white>Vengeance : +1 Power par 3 coeurs perdus (5 s)",
                 "<white>Furie : +1 Power et Vitesse II contre 5 coeurs",
-                "<light_purple>Ultime : rayon 10x30 blocs, 5 coeurs");
+                "<light_purple>Ultime : rayon de verre 10x30, 5 coeurs");
     }
 
     /** Recalcule le niveau de Puissance de l'arc selon les bonus temporaires. */
@@ -244,53 +250,156 @@ public final class Takumi extends Character implements Listener {
     // ----------------------------------------------------------------- ultime
 
     static final class RayonDemoniaque extends UltimateAbility {
+
+        private static final int LENGTH = 30;
+        private static final int HALF_WIDTH = 5;        // 10 blocs de large
+        private static final int CHARGE_TICKS = 80;     // 4 secondes
+        private static final int BLOCKS_PER_TICK = 3;   // le rayon jaillit en 10 ticks
+        private static final int HOLD_TICKS = 16;
+        private static final int FADE_PER_TICK = 4;
+        private static final Particle.DustOptions PINK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 120, 220), 1.6f);
+        private static final Particle.DustOptions MAGENTA = new Particle.DustOptions(org.bukkit.Color.fromRGB(200, 40, 200), 2.2f);
+        private static final Particle.DustOptions WHITE = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 240, 255), 1.0f);
+
         RayonDemoniaque() {
             super("takumi_ult", "Rayon Demoniaque",
-                    "Takumi charge 4 secondes puis tire un rayon de 10 blocs de large et 30 de long infligeant 5 coeurs a tous les ennemis visibles.",
+                    "Takumi charge 4 secondes puis un rayon de verre de 10 blocs de large jaillit sur 30 blocs, infligeant 5 coeurs a tous les ennemis visibles sur son passage.",
                     Material.AMETHYST_SHARD);
         }
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
-            Effects.give(p, PotionEffectType.SLOWNESS, 2, 80);
+            Effects.give(p, PotionEffectType.SLOWNESS, 2, CHARGE_TICKS);
             Msg.actionBar(p, "<light_purple>Rayon Demoniaque en charge...");
+            final World w = p.getWorld();
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override public void run() {
-                    ticks += 5;
                     if (!p.isOnline() || p.isDead()) { cancel(); return; }
-                    p.getWorld().spawnParticle(Particle.PORTAL, p.getEyeLocation().add(p.getLocation().getDirection()), 20, 0.2, 0.2, 0.2, 0.5);
-                    p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 1f, 0.5f + ticks / 80f);
-                    if (ticks >= 80) {
+                    ticks++;
+                    // L'energie rose converge vers la pointe de l'arc.
+                    Location tip = p.getEyeLocation().add(p.getLocation().getDirection().multiply(1.2));
+                    double r = 2.5 - ticks / (double) CHARGE_TICKS * 2.2;
+                    for (int i = 0; i < 4; i++) {
+                        double a = Math.random() * Math.PI * 2, b = Math.random() * Math.PI;
+                        Location l = tip.clone().add(Math.sin(b) * Math.cos(a) * r, Math.cos(b) * r, Math.sin(b) * Math.sin(a) * r);
+                        w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, ticks % 2 == 0 ? PINK : MAGENTA);
+                    }
+                    w.spawnParticle(Particle.DUST, tip, 2, 0.1, 0.1, 0.1, 0, WHITE);
+                    if (ticks % 10 == 0) w.playSound(p.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 1f, 0.5f + ticks / 80f);
+                    if (ticks >= CHARGE_TICKS) {
                         cancel();
-                        fire(p);
+                        fire(p, w);
                     }
                 }
-            }.runTaskTimer(plugin(), 0L, 5L);
+            }.runTaskTimer(plugin(), 0L, 1L);
             return true;
         }
 
-        private void fire(Player p) {
-            Location eye = p.getEyeLocation();
-            Vector dir = eye.getDirection().normalize();
-            List<org.bukkit.entity.LivingEntity> hit = new ArrayList<>();
-            for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, 35)) {
-                Vector rel = enemy.getLocation().add(0, 1, 0).toVector().subtract(eye.toVector());
-                double along = rel.dot(dir);
-                if (along < 0 || along > 30) continue;
-                double perp = rel.clone().subtract(dir.clone().multiply(along)).length();
-                if (perp > 5.0) continue;
-                if (!p.hasLineOfSight(enemy)) continue;
-                hit.add(enemy);
-            }
-            for (org.bukkit.entity.LivingEntity enemy : hit) Effects.damage(enemy, 10.0, p);
-            for (double d = 0; d <= 30; d += 1.0) {
-                Location l = eye.clone().add(dir.clone().multiply(d));
-                l.getWorld().spawnParticle(Particle.DRAGON_BREATH, l, 12, 1.5, 1.5, 1.5, 0.01, 1.0f);
-                l.getWorld().spawnParticle(Particle.END_ROD, l, 4, 0.8, 0.8, 0.8, 0.02);
-            }
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1f, 0.5f);
-            Msg.send(p, hit.isEmpty() ? "<gray>Rayon Demoniaque : aucun ennemi touche." : "<light_purple>Rayon Demoniaque : " + hit.size() + " ennemi(s) touche(s) !");
+        private void fire(Player p, World w) {
+            Vector dir = p.getLocation().getDirection().setY(0);
+            if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
+            dir.normalize();
+            final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
+                    ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
+            final Vector side = new Vector(-axis.getZ(), 0, axis.getX());
+            final Location origin = p.getEyeLocation().getBlock().getLocation(); // hauteur des yeux
+            final Map<Block, BlockState> placed = new LinkedHashMap<>();
+            final List<Block> order = new ArrayList<>();
+            final List<UUID> hit = new ArrayList<>();
+            Effects.root(p, 40);
+            w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1f, 0.5f);
+            w.playSound(p.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
+
+            new BukkitRunnable() {
+                int tick = 0;
+                int reach = 0;   // longueur deja construite
+                int faded = 0;   // nombre de blocs deja retires
+
+                @Override public void run() {
+                    try {
+                        tick++;
+                        if (!p.isOnline()) { restoreAll(); cancel(); return; }
+                        if (reach < LENGTH) {
+                            for (int i = 0; i < BLOCKS_PER_TICK && reach < LENGTH; i++) { reach++; buildSlice(reach); }
+                            strike(reach);
+                            Location front = origin.clone().add(0.5, 0.5, 0.5).add(axis.clone().multiply(reach));
+                            w.spawnParticle(Particle.DUST, front, 30, Math.abs(side.getX()) * HALF_WIDTH + 0.5, 1.5, Math.abs(side.getZ()) * HALF_WIDTH + 0.5, 0, PINK);
+                            w.spawnParticle(Particle.END_ROD, front, 6, Math.abs(side.getX()) * HALF_WIDTH, 1, Math.abs(side.getZ()) * HALF_WIDTH, 0.05);
+                            if (reach % 6 == 0) w.playSound(front, Sound.BLOCK_GLASS_PLACE, 1f, 1.6f);
+                        } else if (tick < LENGTH / BLOCKS_PER_TICK + HOLD_TICKS) {
+                            // Le rayon reste allume : brume rose et etincelles le long du faisceau.
+                            for (int i = 0; i < 6; i++) {
+                                Location l = origin.clone().add(0.5, 0.5, 0.5).add(axis.clone().multiply(Math.random() * LENGTH))
+                                        .add(side.clone().multiply(Math.random() * 2 * HALF_WIDTH - HALF_WIDTH)).add(0, Math.random() * 4 - 2, 0);
+                                w.spawnParticle(Particle.DUST, l, 1, 0.3, 0.3, 0.3, 0, Math.random() < 0.5 ? PINK : MAGENTA);
+                            }
+                        } else {
+                            // Dissolution depuis la base vers la pointe.
+                            for (int i = 0; i < FADE_PER_TICK * HALF_WIDTH * 2 && faded < order.size(); i++) {
+                                Block b = order.get(faded++);
+                                BlockState state = placed.remove(b);
+                                if (state != null) state.update(true, false);
+                            }
+                            if (faded >= order.size()) { restoreAll(); cancel(); }
+                        }
+                    } catch (Exception ex) {
+                        plugin().getLogger().warning("Rayon Demoniaque interrompu : " + ex);
+                        restoreAll();
+                        cancel();
+                    }
+                }
+
+                /** Une tranche du rayon : 10 de large, 3 de haut, coeur blanc, corps rose, bords magenta. */
+                void buildSlice(int along) {
+                    for (int lateral = -HALF_WIDTH + 1; lateral <= HALF_WIDTH; lateral++) {
+                        int dist = Math.abs(lateral - (lateral > 0 ? 1 : 0)); // 0 au centre, 4 au bord
+                        for (int up = -1; up <= 1; up++) {
+                            boolean edge = dist == 4 || up != 0;
+                            // Bords arrondis : pas de coins sur les couches haute et basse.
+                            if (up != 0 && dist == 4) continue;
+                            Material m = (dist <= 1 && up == 0) ? Material.WHITE_STAINED_GLASS
+                                    : (dist <= 2 && up == 0) || (dist <= 1) ? Material.PINK_STAINED_GLASS
+                                    : Material.MAGENTA_STAINED_GLASS;
+                            int x = origin.getBlockX() + axis.getBlockX() * along + side.getBlockX() * lateral;
+                            int y = origin.getBlockY() + up;
+                            int z = origin.getBlockZ() + axis.getBlockZ() * along + side.getBlockZ() * lateral;
+                            Block b = w.getBlockAt(x, y, z);
+                            if (!(b.getType().isAir() || b.isReplaceable()) || placed.containsKey(b)) continue;
+                            placed.put(b, b.getState());
+                            order.add(b);
+                            b.setType(m, false);
+                        }
+                    }
+                }
+
+                /** Les ennemis atteints par le front du rayon prennent 5 coeurs. */
+                void strike(int reachNow) {
+                    Location base = origin.clone().add(0.5, 0.5, 0.5);
+                    for (org.bukkit.entity.LivingEntity enemy : Effects.enemiesWithin(p, base.clone().add(axis.clone().multiply(reachNow / 2.0)), reachNow / 2.0 + HALF_WIDTH + 2)) {
+                        if (hit.contains(enemy.getUniqueId())) continue;
+                        Vector rel = enemy.getLocation().add(0, 1, 0).toVector().subtract(base.toVector());
+                        double along = rel.dot(axis), lat = rel.dot(side);
+                        if (along < 0.5 || along > reachNow + 0.5 || Math.abs(lat) > HALF_WIDTH + 0.5 || Math.abs(rel.getY()) > 4) continue;
+                        if (!Effects.canSee(p, enemy)) continue;
+                        hit.add(enemy.getUniqueId());
+                        Effects.damage(enemy, 10.0, p);
+                        enemy.getWorld().spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 30, 0.5, 0.8, 0.5, 0, WHITE);
+                        enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.7f);
+                        if (enemy instanceof Player ep) Msg.actionBar(ep, "<light_purple>Frappe par le Rayon Demoniaque !");
+                    }
+                }
+
+                void restoreAll() {
+                    for (int i = order.size() - 1; i >= 0; i--) {
+                        BlockState state = placed.remove(order.get(i));
+                        if (state != null) state.update(true, false);
+                    }
+                    order.clear();
+                    placed.clear();
+                    Effects.unroot(p);
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
         }
     }
 }
