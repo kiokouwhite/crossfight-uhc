@@ -331,6 +331,8 @@ public final class TestMode implements Listener {
             if (p.getGameMode() == GameMode.SURVIVAL) {
                 refillApples(p);
                 p.setFoodLevel(20);
+                CfPlayer cf = plugin.players().get(p);
+                if (!cf.isUltimateLocked()) cf.setUltimateCharge(100);
             }
         }
     }

@@ -40,7 +40,6 @@ import java.util.UUID;
 public final class Ruby extends Character {
 
     static final Particle.DustOptions ROSE = new Particle.DustOptions(Color.fromRGB(220, 20, 60), 1.4f);
-    private static final Map<UUID, Long> NO_FALL = new HashMap<>();
 
     public Ruby() {
         super("ruby", "Ruby Rose", Voie.CHASSE, Material.DIAMOND_HOE);
@@ -48,7 +47,6 @@ public final class Ruby extends Character {
         addAbility(new PetalesRapide());
         addAbility(new PetalesLent());
         addAbility(new YeuxDArgent());
-        addAbility(new FallGuard());
         addAbility(RWBY.DUO_ITEM);
         setUltimate(new RushDuChaperon());
     }
@@ -68,14 +66,9 @@ public final class Ruby extends Character {
                 "<light_purple>Ultime : 15 s Vitesse III invisible, sans s'arreter");
     }
 
-    /** Protege Ruby des degats de chute pendant un moment (lancers, ruees). */
-    static void noFallUntil(Player p, long millis) {
-        NO_FALL.put(p.getUniqueId(), System.currentTimeMillis() + millis);
-    }
-
-    static boolean noFall(Player p) {
-        Long t = NO_FALL.get(p.getUniqueId());
-        return t != null && System.currentTimeMillis() < t;
+    /** Protege un joueur des degats de chute pendant un moment (lancers, ruees). */
+    public static void noFallUntil(Player p, long millis) {
+        Effects.noFallUntil(p, millis);
     }
 
     static void trail(Player p) {
@@ -269,12 +262,4 @@ public final class Ruby extends Character {
         }
     }
 
-    static final class FallGuard extends PassiveAbility {
-        FallGuard() { super("ruby_fall", "Reception", "Ruby ne subit pas de degats de chute apres ses ruees."); }
-        @Override public boolean hasItem() { return false; }
-        @Override
-        public void onDamaged(Player victim, EntityDamageEvent e, AbilityState st) {
-            if (e.getCause() == EntityDamageEvent.DamageCause.FALL && noFall(victim)) e.setCancelled(true);
-        }
-    }
 }

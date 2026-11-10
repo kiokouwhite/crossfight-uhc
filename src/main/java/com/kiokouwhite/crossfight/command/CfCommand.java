@@ -116,6 +116,16 @@ public final class CfCommand implements TabExecutor {
                             Msg.send(sp, "<green>Jauges de Duo a " + (int) pct + "% avec " + n + " allie(s).");
                         }
                     }
+                    case "credits" -> {
+                        if (!(sender instanceof Player sp)) return true;
+                        int n = 5000;
+                        if (args.length > 1) { try { n = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { } }
+                        var lic = plugin.characters().licence("valorant");
+                        if (lic != null && lic.mechanic() instanceof com.kiokouwhite.crossfight.character.valorant.Valorant.Economy eco) {
+                            eco.set(sp, n);
+                            Msg.send(sp, "<gold>Credits : " + n);
+                        }
+                    }
                     case "clear" -> {
                         int n = plugin.testMode().clearTerrain();
                         Msg.send(sender, "<green>Terrain de test nettoye <gray>(" + n + " blocs remis en place, entites retirees).");
@@ -212,6 +222,7 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf clear <gray>- remettre le terrain de test a neuf");
             Msg.raw(s, "<red>/cf ally <testeur> <gray>- rejoindre l'equipe d'un autre testeur (mode test)");
             Msg.raw(s, "<red>/cf duo [pourcent] <gray>- remplir les jauges d'Ultime en Duo (test)");
+            Msg.raw(s, "<red>/cf credits [n] <gray>- regler ses credits Valorant (test)");
         }
     }
 
@@ -298,7 +309,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {

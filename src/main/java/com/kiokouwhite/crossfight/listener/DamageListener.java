@@ -140,5 +140,6 @@ public final class DamageListener implements Listener {
         }
         CfPlayer cf = plugin.players().get(p);
         if (cf.isWaitingRespawn() || !cf.isAlive()) e.setCancelled(true);
+        if (e.getCause() == EntityDamageEvent.DamageCause.FALL && com.kiokouwhite.crossfight.util.Effects.noFall(p)) e.setCancelled(true);
     }
 }

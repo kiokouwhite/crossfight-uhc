@@ -56,8 +56,6 @@ public final class Weiss extends Character implements Listener {
     static final String[] DUSTS = {"Rouge", "Bleu", "Jaune", "Cyan", "Blanche", "Violette"};
     static final String[] DUST_COLORS = {"red", "blue", "yellow", "aqua", "white", "dark_purple"};
     static final NamespacedKey FIRE_ARROW = new NamespacedKey("crossfight", "weiss_fire_arrow");
-    /** Joueurs invoques par Weiss : Faiblesse permanente et pas de plastron. */
-    static final Set<UUID> SUMMONED = new HashSet<>();
 
     public Weiss() {
         super("weiss", "Weiss Schnee", Voie.DESTRUCTION, Material.DIAMOND_SWORD);
@@ -401,7 +399,7 @@ public final class Weiss extends Character implements Listener {
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (Player o : Bukkit.getOnlinePlayers()) {
                 CfPlayer ocf = plugin().players().get(o);
-                if (ocf.team() == null || ocf.team() == team || ocf.lives() > 0 || SUMMONED.contains(o.getUniqueId())) continue;
+                if (ocf.team() == null || ocf.team() == team || ocf.lives() > 0 || com.kiokouwhite.crossfight.util.Revived.is(o)) continue;
                 if (ocf.character() == null) continue;
                 options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, o.getName(), List.of("<gray>" + ocf.character().name() + " <dark_gray>(" + ocf.team().name() + ")"),
                         () -> summon(p, cf, o)));
@@ -418,37 +416,8 @@ public final class Weiss extends Character implements Listener {
             CfPlayer tcf = plugin().players().get(target);
             if (tcf.lives() > 0 || !target.isOnline()) { Msg.actionBar(weiss, "<red>Ce joueur n'est plus invocable."); wcf.setUltimateCharge(100); return; }
             Team team = wcf.team();
-            plugin().teams().forceJoin(target, team);
-            tcf.setLives(1);
-            tcf.setWaitingRespawn(false);
-            SUMMONED.add(target.getUniqueId());
-            plugin().abilities().clearStates(target);
-            target.teleport(weiss.getLocation().add(Effects.towards(weiss, null).multiply(2)));
-            target.setGameMode(GameMode.SURVIVAL);
-            target.setHealth(20);
-            target.setFoodLevel(20);
-            target.getInventory().setChestplate(null);
-            plugin().abilities().equip(target);
+            com.kiokouwhite.crossfight.util.Revived.revive(weiss, target, team);
             Msg.broadcast("<light_purple>" + weiss.getName() + " invoque <yellow>" + target.getName() + "</yellow> dans " + team.coloredName() + " <light_purple>!");
-            target.getWorld().playSound(target.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, 1f, 0.8f);
-            target.getWorld().spawnParticle(Particle.SOUL, target.getLocation().add(0, 1, 0), 60, 0.5, 0.8, 0.5, 0.05);
-            Msg.send(target, "<light_purple>Weiss t'a invoque : une vie, Faiblesse permanente, pas de plastron.");
-        }
-
-        @Override
-        public void tick(Player p, CfPlayer cf, AbilityState st) {
-            for (UUID u : SUMMONED) {
-                Player s = Bukkit.getPlayer(u);
-                if (s == null) continue;
-                Effects.refresh(s, PotionEffectType.WEAKNESS, 0, 45);
-                ItemStack chest = s.getInventory().getChestplate();
-                if (chest != null) {
-                    s.getInventory().setChestplate(null);
-                    var left = s.getInventory().addItem(chest);
-                    for (ItemStack rest : left.values()) s.getWorld().dropItemNaturally(s.getLocation(), rest);
-                    Msg.actionBar(s, "<red>Les invoques ne peuvent pas porter de plastron.");
-                }
-            }
         }
     }
 }

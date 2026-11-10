@@ -49,6 +49,18 @@ public final class Effects {
     }
 
     /** Immobilise un joueur (plus de deplacement ni de saut) pendant un nombre de ticks. */
+    private static final java.util.Map<java.util.UUID, Long> NO_FALL = new java.util.HashMap<>();
+
+    /** Protege un joueur des degats de chute pendant un moment (ruees, bonds, projections volontaires). */
+    public static void noFallUntil(Player p, long millis) {
+        NO_FALL.put(p.getUniqueId(), System.currentTimeMillis() + millis);
+    }
+
+    public static boolean noFall(Player p) {
+        Long t = NO_FALL.get(p.getUniqueId());
+        return t != null && System.currentTimeMillis() < t;
+    }
+
     public static void say(LivingEntity e, String actionBar) {
         if (e instanceof Player p) Msg.actionBar(p, actionBar);
     }

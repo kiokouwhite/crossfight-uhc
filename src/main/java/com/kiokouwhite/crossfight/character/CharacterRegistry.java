@@ -26,8 +26,7 @@ public final class CharacterRegistry {
         // Equipe de trois
         register(com.kiokouwhite.crossfight.character.fireemblem.FireEmblem.create());
         register(com.kiokouwhite.crossfight.character.rwby.RWBY.create());
-        register(new Licence("valorant", "VALORANT", TeamSize.TRIO,
-                "Pas d'arme attitree : armes blanches par tiers et armes a feu achetees avec des credits."));
+        register(com.kiokouwhite.crossfight.character.valorant.Valorant.create());
         register(new Licence("snk", "SHINGEKI NO KYOJIN", TeamSize.TRIO,
                 "Equipement tridimensionnel avec une jauge de gaz de 100."));
         register(new Licence("unordinary", "UNORDINARY", TeamSize.TRIO,

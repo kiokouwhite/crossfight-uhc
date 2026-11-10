@@ -49,6 +49,7 @@ public final class LivesManager {
             cf.setWaitingRespawn(false);
             if (team != null && plugin.teams().checkElimination(team)) {
                 Msg.broadcast(team.coloredName() + " <gray>est eliminee !");
+                for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().onTeamEliminated(team);
             }
             plugin.game().checkWin();
             return;

@@ -42,7 +42,8 @@ public final class Bullets implements Listener {
             Location last = arrow.getLocation();
             @Override public void run() {
                 ticks++;
-                if (!arrow.isValid() || arrow.isOnGround() || arrow.isInBlock() || ticks > 60) {
+                // On laisse au moins deux ticks a la fleche pour que l'impact soit signale (tirs rases vers le sol).
+                if (!arrow.isValid() || ticks > 60 || (ticks > 2 && (arrow.isOnGround() || arrow.isInBlock()))) {
                     bead.remove();
                     if (arrow.isValid()) arrow.remove();
                     cancel();

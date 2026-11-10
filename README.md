@@ -43,6 +43,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf heal` | Se soigner (test) |
 | `/cf ally <testeur>` | Rejoindre l'équipe d'un autre testeur en mode test |
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY, test) |
+| `/cf credits [n]` | Régler ses crédits Valorant (test) |
 
 ## Déroulement d'une partie
 
@@ -63,7 +64,8 @@ com.kiokouwhite.crossfight
 ├── ability/                moteur de capacités (passif, actif, activable, intervertible, ultime)
 ├── character/              licences, personnages, menu de sélection
 │   ├── fireemblem/         Fire Emblem : Soutien, Marth, Corrin, Takumi, Byleth
-│   └── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
+│   ├── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
+│   └── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -78,6 +80,21 @@ charge l'Ultime de 0,25 % (`ultimate.charge-per-percent-damage` dans `config.yml
 Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permettent pas, donc
 le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
 Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
+
+### Mode test
+
+En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé.
+Les chargeurs, munitions et jauges fonctionnent normalement.
+
+### Hypothèses prises sur Valorant
+
+- Les armes blanches : le doc ne détaille pas encore les catégories et embranchements. En attendant, trois paliers (6, 7.5, 9 dégâts) atteints tous les 3 kills.
+- Les armes à feu tirent des balles (flèches invisibles habillées) avec la puissance indiquée ; « Puissance 0 » vaut une flèche sans enchantement. Un tir à la tête double les dégâts pour Sheriff, Marshal et Operator. Le rechargement est automatique quand le chargeur est vide, ou accroupi + clic droit.
+- L'Ares et l'Odin tirent tout leur chargeur d'un coup, immobile, puis Lenteur II 5 s.
+- Les +100 crédits toutes les 10 minutes suivent l'horloge de la partie.
+- Le drone de Sova est un allay qui suit Sova et tire une flèche de Faiblesse par seconde sur l'ennemi le plus proche à 20 blocs.
+- L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
+- La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.
 
 ### Hypothèses prises sur RWBY
 
@@ -102,8 +119,9 @@ Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 
 - [x] Moteur de capacités et Ultime
 - [x] Fire Emblem : Soutien C à S, Marth, Corrin, Takumi, Byleth
 - [x] RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
+- [x] Valorant : crédits et boutique de 17 armes à feu, paliers d'armes blanches, Neon, Sage, Sova, Jett
 - [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 28 personnages restants
+- [ ] 24 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

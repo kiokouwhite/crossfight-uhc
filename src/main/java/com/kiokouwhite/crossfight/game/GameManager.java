@@ -71,6 +71,7 @@ public final class GameManager {
         int lives = plugin.getConfig().getInt("game.lives", 3);
         for (Team t : plugin.teams().all()) t.setEliminated(false);
         com.kiokouwhite.crossfight.util.Boosts.clearAll();
+        com.kiokouwhite.crossfight.util.Revived.clear();
         for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().reset();
         for (Player p : Bukkit.getOnlinePlayers()) {
             CfPlayer cf = plugin.players().get(p);

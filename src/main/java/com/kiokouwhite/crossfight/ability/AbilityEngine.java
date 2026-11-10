@@ -252,6 +252,7 @@ public final class AbilityEngine implements Listener {
             CfPlayer cf = plugin.players().get(p);
             Character ch = cf.character();
             if (ch == null || cf.isWaitingRespawn() || !cf.isAlive()) continue;
+            com.kiokouwhite.crossfight.util.Revived.tick(p);
             // L'armure n'est jamais visible sur les joueurs : chacun garde l'apparence de son personnage.
             if (hideArmor && !com.kiokouwhite.crossfight.util.Stealth.isArmorHidden(p)) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
             StringBuilder bar = new StringBuilder();
@@ -404,12 +405,14 @@ public final class AbilityEngine implements Listener {
                 Msg.actionBar(p, "<gray>" + a.name() + " est un passif : toujours actif.");
             }
             case UltimateAbility ult -> {
+                boolean free = plugin.game().isTest();
+                if (free) cf.setUltimateCharge(100);
                 if (!cf.isUltimateReady()) {
                     Msg.actionBar(p, "<light_purple>Ultime a " + (int) cf.ultimateCharge() + "%");
                     return;
                 }
                 if (ult.cast(p, cf, st)) {
-                    cf.resetUltimate();
+                    if (free) cf.setUltimateCharge(100); else cf.resetUltimate();
                     p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
                     plugin.game().broadcastNear(p, "<light_purple>" + p.getName() + " utilise <bold>" + ult.name() + "</bold> !");
                 }

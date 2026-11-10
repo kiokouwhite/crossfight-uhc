@@ -27,6 +27,9 @@ public interface LicenceMechanic {
     /** Un joueur de la licence a tue un ennemi. */
     default void onKill(Player killer, Player victim) {}
 
+    /** Une equipe vient d'etre definitivement eliminee (toutes licences prevenues). */
+    default void onTeamEliminated(com.kiokouwhite.crossfight.team.Team team) {}
+
     /** Remise a zero complete (nouvelle partie). */
     default void reset() {}
 }

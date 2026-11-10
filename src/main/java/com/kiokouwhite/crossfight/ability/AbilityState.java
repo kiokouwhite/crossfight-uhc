@@ -22,7 +22,12 @@ public final class AbilityState {
         return left <= 0 ? 0 : (int) Math.ceil(left / 1000.0);
     }
 
-    public void startCooldown(int seconds) { cooldownEndMillis = System.currentTimeMillis() + seconds * 1000L; }
+    public void startCooldown(int seconds) {
+        // En mode test, aucune capacite n'a de temps de chargement.
+        var plugin = com.kiokouwhite.crossfight.CrossfightPlugin.get();
+        if (plugin != null && plugin.game() != null && plugin.game().isTest()) { cooldownEndMillis = 0; return; }
+        cooldownEndMillis = System.currentTimeMillis() + seconds * 1000L;
+    }
     public void clearCooldown() { cooldownEndMillis = 0; }
 
     /** Reduit le temps de chargement restant d'un pourcentage (utile pour Tutorat de Byleth). */
