@@ -245,29 +245,62 @@ public final class Seraphina extends Character {
 
     static final class ExplosionTemporelle extends UltimateAbility {
         ExplosionTemporelle() {
-            super("seraphina_ult", "Explosion temporelle", "Seraphina immobilise tous les ennemis dans un rayon de 30 blocs pendant 5 secondes.", Material.NETHER_STAR);
+            super("seraphina_ult", "Explosion temporelle", "Une explosion temporelle part de Seraphina : l'onde grise progressivement le sol sur 30 blocs et immobilise 5 secondes chaque ennemi qu'elle atteint.", Material.NETHER_STAR);
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             World w = p.getWorld();
-            Location c = p.getLocation();
+            Location c = p.getLocation().clone();
+            final double R = 30.0;
+            w.spawnParticle(Particle.EXPLOSION_EMITTER, c.clone().add(0, 1, 0), 3, 0.5, 0.5, 0.5, 0);
+            w.spawnParticle(Particle.FLASH, c.clone().add(0, 1, 0), 1, 0, 0, 0, 0, Color.fromRGB(230, 230, 235));
+            w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.7f);
             w.playSound(c, Sound.BLOCK_BELL_RESONATE, 1f, 0.5f);
-            w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.4f);
-            int n = 0;
-            for (LivingEntity enemy : Effects.enemiesWithin(p, 30)) {
-                Effects.root(enemy, 100);
-                Effects.say(enemy, "<gold>Explosion temporelle : fige 5 s !");
-                n++;
-            }
-            final int count = n;
+            com.kiokouwhite.crossfight.util.TempBlocks floor = new com.kiokouwhite.crossfight.util.TempBlocks().unbreakable();
+            java.util.Set<UUID> frozen = new java.util.HashSet<>();
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
                     t++;
-                    if (t > 10) { cancel(); return; }
-                    clockBurst(w, c, t * 3.0, 24 + t * 6);
+                    try {
+                        // L'onde avance de 1,5 bloc par tick : en 20 ticks elle a grise les 30 blocs.
+                        if (t <= 20) {
+                            double rNow = R * t / 20.0, rPrev = R * (t - 1) / 20.0;
+                            int ri = (int) Math.ceil(rNow);
+                            for (int x = -ri; x <= ri; x++) for (int z = -ri; z <= ri; z++) {
+                                double d = Math.sqrt(x * x + z * z);
+                                if (d > rNow || d <= rPrev) continue;
+                                int y = Effects.groundAround(w, c.getBlockX() + x, c.getBlockZ() + z, c.getBlockY());
+                                if (y == Integer.MIN_VALUE) continue;
+                                org.bukkit.block.Block top = w.getBlockAt(c.getBlockX() + x, y, c.getBlockZ() + z);
+                                if (top.getType().isSolid()) floor.replace(top, GREYS[(int) (Math.random() * (GREYS.length - 1))]);
+                            }
+                            // Le front de l'onde : anneau de poussiere grise et de fumee, qui fige ce qu'il touche.
+                            int pts = (int) (2 * Math.PI * rNow);
+                            for (int i = 0; i < Math.max(8, pts); i++) {
+                                double a = i * 2 * Math.PI / Math.max(8, pts);
+                                Location l = c.clone().add(Math.cos(a) * rNow, 0.5 + Math.random() * 1.5, Math.sin(a) * rNow);
+                                w.spawnParticle(Particle.DUST, l, 1, 0.2, 0.3, 0.2, 0, GREY);
+                                if (i % 3 == 0) w.spawnParticle(Particle.CLOUD, l, 1, 0.2, 0.2, 0.2, 0.02);
+                            }
+                            if (t % 4 == 0) w.playSound(c.clone().add(rNow, 0, 0), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.2f + t * 0.02f);
+                            for (LivingEntity enemy : Effects.within(c, rNow + 1.0, le -> Effects.isEnemy(p, le))) {
+                                if (!frozen.add(enemy.getUniqueId())) continue;
+                                Effects.root(enemy, 100);
+                                Effects.say(enemy, "<gold>Explosion temporelle : fige 5 s !");
+                                w.spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0, GREY);
+                                clockBurst(w, enemy.getLocation(), 1.0, 16);
+                            }
+                            if (t == 20) Msg.actionBar(p, "<gold>Explosion temporelle : " + frozen.size() + " ennemi(s) fige(s)");
+                        } else if (t % 4 == 0) {
+                            for (int i = 0; i < 20; i++) {
+                                double a = Math.random() * Math.PI * 2, r = Math.random() * R;
+                                w.spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * r, 0.3 + Math.random() * 2.5, Math.sin(a) * r), 1, 0.1, 0.1, 0.1, 0, GREY);
+                            }
+                        }
+                        if (t >= 120) { floor.restore(); w.playSound(c, Sound.BLOCK_BELL_USE, 0.8f, 1.2f); cancel(); }
+                    } catch (Exception ex) { floor.restore(); cancel(); }
                 }
             }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
-            Msg.actionBar(p, "<gold>Explosion temporelle : " + count + " ennemi(s) fige(s)");
             return true;
         }
     }
