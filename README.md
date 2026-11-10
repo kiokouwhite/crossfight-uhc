@@ -91,6 +91,11 @@ Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 
 - [ ] 32 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
+### Combat façon 1.8
+
+Activé par `pvp.legacy-combat` dans `config.yml` : aucun temps de recharge d'attaque, pas
+d'attaque balayante, et maintenir le clic gauche sur un ennemi à portée enchaîne les coups.
+
 ## Télécharger le plugin sans compiler
 
 Le dernier jar compilé est dans le dossier `dist/` :

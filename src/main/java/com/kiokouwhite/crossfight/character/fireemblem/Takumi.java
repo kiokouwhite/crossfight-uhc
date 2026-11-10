@@ -261,7 +261,7 @@ public final class Takumi extends Character implements Listener {
             for (org.bukkit.entity.LivingEntity enemy : hit) Effects.damage(enemy, 10.0, p);
             for (double d = 0; d <= 30; d += 1.0) {
                 Location l = eye.clone().add(dir.clone().multiply(d));
-                l.getWorld().spawnParticle(Particle.DRAGON_BREATH, l, 12, 1.5, 1.5, 1.5, 0.01);
+                l.getWorld().spawnParticle(Particle.DRAGON_BREATH, l, 12, 1.5, 1.5, 1.5, 0.01, 1.0f);
                 l.getWorld().spawnParticle(Particle.END_ROD, l, 4, 0.8, 0.8, 0.8, 0.02);
             }
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1f, 0.5f);

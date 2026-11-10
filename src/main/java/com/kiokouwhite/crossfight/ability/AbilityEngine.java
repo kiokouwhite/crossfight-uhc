@@ -95,6 +95,7 @@ public final class AbilityEngine implements Listener {
         }
         if (ch.licence() != null && ch.licence().mechanic() != null) ch.licence().mechanic().onEquip(p);
         Boosts.apply(p);
+        plugin.legacyCombat().apply(p);
     }
 
     /** Retire les items de capacite et appelle les hooks de fin. */
@@ -238,7 +239,9 @@ public final class AbilityEngine implements Listener {
                     : "<green>" + a.name() + " ✔";
             case TOGGLE -> piece = (st.isEnabled() ? "<aqua>" : "<gray>") + a.name() + " " + (int) st.gauge() + "%";
             case SWITCH -> piece = "<yellow>" + a.name() + " <white>[" + ((SwitchAbility) a).modeName(st.mode()) + "]";
-            case ULTIMATE -> piece = cf.isUltimateReady()
+            case ULTIMATE -> piece = cf.isUltimateLocked()
+                    ? "<dark_purple>Ultime en cours"
+                    : cf.isUltimateReady()
                     ? "<light_purple><bold>ULTIME PRET</bold>"
                     : "<light_purple>Ultime " + (int) cf.ultimateCharge() + "%";
             default -> { return; }

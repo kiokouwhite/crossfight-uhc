@@ -44,7 +44,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class Byleth extends Character implements Listener {
 
-    static final String DIMENSION_WORLD = "crossfight_byleth";
+    static final String DIMENSION_WORLD = "crossfight_tenebres";
     static final String SWORD_ID = "byleth_sword";
 
     public Byleth() {
@@ -78,13 +78,11 @@ public final class Byleth extends Character implements Listener {
                 "<light_purple>Ultime : emprisonne les ennemis dans une dimension");
     }
 
+    /** Les Tenebres : un sol noir infini sous un ciel noir, sans aucune lumiere. */
     public static World dimension() {
-        World w = ArenaWorlds.get(DIMENSION_WORLD);
-        if (w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).getType() == Material.AIR) {
-            ArenaWorlds.buildPlatform(w, 20, Material.OBSIDIAN, Material.BARRIER, 10);
-            // Plafond pour empecher de construire vers le haut.
-            for (int x = -20; x <= 20; x++) for (int z = -20; z <= 20; z++) w.getBlockAt(x, ArenaWorlds.FLOOR_Y + 11, z).setType(Material.BARRIER, false);
-        }
+        World w = ArenaWorlds.get(DIMENSION_WORLD,
+                new ArenaWorlds.InfiniteFloorGenerator(Material.BLACK_CONCRETE), World.Environment.THE_END);
+        w.setTime(18000);
         return w;
     }
 
@@ -524,35 +522,160 @@ public final class Byleth extends Character implements Listener {
                     Material.ENDER_EYE);
         }
 
+        // Chronologie (ticks) : Byleth enveloppee 0-30, vague 30-70, zone emportee a 80.
+        private static final int ENVELOP_END = 30;
+        private static final int WAVE_END = 70;
+        private static final int CARRY_TICK = 80;
+        private static final double RANGE = 20.0;
+        private static final Particle.DustOptions DEEP = new Particle.DustOptions(org.bukkit.Color.fromRGB(70, 10, 110), 2.6f);
+        private static final Particle.DustOptions VIOLET = new Particle.DustOptions(org.bukkit.Color.fromRGB(130, 30, 190), 1.8f);
+        private static final Particle.DustOptions BRIGHT = new Particle.DustOptions(org.bukkit.Color.fromRGB(200, 90, 255), 1.0f);
+
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             if (activeByleth != null) {
                 Msg.actionBar(p, "<red>La dimension est deja occupee.");
                 return false;
             }
-            List<org.bukkit.entity.LivingEntity> enemies = Effects.enemiesWithin(p, 20);
-            if (enemies.isEmpty()) {
+            List<org.bukkit.entity.LivingEntity> marked = Effects.enemiesWithin(p, RANGE);
+            if (marked.isEmpty()) {
                 Msg.actionBar(p, "<red>Aucun ennemi a moins de 20 blocs.");
                 return false;
             }
-            World dim = dimension();
             activeByleth = p.getUniqueId();
             castAt = System.currentTimeMillis();
+            cf.setUltimateLocked(true);
             returnPoints.clear();
-            returnPoints.put(p.getUniqueId(), p.getLocation());
-            p.teleport(ArenaWorlds.center(dim));
-            Msg.send(p, "<dark_purple>Tu entraines " + enemies.size() + " ennemi(s) dans les Tenebres.");
-            ThreadLocalRandom r = ThreadLocalRandom.current();
-            for (org.bukkit.entity.LivingEntity enemy : enemies) {
-                returnPoints.put(enemy.getUniqueId(), enemy.getLocation());
-                enemy.teleport(ArenaWorlds.center(dim).add(r.nextInt(-12, 13), 0, r.nextInt(-12, 13)));
-                if (enemy instanceof Player ep) {
-                    Msg.send(ep, "<dark_purple>Byleth t'a entraine dans les Tenebres. Tu n'en sortiras que par sa mort.");
-                    ep.playSound(ep.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+            // Byleth est figee et intouchable le temps que les Tenebres l'enveloppent.
+            st.set("invulnUntil", System.currentTimeMillis() + (CARRY_TICK + 10) * 50L);
+            Effects.root(p, CARRY_TICK + 10);
+            final Location origin = p.getLocation();
+            final World w = p.getWorld();
+            final List<org.bukkit.entity.LivingEntity> caught = new ArrayList<>();
+            w.playSound(origin, Sound.ENTITY_WITHER_AMBIENT, 1f, 0.4f);
+            w.playSound(origin, Sound.BLOCK_PORTAL_TRIGGER, 0.6f, 0.5f);
+
+            new BukkitRunnable() {
+                int tick = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead()) { Effects.unroot(p); for (var e : caught) Effects.unroot(e); finish(); cancel(); return; }
+                    int t = tick++;
+                    try {
+                        if (t < ENVELOP_END) envelop(t);
+                        else if (t < WAVE_END) wave(t);
+                        else if (t < CARRY_TICK) climax(t);
+                        else { carry(); cancel(); }
+                    } catch (Exception ex) {
+                        plugin().getLogger().warning("Ultime de Byleth interrompu : " + ex);
+                        Effects.unroot(p);
+                        for (var e : caught) Effects.unroot(e);
+                        finish();
+                        cancel();
+                    }
                 }
-            }
-            dim.playSound(ArenaWorlds.center(dim), Sound.ENTITY_WITHER_SPAWN, 1f, 0.6f);
+
+                /** La masse violette monte le long de Byleth et l'enveloppe entierement. */
+                void envelop(int t) {
+                    double height = Math.min(2.2, 0.2 + t * 0.08);
+                    Location base = p.getLocation();
+                    for (int i = 0; i < 14; i++) {
+                        double a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6, y = Math.random() * height;
+                        Location l = base.clone().add(Math.cos(a) * r, y, Math.sin(a) * r);
+                        w.spawnParticle(Particle.DUST, l, 1, 0.05, 0.05, 0.05, 0, y > height - 0.4 ? VIOLET : DEEP);
+                    }
+                    w.spawnParticle(Particle.WITCH, base.clone().add(0, height, 0), 3, 0.4, 0.2, 0.4, 0);
+                    w.spawnParticle(Particle.SMOKE, base.clone().add(0, 0.2, 0), 2, 0.3, 0.1, 0.3, 0.01);
+                    if (t % 10 == 0) w.playSound(base, Sound.ENTITY_ENDERMAN_AMBIENT, 0.6f, 0.5f);
+                }
+
+                /** La vague violette s'etend depuis Byleth et piege chaque ennemi qu'elle atteint. */
+                void wave(int t) {
+                    envelopAround(p.getLocation(), 1.0, 2.2, 8);
+                    double radius = (t - ENVELOP_END) / (double) (WAVE_END - ENVELOP_END) * RANGE;
+                    for (double a = 0; a < Math.PI * 2; a += Math.toRadians(12)) {
+                        Location l = origin.clone().add(Math.cos(a) * radius, 0.3 + Math.random() * 1.5, Math.sin(a) * radius);
+                        w.spawnParticle(Particle.DUST, l, 1, 0.3, 0.3, 0.3, 0, VIOLET);
+                        if (Math.random() < 0.3) w.spawnParticle(Particle.DUST, l, 1, 0.5, 0.8, 0.5, 0, DEEP);
+                    }
+                    for (org.bukkit.entity.LivingEntity e : marked) {
+                        if (caught.contains(e) || e.isDead()) continue;
+                        if (e.getLocation().distance(origin) <= radius + 1.0) {
+                            caught.add(e);
+                            Effects.root(e, CARRY_TICK - t + 10);
+                            w.playSound(e.getLocation(), Sound.ENTITY_WITHER_HURT, 0.5f, 0.5f);
+                            if (e instanceof Player ep) Msg.actionBar(ep, "<dark_purple>Les Tenebres t'enveloppent...");
+                        }
+                    }
+                    for (org.bukkit.entity.LivingEntity e : caught) envelopAround(e.getLocation(), 0.8, 2.0, 6);
+                    if (t % 8 == 0) w.playSound(origin, Sound.ENTITY_PHANTOM_AMBIENT, 0.5f, 0.4f);
+                }
+
+                /** Tout la zone se remplit de violet avant d'etre emportee. */
+                void climax(int t) {
+                    for (int i = 0; i < 40; i++) {
+                        double a = Math.random() * Math.PI * 2, r = Math.random() * RANGE;
+                        Location l = origin.clone().add(Math.cos(a) * r, Math.random() * 4, Math.sin(a) * r);
+                        w.spawnParticle(Particle.DUST, l, 1, 0.5, 0.5, 0.5, 0, Math.random() < 0.7 ? DEEP : VIOLET);
+                    }
+                    w.spawnParticle(Particle.DRAGON_BREATH, origin.clone().add(0, 1, 0), 10, RANGE / 2, 1.5, RANGE / 2, 0.02, 1.0f);
+                    for (org.bukkit.entity.LivingEntity e : caught) envelopAround(e.getLocation(), 1.0, 2.2, 10);
+                    envelopAround(p.getLocation(), 1.2, 2.4, 12);
+                    if (t == WAVE_END) {
+                        w.playSound(origin, Sound.ENTITY_WITHER_SPAWN, 1f, 0.5f);
+                        Effects.give(p, PotionEffectType.DARKNESS, 0, 60);
+                        for (org.bukkit.entity.LivingEntity e : caught) Effects.give(e, PotionEffectType.DARKNESS, 0, 60);
+                    }
+                }
+
+                void envelopAround(Location base, double radius, double height, int count) {
+                    for (int i = 0; i < count; i++) {
+                        double a = Math.random() * Math.PI * 2, r = Math.random() * radius, y = Math.random() * height;
+                        w.spawnParticle(Particle.DUST, base.clone().add(Math.cos(a) * r, y, Math.sin(a) * r), 1, 0, 0, 0, 0, Math.random() < 0.5 ? DEEP : VIOLET);
+                    }
+                    w.spawnParticle(Particle.DUST, base.clone().add(0, height / 2, 0), 1, radius, height / 2, radius, 0, BRIGHT);
+                }
+
+                /** Toute la zone est emportee dans les Tenebres. */
+                void carry() {
+                    World dim = dimension();
+                    returnPoints.put(p.getUniqueId(), p.getLocation());
+                    for (int i = 0; i < 80; i++) {
+                        double a = Math.random() * Math.PI * 2, r = Math.random() * RANGE;
+                        w.spawnParticle(Particle.DUST, origin.clone().add(Math.cos(a) * r, Math.random() * 3, Math.sin(a) * r), 1, 0, 0, 0, 0, DEEP);
+                    }
+                    w.spawnParticle(Particle.REVERSE_PORTAL, origin.clone().add(0, 1, 0), 200, RANGE / 2, 1.5, RANGE / 2, 0.5);
+                    w.playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.4f);
+                    Effects.unroot(p);
+                    p.teleport(ArenaWorlds.center(dim));
+                    ThreadLocalRandom r = ThreadLocalRandom.current();
+                    int n = 0;
+                    for (org.bukkit.entity.LivingEntity enemy : caught) {
+                        if (enemy.isDead()) continue;
+                        Effects.unroot(enemy);
+                        returnPoints.put(enemy.getUniqueId(), enemy.getLocation());
+                        enemy.teleport(ArenaWorlds.center(dim).add(r.nextInt(-12, 13), 0, r.nextInt(-12, 13)));
+                        if (enemy instanceof Player ep) {
+                            Msg.send(ep, "<dark_purple>Byleth t'a entraine dans les Tenebres. Tu n'en sortiras que par sa mort.");
+                            ep.playSound(ep.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+                        }
+                        n++;
+                    }
+                    Msg.send(p, "<dark_purple>Tu entraines " + n + " ennemi(s) dans les Tenebres.");
+                    dim.playSound(ArenaWorlds.center(dim), Sound.ENTITY_WITHER_SPAWN, 1f, 0.6f);
+                    if (n == 0) {
+                        // Plus personne a emporter : Byleth ressort aussitot.
+                        Location back = returnPoints.get(p.getUniqueId());
+                        if (back != null) p.teleport(back);
+                        finish();
+                    }
+                }
+            }.runTaskTimer(plugin(), 0L, 1L);
             return true;
+        }
+
+        @Override
+        public void onDamaged(Player victim, org.bukkit.event.entity.EntityDamageEvent e, AbilityState st) {
+            if (System.currentTimeMillis() < (long) st.get("invulnUntil", 0L)) e.setCancelled(true);
         }
 
         @Override
@@ -590,7 +713,8 @@ public final class Byleth extends Character implements Listener {
             Location back = returnPoints.get(p.getUniqueId());
             Location target = back != null ? back : plugin().game().randomGroundLocation(300);
             finish();
-            Bukkit.getScheduler().runTask(plugin(), () -> plugin().lives().respawnAt(p, target));
+            // Deux ticks plus tard : apres la reapparition vanilla declenchee par DeathListener.
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> plugin().lives().respawnAt(p, target), 2L);
             Msg.send(p, "<green>Ta mort dans les Tenebres ne te coute aucune vie.");
             return true;
         }
@@ -606,6 +730,10 @@ public final class Byleth extends Character implements Listener {
         }
 
         private void finish() {
+            if (activeByleth != null) {
+                Player b = Bukkit.getPlayer(activeByleth);
+                if (b != null) plugin().players().get(b).setUltimateLocked(false);
+            }
             activeByleth = null;
             returnPoints.clear();
         }

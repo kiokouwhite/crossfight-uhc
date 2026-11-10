@@ -31,11 +31,45 @@ public final class ArenaWorlds {
         }
     }
 
+    /**
+     * Generateur d'un sol infini d'un seul bloc, pour une dimension sans fin.
+     * Le point d'arrivee est place tres loin de l'origine : dans un monde de type End,
+     * le serveur genere le portail de sortie (bedrock) et le combat du dragon autour de 0,0
+     * des que ces chunks sont charges.
+     */
+    public static final class InfiniteFloorGenerator extends ChunkGenerator {
+        public static final int ORIGIN_OFFSET = 100_000;
+        private final Material floor;
+        public InfiniteFloorGenerator(Material floor) { this.floor = floor; }
+        @Override public void generateNoise(org.bukkit.generator.WorldInfo info, java.util.Random random, int cx, int cz, ChunkData data) {
+            data.setRegion(0, FLOOR_Y - 1, 0, 16, FLOOR_Y + 1, 16, floor);
+        }
+        @Override public void generateSurface(org.bukkit.generator.WorldInfo info, java.util.Random random, int cx, int cz, ChunkData data) {
+            data.setRegion(0, FLOOR_Y - 1, 0, 16, FLOOR_Y + 1, 16, floor);
+        }
+        @Override public void generateBedrock(org.bukkit.generator.WorldInfo info, java.util.Random random, int cx, int cz, ChunkData data) {
+            // Pas de bedrock : le sol doit rester noir.
+        }
+        @Override public boolean shouldGenerateNoise() { return false; }
+        @Override public boolean shouldGenerateSurface() { return false; }
+        @Override public boolean shouldGenerateCaves() { return false; }
+        @Override public boolean shouldGenerateDecorations() { return false; }
+        @Override public boolean shouldGenerateMobs() { return false; }
+        @Override public boolean shouldGenerateStructures() { return false; }
+        @Override public Location getFixedSpawnLocation(World world, java.util.Random random) {
+            return new Location(world, ORIGIN_OFFSET + 0.5, FLOOR_Y + 1, ORIGIN_OFFSET + 0.5);
+        }
+    }
+
     /** Charge ou cree un monde vide avec les regles d'arene. */
     public static World get(String name) {
+        return get(name, new VoidGenerator(), World.Environment.NORMAL);
+    }
+
+    public static World get(String name, ChunkGenerator generator, World.Environment environment) {
         World w = Bukkit.getWorld(name);
         if (w != null) return w;
-        WorldCreator wc = new WorldCreator(name).generator(new VoidGenerator()).environment(World.Environment.NORMAL);
+        WorldCreator wc = new WorldCreator(name).generator(generator).environment(environment);
         w = wc.createWorld();
         if (w == null) throw new IllegalStateException("Impossible de creer le monde " + name);
         w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
@@ -46,7 +80,9 @@ public final class ArenaWorlds {
         w.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
         w.setTime(6000);
         w.setStorm(false);
-        w.setSpawnLocation(0, FLOOR_Y + 1, 0);
+        Location fixed = generator.getFixedSpawnLocation(w, new java.util.Random());
+        if (fixed != null) w.setSpawnLocation(fixed.getBlockX(), fixed.getBlockY(), fixed.getBlockZ());
+        else w.setSpawnLocation(0, FLOOR_Y + 1, 0);
         return w;
     }
 
@@ -73,7 +109,9 @@ public final class ArenaWorlds {
         }
     }
 
+    /** Centre de l'arene : le point d'apparition du monde. */
     public static Location center(World w) {
-        return new Location(w, 0.5, FLOOR_Y + 1, 0.5);
+        Location s = w.getSpawnLocation();
+        return new Location(w, s.getBlockX() + 0.5, FLOOR_Y + 1, s.getBlockZ() + 0.5);
     }
 }

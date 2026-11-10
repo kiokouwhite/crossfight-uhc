@@ -87,6 +87,16 @@ public final class Mannequins implements Listener {
         var reinf = z.getAttribute(Attribute.SPAWN_REINFORCEMENTS);
         if (reinf != null) reinf.setBaseValue(0.0);
         z.setHealth(MAX_HEALTH);
+        // Equipement standard de Crossfight : 2 pieces diamant Protection 2, 2 pieces fer Protection 3.
+        var eq = z.getEquipment();
+        eq.setHelmet(armor(org.bukkit.Material.IRON_HELMET, 3));
+        eq.setChestplate(armor(org.bukkit.Material.DIAMOND_CHESTPLATE, 2));
+        eq.setLeggings(armor(org.bukkit.Material.DIAMOND_LEGGINGS, 2));
+        eq.setBoots(armor(org.bukkit.Material.IRON_BOOTS, 3));
+        eq.setHelmetDropChance(0f);
+        eq.setChestplateDropChance(0f);
+        eq.setLeggingsDropChance(0f);
+        eq.setBootsDropChance(0f);
         updateName(z);
         return z;
     }
@@ -101,6 +111,15 @@ public final class Mannequins implements Listener {
         for (BukkitTask t : REGEN.values()) t.cancel();
         REGEN.clear();
         return n;
+    }
+
+    private static org.bukkit.inventory.ItemStack armor(org.bukkit.Material m, int protection) {
+        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(m);
+        var meta = it.getItemMeta();
+        meta.addEnchant(org.bukkit.enchantments.Enchantment.PROTECTION, protection, true);
+        meta.setUnbreakable(true);
+        it.setItemMeta(meta);
+        return it;
     }
 
     private static void updateName(LivingEntity e) {

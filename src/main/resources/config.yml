@@ -30,6 +30,11 @@ ultimate:
   # Pourcentage d'ultime gagne par 1% de degats (1% = 0.2 PV, soit 1/10 de coeur)
   charge-per-percent-damage: 0.25
 
+pvp:
+  # Combat facon 1.8 : pas de temps de recharge d'attaque, pas de balayage,
+  # et maintenir le clic gauche enchaine les coups.
+  legacy-combat: true
+
 restrictions:
   max-diamond-pieces: 2
   max-protection-diamond: 2

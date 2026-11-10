@@ -30,6 +30,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     private GameManager gameManager;
     private ScoreboardManager scoreboardManager;
     private com.kiokouwhite.crossfight.game.TestMode testMode;
+    private com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat;
 
     public static CrossfightPlugin get() {
         return instance;
@@ -62,6 +63,9 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Mannequins(), this);
         pm.registerEvents(testMode, this);
+        legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
+        pm.registerEvents(legacyCombat, this);
+        for (var p : getServer().getOnlinePlayers()) legacyCombat.apply(p);
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
         }
@@ -108,4 +112,5 @@ public final class CrossfightPlugin extends JavaPlugin {
     public GameManager game() { return gameManager; }
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
+    public com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat() { return legacyCombat; }
 }

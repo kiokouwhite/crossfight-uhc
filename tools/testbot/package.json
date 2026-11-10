@@ -1,0 +1,8 @@
+{
+  "name": "crossfight-testbot",
+  "private": true,
+  "description": "Bots mineflayer pour tester le plugin sur un serveur Paper local en mode hors ligne",
+  "dependencies": {
+    "mineflayer": "^4.39.0"
+  }
+}

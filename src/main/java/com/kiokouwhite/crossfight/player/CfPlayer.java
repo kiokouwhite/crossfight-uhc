@@ -22,6 +22,8 @@ public final class CfPlayer {
 
     /** Jauge d'ultime, de 0 a 100. */
     private double ultimateCharge;
+    /** Tant que c'est vrai, la jauge ne se charge plus (ultime en cours). */
+    private boolean ultimateLocked;
     /** Degats infliges cumules, en pourcentage de barre de vie (10 coeurs = 100). Utilise pour Synergie/Burst. */
     private double damageDealtPercent;
     private double damageTakenPercent;
@@ -58,7 +60,12 @@ public final class CfPlayer {
 
     public double ultimateCharge() { return ultimateCharge; }
     public boolean isUltimateReady() { return ultimateCharge >= 100.0; }
-    public void addUltimateCharge(double percent) { ultimateCharge = Math.min(100.0, Math.max(0.0, ultimateCharge + percent)); }
+    public void addUltimateCharge(double percent) {
+        if (ultimateLocked && percent > 0) return;
+        ultimateCharge = Math.min(100.0, Math.max(0.0, ultimateCharge + percent));
+    }
+    public boolean isUltimateLocked() { return ultimateLocked; }
+    public void setUltimateLocked(boolean locked) { this.ultimateLocked = locked; }
     public void setUltimateCharge(double v) { ultimateCharge = Math.min(100.0, Math.max(0.0, v)); }
     public void resetUltimate() { ultimateCharge = 0.0; }
 
@@ -78,6 +85,7 @@ public final class CfPlayer {
         this.lives = lives;
         this.waitingRespawn = false;
         this.ultimateCharge = 0;
+        this.ultimateLocked = false;
         this.damageDealtPercent = 0;
         this.damageTakenPercent = 0;
         this.kills = 0;

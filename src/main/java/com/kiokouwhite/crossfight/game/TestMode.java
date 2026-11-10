@@ -219,6 +219,7 @@ public final class TestMode implements Listener {
         if (mh != null) mh.setBaseValue(20.0);
         p.setHealth(20);
         cf.resetUltimate();
+        cf.setUltimateLocked(false);
         cf.setCooldownFactor(1.0);
         // On retire les items non-equipement pour repartir propre.
         PlayerInventory inv = p.getInventory();
