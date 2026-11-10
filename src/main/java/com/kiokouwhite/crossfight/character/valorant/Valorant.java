@@ -110,6 +110,7 @@ public final class Valorant {
         public void add(Player p, int amount) { credits.put(p.getUniqueId(), credits(p) + amount); }
 
         public boolean spend(Player p, int amount) {
+            if (CrossfightPlugin.get().game().isTest()) return true; // credits infinis en mode test
             if (credits(p) < amount) return false;
             credits.put(p.getUniqueId(), credits(p) - amount);
             return true;
@@ -180,12 +181,14 @@ public final class Valorant {
 
         @Override
         public String barText(Player p, CfPlayer cf, AbilityState st) {
+            if (CrossfightPlugin.get().game().isTest()) return "<gold>∞ cr";
             return "<gold>" + economy().credits(p) + " cr";
         }
 
         @Override
         public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
-            int money = economy().credits(p);
+            boolean free = CrossfightPlugin.get().game().isTest();
+            int money = free ? Integer.MAX_VALUE : economy().credits(p);
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (Guns.Gun g : Guns.ALL) {
                 boolean ok = money >= g.price();
@@ -196,7 +199,7 @@ public final class Valorant {
                 if (g.headshot()) lore.add("<yellow>Degats doubles a la tete");
                 options.add(new ChoiceMenu.Option(g.icon(), g.name(), lore, () -> buy(p, g)));
             }
-            ChoiceMenu.open(p, "<dark_gray>Boutique <gold>" + money + " cr", options);
+            ChoiceMenu.open(p, "<dark_gray>Boutique <gold>" + (free ? "credits infinis" : money + " cr"), options);
             return true;
         }
 
@@ -211,7 +214,7 @@ public final class Valorant {
             int slot = -1;
             for (int i = 1; i < 8; i++) if (inv.getItem(i) == null) { slot = i; break; }
             if (slot >= 0) inv.setItem(slot, gun); else inv.addItem(gun);
-            Msg.send(p, "<gold>Achat : <white>" + g.name() + " <gray>(" + g.price() + " cr, reste " + economy().credits(p) + ")");
+            Msg.send(p, "<gold>Achat : <white>" + g.name() + " <gray>(" + g.price() + " cr, reste " + (CrossfightPlugin.get().game().isTest() ? "infini" : String.valueOf(economy().credits(p))) + ")");
             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 0.8f);
         }
     }
