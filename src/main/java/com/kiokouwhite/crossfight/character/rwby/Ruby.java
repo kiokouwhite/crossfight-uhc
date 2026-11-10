@@ -197,12 +197,14 @@ public final class Ruby extends Character {
         public void tickActive(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.SPEED, 1, 45);
             Effects.refresh(p, PotionEffectType.INVISIBILITY, 0, 45);
+            Stealth.hideArmor(p);
             trail(p);
         }
 
         @Override
         public void onDisable(Player p, CfPlayer cf, AbilityState st) {
             Stealth.reveal(p, "ruby_lent");
+            Stealth.showArmor(p);
             p.removePotionEffect(PotionEffectType.INVISIBILITY);
         }
     }
@@ -253,7 +255,8 @@ public final class Ruby extends Character {
                 int ticks = 0;
                 @Override public void run() {
                     ticks++;
-                    if (ticks > 20 * 15 || !p.isOnline() || p.isDead()) { Stealth.reveal(p, "ruby_ult"); cancel(); return; }
+                    if (ticks > 20 * 15 || !p.isOnline() || p.isDead()) { Stealth.reveal(p, "ruby_ult"); Stealth.showArmor(p); cancel(); return; }
+                    if (ticks % 20 == 1) Stealth.hideArmor(p);
                     Vector dir = p.getLocation().getDirection().setY(0);
                     if (dir.lengthSquared() > 0.01) {
                         dir.normalize().multiply(0.55);

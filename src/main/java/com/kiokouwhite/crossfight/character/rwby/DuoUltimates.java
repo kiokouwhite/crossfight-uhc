@@ -178,8 +178,9 @@ final class DuoUltimates {
             Effects.give(p, PotionEffectType.SPEED, 2, 20 * 30);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 30);
             Stealth.hideFromAll(p, "duo_rb", v -> Effects.isEnemy(p, v));
+            Stealth.hideArmor(p);
             p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
-            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> Stealth.reveal(p, "duo_rb"), 20L * 30);
+            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(p, "duo_rb"); Stealth.showArmor(p); }, 20L * 30);
         }
         ruby.getWorld().playSound(ruby.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.8f);
         return true;
@@ -241,8 +242,9 @@ final class DuoUltimates {
             FREEZING_HITS.put(p.getUniqueId(), until);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 10);
             Stealth.hideFromAll(p, "duo_wb", v -> Effects.isEnemy(p, v));
+            Stealth.hideArmor(p);
             p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
-            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(p, "duo_wb"); FREEZING_HITS.remove(p.getUniqueId()); }, 20L * 10);
+            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(p, "duo_wb"); Stealth.showArmor(p); FREEZING_HITS.remove(p.getUniqueId()); }, 20L * 10);
         }
         weiss.getWorld().playSound(weiss.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.6f);
         return true;

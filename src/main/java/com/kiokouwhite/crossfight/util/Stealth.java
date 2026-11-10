@@ -59,6 +59,7 @@ public final class Stealth {
 
     /** Tout retirer (fin de partie, mort). */
     public static void revealAll(Player target) {
+        showArmor(target);
         Map<String, Set<UUID>> bySource = HIDDEN.remove(target.getUniqueId());
         if (bySource == null) return;
         for (Set<UUID> set : bySource.values()) {
@@ -67,6 +68,45 @@ public final class Stealth {
                 if (v != null) v.showPlayer(CrossfightPlugin.get(), target);
             }
         }
+    }
+
+    private static final Set<UUID> ARMOR_HIDDEN = new HashSet<>();
+
+    /**
+     * Cache l'armure du joueur aux yeux de tous les autres (les ennemis ne le voient de
+     * toute facon pas, les allies le voient sans equipement). A rappeler chaque seconde.
+     */
+    public static void hideArmor(Player target) {
+        ARMOR_HIDDEN.add(target.getUniqueId());
+        org.bukkit.inventory.ItemStack air = new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR);
+        for (Player v : Bukkit.getOnlinePlayers()) {
+            if (v == target) continue;
+            for (org.bukkit.inventory.EquipmentSlot slot : new org.bukkit.inventory.EquipmentSlot[]{
+                    org.bukkit.inventory.EquipmentSlot.HEAD, org.bukkit.inventory.EquipmentSlot.CHEST,
+                    org.bukkit.inventory.EquipmentSlot.LEGS, org.bukkit.inventory.EquipmentSlot.FEET,
+                    org.bukkit.inventory.EquipmentSlot.HAND, org.bukkit.inventory.EquipmentSlot.OFF_HAND}) {
+                v.sendEquipmentChange(target, slot, air);
+            }
+        }
+    }
+
+    /** Renvoie l'equipement reel du joueur a tout le monde. */
+    public static void showArmor(Player target) {
+        if (!ARMOR_HIDDEN.remove(target.getUniqueId())) return;
+        var eq = target.getEquipment();
+        for (Player v : Bukkit.getOnlinePlayers()) {
+            if (v == target) continue;
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HEAD, eq.getHelmet());
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.CHEST, eq.getChestplate());
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.LEGS, eq.getLeggings());
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.FEET, eq.getBoots());
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HAND, eq.getItemInMainHand());
+            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.OFF_HAND, eq.getItemInOffHand());
+        }
+    }
+
+    public static boolean isArmorHidden(Player target) {
+        return ARMOR_HIDDEN.contains(target.getUniqueId());
     }
 
     public static boolean isHiddenFrom(Player target, Player viewer) {

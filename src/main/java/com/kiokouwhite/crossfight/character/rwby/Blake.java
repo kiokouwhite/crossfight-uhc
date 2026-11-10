@@ -237,11 +237,13 @@ public final class Blake extends Character implements Listener {
         public void tickActive(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.INVISIBILITY, 0, 45);
             Stealth.hideFromAll(p, "blake_discretion", v -> Effects.isEnemy(p, v));
+            Stealth.hideArmor(p);
         }
 
         @Override
         public void onDisable(Player p, CfPlayer cf, AbilityState st) {
             Stealth.reveal(p, "blake_discretion");
+            Stealth.showArmor(p);
             p.removePotionEffect(PotionEffectType.INVISIBILITY);
         }
 
