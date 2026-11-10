@@ -85,7 +85,7 @@ public final class Taka extends Character implements Listener {
         return List.of(
                 "<white>Multi-Arme : clic droit, toutes les armes invoquees foncent sur l'ennemi",
                 "<white>Epee Flottante (x3) - Lance Volante (1 vie perdue, x2) - Hache Tournoyante (2 vies, x1)",
-                "<light_purple>Ultime : 10 armes indestructibles a 50 blocs");
+                "<light_purple>Ultime : 10 armes indestructibles a 50 blocs pendant 1 min");
     }
 
     static int livesLost(Player p) {
@@ -136,7 +136,7 @@ public final class Taka extends Character implements Listener {
             @Override public void run() {
                 if (!stand.isValid() || !SUMMONS.contains(s)) { cancel(); return; }
                 s.age++;
-                if (!s.ult && s.age > 20 * 60) { destroy(s, "<gray>L'arme s'est dissipee."); cancel(); return; }
+                if (s.age > 20 * 60) { destroy(s, s.ult ? null : "<gray>L'arme s'est dissipee."); cancel(); return; }
                 Player o = Bukkit.getPlayer(s.owner);
                 if (o == null) { destroy(s, null); cancel(); return; }
                 try { tick(s, o); } catch (Exception ex) { destroy(s, null); cancel(); }
@@ -286,7 +286,7 @@ public final class Taka extends Character implements Listener {
 
     static final class MultiInvocation extends UltimateAbility {
         MultiInvocation() {
-            super("taka_ult", "Multi-Invocation", "Taka invoque 10 armes au hasard a 50 blocs autour d'elle : indestructibles, elles ne peuvent pas etre lancees par la Multi-Arme.", Material.NETHERITE_AXE);
+            super("taka_ult", "Multi-Invocation", "Taka invoque 10 armes au hasard a 50 blocs autour d'elle pendant 1 minute : indestructibles, elles ne peuvent pas etre lancees par la Multi-Arme.", Material.NETHERITE_AXE);
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             World w = p.getWorld();
