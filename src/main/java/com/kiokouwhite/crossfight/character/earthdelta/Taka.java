@@ -59,6 +59,7 @@ public final class Taka extends Character implements Listener {
     static final class Summon {
         final Kind kind; final ArmorStand stand; final UUID owner; final boolean ult;
         final Location origin; final Vector dir; int hits; int age; double phase;
+        int strikeT; LivingEntity strikeTarget;
         final Map<UUID, Long> lastHit = new HashMap<>();
         Summon(Kind kind, ArmorStand stand, UUID owner, boolean ult, Location origin, Vector dir) {
             this.kind = kind; this.stand = stand; this.owner = owner; this.ult = ult; this.origin = origin; this.dir = dir;
@@ -111,6 +112,8 @@ public final class Taka extends Character implements Listener {
         if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
         dir.normalize();
         Location base = at.clone();
+        // L'epee est plantee : le porte-armure est enfonce pour que la lame soit dans le sol, la poignee dehors.
+        if (kind == Kind.SWORD) base.add(0, -0.75, 0);
         base.setYaw(owner.getLocation().getYaw());
         ArmorStand stand = w.spawn(base, ArmorStand.class, s -> {
             s.setInvisible(true);
@@ -126,7 +129,7 @@ public final class Taka extends Character implements Listener {
             ItemStack weapon = new ItemStack(kind.item);
             if (ult) { var meta = weapon.getItemMeta(); meta.setEnchantmentGlintOverride(true); weapon.setItemMeta(meta); }
             s.getEquipment().setItemInMainHand(weapon);
-            s.setRightArmPose(kind == Kind.SWORD ? new EulerAngle(Math.PI, 0, 0) : new EulerAngle(-Math.PI / 2, 0, 0));
+            s.setRightArmPose(kind == Kind.SWORD ? new EulerAngle(Math.PI / 2, 0, 0) : new EulerAngle(-Math.PI / 2, 0, 0));
         });
         Summon s = new Summon(kind, stand, owner.getUniqueId(), ult, at.clone(), dir);
         SUMMONS.add(s);
@@ -149,14 +152,62 @@ public final class Taka extends Character implements Listener {
         World w = s.stand.getWorld();
         switch (s.kind) {
             case SWORD -> {
-                // Plantee, elle tourne doucement et blesse ce qui s'approche a 2 blocs chaque seconde.
-                Location l = s.stand.getLocation();
-                l.setYaw(l.getYaw() + 3);
-                s.stand.teleport(l);
-                if (s.age % 20 == 0) {
-                    for (LivingEntity e : Effects.within(l, 2.0, le -> Effects.isEnemy(o, le))) { e.setNoDamageTicks(0); Effects.damage(e, s.kind.damage, o); }
-                    w.spawnParticle(Particle.SWEEP_ATTACK, l.clone().add(0, 1, 0), 1);
+                // Plantee dans le sol. Quand un ennemi s'approche a 2 blocs, elle jaillit, le frappe et se replante.
+                Location planted = s.origin.clone().add(0, -0.75, 0);
+                if (s.strikeT == 0) {
+                    if (s.age % 40 == 0) w.spawnParticle(Particle.CRIT, s.origin.clone().add(0, 0.6, 0), 2, 0.1, 0.2, 0.1, 0.01);
+                    if (s.age % 5 != 0) return;
+                    long now = System.currentTimeMillis();
+                    LivingEntity target = null; double best = 99;
+                    for (LivingEntity e : Effects.within(s.origin, 2.0, le -> Effects.isEnemy(o, le))) {
+                        if (now - s.lastHit.getOrDefault(e.getUniqueId(), 0L) < 1000) continue;
+                        double d = e.getLocation().distanceSquared(s.origin);
+                        if (d < best) { best = d; target = e; }
+                    }
+                    if (target == null) return;
+                    s.strikeTarget = target; s.strikeT = 1;
+                    w.playSound(s.origin, Sound.BLOCK_GRAVEL_BREAK, 0.8f, 1.4f);
+                    w.spawnParticle(Particle.BLOCK, s.origin, 12, 0.3, 0.1, 0.3, 0, s.origin.clone().subtract(0, 1, 0).getBlock().getBlockData());
+                    return;
                 }
+                LivingEntity t = s.strikeTarget;
+                int k = s.strikeT++;
+                Location tgt = t == null || t.isDead() ? s.origin.clone().add(s.dir) : t.getLocation();
+                Vector to = tgt.toVector().subtract(s.origin.toVector()).setY(0);
+                if (to.lengthSquared() < 0.01) to = s.dir.clone();
+                to.normalize();
+                Location l;
+                if (k <= 3) {
+                    // Elle sort du sol, lame vers le haut.
+                    l = planted.clone().add(0, 0.5 * k, 0);
+                    s.stand.setRightArmPose(new EulerAngle(Math.PI / 2 - Math.PI * k / 3.0, 0, 0));
+                } else if (k <= 7) {
+                    // Elle fonce et abat sa lame sur l'ennemi.
+                    double adv = Math.min(1.2, 0.3 * (k - 3));
+                    l = planted.clone().add(0, 1.5 - 0.15 * (k - 3), 0).add(to.clone().multiply(adv));
+                    s.stand.setRightArmPose(new EulerAngle(-Math.PI / 2 + Math.PI * (k - 3) / 4.0, 0, 0));
+                    if (k == 6) {
+                        if (t != null && !t.isDead() && t.getLocation().distance(s.origin) <= 3.0) {
+                            t.setNoDamageTicks(0);
+                            Effects.damage(t, s.kind.damage, o);
+                            s.lastHit.put(t.getUniqueId(), System.currentTimeMillis());
+                            w.spawnParticle(Particle.SWEEP_ATTACK, t.getLocation().add(0, 1, 0), 1);
+                            w.playSound(t.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.1f);
+                        } else w.playSound(l, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.6f, 1.4f);
+                    }
+                } else if (k <= 11) {
+                    // Elle revient se planter.
+                    double back = 1.2 * (11 - k) / 4.0;
+                    l = planted.clone().add(0, 0.9 * (11 - k) / 4.0, 0).add(to.clone().multiply(back));
+                    s.stand.setRightArmPose(new EulerAngle(Math.PI / 2, 0, 0));
+                } else {
+                    s.strikeT = 0; s.strikeTarget = null;
+                    s.stand.teleport(planted.clone().add(0, 0, 0));
+                    w.playSound(s.origin, Sound.BLOCK_GRAVEL_PLACE, 0.8f, 1.2f);
+                    return;
+                }
+                l.setDirection(to);
+                s.stand.teleport(l);
             }
             case SPEAR -> {
                 // Va-et-vient sur 5 blocs dans la direction d'invocation.
@@ -258,7 +309,7 @@ public final class Taka extends Character implements Listener {
         final Kind kind; final int max; final int livesNeeded;
         Invocation(Kind kind, int cd, int max, int livesNeeded) {
             super("taka_" + kind.name().toLowerCase(), kind.label, switch (kind) {
-                case SWORD -> "Taka plante une epee au sol : 1 coeur par seconde a tout adversaire a 2 blocs. Detruite apres 2 coups ou 1 minute. 3 maximum.";
+                case SWORD -> "Taka plante une epee dans le sol : quand un adversaire s'approche a 2 blocs, elle jaillit et le frappe (1 coeur, une fois par seconde) puis se replante. Detruite apres 2 coups ou 1 minute. 3 maximum.";
                 case SPEAR -> "Debloquee apres 1 vie perdue. Une lance fait des allers-retours sur 5 blocs : 1.5 coeur par touche. Detruite apres 3 coups ou 1 minute. 2 maximum.";
                 case AXE -> "Debloquee apres 2 vies perdues. Une hache tournoie autour de Taka : 2 coeurs par touche. Detruite apres 4 coups ou 1 minute. 1 maximum.";
             }, kind.item, cd);
