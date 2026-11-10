@@ -213,7 +213,7 @@ public final class AbilityEngine implements Listener {
                 }
                 appendBar(bar, a, st, cf);
             }
-            if (!bar.isEmpty()) Msg.actionBar(p, bar.toString());
+            if (!bar.isEmpty() && !Msg.actionBarBusy(p)) p.sendActionBar(Msg.mm(bar.toString()));
         }
     }
 

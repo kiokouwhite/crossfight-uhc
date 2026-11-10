@@ -32,7 +32,7 @@ public final class Effects {
      * Applique un effet de potion sans jamais retrograder un effet plus fort
      * ou plus long deja present.
      */
-    public static void refresh(Player p, PotionEffectType type, int amplifier, int ticks) {
+    public static void refresh(LivingEntity p, PotionEffectType type, int amplifier, int ticks) {
         PotionEffect current = p.getPotionEffect(type);
         if (current != null) {
             if (current.getAmplifier() > amplifier) return;
@@ -102,7 +102,7 @@ public final class Effects {
     /** Un ennemi : un joueur vivant d'une autre equipe, ou un mannequin d'entrainement. */
     public static boolean isEnemy(Player self, LivingEntity entity) {
         if (entity == self || entity == null || entity.isDead()) return false;
-        if (Mannequins.isMannequin(entity)) return true;
+        if (Mannequins.isMannequin(entity)) return !Mannequins.isAlly(entity);
         if (!(entity instanceof Player other)) return false;
         var plugin = CrossfightPlugin.get();
         var cf = plugin.players().get(other);
@@ -118,12 +118,22 @@ public final class Effects {
         return out;
     }
 
-    public static boolean isAlly(Player self, Player other) {
-        if (self == other) return false;
+    /** Un allie : un joueur vivant de la meme equipe, ou un mannequin allie. */
+    public static boolean isAlly(Player self, LivingEntity entity) {
+        if (entity == self || entity == null || entity.isDead()) return false;
+        if (Mannequins.isMannequin(entity)) return Mannequins.isAlly(entity);
+        if (!(entity instanceof Player other)) return false;
         var plugin = CrossfightPlugin.get();
         var cf = plugin.players().get(other);
         if (cf.team() == null || !cf.isAlive() || cf.isWaitingRespawn()) return false;
         return plugin.teams().sameTeam(self, other);
+    }
+
+    /** Joueurs allies uniquement (Soutien, messages...). */
+    public static List<Player> allyPlayersWithin(Player self, double radius) {
+        List<Player> out = new ArrayList<>();
+        for (LivingEntity e : alliesWithin(self, radius)) if (e instanceof Player p) out.add(p);
+        return out;
     }
 
     public static List<LivingEntity> enemiesWithin(Player self, double radius) {
@@ -147,11 +157,11 @@ public final class Effects {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
-    public static List<Player> alliesWithin(Player self, double radius) {
-        List<Player> out = new ArrayList<>();
-        double r2 = radius * radius;
-        for (Player o : self.getWorld().getPlayers()) {
-            if (isAlly(self, o) && o.getLocation().distanceSquared(self.getLocation()) <= r2) out.add(o);
+    public static List<LivingEntity> alliesWithin(Player self, double radius) {
+        List<LivingEntity> out = new ArrayList<>();
+        Location center = self.getLocation();
+        for (org.bukkit.entity.Entity e : center.getWorld().getNearbyEntities(center, radius + 1, radius + 2, radius + 1)) {
+            if (e instanceof LivingEntity le && isAlly(self, le) && distanceToBox(center, le) <= radius) out.add(le);
         }
         return out;
     }
@@ -162,7 +172,7 @@ public final class Effects {
                 .orElse(null);
     }
 
-    public static Player nearestAlly(Player self, double radius) {
+    public static LivingEntity nearestAlly(Player self, double radius) {
         return alliesWithin(self, radius).stream()
                 .min(Comparator.comparingDouble(o -> o.getLocation().distanceSquared(self.getLocation())))
                 .orElse(null);

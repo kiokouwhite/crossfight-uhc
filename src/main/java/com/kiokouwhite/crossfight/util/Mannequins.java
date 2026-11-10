@@ -33,6 +33,7 @@ public final class Mannequins implements Listener {
 
     public static final String TAG = "cf_mannequin";
     public static final String AGGRO_TAG = "cf_mannequin_aggro";
+    public static final String ALLY_TAG = "cf_mannequin_ally";
     public static final double MAX_HEALTH = 100.0;
 
     private static final Map<UUID, BukkitTask> REGEN = new HashMap<>();
@@ -53,10 +54,23 @@ public final class Mannequins implements Listener {
      * @param aggressive true pour un mannequin qui poursuit et frappe les joueurs
      *                   (2 coeurs par coup, vitesse d'un joueur qui marche).
      */
+    public static boolean isAlly(Entity e) {
+        return e != null && e.getScoreboardTags().contains(ALLY_TAG);
+    }
+
     public static LivingEntity spawn(Location loc, boolean aggressive) {
+        return spawn(loc, aggressive, false);
+    }
+
+    /**
+     * @param ally true pour un mannequin considere comme un allie par les capacites
+     *             (soins, Tutorat, Charisme...). Il n'est jamais agressif.
+     */
+    public static LivingEntity spawn(Location loc, boolean aggressive, boolean ally) {
         World w = loc.getWorld();
         Zombie z = (Zombie) w.spawnEntity(loc, EntityType.ZOMBIE);
         z.addScoreboardTag(TAG);
+        if (ally) { z.addScoreboardTag(ALLY_TAG); aggressive = false; }
         if (aggressive) z.addScoreboardTag(AGGRO_TAG);
         z.setAdult();
         // L'IA reste active pour que le mannequin subisse la gravite et les projections ;
@@ -124,7 +138,7 @@ public final class Mannequins implements Listener {
 
     private static void updateName(LivingEntity e) {
         double hp = Math.max(0, e.getHealth());
-        String label = isAggressive(e) ? "<dark_red>Mannequin agressif" : "<gold>Mannequin";
+        String label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
         e.customName(Msg.mm(label + " <red>❤ " + fmt(hp / 2.0) + "<gray>/" + fmt(MAX_HEALTH / 2.0)));
     }
 

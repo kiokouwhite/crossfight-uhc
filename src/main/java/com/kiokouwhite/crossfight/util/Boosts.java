@@ -4,7 +4,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,22 +35,22 @@ public final class Boosts {
 
     private Boosts() {}
 
-    public static void set(Player p, String source, Boost boost) {
+    public static void set(LivingEntity p, String source, Boost boost) {
         BOOSTS.computeIfAbsent(p.getUniqueId(), u -> new HashMap<>()).put(source, boost);
         apply(p);
     }
 
-    public static Boost get(Player p, String source) {
+    public static Boost get(LivingEntity p, String source) {
         Map<String, Boost> m = BOOSTS.get(p.getUniqueId());
         return m == null ? null : m.get(source);
     }
 
-    public static void remove(Player p, String source) {
+    public static void remove(LivingEntity p, String source) {
         Map<String, Boost> m = BOOSTS.get(p.getUniqueId());
         if (m != null && m.remove(source) != null) apply(p);
     }
 
-    public static void clear(Player p) {
+    public static void clear(LivingEntity p) {
         BOOSTS.remove(p.getUniqueId());
         apply(p);
     }
@@ -59,12 +59,12 @@ public final class Boosts {
         BOOSTS.clear();
     }
 
-    public static double totalForce(Player p) { return sum(p, b -> b.force); }
-    public static double totalSpeed(Player p) { return sum(p, b -> b.speed); }
-    public static double totalResistance(Player p) { return sum(p, b -> b.resistance); }
-    public static double totalWeapon(Player p) { return sum(p, b -> b.weapon); }
+    public static double totalForce(LivingEntity p) { return sum(p, b -> b.force); }
+    public static double totalSpeed(LivingEntity p) { return sum(p, b -> b.speed); }
+    public static double totalResistance(LivingEntity p) { return sum(p, b -> b.resistance); }
+    public static double totalWeapon(LivingEntity p) { return sum(p, b -> b.weapon); }
 
-    private static double sum(Player p, java.util.function.ToDoubleFunction<Boost> f) {
+    private static double sum(LivingEntity p, java.util.function.ToDoubleFunction<Boost> f) {
         Map<String, Boost> m = BOOSTS.get(p.getUniqueId());
         if (m == null) return 0;
         double s = 0;
@@ -73,12 +73,12 @@ public final class Boosts {
     }
 
     /** Multiplicateur a appliquer aux degats recus. */
-    public static double damageTakenMultiplier(Player p) {
+    public static double damageTakenMultiplier(LivingEntity p) {
         return 1.0 - Math.min(0.8, totalResistance(p) * 0.2);
     }
 
     /** Reapplique les modificateurs d'attribut du joueur. A appeler apres chaque changement et a la reapparition. */
-    public static void apply(Player p) {
+    public static void apply(LivingEntity p) {
         AttributeInstance dmg = p.getAttribute(Attribute.ATTACK_DAMAGE);
         AttributeInstance spd = p.getAttribute(Attribute.MOVEMENT_SPEED);
         double addDamage = totalForce(p) * 3.0 + totalWeapon(p);
@@ -98,7 +98,7 @@ public final class Boosts {
     }
 
     /** Resume lisible, pour le scoreboard ou le debug. */
-    public static String summary(Player p) {
+    public static String summary(LivingEntity p) {
         StringBuilder sb = new StringBuilder();
         double f = totalForce(p), s = totalSpeed(p), r = totalResistance(p), w = totalWeapon(p);
         if (f > 0) sb.append("<red>Force ").append(fmt(f)).append(" ");

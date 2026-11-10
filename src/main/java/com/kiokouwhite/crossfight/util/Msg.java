@@ -35,8 +35,18 @@ public final class Msg {
         Bukkit.broadcast(prefixed(text));
     }
 
+    private static final java.util.Map<java.util.UUID, Long> LAST_ACTION_BAR = new java.util.HashMap<>();
+
+    /** Message dans la barre d'action, qui suspend l'affichage des cooldowns pendant 2 secondes. */
     public static void actionBar(org.bukkit.entity.Player p, String text) {
+        LAST_ACTION_BAR.put(p.getUniqueId(), System.currentTimeMillis());
         p.sendActionBar(mm(text));
+    }
+
+    /** True si un message de capacite occupe encore la barre d'action. */
+    public static boolean actionBarBusy(org.bukkit.entity.Player p) {
+        Long t = LAST_ACTION_BAR.get(p.getUniqueId());
+        return t != null && System.currentTimeMillis() - t < 2000;
     }
 
     /** Formate des secondes en mm:ss ou h:mm:ss. */

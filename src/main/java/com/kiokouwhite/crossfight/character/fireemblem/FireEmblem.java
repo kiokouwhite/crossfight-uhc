@@ -103,7 +103,7 @@ public final class FireEmblem {
         public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e) {
             double percent = e.getFinalDamage() / 20.0 * 100.0;
             if (percent <= 0) return;
-            for (Player ally : Effects.alliesWithin(attacker, SUPPORT_RANGE)) {
+            for (Player ally : Effects.allyPlayersWithin(attacker, SUPPORT_RANGE)) {
                 Pair pair = pair(attacker, ally);
                 if (pair.level >= 4) continue;
                 pair.progress += percent;

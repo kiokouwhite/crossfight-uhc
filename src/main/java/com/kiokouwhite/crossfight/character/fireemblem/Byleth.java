@@ -251,7 +251,7 @@ public final class Byleth extends Character implements Listener {
             if (dmg <= 0) return;
             Bukkit.getScheduler().runTask(plugin(), () -> {
                 Effects.heal(attacker, dmg * 0.25);
-                for (Player ally : Effects.alliesWithin(attacker, 10)) Effects.heal(ally, dmg * 0.10);
+                for (var ally : Effects.alliesWithin(attacker, 10)) Effects.heal(ally, dmg * 0.10);
             });
         }
     }
@@ -281,9 +281,9 @@ public final class Byleth extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Player ally = Effects.nearestAlly(p, 10);
+            org.bukkit.entity.LivingEntity ally = Effects.nearestAlly(p, 10);
             if (ally == null) {
-                Msg.actionBar(p, "<red>Aucun allie a moins de 10 blocs.");
+                Msg.actionBar(p, "<red>Tutorat : aucun allie a moins de 10 blocs.");
                 return false;
             }
             Progress pr = progress.computeIfAbsent(ally.getUniqueId(), u -> new Progress());
@@ -297,15 +297,19 @@ public final class Byleth extends Character implements Listener {
                         "<white>Niveau " + pr.level[i] + "/4 <gray>(" + (int) pr.xp[i] + " XP)"),
                         () -> teach(p, ally, pr, cat, st)));
             }
-            ChoiceMenu.open(p, "<dark_gray>Tutorat : " + ally.getName(), options,
+            ChoiceMenu.open(p, "<dark_gray>Tutorat : " + allyName(ally), options,
                     pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); });
             // Le temps de chargement ne part que si une categorie est choisie.
             return true;
         }
 
-        private void teach(Player byleth, Player ally, Progress pr, int cat, AbilityState st) {
+        private static String allyName(org.bukkit.entity.LivingEntity e) {
+            return e instanceof Player pl ? pl.getName() : "Mannequin allie";
+        }
+
+        private void teach(Player byleth, org.bukkit.entity.LivingEntity ally, Progress pr, int cat, AbilityState st) {
             if (pr.level[cat] >= 4) {
-                Msg.send(byleth, "<red>" + ally.getName() + " est deja au niveau maximum en " + CATEGORIES[cat] + ".");
+                Msg.send(byleth, "<red>" + allyName(ally) + " est deja au niveau maximum en " + CATEGORIES[cat] + ".");
                 st.clearCooldown();
                 return;
             }
@@ -324,18 +328,23 @@ public final class Byleth extends Character implements Listener {
                         else { pr.speed += 0.2; bonusText = "<aqua>+0.2 Vitesse"; }
                     }
                     default -> {
-                        CfPlayer acf = plugin().players().get(ally);
-                        acf.setCooldownFactor(acf.cooldownFactor() * 0.95);
+                        if (ally instanceof Player ap) {
+                            CfPlayer acf = plugin().players().get(ap);
+                            acf.setCooldownFactor(acf.cooldownFactor() * 0.95);
+                        }
                         bonusText = "<yellow>-5 % de temps de chargement";
                     }
                 }
             }
             Boosts.set(ally, "tutorat", new Boosts.Boost(pr.force, pr.speed, pr.resistance, pr.weapon));
-            Msg.send(byleth, "<gold>Tutorat : " + ally.getName() + " gagne " + gain + " XP en " + CATEGORIES[cat]
-                    + " <gray>(niveau " + pr.level[cat] + ", " + (int) pr.xp[cat] + " XP)");
-            Msg.send(ally, "<gold>Byleth t'enseigne " + CATEGORIES[cat] + " : +" + gain + " XP"
-                    + (bonusText.isEmpty() ? "" : " <gray>- niveau " + pr.level[cat] + " ! " + bonusText));
-            ally.playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+            Msg.send(byleth, "<gold>Tutorat : " + allyName(ally) + " gagne " + gain + " XP en " + CATEGORIES[cat]
+                    + " <gray>(niveau " + pr.level[cat] + ", " + (int) pr.xp[cat] + " XP)"
+                    + (bonusText.isEmpty() ? "" : " <gray>- " + bonusText));
+            if (ally instanceof Player ap) {
+                Msg.send(ap, "<gold>Byleth t'enseigne " + CATEGORIES[cat] + " : +" + gain + " XP"
+                        + (bonusText.isEmpty() ? "" : " <gray>- niveau " + pr.level[cat] + " ! " + bonusText));
+            }
+            ally.getWorld().playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
         }
 
         @Override

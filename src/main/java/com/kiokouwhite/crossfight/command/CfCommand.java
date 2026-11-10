@@ -108,10 +108,11 @@ public final class CfCommand implements TabExecutor {
                             Msg.send(sp, "<yellow>" + n + " mannequin(s) retire(s).");
                             return true;
                         }
-                        boolean aggressive = false;
+                        boolean aggressive = false, ally = false;
                         int count = 1;
                         for (int i = 1; i < args.length; i++) {
                             if (args[i].equalsIgnoreCase("attaque") || args[i].equalsIgnoreCase("attack") || args[i].equalsIgnoreCase("agressif")) aggressive = true;
+                            else if (args[i].equalsIgnoreCase("allie") || args[i].equalsIgnoreCase("ally")) ally = true;
                             else { try { count = Math.max(1, Math.min(10, Integer.parseInt(args[i]))); } catch (NumberFormatException ignored) { } }
                         }
                         var base = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(3));
@@ -120,9 +121,9 @@ public final class CfCommand implements TabExecutor {
                             var loc = base.clone().add((i % 5) * 1.5, 0, (i / 5) * 1.5);
                             loc.setY(sp.getWorld().getHighestBlockYAt(loc) + 1);
                             loc.setYaw(sp.getLocation().getYaw() + 180);
-                            com.kiokouwhite.crossfight.util.Mannequins.spawn(loc, aggressive);
+                            com.kiokouwhite.crossfight.util.Mannequins.spawn(loc, aggressive, ally);
                         }
-                        Msg.send(sp, "<green>" + count + " mannequin(s)" + (aggressive ? " agressif(s)" : "") + " invoque(s). <gray>/cf mannequin clear pour les retirer.");
+                        Msg.send(sp, "<green>" + count + " mannequin(s)" + (aggressive ? " agressif(s)" : ally ? " allie(s)" : "") + " invoque(s). <gray>/cf mannequin clear pour les retirer.");
                     }
                     case "heal" -> {
                         if (!(sender instanceof Player sp)) return true;
@@ -165,7 +166,7 @@ public final class CfCommand implements TabExecutor {
             Msg.raw(s, "<red>/cf give <joueur> <perso> <gray>- forcer un personnage");
             Msg.raw(s, "<red>/cf ult [joueur] <pourcent> <gray>- regler la jauge d'ultime (test)");
             Msg.raw(s, "<red>/cf heal <gray>- se soigner (test)");
-            Msg.raw(s, "<red>/cf mannequin [nb] [attaque|clear] <gray>- mannequins d'entrainement (test)");
+            Msg.raw(s, "<red>/cf mannequin [nb] [attaque|allie|clear] <gray>- mannequins d'entrainement (test)");
             Msg.raw(s, "<red>/cf test <gray>- entrer ou sortir du mode test");
             Msg.raw(s, "<red>/cf change [perso] <gray>- changer de personnage en mode test");
         }
@@ -262,7 +263,7 @@ public final class CfCommand implements TabExecutor {
                 case "team" -> out.addAll(List.of("list", "create", "join", "leave", "add"));
                 case "perso" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "give" -> { for (Player p : Bukkit.getOnlinePlayers()) out.add(p.getName()); }
-                case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "clear"));
+                case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "allie", "clear"));
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }

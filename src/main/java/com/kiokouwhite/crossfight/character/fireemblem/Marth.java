@@ -160,7 +160,7 @@ public final class Marth extends Character {
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.SPEED, 0, 45);
-            for (Player ally : Effects.alliesWithin(p, 10)) Effects.refresh(ally, PotionEffectType.SPEED, 0, 45);
+            for (var ally : Effects.alliesWithin(p, 10)) Effects.refresh(ally, PotionEffectType.SPEED, 0, 45);
         }
     }
 
@@ -172,7 +172,7 @@ public final class Marth extends Character {
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
             if (p.getHealth() <= 10.0) return;
-            for (Player ally : Effects.alliesWithin(p, 1000)) Effects.refresh(ally, PotionEffectType.STRENGTH, 0, 45);
+            for (var ally : Effects.alliesWithin(p, 1000)) Effects.refresh(ally, PotionEffectType.STRENGTH, 0, 45);
         }
     }
 
@@ -217,7 +217,7 @@ public final class Marth extends Character {
             if (hits > 0) {
                 int level = Math.min(hits, 5) - 1;
                 Effects.give(p, PotionEffectType.STRENGTH, level, 20 * 60);
-                for (Player ally : Effects.alliesWithin(p, 1000)) Effects.give(ally, PotionEffectType.STRENGTH, level, 20 * 60);
+                for (var ally : Effects.alliesWithin(p, 1000)) Effects.give(ally, PotionEffectType.STRENGTH, level, 20 * 60);
                 Msg.send(p, "<gold>Coup Critique : " + hits + " ennemi(s) touche(s), Force " + (level + 1) + " pour l'equipe !");
             } else {
                 Msg.send(p, "<gray>Coup Critique : aucun ennemi touche.");
