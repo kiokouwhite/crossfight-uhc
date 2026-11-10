@@ -35,7 +35,8 @@ public final class ChoiceMenu implements Listener {
         Holder holder = new Holder();
         holder.options = options;
         holder.onCancel = onCancel;
-        int size = options.size() <= 5 ? 9 : 18;
+        int size = options.size() <= 5 ? 9 : Math.min(54, ((Math.min(options.size(), 54) + 8) / 9) * 9);
+        if (options.size() > 54) options = options.subList(0, 54);
         Inventory inv = Bukkit.createInventory(holder, size, Msg.mm(title));
         holder.inv = inv;
         // Centre les options sur la premiere ligne si elles sont peu nombreuses.

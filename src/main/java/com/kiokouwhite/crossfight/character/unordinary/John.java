@@ -107,7 +107,20 @@ public final class John extends Character {
         for (int i = 0; i < inv.getSize(); i++) if (a.id().equals(Items.tag(inv.getItem(i), AbilityEngine.ABILITY_KEY))) inv.setItem(i, null);
     }
 
-    /** /cf choose : menu des pouvoirs absorbes et des pouvoirs disponibles dans le pool. */
+    static boolean test() { return Unordinary.plugin().game().isTest(); }
+
+    /** Personnages dont John peut prendre les pouvoirs : ceux qu'il a frappes ; en mode test, tous. */
+    static List<Character> available(Player p) {
+        List<Character> out = new ArrayList<>();
+        if (test()) {
+            for (Licence l : Unordinary.plugin().characters().licences()) for (Character c : l.characters()) if (!"john".equals(c.id())) out.add(c);
+        } else {
+            for (String id : pool(p)) { Character c = Unordinary.plugin().characters().character(id); if (c != null) out.add(c); }
+        }
+        return out;
+    }
+
+    /** /cf choose : etape 1, retirer un pouvoir absorbe ou choisir un personnage ; etape 2, choisir son pouvoir. */
     public static boolean openChoose(Player p) {
         if (!isJohn(p)) return false;
         List<Borrowed> mine = borrowed(p);
@@ -115,38 +128,47 @@ public final class John extends Character {
         for (Borrowed b : mine) {
             long left = Math.max(0, b.expiresAt - System.currentTimeMillis()) / 1000;
             options.add(new ChoiceMenu.Option(b.ability.icon(), b.ability.name() + " <red>(retirer)",
-                    List.of("<gray>De " + b.from, "<gray>Expire dans " + left + " s", "<red>Clique pour le retirer"), () -> {
+                    List.of("<gray>De " + b.from, test() ? "<gray>Mode test : sans limite" : "<gray>Expire dans " + left + " s", "<red>Clique pour le retirer"), () -> {
                         mine.remove(b); take(p, b.ability);
                         Msg.actionBar(p, "<gray>Pouvoir retire : " + b.ability.name());
                     }));
         }
-        for (String charId : pool(p)) {
-            Character ch = Unordinary.plugin().characters().character(charId);
-            if (ch == null) continue;
-            for (Ability a : ch.abilities()) {
-                if (!copyable(a)) continue;
-                boolean has = false;
-                for (Borrowed b : mine) if (b.ability.id().equals(a.id())) has = true;
-                if (has) continue;
-                List<String> lore = new ArrayList<>();
-                lore.add("<gray>De " + ch.name() + " <dark_gray>(" + a.type().label() + ")");
-                lore.addAll(Items.wrap(a.description()));
-                options.add(new ChoiceMenu.Option(a.icon(), a.name(), lore, () -> choose(p, a, ch.name())));
-            }
+        for (Character ch : available(p)) {
+            int n = 0;
+            for (Ability a : ch.abilities()) if (copyable(a)) n++;
+            if (n == 0) continue;
+            options.add(new ChoiceMenu.Option(ch.icon(), ch.name(), List.of("<gray>" + (ch.licence() == null ? "" : ch.licence().name()), "<gray>" + n + " pouvoir(s) absorbable(s)"), () -> openCharacter(p, ch)));
         }
         if (options.isEmpty()) { Msg.send(p, "<red>Aucun pouvoir a absorber : frappe d'abord un personnage d'une Equipe de Trois."); return true; }
-        ChoiceMenu.open(p, "<dark_red><bold>Absorption d'aura <gray>(" + mine.size() + "/3)", options);
+        ChoiceMenu.open(p, "<dark_red><bold>Absorption d'aura <gray>(" + mine.size() + (test() ? "" : "/3") + ")", options);
         return true;
+    }
+
+    static void openCharacter(Player p, Character ch) {
+        List<Borrowed> mine = borrowed(p);
+        List<ChoiceMenu.Option> options = new ArrayList<>();
+        for (Ability a : ch.abilities()) {
+            if (!copyable(a)) continue;
+            boolean has = false;
+            for (Borrowed b : mine) if (b.ability.id().equals(a.id())) has = true;
+            if (has) continue;
+            List<String> lore = new ArrayList<>();
+            lore.add("<gray>De " + ch.name() + " <dark_gray>(" + a.type().label() + ")");
+            lore.addAll(Items.wrap(a.description()));
+            options.add(new ChoiceMenu.Option(a.icon(), a.name(), lore, () -> choose(p, a, ch.name())));
+        }
+        if (options.isEmpty()) { Msg.actionBar(p, "<gray>Tu as deja tous les pouvoirs de " + ch.name() + "."); return; }
+        ChoiceMenu.open(p, "<dark_red><bold>Pouvoirs de " + ch.name(), options, pl -> openChoose(pl));
     }
 
     static void choose(Player p, Ability a, String from) {
         List<Borrowed> mine = borrowed(p);
-        if (mine.size() >= 3) { Msg.send(p, "<red>Tu as deja 3 pouvoirs : retire-en un dans /cf choose."); return; }
-        mine.add(new Borrowed(a, from, System.currentTimeMillis() + 5 * 60 * 1000L));
+        if (!test() && mine.size() >= 3) { Msg.send(p, "<red>Tu as deja 3 pouvoirs : retire-en un dans /cf choose."); return; }
+        mine.add(new Borrowed(a, from, test() ? Long.MAX_VALUE : System.currentTimeMillis() + 5 * 60 * 1000L));
         give(p, a);
         p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.1);
         p.playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 1f, 1.4f);
-        Msg.send(p, "<dark_red>Pouvoir absorbe : <white>" + a.name() + "</white> (de " + from + ", 5 minutes).");
+        Msg.send(p, "<dark_red>Pouvoir absorbe : <white>" + a.name() + "</white> (de " + from + (test() ? ")." : ", 5 minutes)."));
     }
 
     static final class Absorption extends PassiveAbility implements com.kiokouwhite.crossfight.ability.CustomUse {
