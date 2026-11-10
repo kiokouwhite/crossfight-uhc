@@ -35,8 +35,7 @@ public final class CharacterRegistry {
         register(com.kiokouwhite.crossfight.character.shoja.Shoja.create());
         register(com.kiokouwhite.crossfight.character.bloodysnow.BloodySnow.create());
         // Solitaire
-        register(new Licence("solitaire", "PERSONNAGE SOLITAIRE", TeamSize.SOLO,
-                "Burst : second ultime charge a 1000 % de degats, conserve entre les morts."));
+        register(com.kiokouwhite.crossfight.character.solo.Solo.create());
     }
 
     public Collection<Licence> licences() { return licences.values(); }

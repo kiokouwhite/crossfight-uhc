@@ -205,8 +205,7 @@ public final class TestMode implements Listener {
         p.setGameMode(GameMode.SURVIVAL);
         p.getInventory().clear();
         for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
-        var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-        if (mh != null) mh.setBaseValue(20.0);
+        com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         p.setFoodLevel(20);
         p.setSaturation(20);
@@ -227,8 +226,7 @@ public final class TestMode implements Listener {
         p.setAllowFlight(false);
         p.getInventory().clear();
         for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
-        var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-        if (mh != null) mh.setBaseValue(20.0);
+        com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         p.setGameMode(GameMode.ADVENTURE);
         p.teleport(back != null && !back.getWorld().getName().equals(WORLD) ? back : plugin.game().world().getSpawnLocation());
@@ -262,8 +260,7 @@ public final class TestMode implements Listener {
         Effects.unroot(p);
         p.setAllowFlight(false);
         for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
-        var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-        if (mh != null) mh.setBaseValue(20.0);
+        com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         cf.resetUltimate();
         cf.setUltimateLocked(false);

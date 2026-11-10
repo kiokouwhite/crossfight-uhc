@@ -80,8 +80,7 @@ public final class GameManager {
             p.setGameMode(cf.team() == null ? GameMode.SPECTATOR : GameMode.ADVENTURE);
             p.getInventory().clear();
             com.kiokouwhite.crossfight.util.Boosts.apply(p);
-            var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-            if (mh != null) mh.setBaseValue(20.0);
+            com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
             p.setHealth(20);
             p.setFoodLevel(20);
             p.setSaturation(20);

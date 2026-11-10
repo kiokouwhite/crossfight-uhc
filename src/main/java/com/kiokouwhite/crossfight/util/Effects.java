@@ -310,6 +310,14 @@ public final class Effects {
         damage(target, damage, source);
     }
 
+    /** Vie maximale remise a 20, tous les modificateurs du plugin (Burst de Yuki, Dieu des enfers...) retires. */
+    public static void resetMaxHealth(Player p) {
+        AttributeInstance mh = p.getAttribute(Attribute.MAX_HEALTH);
+        if (mh == null) return;
+        for (AttributeModifier m : new java.util.ArrayList<>(mh.getModifiers())) if ("crossfight".equals(m.getKey().getNamespace())) mh.removeModifier(m);
+        mh.setBaseValue(20.0);
+    }
+
     public static void heal(LivingEntity p, double amount) {
         var attr = p.getAttribute(Attribute.MAX_HEALTH);
         double max = attr == null ? 20 : attr.getValue();

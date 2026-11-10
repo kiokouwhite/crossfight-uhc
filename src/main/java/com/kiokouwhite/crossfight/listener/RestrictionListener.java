@@ -25,7 +25,7 @@ import org.bukkit.inventory.meta.ItemMeta;
  */
 public final class RestrictionListener implements Listener {
 
-    private final CrossfightPlugin plugin;
+    private static CrossfightPlugin plugin;
 
     public RestrictionListener(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -48,10 +48,18 @@ public final class RestrictionListener implements Listener {
         }
     }
 
+    /** Personnages autorises a crafter et enchanter des armes (l'arbre de Shoja l'exige). */
+    public static boolean mayForgeWeapons(org.bukkit.entity.HumanEntity h) {
+        if (!(h instanceof Player p)) return false;
+        var cf = plugin.players().get(p);
+        return cf.character() != null && "shoja".equals(cf.character().id());
+    }
+
     @EventHandler
     public void onCraft(PrepareItemCraftEvent e) {
         ItemStack result = e.getInventory().getResult();
         if (e.getRecipe() instanceof org.bukkit.Keyed k && k.getKey().getNamespace().equals("crossfight")) return;
+        if (!e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) return;
         if (isWeapon(result)) {
             e.getInventory().setResult(null);
             if (!e.getViewers().isEmpty() && e.getViewers().get(0) instanceof Player p) {
@@ -62,11 +70,13 @@ public final class RestrictionListener implements Listener {
 
     @EventHandler
     public void onPrepareEnchant(PrepareItemEnchantEvent e) {
+        if (mayForgeWeapons(e.getEnchanter())) return;
         if (isWeapon(e.getItem())) e.setCancelled(true);
     }
 
     @EventHandler
     public void onEnchant(EnchantItemEvent e) {
+        if (mayForgeWeapons(e.getEnchanter())) return;
         if (isWeapon(e.getItem())) {
             e.setCancelled(true);
             Msg.actionBar(e.getEnchanter(), "<red>Les armes ne peuvent pas etre enchantees.");
@@ -76,6 +86,7 @@ public final class RestrictionListener implements Listener {
     @EventHandler
     public void onAnvil(PrepareAnvilEvent e) {
         ItemStack first = e.getInventory().getFirstItem();
+        if (!e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) { ItemStack r = e.getResult(); if (r != null && capProtection(r)) e.setResult(r); return; }
         if (isWeapon(first) || isWeapon(e.getResult())) {
             e.setResult(null);
             return;
@@ -87,6 +98,7 @@ public final class RestrictionListener implements Listener {
 
     @EventHandler
     public void onGrindstone(PrepareGrindstoneEvent e) {
+        if (!e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) return;
         if (isWeapon(e.getResult())) e.setResult(null);
     }
 

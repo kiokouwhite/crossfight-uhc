@@ -50,6 +50,9 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf delta <effet\|aleatoire>` | Ajouter une mutation Earth Delta (test) |
 | `/cf kills <n>` | Régler son nombre de kills (test) |
 | `/cf tome <id\|tous\|aleatoire>` / `/cf tome arc <ench>` | Tomes et enchantement d'arc de Hano (test) |
+| `/cf burst` | Rendre son Burst de solitaire prêt (test) |
+| `/cf sante <0-100>` | Régler la santé du Cœur Mourant du Drifter (test) |
+| `/cf shoja <liste\|id\|tous\|raz>` | Arbre de Shoja : lister, équiper une capacité, tout débloquer, tout retirer (test) |
 
 ## Déroulement d'une partie
 
@@ -78,7 +81,8 @@ com.kiokouwhite.crossfight
 │   ├── duo/                Synergie : second ultime commun aux groupes duo (jauge à 200 %)
 │   ├── gunvolt/            Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov, six Synergies
 │   ├── shoja/              Shoja's Memories : Hiro, Pinkou, Aïda, Crystal, six Synergies
-│   └── bloodysnow/         Bloody Snow : Netsu, Kaze, Hannah, Eirika, Marques de Sang, six Synergies
+│   ├── bloodysnow/         Bloody Snow : Netsu, Kaze, Hannah, Eirika, Marques de Sang, six Synergies
+│   └── solo/               Personnages solitaires : Burst (jauge à 1000 %), Yuki, le Drifter, Shoja et son arbre de 59 capacités
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -117,6 +121,13 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Kirin : les talismans sont des projectiles ; la marque dure 10 s. Le sabre se téléporte sur la cible marquée la plus proche (30 blocs) et retire sa marque ; Arc Chain est utilisable 4 s après et touche aussi l'adversaire visé par la téléportation (1 cœur par cible, 4 max) avec 10 s de recharge. Slash : en l'air Tensho, accroupi Ressen (deuxième clic pour retomber), sinon Issen ; un seul temps de recharge de 15 s.
 - Asimov : le fusil charge 3 s puis tire (9 dégâts, doublés à moins de 5 blocs). La tourelle tire ses salves à 5 s et 10 s. Les chaînes de l'ultime sont des segments tirés au hasard sur 30 blocs pendant 8 s.
 - Vol Électrique et Prison de Chaîne donnent le vol créatif pendant leur durée ; Double Électrocution est centrée sur le lanceur.
+
+### Hypothèses prises sur les personnages solitaires
+
+- Le Burst est un item commun aux trois solitaires : il se charge à 1000 % de dégâts infligés, le compteur est conservé d'une mort à l'autre (il repart de la dernière utilisation, pas de la mort). En mode test il est toujours prêt ; `/cf burst` le remplit hors test.
+- Yuki : Bleeding Snow coûte 2 cœurs et donne Force, Vitesse et Résistance 10 s (recharge 15 s). Souffrante s'applique en continu (moins de 7,5 / 5 / 3 cœurs). Insatiable est un passif à 5 minutes de recharge : le coup fatal la laisse à un demi-cœur 15 s sans régénération. Insaisissable : 3 dashs de 4 blocs en 5 s, invisible jusqu'au troisième ou jusqu'à ce qu'elle frappe. L'ultime retire 7,5 cœurs de vie max 20 s ; le Burst Monstre retire 7 cœurs définitifs à Yuki et 9 aux ennemis à 10 blocs (explosion visuelle sur 50 blocs). Les pertes définitives sont effacées à la nouvelle partie.
+- Le Drifter : six pistolets sur un seul item (sneak + clic pour changer, munitions par arme, tout vide = rechargement), Chain Dash doit être relancé entre 0,7 et 1,3 s après le précédent sinon il est verrouillé 15 s. Le Cœur Mourant perd 1 % de santé par minute à partir de 30 min, 2 % à 60, 3 % à 90 ; les paliers donnent bonus puis toux, silence et hallucinations. Le Burst Monde en Ruine emmène les adversaires à 40 blocs dans une arène dédiée (monde `crossfight_ruine`) ; il en sort quand ils sont tous tombés, ou en mourant sans perdre de vie.
+- Shoja : son épée est une épée de fer de 8,5 ; elle seule peut crafter, enchanter et réparer des armes (les autres restrictions restent). L'Épée de l'Ego copie, une seule fois, les enchantements de l'arme tenue par son premier tué. L'arbre contient 59 capacités en six éléments (Feu, Eau, Foudre, Vent, Espace, Temps), chacune débloquée par un objectif suivi en jeu (crafts, cœurs infligés ou perdus, immobilisations, blocs cassés, enchantements posés, portail du Nether…) ; trois au plus équipées, d'éléments différents, via l'item « Arbre des capacités ». En mode test tout est débloqué. Les « gels » temporels immobilisent et empêchent de frapper ; les trous, murs et lacs de lave sont temporaires (20 s) ; les « dimensions » sont une arène d'End Stone (`crossfight_dimension`). L'ultime et le Burst dépendent de sa vie (plus ou moins de 5 cœurs) : Couronne Angélique (vol + Régénération II 20 s) / Araignée Maléfique (Force IV, Vitesse II, −1 cœur par 2 s) ; Dieu du monde (immobile 10 s puis +1 vie) / Dieu des enfers (−4 cœurs définitifs, Force IV jusqu'à sa mort).
 
 ### Hypothèses prises sur Bloody Snow
 
@@ -192,8 +203,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Synergies des groupes duo ; Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov
 - [x] Shoja's Memories : Hiro, Pinkou, Aïda, Crystal
 - [x] Bloody Snow : Netsu, Kaze, Hannah, Eirika
-- [ ] Burst des solitaires
-- [ ] Personnages solitaires (Burst)
+- [x] Personnages solitaires et Burst : Yuki, le Drifter, Shoja (arbre de 59 capacités)
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8
