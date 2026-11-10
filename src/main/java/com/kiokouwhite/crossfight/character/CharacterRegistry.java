@@ -29,8 +29,7 @@ public final class CharacterRegistry {
         register(com.kiokouwhite.crossfight.character.valorant.Valorant.create());
         register(com.kiokouwhite.crossfight.character.snk.SNK.create());
         register(com.kiokouwhite.crossfight.character.unordinary.Unordinary.create());
-        register(new Licence("earth_delta", "EARTH DELTA", TeamSize.TRIO,
-                "Un effet passif aleatoire cumulable a chaque mort."));
+        register(com.kiokouwhite.crossfight.character.earthdelta.EarthDelta.create());
         // Groupe duo
         register(new Licence("gunvolt", "ARMED BLUE GUNVOLT", TeamSize.DUO,
                 "Synergie : second ultime commun, charge a 200 % de degats a deux."));

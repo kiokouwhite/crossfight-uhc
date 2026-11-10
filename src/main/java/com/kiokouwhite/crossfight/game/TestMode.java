@@ -255,6 +255,7 @@ public final class TestMode implements Listener {
         if (team == null) return;
         plugin.abilities().unequip(p);
         plugin.abilities().clearStates(p);
+        com.kiokouwhite.crossfight.ability.Borrowed.clear(p);
         Boosts.clear(p);
         Effects.unroot(p);
         p.setAllowFlight(false);

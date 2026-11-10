@@ -85,6 +85,7 @@ public final class CfPlayer {
 
     public int kills() { return kills; }
     public void addKill() { kills++; }
+    public void setKills(int n) { kills = Math.max(0, n); }
 
     /** Remet a zero l'etat de partie (pas l'equipe). */
     public void resetForNewGame(int lives) {

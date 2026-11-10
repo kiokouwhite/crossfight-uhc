@@ -47,6 +47,9 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
 | `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
 | `/cf choose` | John : choisir ses pouvoirs absorbés |
+| `/cf delta <effet\|aleatoire>` | Ajouter une mutation Earth Delta (test) |
+| `/cf kills <n>` | Régler son nombre de kills (test) |
+| `/cf tome <id\|tous\|aleatoire>` / `/cf tome arc <ench>` | Tomes et enchantement d'arc de Hano (test) |
 
 ## Déroulement d'une partie
 
@@ -70,7 +73,8 @@ com.kiokouwhite.crossfight
 │   ├── rwby/               RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
 │   ├── valorant/           Valorant : crédits, armes à feu, Neon, Sage, Sova, Jett
 │   ├── snk/                Shingeki no Kyojin : équipement 3D, Eren, Mikasa, Livaï, Armin
-│   └── unordinary/         unOrdinary : épées d'Aura, Arlo, John, Remi, Seraphina
+│   ├── unordinary/         unOrdinary : épées d'Aura, Arlo, John, Remi, Seraphina
+│   └── earthdelta/         Earth Delta : mutations, Kishi, Kura, Taka, Hano et ses 28 tomes
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -100,6 +104,14 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Le drone de Sova est un allay qui suit Sova et tire une flèche de Faiblesse par seconde sur l'ennemi le plus proche à 20 blocs.
 - L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
 - La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.
+
+### Hypothèses prises sur Earth Delta
+
+- Les mutations (une au hasard par mort, cumulables) : Régénération = 1 cœur toutes les 2 s ; Cœurs = +2 cœurs max ; Feu = 10 % par pile d'enflammer à chaque coup ; Vitesse = Speed (II max) après 8 s sans combat ; Explosion = 2 cœurs par pile à chaque membre vivant de l'équipe de la victime. En mode test les morts n'en donnent pas : `/cf delta`.
+- Kishi : les cônes sont comptés sur les coups encaissés par toute son équipe (lui compris), durent 30 s (permanents avec l'ultime), et l'Illumilame suit leur nombre. Aura Lumineuse peut viser Kishi lui-même.
+- Kura : paliers de kills 0/2/4/6/8 (tout est débloqué en mode test ; `/cf kills`). Voie de l'assassin et Ruée Mortelle ont 15 s de recharge. La Pluie de Couteaux fait au moins 1 cœur.
+- Taka : les armes invoquées sont des porte-armures invisibles qui tiennent l'arme ; les adversaires les détruisent en les frappant. Lance et Hache sont débloquées après 1 et 2 vies perdues (tout en test). Les armes de l'ultime sont indestructibles, restent et agissent sur place (les haches tournent autour de leur point d'apparition). Lancées par la Multi-Arme, les armes sont consommées.
+- Hano : l'enchantement de l'Henkama est tiré au sort au premier équipement (Flame, Multishot, Piercing, Power, Punch ou Quick Charge), les 3 tomes aussi, parmi 28 pouvoirs ; chaque tome est un item. Tous les actifs ont 30 s de recharge ; Immortalité et Vol Mérité sont à usage unique. L'ultime donne 5 tomes supplémentaires pour 30 s, consommés à l'usage. Le butin de Looting double les Pommes Dorées dans les drops de la victime (pas de coffre de mort). Les araignées et Husks sont des monstres temporaires de 20 s.
 
 ### Hypothèses prises sur unOrdinary
 
@@ -146,8 +158,9 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Valorant : crédits et boutique de 17 armes à feu, paliers d'armes blanches, Neon, Sage, Sova, Jett
 - [x] Shingeki no Kyojin : équipement tridimensionnel et gaz, Eren (et ses 7 titans), Mikasa, Livaï, Armin
 - [x] unOrdinary : épées d'Aura à crafter, Arlo, John (absorption), Remi, Seraphina
-- [ ] Autres systèmes de licence (gaz, crédits, épées d'Aura, Synergie, Burst...)
-- [ ] 16 personnages restants
+- [x] Earth Delta : mutations à chaque mort, Kishi, Kura, Taka, Hano (28 tomes)
+- [ ] Systèmes de licence restants (Synergie des duos, Burst des solitaires)
+- [ ] 12 personnages restants
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8

@@ -57,8 +57,12 @@ public abstract class Character {
         return null;
     }
 
-    /** Capacites + ultime pour un joueur donne (John y ajoute ses pouvoirs absorbes). */
-    public List<Ability> allAbilities(org.bukkit.entity.Player p) { return allAbilities(); }
+    /** Capacites + ultime pour un joueur donne, plus celles qu'il a empruntees (Absorption de John, Vol Merite...). */
+    public List<Ability> allAbilities(org.bukkit.entity.Player p) {
+        List<Ability> all = allAbilities();
+        for (com.kiokouwhite.crossfight.ability.Borrowed.Entry e : com.kiokouwhite.crossfight.ability.Borrowed.of(p)) all.add(e.ability);
+        return all;
+    }
 
     public Ability ability(org.bukkit.entity.Player p, String id) {
         for (Ability a : allAbilities(p)) if (a.id().equals(id)) return a;

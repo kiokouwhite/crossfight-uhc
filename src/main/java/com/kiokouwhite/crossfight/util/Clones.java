@@ -87,11 +87,30 @@ public final class Clones implements Listener {
         if (onHit != null) ON_HIT.put(m.getUniqueId(), onHit);
         owner.getWorld().spawnParticle(Particle.SMOKE, at.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
         owner.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.5f, 1.8f);
-        run(m, target, lifetimeTicks);
+        if (target != null) run(m, target, lifetimeTicks);
         return m;
     }
 
     /** Fait courir le clone vers sa cible ; il disparait en l'atteignant ou a la fin de sa duree de vie. */
+    /** Un clone qui se balade au hasard (leurre) au lieu de courir vers une cible. */
+    public static LivingEntity spawnWanderer(Player owner, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
+        LivingEntity clone = spawn(owner, null, 0, onHit);
+        if (!(clone instanceof Mannequin m)) return clone;
+        new BukkitRunnable() {
+            int ticks = 0; Vector dir = new Vector(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+            @Override public void run() {
+                ticks++;
+                if (!m.isValid()) { cancel(); return; }
+                if (ticks > lifetimeTicks) { remove(m); cancel(); return; }
+                if (ticks % 40 == 0 || Math.random() < 0.02) dir = new Vector(Math.random() - 0.5, 0, Math.random() - 0.5).normalize();
+                Location next = settle(m.getLocation().clone().add(dir.clone().multiply(0.12)));
+                next.setDirection(dir);
+                m.teleport(next);
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
+        return m;
+    }
+
     private static void run(Mannequin m, LivingEntity target, int lifetimeTicks) {
         new BukkitRunnable() {
             int ticks = 0;

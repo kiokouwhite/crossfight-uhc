@@ -139,6 +139,29 @@ public final class CfCommand implements TabExecutor {
                         if (!com.kiokouwhite.crossfight.character.unordinary.Unordinary.giveAura(sp, type)) Msg.send(sp, "<red>Usage : /cf aura <soin|immunite|laser|chaleur|glue>");
                         else Msg.send(sp, "<green>Epee d'Aura - " + type + " donnee.");
                     }
+                    case "delta" -> {
+                        // Test : une mutation Earth Delta (regen, coeurs, feu, vitesse, explosion, aleatoire).
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        if (!com.kiokouwhite.crossfight.character.earthdelta.EarthDelta.grant(sp, args.length > 1 ? args[1] : null)) Msg.send(sp, "<red>Usage (Earth Delta) : /cf delta <regen|coeurs|feu|vitesse|explosion|aleatoire>");
+                    }
+                    case "kills" -> {
+                        // Test : regle son nombre de kills (Kura, Valorant...).
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        int n = 0;
+                        if (args.length > 1) { try { n = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { } }
+                        plugin.players().get(sp).setKills(n);
+                        Msg.send(sp, "<green>Kills : " + n);
+                    }
+                    case "tome" -> {
+                        // Test : tomes de Hano (id, tous, aleatoire) ou enchantement de l'arc (arc <nom>).
+                        if (!(sender instanceof Player sp)) return true;
+                        if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
+                        String[] rest = args.length > 1 ? java.util.Arrays.copyOfRange(args, 1, args.length) : new String[0];
+                        if (!com.kiokouwhite.crossfight.character.earthdelta.Hano.grant(sp, rest)) Msg.send(sp, "<red>Usage (Hano) : /cf tome <id|tous|aleatoire> ou /cf tome arc <flame|multishot|piercing|power|punch|quick_charge>");
+                        else Msg.send(sp, "<green>Tomes mis a jour.");
+                    }
                     case "titan" -> {
                         // Test : donne a Eren les pouvoirs d'un titan primordial (ou de tous).
                         if (!(sender instanceof Player sp)) return true;
@@ -331,7 +354,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -342,6 +365,9 @@ public final class CfCommand implements TabExecutor {
                 case "mannequin" -> out.addAll(List.of("1", "3", "5", "attaque", "allie", "adversaire", "clear"));
                 case "titan" -> { out.addAll(List.of(com.kiokouwhite.crossfight.character.snk.Eren.TITAN_IDS)); out.add("tous"); }
                 case "aura" -> out.addAll(List.of("soin", "immunite", "laser", "chaleur", "glue"));
+                case "delta" -> out.addAll(List.of("regen", "coeurs", "feu", "vitesse", "explosion", "aleatoire"));
+                case "kills" -> out.addAll(List.of("0", "2", "4", "6", "8"));
+                case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }

@@ -1,7 +1,7 @@
 package com.kiokouwhite.crossfight.character.unordinary;
 
 import com.kiokouwhite.crossfight.ability.Ability;
-import com.kiokouwhite.crossfight.ability.AbilityEngine;
+import com.kiokouwhite.crossfight.ability.Borrowed;
 import com.kiokouwhite.crossfight.ability.AbilityState;
 import com.kiokouwhite.crossfight.ability.AbilityType;
 import com.kiokouwhite.crossfight.ability.PassiveAbility;
@@ -40,13 +40,7 @@ public final class John extends Character {
     /** Capacites interdites a l'absorption (doc). */
     static final Set<String> FORBIDDEN = Set.of("sova_electro", "sova_reco", "sova_ult", "eren_titans", "eren_ult", "mikasa_ult", "livai_ult");
 
-    static final class Borrowed {
-        final Ability ability; final String from; final long expiresAt;
-        Borrowed(Ability ability, String from, long expiresAt) { this.ability = ability; this.from = from; this.expiresAt = expiresAt; }
-    }
-
-    /** Par joueur : pouvoirs absorbes (3 max) et personnages frappes (le "pool"). */
-    static final Map<UUID, List<Borrowed>> BORROWED = new HashMap<>();
+    /** Par joueur : personnages frappes (le "pool"). Les pouvoirs absorbes sont dans Borrowed. */
     static final Map<UUID, Set<String>> POOL = new HashMap<>();
 
     public John() {
@@ -67,15 +61,8 @@ public final class John extends Character {
                 "<light_purple>Ultime : lance l'ultime d'un personnage en vie au choix");
     }
 
-    static List<Borrowed> borrowed(Player p) { return BORROWED.computeIfAbsent(p.getUniqueId(), u -> new ArrayList<>()); }
+    static List<Borrowed.Entry> borrowed(Player p) { return Borrowed.of(p); }
     static Set<String> pool(Player p) { return POOL.computeIfAbsent(p.getUniqueId(), u -> new LinkedHashSet<>()); }
-
-    @Override
-    public List<Ability> allAbilities(Player p) {
-        List<Ability> all = new ArrayList<>(allAbilities());
-        for (Borrowed b : borrowed(p)) all.add(b.ability);
-        return all;
-    }
 
     static boolean copyable(Ability a) {
         return a.type() != AbilityType.ULTIMATE && !a.isWeaponBound() && !FORBIDDEN.contains(a.id()) && !a.id().startsWith("eren_t_");
@@ -84,27 +71,6 @@ public final class John extends Character {
     static boolean isJohn(Player p) {
         CfPlayer cf = Unordinary.plugin().players().get(p);
         return cf.character() != null && "john".equals(cf.character().id());
-    }
-
-    /** Donne a John l'item du pouvoir (barre puis inventaire) et l'equipe. */
-    static void give(Player p, Ability a) {
-        CfPlayer cf = Unordinary.plugin().players().get(p);
-        if (a.hasItem()) {
-            ItemStack item = a.createItem();
-            var inv = p.getInventory();
-            int slot = -1;
-            for (int i = 1; i <= 7 && slot < 0; i++) if (inv.getItem(i) == null) slot = i;
-            for (int i = 9; i < 36 && slot < 0; i++) if (inv.getItem(i) == null) slot = i;
-            if (slot >= 0) inv.setItem(slot, item); else inv.addItem(item);
-        }
-        try { a.onEquip(p, cf); } catch (Exception ex) { Unordinary.plugin().getLogger().warning("John onEquip " + a.id() + " : " + ex); }
-    }
-
-    static void take(Player p, Ability a) {
-        CfPlayer cf = Unordinary.plugin().players().get(p);
-        try { a.onUnequip(p, cf); } catch (Exception ex) { Unordinary.plugin().getLogger().warning("John onUnequip " + a.id() + " : " + ex); }
-        var inv = p.getInventory();
-        for (int i = 0; i < inv.getSize(); i++) if (a.id().equals(Items.tag(inv.getItem(i), AbilityEngine.ABILITY_KEY))) inv.setItem(i, null);
     }
 
     static boolean test() { return Unordinary.plugin().game().isTest(); }
@@ -123,13 +89,13 @@ public final class John extends Character {
     /** /cf choose : etape 1, retirer un pouvoir absorbe ou choisir un personnage ; etape 2, choisir son pouvoir. */
     public static boolean openChoose(Player p) {
         if (!isJohn(p)) return false;
-        List<Borrowed> mine = borrowed(p);
+        List<Borrowed.Entry> mine = borrowed(p);
         List<ChoiceMenu.Option> options = new ArrayList<>();
-        for (Borrowed b : mine) {
+        for (Borrowed.Entry b : mine) {
             long left = Math.max(0, b.expiresAt - System.currentTimeMillis()) / 1000;
             options.add(new ChoiceMenu.Option(b.ability.icon(), b.ability.name() + " <red>(retirer)",
                     List.of("<gray>De " + b.from, test() ? "<gray>Mode test : sans limite" : "<gray>Expire dans " + left + " s", "<red>Clique pour le retirer"), () -> {
-                        mine.remove(b); take(p, b.ability);
+                        Borrowed.remove(p, b);
                         Msg.actionBar(p, "<gray>Pouvoir retire : " + b.ability.name());
                     }));
         }
@@ -145,13 +111,9 @@ public final class John extends Character {
     }
 
     static void openCharacter(Player p, Character ch) {
-        List<Borrowed> mine = borrowed(p);
         List<ChoiceMenu.Option> options = new ArrayList<>();
         for (Ability a : ch.abilities()) {
-            if (!copyable(a)) continue;
-            boolean has = false;
-            for (Borrowed b : mine) if (b.ability.id().equals(a.id())) has = true;
-            if (has) continue;
+            if (!copyable(a) || Borrowed.has(p, a.id())) continue;
             List<String> lore = new ArrayList<>();
             lore.add("<gray>De " + ch.name() + " <dark_gray>(" + a.type().label() + ")");
             lore.addAll(Items.wrap(a.description()));
@@ -162,10 +124,8 @@ public final class John extends Character {
     }
 
     static void choose(Player p, Ability a, String from) {
-        List<Borrowed> mine = borrowed(p);
-        if (!test() && mine.size() >= 3) { Msg.send(p, "<red>Tu as deja 3 pouvoirs : retire-en un dans /cf choose."); return; }
-        mine.add(new Borrowed(a, from, test() ? Long.MAX_VALUE : System.currentTimeMillis() + 5 * 60 * 1000L));
-        give(p, a);
+        if (!test() && borrowed(p).size() >= 3) { Msg.send(p, "<red>Tu as deja 3 pouvoirs : retire-en un dans /cf choose."); return; }
+        Borrowed.add(p, a, from, test() ? Long.MAX_VALUE : System.currentTimeMillis() + 5 * 60 * 1000L);
         p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.1);
         p.playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 1f, 1.4f);
         Msg.send(p, "<dark_red>Pouvoir absorbe : <white>" + a.name() + "</white> (de " + from + (test() ? ")." : ", 5 minutes)."));
@@ -197,24 +157,12 @@ public final class John extends Character {
 
         /** Les pouvoirs expirent au bout de 5 minutes. */
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
-            List<Borrowed> mine = borrowed(p);
-            for (Borrowed b : new ArrayList<>(mine)) {
-                if (System.currentTimeMillis() < b.expiresAt) continue;
-                mine.remove(b);
-                take(p, b.ability);
-                Msg.send(p, "<gray>Le pouvoir " + b.ability.name() + " s'est dissipe.");
-            }
+            for (Borrowed.Entry b : Borrowed.purge(p)) Msg.send(p, "<gray>Le pouvoir " + b.ability.name() + " s'est dissipe.");
         }
 
         /** A la reapparition, les items des pouvoirs absorbes sont redonnes. */
         @Override public void onEquip(Player p, CfPlayer cf) {
-            Bukkit.getScheduler().runTask(Unordinary.plugin(), () -> {
-                for (Borrowed b : borrowed(p)) {
-                    boolean present = false;
-                    for (ItemStack it : p.getInventory().getContents()) if (b.ability.id().equals(Items.tag(it, AbilityEngine.ABILITY_KEY))) present = true;
-                    if (!present && b.ability.hasItem()) give(p, b.ability);
-                }
-            });
+            Bukkit.getScheduler().runTask(Unordinary.plugin(), () -> Borrowed.regive(p));
         }
     }
 
@@ -247,12 +195,10 @@ public final class John extends Character {
             p.playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_BLINDNESS, 1f, 1.2f);
             Unordinary.plugin().game().broadcastNear(p, "<dark_red>" + p.getName() + " vole l'ultime de " + from.name() + " : <bold>" + u.name() + "</bold> !");
             // L'ultime reste a John 2 minutes (clics ulterieurs, item) puis se dissipe.
-            List<Borrowed> mine = borrowed(p);
-            mine.removeIf(b -> b.ability.type() == AbilityType.ULTIMATE);
-            mine.add(new Borrowed(u, from.name(), System.currentTimeMillis() + 2 * 60 * 1000L));
+            for (Borrowed.Entry b : new ArrayList<>(borrowed(p))) if (b.ability.type() == AbilityType.ULTIMATE) Borrowed.remove(p, b);
             try {
                 boolean ok = u.cast(p, cf, Unordinary.plugin().abilities().state(p, u));
-                if (ok && u instanceof com.kiokouwhite.crossfight.ability.CustomUse) give(p, u);
+                if (ok && u instanceof com.kiokouwhite.crossfight.ability.CustomUse) Borrowed.add(p, u, from.name(), System.currentTimeMillis() + 2 * 60 * 1000L);
             } catch (Exception ex) {
                 Unordinary.plugin().getLogger().warning("Ultime vole " + u.id() + " : " + ex);
                 Msg.send(p, "<red>Cet ultime n'a pas pu etre lance.");
