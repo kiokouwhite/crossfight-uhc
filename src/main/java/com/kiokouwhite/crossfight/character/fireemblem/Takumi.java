@@ -61,7 +61,7 @@ public final class Takumi extends Character implements Listener {
     public List<String> summary() {
         return List.of(
                 "<white>Yumi Fujin (Power II) : Lenteur 10 s",
-                "<white>Contre Rapproche : epee 9 dmg pendant 30 s",
+                "<white>Contre Rapproche : l'arc devient une epee 9 dmg 30 s",
                 "<white>Vengeance : +1 Power par 3 coeurs perdus (5 s)",
                 "<white>Furie : +1 Power et Vitesse II contre 5 coeurs",
                 "<light_purple>Ultime : rayon 10x30 blocs, 5 coeurs");
@@ -128,37 +128,63 @@ public final class Takumi extends Character implements Listener {
 
     static final class ContreRapproche extends ActiveAbility {
         ContreRapproche() {
-            super("takumi_contre", "Contre Rapproche", "Takumi recoit une epee de 9 degats pendant 30 secondes mais ne peut plus tirer a l'arc.",
+            super("takumi_contre", "Contre Rapproche", "Le Yumi Fujin est remplace par une epee de 9 degats pendant 30 secondes.",
                     Material.IRON_SWORD, 90);
         }
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            ItemStack sword = Weapons.melee(Material.IRON_SWORD, 9, "<red><bold>Lame de Takumi", Items.wrap("Disparait au bout de 30 secondes."));
-            Items.tag(sword, TEMP_SWORD, "1");
-            Items.tag(sword, AbilityEngine.WEAPON_KEY, "takumi_temp");
-            var left = p.getInventory().addItem(sword);
-            if (!left.isEmpty()) {
-                Msg.actionBar(p, "<red>Inventaire plein.");
+            var inv = p.getInventory();
+            int bowSlot = -1;
+            for (int i = 0; i < inv.getSize(); i++) {
+                if ("takumi".equals(Items.tag(inv.getItem(i), AbilityEngine.WEAPON_KEY))) { bowSlot = i; break; }
+            }
+            if (bowSlot < 0) {
+                Msg.actionBar(p, "<red>Ton arc est introuvable.");
                 return false;
             }
+            ItemStack sword = Weapons.melee(Material.IRON_SWORD, 9, "<red><bold>Lame de Takumi", Items.wrap("Le Yumi Fujin revient dans 30 secondes."));
+            Items.tag(sword, TEMP_SWORD, "1");
+            Items.tag(sword, AbilityEngine.WEAPON_KEY, "takumi_temp");
+            st.set("bow", inv.getItem(bowSlot).clone());
+            inv.setItem(bowSlot, sword);
             st.set("lockedUntil", System.currentTimeMillis() + 30_000L);
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f);
-            Bukkit.getScheduler().runTaskLater(plugin(), () -> removeSword(p), 20L * 30);
+            Msg.actionBar(p, "<red>Lame en main ! Ton arc revient dans 30 s.");
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> restoreBow(p, st), 20L * 30);
             return true;
         }
 
-        static void removeSword(Player p) {
+        /** Remet le Yumi Fujin a la place de la lame. */
+        static void restoreBow(Player p, AbilityState st) {
+            ItemStack bow = st.get("bow", null);
+            st.remove("bow");
+            st.set("lockedUntil", 0L);
+            if (bow == null) return;
             var inv = p.getInventory();
+            boolean placed = false;
             for (int i = 0; i < inv.getSize(); i++) {
-                if (Items.tag(inv.getItem(i), TEMP_SWORD) != null) inv.setItem(i, null);
+                if (Items.tag(inv.getItem(i), TEMP_SWORD) != null) {
+                    inv.setItem(i, bow);
+                    placed = true;
+                    break;
+                }
             }
-            if (p.isOnline()) Msg.actionBar(p, "<gray>Ta lame disparait, ton arc est de nouveau pret.");
+            if (!placed) {
+                var left = inv.addItem(bow);
+                if (!left.isEmpty()) inv.setItem(0, bow);
+            }
+            if (p.isOnline()) {
+                refreshPower(p);
+                Msg.actionBar(p, "<gray>Le Yumi Fujin est de retour.");
+                p.playSound(p.getLocation(), Sound.ITEM_CROSSBOW_LOADING_END, 1f, 1.2f);
+            }
         }
 
         @Override
         public void onUnequip(Player p, CfPlayer cf) {
-            removeSword(p);
+            // Mort ou fin de partie pendant la lame : on remet l'arc pour que le prochain equipement soit propre.
+            restoreBow(p, plugin().abilities().state(p, this));
         }
     }
 
