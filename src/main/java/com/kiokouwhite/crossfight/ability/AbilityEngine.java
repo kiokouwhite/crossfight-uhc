@@ -371,7 +371,13 @@ public final class AbilityEngine implements Listener {
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);
             return;
         }
-        if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) return;
+        int activationsBefore = st.activations();
+        boolean enabledBefore = st.isEnabled();
+        if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) {
+            // Une capacite a usage particulier a reussi si elle a lance son temps de chargement ou s'est activee.
+            if (st.activations() != activationsBefore || (st.isEnabled() && !enabledBefore)) com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
+            return;
+        }
         switch (a) {
             case ActiveAbility active -> {
                 if (st.onCooldown()) {
@@ -383,6 +389,7 @@ public final class AbilityEngine implements Listener {
                 if (ok) {
                     st.startCooldown((int) Math.ceil(active.cooldownSeconds() * cf.cooldownFactor()));
                     p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1f, 1.4f);
+                    com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
                 }
             }
             case ToggleAbility toggle -> {
@@ -398,6 +405,7 @@ public final class AbilityEngine implements Listener {
                     if (toggle.onEnable(p, cf, st)) {
                         st.setEnabled(true);
                         Msg.actionBar(p, "<aqua>" + a.name() + " activee");
+                        com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
                     }
                 }
             }
@@ -408,6 +416,7 @@ public final class AbilityEngine implements Listener {
                 sw.onSwitch(p, cf, st, old, next);
                 Msg.actionBar(p, "<yellow>" + a.name() + " : <white>" + sw.modeName(next));
                 p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.2f);
+                com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
             }
             case PassiveAbility passive -> {
                 Msg.actionBar(p, "<gray>" + a.name() + " est un passif : toujours actif.");
@@ -422,6 +431,7 @@ public final class AbilityEngine implements Listener {
                 if (ult.cast(p, cf, st)) {
                     if (free) cf.setUltimateCharge(100); else cf.resetUltimate();
                     p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
+                    com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
                     plugin.game().broadcastNear(p, "<light_purple>" + p.getName() + " utilise <bold>" + ult.name() + "</bold> !");
                 }
             }

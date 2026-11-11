@@ -40,6 +40,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        com.kiokouwhite.crossfight.util.Sounds.load(this);
 
         playerManager = new PlayerManager();
         teamManager = new TeamManager(this);
@@ -56,6 +57,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         var pm = getServer().getPluginManager();
         pm.registerEvents(abilityEngine, this);
         pm.registerEvents(new ConnectionListener(this), this);
+        music = new com.kiokouwhite.crossfight.util.Music(this);
+        pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);
         pm.registerEvents(new DeathListener(this), this);
         pm.registerEvents(new RestrictionListener(this), this);
@@ -111,6 +114,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public CharacterRegistry characters() { return characterRegistry; }
     public AbilityEngine abilities() { return abilityEngine; }
     public LivesManager lives() { return livesManager; }
+    private com.kiokouwhite.crossfight.util.Music music;
+    public com.kiokouwhite.crossfight.util.Music music() { return music; }
     public GameManager game() { return gameManager; }
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }

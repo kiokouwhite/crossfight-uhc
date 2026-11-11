@@ -276,6 +276,7 @@ public final class TestMode implements Listener {
         plugin.abilities().equip(p);
         gear(p);
         Msg.send(p, "<green>Tu incarnes <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.licence().name() + ")");
+        com.kiokouwhite.crossfight.util.Sounds.selection(p, c.id());
         save();
     }
 

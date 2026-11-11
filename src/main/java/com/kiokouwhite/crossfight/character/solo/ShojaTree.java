@@ -161,6 +161,8 @@ public final class ShojaTree {
         if (!Borrowed.has(p, n.abilityId())) Borrowed.add(p, n.ability, "arbre", Long.MAX_VALUE);
         if (!quiet) Msg.send(p, "<" + n.element.color + ">" + n.name + " <white>equipee <gray>(" + equipped(p).size() + "/3).");
         p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 0.8f, 1.4f);
+        // Un passif n'a pas de lancement : sa replique est dite quand elle l'equipe.
+        if (n.cd == 0 && !quiet) com.kiokouwhite.crossfight.util.Sounds.voice(p, n.abilityId());
         return true;
     }
 

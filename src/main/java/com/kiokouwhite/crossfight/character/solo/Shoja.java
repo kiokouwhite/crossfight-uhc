@@ -87,6 +87,7 @@ public final class Shoja extends Character implements Listener, Solo.Burst {
         }
         killer.getWorld().spawnParticle(Particle.ENCHANT, killer.getLocation().add(0, 1.5, 0), 60, 0.5, 0.8, 0.5, 1);
         killer.playSound(killer.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 0.8f);
+        com.kiokouwhite.crossfight.util.Sounds.voiceLater(killer, "shoja_ego", 30L);
         Msg.send(killer, "<dark_red><bold>Epee de l'Ego :</bold> <white>" + n + " enchantement(s) de l'arme de " + ShojaTree.safeName(victim) + " copie(s) sur ton epee.");
     }
 
@@ -115,6 +116,7 @@ public final class Shoja extends Character implements Listener, Solo.Burst {
     static final class CouronneAraignee extends UltimateAbility {
         CouronneAraignee() { super("shoja_ult", "Couronne Angelique | Araignee Malefique", "Plus de 5 coeurs : Couronne Angelique, Shoja vole et regenere pendant 20 secondes. 5 coeurs ou moins : Araignee Malefique, Vitesse II et Force IV pendant 20 secondes, mais elle perd 1 coeur toutes les 2 secondes.", Material.ECHO_SHARD); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            com.kiokouwhite.crossfight.util.Sounds.voice(p, p.getHealth() > 10.0 ? "shoja_ult_couronne" : "shoja_ult_araignee");
             if (p.getHealth() > 10.0) {
                 p.setAllowFlight(true); p.setFlying(true);
                 Effects.give(p, PotionEffectType.REGENERATION, 1, 400);

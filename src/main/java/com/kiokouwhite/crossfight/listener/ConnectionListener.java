@@ -23,6 +23,7 @@ public final class ConnectionListener implements Listener {
         Player p = e.getPlayer();
         CfPlayer cf = plugin.players().get(p);
         e.joinMessage(Msg.prefixed("<gray>" + p.getName() + " a rejoint."));
+        com.kiokouwhite.crossfight.util.Sounds.sendPack(p);
         if (plugin.testMode().resumeIfPending(p)) return;
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);

@@ -1,0 +1,42 @@
+# Musiques de combat : "licence_a + licence_b = piste".
+# La piste est le nom du fichier depose dans assets/crossfight/sounds/music/ (sans .ogg).
+# Licences : fire_emblem rwby valorant snk unordinary earth_delta gunvolt shojas_memories bloody_snow solitaire
+# Une paire absente (ou deux equipes de la meme licence) : pas de musique.
+# Apres un changement : python3 tools/build_pack.py
+
+fire_emblem + rwby = library_of_ruina_inspired_sketch                                        # library of ruina inspired sketch
+fire_emblem + valorant = totally_realistic_guitar_playing                                    # totally realistic guitar playing
+fire_emblem + snk = library_ruins_battle                                                     # library ruins (battle)
+fire_emblem + unordinary = woodlands_battle                                                  # woodlands (battle)
+fire_emblem + earth_delta = core_to_myself                                                   # core to myself
+fire_emblem + gunvolt = tiny_void_rat_battle                                                 # tiny void rat (battle)
+fire_emblem + shojas_memories = pov_you_just_pulverized_a_dungeon_rat_into_a_fibrous_powder  # pov you just pulverized a dungeon rat into a fibrous powder
+fire_emblem + bloody_snow = roseate_paroxysm                                                 # ROSEATE PAROXYSM
+rwby + valorant = nonsense_harmony_practice                                                  # nonsense harmony practice
+rwby + snk = sealcore_core_jazz                                                              # SEALCORE CORE JAZZ
+rwby + unordinary = library_of_ruina_inspired_sketch                                         # library of ruina inspired sketch
+rwby + earth_delta = one_chord_chord_progression_challenge                                   # one chord chord progression challenge
+rwby + gunvolt = yuzu_soda                                                                   # yuzu soda
+rwby + shojas_memories = meowsynth_speed_garage_was_a_mistake_ft_cat                         # meowsynth speed garage was a mistake (ft. cat)
+rwby + bloody_snow = robot_casino                                                            # robot casino
+valorant + snk = decisive_battle                                                             # DECISIVE BATTLE
+valorant + unordinary = goddess_of_indifference                                              # GODDESS OF INDIFFERENCE
+valorant + earth_delta = rooftop_dash                                                        # ROOFTOP DASH
+valorant + gunvolt = lets_go_gamblingcore_core                                               # let's go gamblingcore core
+valorant + shojas_memories = making_this_song_gave_me_a_headache                             # making this song gave me a headache
+valorant + bloody_snow = make_the_sky_fall                                                   # MAKE THE SKY FALL
+snk + unordinary = anime_guitar_moment_moment_type_beat                                      # anime guitar moment moment type beat
+snk + earth_delta = combining_two_unlikely_musical_scales                                    # combining two unlikely musical scales
+snk + gunvolt = learning_more_about_jazz_theory_and_harmony_0                                # learning more about jazz theory and harmony :0
+snk + shojas_memories = meowsynth_the_anime_opening_1_car                                    # Meowsynth the Anime - Opening 1 | car
+snk + bloody_snow = looking_glass_luminescence                                               # LOOKING GLASS LUMINESCENCE
+unordinary + earth_delta = voidside_swordfight                                               # VOIDSIDE SWORDFIGHT
+unordinary + gunvolt = sugar_rush                                                            # SUGAR RUSH
+unordinary + shojas_memories = outer_space_carnival                                          # outer space carnival
+unordinary + bloody_snow = crystal_voidlands_area_boss                                       # crystal voidlands (AREA BOSS)
+earth_delta + gunvolt = echo_interim                                                         # ECHO INTERIM
+earth_delta + shojas_memories = making_a_song_with_only_soundfonts                           # making a song with only soundfonts
+earth_delta + bloody_snow = battle_against_an_incredibly_dangerous_machine                   # battle against an incredibly dangerous machine
+gunvolt + shojas_memories = adding_instruments_until_my_pc_cries                             # adding instruments until my pc cries
+gunvolt + bloody_snow = i_have_no_idea_how_to_start_this_song                                # i have no idea how to start this song
+shojas_memories + bloody_snow = suffocate                                                    # suffocate_

@@ -14,6 +14,21 @@ game:
     judgement: 50
     omori: 60
 
+resource-pack:
+  # Le pack de sons et de voix, propose a chaque joueur a la connexion
+  enabled: true
+  url: "https://github.com/kiokouwhite/crossfight-uhc/raw/main/dist/CrossfightPack.zip"
+  # true : un joueur qui refuse le pack est deconnecte
+  required: false
+
+music:
+  # Musiques de combat : la piste depend des deux licences qui s'affrontent
+  enabled: true
+  # Secondes sans coup entre deux equipes avant que leur musique s'arrete
+  silence-seconds: 20
+  # Volume de la musique (reglage "Juke-box / Blocs musicaux" cote joueur)
+  volume: 0.6
+
 world:
   # Nom du monde de jeu
   name: world

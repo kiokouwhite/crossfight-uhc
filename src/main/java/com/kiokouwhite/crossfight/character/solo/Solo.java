@@ -97,7 +97,12 @@ public final class Solo {
             Burst b = burstOf(cf);
             if (b == null) return true;
             if (!plugin().game().isTest() && !ready(p)) { Msg.actionBar(p, "<red>Burst a " + (int) charge(p) + "% / 1000%"); return true; }
+            // La replique depend de la vie de Shoja au moment du lancement.
+            String voice = cf.character().id() + "_burst";
+            if ("shoja".equals(cf.character().id())) voice = p.getHealth() > 10.0 ? "shoja_burst_monde" : "shoja_burst_enfers";
             if (!b.burst(p, cf, st)) return true;
+            com.kiokouwhite.crossfight.util.Sounds.sfx(p.getLocation(), "ultimate");
+            com.kiokouwhite.crossfight.util.Sounds.voice(p, voice);
             if (!plugin().game().isTest()) consume(p);
             p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.7f, 1.3f);
             plugin().game().broadcastNear(p, "<gold>" + p.getName() + " lance son Burst : <bold>" + b.burstName() + "</bold> !");

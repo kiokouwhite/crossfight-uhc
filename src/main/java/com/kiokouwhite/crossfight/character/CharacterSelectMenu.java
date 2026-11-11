@@ -92,8 +92,16 @@ public final class CharacterSelectMenu implements Listener {
         if (takenIn(team).contains(c.id())) return false;
         cf.setCharacter(c);
         Msg.send(p, "<green>Tu incarnes <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.voie().label() + ")");
+        com.kiokouwhite.crossfight.util.Sounds.selection(p, c.id());
         for (Player ally : team.onlineMembers()) {
             if (ally != p) Msg.send(ally, "<gray>" + p.getName() + " incarne <gold>" + c.name());
+        }
+        // Un duo au complet : les deux personnages echangent une replique.
+        java.util.List<Player> mates = team.onlineMembers();
+        if (mates.size() == 2) {
+            Player other = mates.get(0) == p ? mates.get(1) : mates.get(0);
+            Character oc = plugin.players().get(other).character();
+            if (oc != null) com.kiokouwhite.crossfight.util.Sounds.duoDialogue(p, c.id(), other, oc.id());
         }
         if (plugin.game().isRunning()) {
             plugin.abilities().equip(p);

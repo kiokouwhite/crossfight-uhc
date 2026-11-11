@@ -53,6 +53,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf burst` | Rendre son Burst de solitaire prêt (test) |
 | `/cf sante <0-100>` | Régler la santé du Cœur Mourant du Drifter (test) |
 | `/cf shoja <liste\|id\|tous\|raz>` | Arbre de Shoja : lister, équiper une capacité, tout débloquer, tout retirer (test) |
+| `/cf son [nom]` | Compter les sons du pack, ou en jouer un (test) |
+| `/cf musique [piste\|stop]` | Lister les musiques de combat, en écouter une, l'arrêter (test) |
 
 ## Déroulement d'une partie
 
@@ -83,6 +85,7 @@ com.kiokouwhite.crossfight
 │   ├── shoja/              Shoja's Memories : Hiro, Pinkou, Aïda, Crystal, six Synergies
 │   ├── bloodysnow/         Bloody Snow : Netsu, Kaze, Hannah, Eirika, Marques de Sang, six Synergies
 │   └── solo/               Personnages solitaires : Burst (jauge à 1000 %), Yuki, le Drifter, Shoja et son arbre de 59 capacités
+├── util/                   Sounds (bruitages et voix du pack), Music (musiques de combat), effets, menus…
 ├── listener/               PvP, charge d'ultime, mort, restrictions d'équipement
 └── command/                /cf et /vivre
 ```
@@ -97,6 +100,24 @@ charge l'Ultime de 0,25 % (`ultimate.charge-per-percent-damage` dans `config.yml
 Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permettent pas, donc
 le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
 Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
+
+### Sons, voix et musiques
+
+Le plugin envoie à chaque joueur un pack de ressources (`dist/CrossfightPack.zip`, adresse dans `config.yml`, section `resource-pack`). Tout y est rangé sous l'espace de noms `crossfight` :
+
+- **Bruitages** : chaque capacité réussie joue `ability.<id>`. `resourcepack/abilities.txt` associe chaque capacité à une catégorie de la bibliothèque (`sounds/sfx/<catégorie>/`, 28 catégories de sons libres, crédits dans `resourcepack/CREDITS.md`). Un fichier `sounds/ability/<id>.ogg` remplace la catégorie pour cette capacité.
+- **Voix** : `sounds/voice/<clé>.ogg`. La clé est l'id de la capacité, ou `<perso>_selection`, `<perso>_mort`, `<perso>_kill`, `<perso>_burst`, `syn_<a>_<b>_<perso>` (Synergie), `duo_<a>_<b>_<perso>` (échange des deux membres d'un duo après le choix des personnages). `<clé>_1.ogg`, `<clé>_2.ogg` sont des variantes tirées au hasard. Les voix sont entendues autour du personnage ; la réplique de sélection, par le joueur seul.
+- **Musiques de combat** : `sounds/music/<piste>.ogg`, et `resourcepack/music.txt` dit quelles licences la déclenchent (`licence_a + licence_b = piste`). La musique démarre au premier coup entre deux équipes, boucle tant qu'elles se battent, et s'arrête après `music.silence-seconds` (20 s) sans coup ou quand une équipe n'a plus de joueur en vie. Elle passe par le réglage « Juke-box / Blocs musicaux » du joueur.
+
+Un son absent du pack n'est simplement pas joué : ajouter une voix ou une musique ne demande aucun changement de code.
+
+```
+python3 tools/add_audio.py music "ma piste.mp3"        # convertit et range une musique
+python3 tools/add_audio.py voice netsu.wav netsu_ult   # une réplique
+python3 tools/build_pack.py                            # reconstruit le pack, puis recompiler le plugin
+```
+
+`build_pack.py` écrit aussi dans le jar la liste des sons, l'empreinte du pack et la table des musiques : le jar et le pack publiés doivent donc venir de la même construction.
 
 ### Items de capacité
 Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que personne ne frappe avec : les icônes en épée deviennent des éclats d'améthyste, les haches du fer brut, les arcs des flèches, les tridents des éclats de prismarine, les pioches, pelles et houes des matériaux bruts. Seuls les vrais arcs à bander (Sova) gardent leur apparence. L'arme du personnage reste en premier slot.
@@ -209,6 +230,8 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - [x] Shoja's Memories : Hiro, Pinkou, Aïda, Crystal
 - [x] Bloody Snow : Netsu, Kaze, Hannah, Eirika
 - [x] Personnages solitaires et Burst : Yuki, le Drifter, Shoja (arbre de 59 capacités)
+- [x] Sons : pack de ressources, bruitages libres par capacité, système de voix et de musiques de combat
+- [ ] Voix des personnages et musiques (fichiers à fournir), répliques des passifs à déclencheur
 - [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
 
 ### Combat façon 1.8
@@ -228,3 +251,5 @@ personnels n'ont pas d'item adverse.
 
 Le dernier jar compilé est dans le dossier `dist/` :
 https://github.com/kiokouwhite/crossfight-uhc/raw/main/dist/CrossfightUHC.jar
+
+Le pack de sons est téléchargé par le jeu lui-même à la connexion ; il n'y a rien à installer à la main.

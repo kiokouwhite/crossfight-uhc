@@ -1,0 +1,1953 @@
+{
+ "ability.acura_dash": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.acura_envolee": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.acura_ex": {
+  "sounds": [
+   "crossfight:sfx/laser/1",
+   "crossfight:sfx/laser/2",
+   "crossfight:sfx/laser/3"
+  ]
+ },
+ "ability.acura_pod": {
+  "sounds": [
+   "crossfight:sfx/laser/1",
+   "crossfight:sfx/laser/2",
+   "crossfight:sfx/laser/3"
+  ]
+ },
+ "ability.acura_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.aida_bulle": {
+  "sounds": [
+   "crossfight:sfx/bubble/1",
+   "crossfight:sfx/bubble/2",
+   "crossfight:sfx/bubble/3"
+  ]
+ },
+ "ability.aida_clone": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.aida_jet": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.aida_ult": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.arlo_barriere": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.arlo_barriere_ultime": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.arlo_enfermement": {
+  "sounds": [
+   "crossfight:sfx/trap/1",
+   "crossfight:sfx/trap/2",
+   "crossfight:sfx/trap/3"
+  ]
+ },
+ "ability.arlo_etouffement": {
+  "sounds": [
+   "crossfight:sfx/trap/1",
+   "crossfight:sfx/trap/2",
+   "crossfight:sfx/trap/3"
+  ]
+ },
+ "ability.arlo_ult": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.armin_regroupement": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.armin_strategie": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.armin_ult": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.asimov_dash": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "ability.asimov_rifle": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "ability.asimov_shotgun": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "ability.asimov_turret": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.asimov_ult": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.blake_discretion": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.blake_gambol": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.blake_ombre": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.blake_ult": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.byleth_epine": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.byleth_sword": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.byleth_tutorat": {
+  "sounds": [
+   "crossfight:sfx/book/1",
+   "crossfight:sfx/book/2",
+   "crossfight:sfx/book/3",
+   "crossfight:sfx/book/4"
+  ]
+ },
+ "ability.byleth_ult": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.corrin_sang": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.corrin_ult": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.crystal_cristal": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.crystal_lance": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.crystal_patin": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.crystal_surcharge": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.crystal_ult": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.drifter_chain": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.drifter_grenade": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.drifter_hardlight": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.drifter_ult": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.duo_synergie": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.eirika_absorption": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.eirika_effroi": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.eirika_rain": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.eirika_ult": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.eren_charge": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.eren_t_bestial": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.eren_t_charrette": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "ability.eren_t_colossal": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.eren_t_cuirasse": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.eren_t_feminin": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.eren_t_machoire": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.eren_t_marteau": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.eren_ult": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.gv_cerbere": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "ability.gv_champ": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.gv_dash": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "ability.gv_ult": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.hannah_abnegation": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.hannah_protection": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.hannah_ult": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.hano_tome_aqua_affinity": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.hano_tome_bane_of_arthropods": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.hano_tome_blast_protection": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.hano_tome_channeling": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.hano_tome_depth_strider": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.hano_tome_efficiency": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.hano_tome_feather_falling": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.hano_tome_fire_aspect": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.hano_tome_fire_protection": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.hano_tome_flame": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.hano_tome_fortune": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.hano_tome_impaling": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.hano_tome_infinity": {
+  "sounds": [
+   "crossfight:sfx/heal/1",
+   "crossfight:sfx/heal/2"
+  ]
+ },
+ "ability.hano_tome_knockback": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.hano_tome_looting": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.hano_tome_loyalty": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.hano_tome_luck_of_the_sea": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.hano_tome_lure": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.hano_tome_projectile_protection": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.hano_tome_protection": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.hano_tome_respiration": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.hano_tome_riptide": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.hano_tome_sharpness": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.hano_tome_silk_touch": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.hano_tome_smite": {
+  "sounds": [
+   "crossfight:sfx/big_explosion/1",
+   "crossfight:sfx/big_explosion/2",
+   "crossfight:sfx/big_explosion/3"
+  ]
+ },
+ "ability.hano_tome_sweeping_edge": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.hano_tome_thorns": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "ability.hano_tome_unbreaking": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.hano_ult": {
+  "sounds": [
+   "crossfight:sfx/book/1",
+   "crossfight:sfx/book/2",
+   "crossfight:sfx/book/3",
+   "crossfight:sfx/book/4"
+  ]
+ },
+ "ability.hiro_consumation": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.hiro_dash": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.hiro_grenade": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.hiro_pyra": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.hiro_ult": {
+  "sounds": [
+   "crossfight:sfx/big_explosion/1",
+   "crossfight:sfx/big_explosion/2",
+   "crossfight:sfx/big_explosion/3"
+  ]
+ },
+ "ability.jett_courant": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.jett_flottement": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.jett_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.jett_vent": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.john_ult": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "ability.kaze_homerun": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.kaze_prise": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.kaze_risque": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.kaze_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.kirin_arc": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.kirin_slash": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.kirin_talisman": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.kirin_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.kirin_yakumo": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.kishi_aura": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.kishi_lumiere": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.kishi_ult": {
+  "sounds": [
+   "crossfight:sfx/ultimate/1",
+   "crossfight:sfx/ultimate/2",
+   "crossfight:sfx/ultimate/3"
+  ]
+ },
+ "ability.kura_assassin": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.kura_meurtre": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.kura_ruee": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.kura_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.livai_assaut": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.livai_charge": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.livai_toupie": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.livai_ult": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.marth_contre": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.marth_falchion": {
+  "sounds": [
+   "crossfight:sfx/heal/1",
+   "crossfight:sfx/heal/2"
+  ]
+ },
+ "ability.marth_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.mikasa_assommage": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.mikasa_cible": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.mikasa_ult": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.neon_relais": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.neon_ult": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.neon_vitesse": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "ability.neon_voie": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.netsu_ailes": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.netsu_crawnatus": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.netsu_jetee": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.netsu_papillons": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.netsu_ult": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.pinkou_cocon": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "ability.pinkou_ronces": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "ability.pinkou_ult": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "ability.pinkou_vigne": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "ability.remi_dash": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "ability.remi_electricite": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.remi_electrocution": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.remi_ult": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.ruby_crescent": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "ability.ruby_petales_lent": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.ruby_petales_rapide": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.ruby_ult": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.rwby_duo": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.sage_barriere": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.sage_lenteur": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.sage_soin": {
+  "sounds": [
+   "crossfight:sfx/heal/1",
+   "crossfight:sfx/heal/2"
+  ]
+ },
+ "ability.sage_ult": {
+  "sounds": [
+   "crossfight:sfx/heal/1",
+   "crossfight:sfx/heal/2"
+  ]
+ },
+ "ability.seraphina_arret": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.seraphina_retour": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.seraphina_ult": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_absorption_ardente": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.shoja_attraction_lacerante": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_back_to_back": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_bombe_poisson_globe": {
+  "sounds": [
+   "crossfight:sfx/bubble/1",
+   "crossfight:sfx/bubble/2",
+   "crossfight:sfx/bubble/3"
+  ]
+ },
+ "ability.shoja_boom_temporel": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_boule_electrifiante": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_bourrasque_attirante": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_brulure_instantanee": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.shoja_cogito_ergo_sum": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_crevasse": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.shoja_cyclone_amenant": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_ding_dong": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_division_du_territoire": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.shoja_epee_eventail": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.shoja_espace_incapacitant": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.shoja_explosion_denergie": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_explosion_du_temps": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_explosion_infernale": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.shoja_foudre_incontrolable": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "ability.shoja_foudroiement_circulaire": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_fusil_a_eau": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.shoja_incapacitation": {
+  "sounds": [
+   "crossfight:sfx/weird/1",
+   "crossfight:sfx/weird/2",
+   "crossfight:sfx/weird/3"
+  ]
+ },
+ "ability.shoja_incendie": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.shoja_inflammation": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.shoja_le_temps_est_incontrolable": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_legere_suppression": {
+  "sounds": [
+   "crossfight:sfx/weird/1",
+   "crossfight:sfx/weird/2",
+   "crossfight:sfx/weird/3"
+  ]
+ },
+ "ability.shoja_lorem_ipsum": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_mer_de_magma": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.shoja_mine_sousmarine": {
+  "sounds": [
+   "crossfight:sfx/bubble/1",
+   "crossfight:sfx/bubble/2",
+   "crossfight:sfx/bubble/3"
+  ]
+ },
+ "ability.shoja_nouvelle_dimension": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.shoja_oeil_du_cyclone": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_panne_dhorloge": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_piege_meduse": {
+  "sounds": [
+   "crossfight:sfx/bubble/1",
+   "crossfight:sfx/bubble/2",
+   "crossfight:sfx/bubble/3"
+  ]
+ },
+ "ability.shoja_pistolet_a_eau": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.shoja_pompe_a_eau": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.shoja_puits_sans_fond": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.shoja_rafale_de_vent": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_rayon_electrique": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_scie_circulaire": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_sniper_a_eau": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "ability.shoja_sol_electrifiant": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "ability.shoja_souffle_destructeur": {
+  "sounds": [
+   "crossfight:sfx/weird/1",
+   "crossfight:sfx/weird/2",
+   "crossfight:sfx/weird/3"
+  ]
+ },
+ "ability.shoja_soulevement_terrestre": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.shoja_tic_tac": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "ability.shoja_tornade_destructrice": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.shoja_tornade_repoussante": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.shoja_ult": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.shoja_vent_tranchant": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.shoja_vide_interstellaire": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "ability.snk_odm": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.sova_drone": {
+  "sounds": [
+   "crossfight:sfx/weird/1",
+   "crossfight:sfx/weird/2",
+   "crossfight:sfx/weird/3"
+  ]
+ },
+ "ability.sova_ult": {
+  "sounds": [
+   "crossfight:sfx/laser/1",
+   "crossfight:sfx/laser/2",
+   "crossfight:sfx/laser/3"
+  ]
+ },
+ "ability.taka_axe": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.taka_multiarme": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.taka_spear": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.taka_sword": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.taka_ult": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.takumi_contre": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.takumi_furie": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.takumi_ult": {
+  "sounds": [
+   "crossfight:sfx/laser/1",
+   "crossfight:sfx/laser/2",
+   "crossfight:sfx/laser/3"
+  ]
+ },
+ "ability.takumi_vengeance": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.uno_aura": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.weiss_glyphs1": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "ability.weiss_glyphs2": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.weiss_myrtenaster": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "ability.weiss_ult": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.yang_brulure": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.yang_ember": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "ability.yang_incendie": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.yang_ult": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "ability.yuki_desesperee": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.yuki_insaisissable": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.yuki_snow": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.yuki_ult": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "sfx.big_explosion": {
+  "sounds": [
+   "crossfight:sfx/big_explosion/1",
+   "crossfight:sfx/big_explosion/2",
+   "crossfight:sfx/big_explosion/3"
+  ]
+ },
+ "sfx.book": {
+  "sounds": [
+   "crossfight:sfx/book/1",
+   "crossfight:sfx/book/2",
+   "crossfight:sfx/book/3",
+   "crossfight:sfx/book/4"
+  ]
+ },
+ "sfx.bubble": {
+  "sounds": [
+   "crossfight:sfx/bubble/1",
+   "crossfight:sfx/bubble/2",
+   "crossfight:sfx/bubble/3"
+  ]
+ },
+ "sfx.chain": {
+  "sounds": [
+   "crossfight:sfx/chain/1",
+   "crossfight:sfx/chain/2",
+   "crossfight:sfx/chain/3"
+  ]
+ },
+ "sfx.crystal": {
+  "sounds": [
+   "crossfight:sfx/crystal/1",
+   "crossfight:sfx/crystal/2",
+   "crossfight:sfx/crystal/3",
+   "crossfight:sfx/crystal/4"
+  ]
+ },
+ "sfx.dark": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "sfx.earth": {
+  "sounds": [
+   "crossfight:sfx/earth/1",
+   "crossfight:sfx/earth/2",
+   "crossfight:sfx/earth/3"
+  ]
+ },
+ "sfx.electric": {
+  "sounds": [
+   "crossfight:sfx/electric/1",
+   "crossfight:sfx/electric/2",
+   "crossfight:sfx/electric/3",
+   "crossfight:sfx/electric/4",
+   "crossfight:sfx/electric/5"
+  ]
+ },
+ "sfx.electric_dash": {
+  "sounds": [
+   "crossfight:sfx/electric_dash/1",
+   "crossfight:sfx/electric_dash/2",
+   "crossfight:sfx/electric_dash/3",
+   "crossfight:sfx/electric_dash/4"
+  ]
+ },
+ "sfx.explosion": {
+  "sounds": [
+   "crossfight:sfx/explosion/1",
+   "crossfight:sfx/explosion/2",
+   "crossfight:sfx/explosion/3",
+   "crossfight:sfx/explosion/4"
+  ]
+ },
+ "sfx.fire": {
+  "sounds": [
+   "crossfight:sfx/fire/1",
+   "crossfight:sfx/fire/2",
+   "crossfight:sfx/fire/3",
+   "crossfight:sfx/fire/4"
+  ]
+ },
+ "sfx.gun": {
+  "sounds": [
+   "crossfight:sfx/gun/1",
+   "crossfight:sfx/gun/2",
+   "crossfight:sfx/gun/3"
+  ]
+ },
+ "sfx.heal": {
+  "sounds": [
+   "crossfight:sfx/heal/1",
+   "crossfight:sfx/heal/2"
+  ]
+ },
+ "sfx.laser": {
+  "sounds": [
+   "crossfight:sfx/laser/1",
+   "crossfight:sfx/laser/2",
+   "crossfight:sfx/laser/3"
+  ]
+ },
+ "sfx.magic": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "sfx.plant": {
+  "sounds": [
+   "crossfight:sfx/plant/1",
+   "crossfight:sfx/plant/2",
+   "crossfight:sfx/plant/3"
+  ]
+ },
+ "sfx.roar": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
+ "sfx.select": {
+  "sounds": [
+   "crossfight:sfx/select/1"
+  ]
+ },
+ "sfx.shield": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "sfx.slash": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
+ "sfx.teleport": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
+  ]
+ },
+ "sfx.time": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
+ "sfx.trap": {
+  "sounds": [
+   "crossfight:sfx/trap/1",
+   "crossfight:sfx/trap/2",
+   "crossfight:sfx/trap/3"
+  ]
+ },
+ "sfx.ultimate": {
+  "sounds": [
+   "crossfight:sfx/ultimate/1",
+   "crossfight:sfx/ultimate/2",
+   "crossfight:sfx/ultimate/3"
+  ]
+ },
+ "sfx.water": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
+ "sfx.weapon": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
+  ]
+ },
+ "sfx.weird": {
+  "sounds": [
+   "crossfight:sfx/weird/1",
+   "crossfight:sfx/weird/2",
+   "crossfight:sfx/weird/3"
+  ]
+ },
+ "sfx.whoosh": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ }
+}

@@ -176,6 +176,8 @@ public final class Synergy implements LicenceMechanic {
             if (ef == null) { Msg.actionBar(p, "<red>Pas de Synergie pour cette paire."); return; }
             if (!ef.cast(p, ally)) return;
             s.consume(p, ally);
+            var cp = plugin().players().get(p).character(); var ca = plugin().players().get(ally).character();
+            if (cp != null && ca != null) com.kiokouwhite.crossfight.util.Sounds.synergy(p, cp.id(), ally, ca.id());
             for (Player o : new Player[]{p, ally}) {
                 o.playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
                 AbilityState os = plugin().abilities().state(o, ITEM);

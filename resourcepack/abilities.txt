@@ -1,0 +1,264 @@
+# Bruitage de chaque capacite : "id_de_capacite = categorie".
+# Les categories sont les dossiers de assets/crossfight/sounds/sfx/ :
+#   fire explosion big_explosion water bubble electric electric_dash whoosh slash weapon crystal
+#   teleport time magic heal shield gun laser roar dark earth book chain plant trap ultimate weird
+# "-" (ou une ligne absente) : pas de bruitage. Pour un son propre a une capacite, deposer
+# assets/crossfight/sounds/ability/<id>.ogg : il remplace la ligne ci-dessous.
+# Apres un changement : python3 tools/build_pack.py
+
+# ------------------------------------------------------------ Fire Emblem
+marth_falchion = heal
+marth_contre = shield
+marth_ult = slash
+corrin_sang = roar
+corrin_ult = water
+takumi_contre = whoosh
+takumi_vengeance = whoosh
+takumi_furie = magic
+takumi_ult = laser
+byleth_sword = slash
+byleth_tutorat = book
+byleth_epine = slash
+byleth_ult = dark
+
+# ------------------------------------------------------------------- RWBY
+ruby_crescent = gun
+ruby_petales_rapide = whoosh
+ruby_petales_lent = whoosh
+ruby_ult = whoosh
+yang_ember = explosion
+yang_brulure = fire
+yang_incendie = fire
+yang_ult = fire
+weiss_myrtenaster = weapon
+weiss_glyphs1 = crystal
+weiss_glyphs2 = magic
+weiss_ult = magic
+blake_gambol = weapon
+blake_ombre = dark
+blake_discretion = dark
+blake_ult = roar
+rwby_duo = magic
+
+# --------------------------------------------------------------- Valorant
+neon_vitesse = electric_dash
+neon_relais = electric
+neon_voie = electric
+neon_ult = electric
+sage_soin = heal
+sage_lenteur = crystal
+sage_barriere = crystal
+sage_ult = heal
+sova_drone = weird
+sova_ult = laser
+jett_vent = whoosh
+jett_courant = whoosh
+jett_flottement = whoosh
+jett_ult = slash
+
+# ---------------------------------------------------- Shingeki no Kyojin
+snk_odm = whoosh
+eren_charge = whoosh
+eren_ult = roar
+eren_t_colossal = fire
+eren_t_feminin = crystal
+eren_t_cuirasse = shield
+eren_t_bestial = roar
+eren_t_machoire = slash
+eren_t_charrette = gun
+eren_t_marteau = weapon
+mikasa_assommage = slash
+mikasa_cible = whoosh
+mikasa_ult = whoosh
+livai_toupie = slash
+livai_charge = whoosh
+livai_assaut = slash
+livai_ult = whoosh
+armin_regroupement = teleport
+armin_strategie = magic
+armin_ult = shield
+
+# -------------------------------------------------------------- unOrdinary
+uno_aura = magic
+arlo_barriere = shield
+arlo_barriere_ultime = shield
+arlo_enfermement = trap
+arlo_etouffement = trap
+arlo_ult = crystal
+john_ult = roar
+remi_dash = electric_dash
+remi_electricite = electric
+remi_electrocution = electric
+remi_ult = electric
+seraphina_retour = time
+seraphina_arret = time
+seraphina_ult = time
+
+# ------------------------------------------------------------- Earth Delta
+kishi_aura = magic
+kishi_lumiere = magic
+kishi_ult = ultimate
+kura_assassin = teleport
+kura_ruee = whoosh
+kura_meurtre = dark
+kura_ult = slash
+taka_sword = weapon
+taka_spear = weapon
+taka_axe = weapon
+taka_multiarme = slash
+taka_ult = weapon
+hano_ult = book
+hano_tome_aqua_affinity = water
+hano_tome_bane_of_arthropods = dark
+hano_tome_blast_protection = explosion
+hano_tome_channeling = electric
+hano_tome_depth_strider = crystal
+hano_tome_efficiency = earth
+hano_tome_feather_falling = whoosh
+hano_tome_fire_aspect = fire
+hano_tome_fire_protection = fire
+hano_tome_flame = fire
+hano_tome_fortune = magic
+hano_tome_impaling = slash
+hano_tome_infinity = heal
+hano_tome_knockback = whoosh
+hano_tome_looting = magic
+hano_tome_loyalty = slash
+hano_tome_luck_of_the_sea = magic
+hano_tome_lure = teleport
+hano_tome_projectile_protection = explosion
+hano_tome_protection = shield
+hano_tome_respiration = magic
+hano_tome_riptide = water
+hano_tome_sharpness = slash
+hano_tome_silk_touch = magic
+hano_tome_smite = big_explosion
+hano_tome_sweeping_edge = slash
+hano_tome_thorns = plant
+hano_tome_unbreaking = crystal
+
+# ------------------------------------------------------ Armed Blue Gunvolt
+gv_cerbere = gun
+gv_champ = electric
+gv_dash = electric_dash
+gv_ult = electric
+acura_pod = laser
+acura_dash = whoosh
+acura_envolee = whoosh
+acura_ex = laser
+acura_ult = slash
+kirin_yakumo = teleport
+kirin_talisman = whoosh
+kirin_arc = electric
+kirin_slash = slash
+kirin_ult = slash
+asimov_rifle = gun
+asimov_dash = electric_dash
+asimov_shotgun = gun
+asimov_turret = electric
+asimov_ult = electric
+duo_synergie = magic
+
+# --------------------------------------------------------- Shoja's Memories
+hiro_pyra = fire
+hiro_dash = explosion
+hiro_grenade = explosion
+hiro_consumation = fire
+hiro_ult = big_explosion
+pinkou_cocon = plant
+pinkou_ronces = plant
+pinkou_vigne = plant
+pinkou_ult = plant
+aida_jet = water
+aida_bulle = bubble
+aida_clone = water
+aida_ult = water
+crystal_lance = crystal
+crystal_patin = crystal
+crystal_cristal = crystal
+crystal_surcharge = crystal
+crystal_ult = crystal
+
+# ------------------------------------------------------------- Bloody Snow
+netsu_crawnatus = weapon
+netsu_papillons = magic
+netsu_ailes = whoosh
+netsu_jetee = whoosh
+netsu_ult = magic
+kaze_homerun = slash
+kaze_prise = teleport
+kaze_risque = weapon
+kaze_ult = slash
+hannah_protection = shield
+hannah_abnegation = roar
+hannah_ult = roar
+eirika_rain = dark
+eirika_absorption = dark
+eirika_effroi = dark
+eirika_ult = dark
+
+# -------------------------------------------------------------- Solitaires
+yuki_snow = dark
+yuki_insaisissable = whoosh
+yuki_desesperee = dark
+yuki_ult = dark
+drifter_hardlight = slash
+drifter_chain = whoosh
+drifter_grenade = explosion
+drifter_ult = explosion
+shoja_ult = magic
+
+# Arbre de Shoja : Feu
+shoja_inflammation = fire
+shoja_incendie = fire
+shoja_explosion_infernale = explosion
+shoja_mer_de_magma = fire
+shoja_absorption_ardente = fire
+shoja_brulure_instantanee = fire
+# Eau
+shoja_pistolet_a_eau = water
+shoja_fusil_a_eau = water
+shoja_sniper_a_eau = water
+shoja_pompe_a_eau = water
+shoja_mine_sousmarine = bubble
+shoja_piege_meduse = bubble
+shoja_bombe_poisson_globe = bubble
+# Foudre
+shoja_boule_electrifiante = electric
+shoja_rayon_electrique = electric
+shoja_scie_circulaire = electric
+shoja_sol_electrifiant = electric
+shoja_foudroiement_circulaire = electric
+shoja_foudre_incontrolable = electric_dash
+shoja_explosion_denergie = electric
+# Vent
+shoja_rafale_de_vent = whoosh
+shoja_tornade_repoussante = whoosh
+shoja_oeil_du_cyclone = whoosh
+shoja_bourrasque_attirante = whoosh
+shoja_cyclone_amenant = whoosh
+shoja_attraction_lacerante = whoosh
+shoja_vent_tranchant = slash
+shoja_tornade_destructrice = slash
+shoja_epee_eventail = weapon
+# Espace
+shoja_division_du_territoire = earth
+shoja_crevasse = earth
+shoja_puits_sans_fond = earth
+shoja_soulevement_terrestre = earth
+shoja_nouvelle_dimension = teleport
+shoja_espace_incapacitant = teleport
+shoja_vide_interstellaire = teleport
+shoja_legere_suppression = weird
+shoja_souffle_destructeur = weird
+shoja_incapacitation = weird
+# Temps
+shoja_panne_dhorloge = time
+shoja_boom_temporel = time
+shoja_explosion_du_temps = time
+shoja_le_temps_est_incontrolable = time
+shoja_lorem_ipsum = time
+shoja_cogito_ergo_sum = time
+shoja_back_to_back = time
+shoja_tic_tac = time
+shoja_ding_dong = time

@@ -13,6 +13,8 @@ public final class AbilityState {
     private boolean enabled;
     private double gauge = 100.0;
     private int mode;
+    /** Nombre de temps de chargement lances : permet au moteur de savoir qu'une capacite a reussi. */
+    private int activations;
     private final Map<String, Object> data = new HashMap<>();
 
     public boolean onCooldown() { return System.currentTimeMillis() < cooldownEndMillis; }
@@ -22,7 +24,10 @@ public final class AbilityState {
         return left <= 0 ? 0 : (int) Math.ceil(left / 1000.0);
     }
 
+    public int activations() { return activations; }
+
     public void startCooldown(int seconds) {
+        activations++;
         // En mode test, aucune capacite n'a de temps de chargement.
         var plugin = com.kiokouwhite.crossfight.CrossfightPlugin.get();
         if (plugin != null && plugin.game() != null && plugin.game().isTest()) { cooldownEndMillis = 0; return; }

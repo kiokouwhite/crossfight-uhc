@@ -36,7 +36,10 @@ public final class DeathListener implements Listener {
         CfPlayer cf = plugin.players().get(p);
         Player killer = p.getKiller();
         String msg = "<red>" + p.getName() + "</red> <gray>est tombe";
+        if (cf.character() != null) com.kiokouwhite.crossfight.util.Sounds.voice(p, cf.character().id() + "_mort");
         if (killer != null && killer != p) {
+            var kc = plugin.players().get(killer).character();
+            if (kc != null) com.kiokouwhite.crossfight.util.Sounds.voiceLater(killer, kc.id() + "_kill", 20L);
             plugin.players().get(killer).addKill();
             plugin.abilities().dispatchKill(killer, p);
             msg += " face a <red>" + killer.getName();
