@@ -148,6 +148,7 @@ public final class Netsu extends Character implements Listener {
             w.playSound(victim.getLocation(), Sound.ENTITY_ALLAY_DEATH, 1f, 1.4f);
             butterflies(w, victim.getLocation().add(0, 1, 0), 80);
             Msg.actionBar(victim, "<light_purple>Le clone est tombe : tu voles en papillons ! Clic droit pour reapparaitre.");
+            com.kiokouwhite.crossfight.util.Sounds.ability(victim, "netsu_papillons_fin");
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
@@ -259,6 +260,7 @@ public final class Netsu extends Character implements Listener {
             Vector back = p.getLocation().toVector().subtract(best.getLocation().toVector()).setY(0);
             if (back.lengthSquared() < 0.01) back = new Vector(1, 0, 0);
             Location to = best.getLocation().add(back.normalize().multiply(4));
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, "netsu_ult_tp");
             to.setDirection(best.getLocation().add(0, 1, 0).toVector().subtract(to.toVector().add(new Vector(0, 1.6, 0))));
             butterflies(p.getWorld(), p.getLocation().add(0, 1, 0), 30);
             p.teleport(to);

@@ -87,7 +87,7 @@ public final class Shoja extends Character implements Listener, Solo.Burst {
         }
         killer.getWorld().spawnParticle(Particle.ENCHANT, killer.getLocation().add(0, 1.5, 0), 60, 0.5, 0.8, 0.5, 1);
         killer.playSound(killer.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 0.8f);
-        com.kiokouwhite.crossfight.util.Sounds.voiceLater(killer, "shoja_ego", 30L);
+        com.kiokouwhite.crossfight.util.Sounds.ability(killer, "shoja_ego");
         Msg.send(killer, "<dark_red><bold>Epee de l'Ego :</bold> <white>" + n + " enchantement(s) de l'arme de " + ShojaTree.safeName(victim) + " copie(s) sur ton epee.");
     }
 

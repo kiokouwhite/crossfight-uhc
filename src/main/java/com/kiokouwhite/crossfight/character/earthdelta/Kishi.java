@@ -91,6 +91,7 @@ public final class Kishi extends Character implements Listener {
 
     static void addCone(Player p, boolean permanent) {
         cones(p).add(permanent ? Long.MAX_VALUE : System.currentTimeMillis() + 30000L);
+        if (!permanent) com.kiokouwhite.crossfight.util.Sounds.ability(p, "kishi_explosion");
         p.getWorld().spawnParticle(Particle.END_ROD, p.getLocation().add(0, 2.2, 0), 8, 0.3, 0.3, 0.3, 0.03);
         p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.8f);
         refreshBlade(p);

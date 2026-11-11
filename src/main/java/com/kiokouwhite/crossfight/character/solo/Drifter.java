@@ -186,6 +186,7 @@ public final class Drifter extends Character implements Listener, Solo.Burst {
         }
         static void fire(Player p, Gun g) {
             World w = p.getWorld();
+            com.kiokouwhite.crossfight.util.Sounds.sfx(p.getLocation(), g == Gun.RAILGUN || g == Gun.IMPACT_RAILGUN ? "laser" : "gun");
             Vector dir = p.getEyeLocation().getDirection();
             Color c = Color.fromRGB(255, 230, 120);
             switch (g) {

@@ -85,16 +85,20 @@ arlo_barriere_ultime = shield
 arlo_enfermement = trap
 arlo_etouffement = trap
 arlo_ult = crystal
+john_absorption = dark                      # pouvoir absorbe
+john_choose = magic                         # pouvoir choisi
 john_ult = roar
 remi_dash = electric_dash
 remi_electricite = electric
 remi_electrocution = electric
 remi_ult = electric
+seraphina_choc = time                       # declenchement tous les 6 coups
 seraphina_retour = time
 seraphina_arret = time
 seraphina_ult = time
 
 # ------------------------------------------------------------- Earth Delta
+kishi_explosion = magic                     # cone de lumiere obtenu
 kishi_aura = magic
 kishi_lumiere = magic
 kishi_ult = ultimate
@@ -157,7 +161,8 @@ asimov_dash = electric_dash
 asimov_shotgun = gun
 asimov_turret = electric
 asimov_ult = electric
-duo_synergie = magic
+# La Synergie joue son bruitage au lancement, pas a l'ouverture du menu.
+duo_synergie = -
 
 # --------------------------------------------------------- Shoja's Memories
 hiro_pyra = fire
@@ -172,6 +177,7 @@ pinkou_ult = plant
 aida_jet = water
 aida_bulle = bubble
 aida_clone = water
+aida_eponge = water                         # effet renvoye
 aida_ult = water
 crystal_lance = crystal
 crystal_patin = crystal
@@ -184,28 +190,35 @@ netsu_crawnatus = weapon
 netsu_papillons = magic
 netsu_ailes = whoosh
 netsu_jetee = whoosh
+netsu_papillons_fin = magic                 # clone detruit, envol
+netsu_ult_tp = teleport                     # teleportation pendant l'ultime
 netsu_ult = magic
 kaze_homerun = slash
 kaze_prise = teleport
 kaze_risque = weapon
+kaze_powerhit = weapon                      # Power Hit s'active
 kaze_ult = slash
 hannah_protection = shield
 hannah_abnegation = roar
+hannah_resister = shield                    # barre de resistance pleine
 hannah_ult = roar
 eirika_rain = dark
 eirika_absorption = dark
 eirika_effroi = dark
+eirika_marque = dark                        # Marque de Sang posee
 eirika_ult = dark
 
 # -------------------------------------------------------------- Solitaires
 yuki_snow = dark
 yuki_insaisissable = whoosh
 yuki_desesperee = dark
+yuki_insatiable = dark                      # coup fatal encaisse
 yuki_ult = dark
 drifter_hardlight = slash
 drifter_chain = whoosh
 drifter_grenade = explosion
 drifter_ult = explosion
+shoja_ego = magic                           # enchantements copies
 shoja_ult = magic
 
 # Arbre de Shoja : Feu

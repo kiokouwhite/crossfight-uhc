@@ -199,6 +199,7 @@ public final class Guns implements Listener {
         static Arrow fire(Player p, Gun g, Vector dir) {
             Arrow a = Bullets.shoot(p, dir, 3.0, g.arrowDamage(), Material.YELLOW_CONCRETE, g.color());
             if (g.headshot()) a.getPersistentDataContainer().set(HEADSHOT_KEY, PersistentDataType.BYTE, (byte) 1);
+            com.kiokouwhite.crossfight.util.Sounds.sfx(p.getLocation(), "gun");
             p.getWorld().playSound(p.getLocation(), g.power() >= 4 ? Sound.ENTITY_GENERIC_EXPLODE : Sound.ENTITY_FIREWORK_ROCKET_BLAST, 0.6f, g.power() >= 4 ? 1.8f : 1.5f);
             return a;
         }

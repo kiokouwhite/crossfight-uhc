@@ -129,6 +129,7 @@ public final class BloodySnow {
         List<Long> l = marks(e);
         if (l.size() >= 5) return;
         l.add(System.currentTimeMillis() + 6000L);
+        if ("eirika".equals(characterId(by))) com.kiokouwhite.crossfight.util.Sounds.ability(by, "eirika_marque");
         e.getWorld().spawnParticle(Particle.DUST, e.getLocation().add(0, 1.2, 0), 15, 0.3, 0.5, 0.3, 0, BLOOD);
         e.getWorld().playSound(e.getLocation(), Sound.ENTITY_PLAYER_HURT_DROWN, 0.6f, 0.6f);
         Effects.say(e, "<dark_red>Marque de Sang x" + l.size());

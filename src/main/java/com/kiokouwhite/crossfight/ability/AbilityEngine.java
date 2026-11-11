@@ -371,11 +371,10 @@ public final class AbilityEngine implements Listener {
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);
             return;
         }
-        int activationsBefore = st.activations();
-        boolean enabledBefore = st.isEnabled();
+        long usedAt = System.currentTimeMillis();
         if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) {
-            // Une capacite a usage particulier a reussi si elle a lance son temps de chargement ou s'est activee.
-            if (st.activations() != activationsBefore || (st.isEnabled() && !enabledBefore)) com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
+            // Une capacite a usage particulier a reussi si elle n'a envoye aucun message de refus (rouge).
+            if (!Msg.refusedSince(p, usedAt)) com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
             return;
         }
         switch (a) {

@@ -37,6 +37,8 @@ public final class Sounds {
     private static String packSha1 = "";
     /** Derniere replique de chaque joueur, pour ne pas en superposer deux. */
     private static final Map<UUID, Long> LAST_VOICE = new HashMap<>();
+    /** Derniere fois que chaque joueur a dit chaque replique. */
+    private static final Map<String, Long> LAST_LINE = new HashMap<>();
 
     /** Les duos : personnage A, personnage B (ordre des noms de fichiers), et qui parle en premier dans le dialogue. */
     private static final String[][] DUOS = {
@@ -87,6 +89,11 @@ public final class Sounds {
         long now = System.currentTimeMillis();
         Long last = LAST_VOICE.get(p.getUniqueId());
         if (last != null && now - last < 900) return false;
+        // Une capacite utilisee en rafale (dashs, tirs) ne redit pas sa replique a chaque fois.
+        String lineKey = p.getUniqueId() + ":" + event;
+        Long lastLine = LAST_LINE.get(lineKey);
+        if (lastLine != null && now - lastLine < 6000) return false;
+        LAST_LINE.put(lineKey, now);
         LAST_VOICE.put(p.getUniqueId(), now);
         playAt(p.getLocation(), event, SoundCategory.VOICE, 1.5f);
         return true;
@@ -133,7 +140,7 @@ public final class Sounds {
 
     /** Une Synergie est lancee : le lanceur dit sa replique, son partenaire repond. */
     public static void synergy(Player caster, String idCaster, Player partner, String idPartner) {
-        playAt(caster.getLocation(), "ability.duo_synergie", SoundCategory.PLAYERS, 1f);
+        playAt(caster.getLocation(), "sfx.ultimate", SoundCategory.PLAYERS, 1f);
         String[] d = duo(idCaster, idPartner);
         if (d == null) return;
         String base = "syn_" + d[0] + "_" + d[1] + "_";

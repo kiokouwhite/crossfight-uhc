@@ -95,8 +95,10 @@ public final class Hannah extends Character implements Listener {
             if (!(e instanceof EntityDamageByEntityEvent be)) return;
             LivingEntity attacker = DamageListener.livingAttackerOf(be.getDamager());
             if (attacker == null || attacker == victim || !Effects.isEnemy(victim, attacker)) return;
-            int n = Math.min(10, st.get("hits", 0) + 1);
+            int before = st.get("hits", 0);
+            int n = Math.min(10, before + 1);
             st.set("hits", n);
+            if (n == 10 && before < 10) com.kiokouwhite.crossfight.util.Sounds.ability(victim, "hannah_resister");
             victim.getWorld().spawnParticle(Particle.DUST, victim.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0, new Particle.DustOptions(Color.fromRGB(255, 200, 60), 0.9f));
         }
     }

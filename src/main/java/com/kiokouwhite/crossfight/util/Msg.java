@@ -23,7 +23,17 @@ public final class Msg {
         return MM.deserialize(PREFIX + text);
     }
 
+    /** Dernier message de refus (rouge) recu par chaque joueur : une capacite qui echoue en envoie un. */
+    private static final java.util.Map<java.util.UUID, Long> LAST_REFUSAL = new java.util.HashMap<>();
+
+    /** Vrai si le joueur a recu un message de refus depuis cet instant. */
+    public static boolean refusedSince(org.bukkit.entity.Player p, long sinceMillis) {
+        Long t = LAST_REFUSAL.get(p.getUniqueId());
+        return t != null && t >= sinceMillis;
+    }
+
     public static void send(CommandSender to, String text) {
+        if (to instanceof org.bukkit.entity.Player pl && text.startsWith("<red>")) LAST_REFUSAL.put(pl.getUniqueId(), System.currentTimeMillis());
         to.sendMessage(prefixed(text));
     }
 
@@ -40,6 +50,7 @@ public final class Msg {
     /** Message dans la barre d'action, qui suspend l'affichage des cooldowns pendant 2 secondes. */
     public static void actionBar(org.bukkit.entity.Player p, String text) {
         LAST_ACTION_BAR.put(p.getUniqueId(), System.currentTimeMillis());
+        if (text.startsWith("<red>")) LAST_REFUSAL.put(p.getUniqueId(), System.currentTimeMillis());
         p.sendActionBar(mm(text));
     }
 

@@ -173,6 +173,7 @@ public final class Seraphina extends Character {
             clockBurst(victim.getWorld(), victim.getLocation(), 1.0, 16);
             victim.getWorld().playSound(victim.getLocation(), Sound.BLOCK_BELL_RESONATE, 0.8f, 1.6f);
             Effects.say(victim, "<gold>Choc Temporel : immobilise 2 s !");
+            com.kiokouwhite.crossfight.util.Sounds.ability(attacker, "seraphina_choc");
         }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) { return "<gold>Choc <white>" + st.get("hits", 0) + "/6"; }
     }

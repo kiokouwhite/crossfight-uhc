@@ -132,6 +132,7 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
             e.setDamage(0);
             victim.setHealth(1.0);
             st.set("until", System.currentTimeMillis() + 15000L);
+            com.kiokouwhite.crossfight.util.Sounds.ability(victim, "yuki_insatiable");
             st.startCooldown((int) Math.ceil(cooldownSeconds() * Solo.plugin().players().get(victim).cooldownFactor()));
             victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1, 0), 60, 0.5, 0.8, 0.5, 0.1);
             victim.getWorld().playSound(victim.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 1.5f);

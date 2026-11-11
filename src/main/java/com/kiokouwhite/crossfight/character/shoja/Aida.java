@@ -220,6 +220,7 @@ public final class Aida extends Character implements Listener {
         e.setCancelled(true);
         Bukkit.getScheduler().runTask(Shoja.plugin(), () -> {
             Effects.give(attacker, ne.getType(), ne.getAmplifier(), ne.getDuration());
+            com.kiokouwhite.crossfight.util.Sounds.ability(v, "aida_eponge");
             attacker.getWorld().spawnParticle(Particle.SPLASH, attacker.getLocation().add(0, 1, 0), 20, 0.4, 0.6, 0.4, 0);
         });
         Msg.actionBar(v, "<aqua>Eponge Capacitive : effet renvoye !");

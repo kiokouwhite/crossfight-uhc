@@ -49,6 +49,14 @@
    "crossfight:sfx/water/4"
   ]
  },
+ "ability.aida_eponge": {
+  "sounds": [
+   "crossfight:sfx/water/1",
+   "crossfight:sfx/water/2",
+   "crossfight:sfx/water/3",
+   "crossfight:sfx/water/4"
+  ]
+ },
  "ability.aida_jet": {
   "sounds": [
    "crossfight:sfx/water/1",
@@ -310,15 +318,6 @@
    "crossfight:sfx/explosion/4"
   ]
  },
- "ability.duo_synergie": {
-  "sounds": [
-   "crossfight:sfx/magic/1",
-   "crossfight:sfx/magic/2",
-   "crossfight:sfx/magic/3",
-   "crossfight:sfx/magic/4",
-   "crossfight:sfx/magic/5"
-  ]
- },
  "ability.eirika_absorption": {
   "sounds": [
    "crossfight:sfx/dark/1",
@@ -327,6 +326,13 @@
   ]
  },
  "ability.eirika_effroi": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.eirika_marque": {
   "sounds": [
    "crossfight:sfx/dark/1",
    "crossfight:sfx/dark/2",
@@ -456,6 +462,14 @@
   ]
  },
  "ability.hannah_protection": {
+  "sounds": [
+   "crossfight:sfx/shield/1",
+   "crossfight:sfx/shield/2",
+   "crossfight:sfx/shield/3",
+   "crossfight:sfx/shield/4"
+  ]
+ },
+ "ability.hannah_resister": {
   "sounds": [
    "crossfight:sfx/shield/1",
    "crossfight:sfx/shield/2",
@@ -761,6 +775,22 @@
    "crossfight:sfx/whoosh/3"
   ]
  },
+ "ability.john_absorption": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
+  ]
+ },
+ "ability.john_choose": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
  "ability.john_ult": {
   "sounds": [
    "crossfight:sfx/roar/1",
@@ -773,6 +803,15 @@
    "crossfight:sfx/slash/1",
    "crossfight:sfx/slash/2",
    "crossfight:sfx/slash/3"
+  ]
+ },
+ "ability.kaze_powerhit": {
+  "sounds": [
+   "crossfight:sfx/weapon/1",
+   "crossfight:sfx/weapon/2",
+   "crossfight:sfx/weapon/3",
+   "crossfight:sfx/weapon/4",
+   "crossfight:sfx/weapon/5"
   ]
  },
  "ability.kaze_prise": {
@@ -834,6 +873,15 @@
   ]
  },
  "ability.kishi_aura": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.kishi_explosion": {
   "sounds": [
    "crossfight:sfx/magic/1",
    "crossfight:sfx/magic/2",
@@ -1022,6 +1070,15 @@
    "crossfight:sfx/magic/5"
   ]
  },
+ "ability.netsu_papillons_fin": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
  "ability.netsu_ult": {
   "sounds": [
    "crossfight:sfx/magic/1",
@@ -1029,6 +1086,12 @@
    "crossfight:sfx/magic/3",
    "crossfight:sfx/magic/4",
    "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.netsu_ult_tp": {
+  "sounds": [
+   "crossfight:sfx/teleport/1",
+   "crossfight:sfx/teleport/2"
   ]
  },
  "ability.pinkou_cocon": {
@@ -1166,6 +1229,13 @@
    "crossfight:sfx/time/3"
   ]
  },
+ "ability.seraphina_choc": {
+  "sounds": [
+   "crossfight:sfx/time/1",
+   "crossfight:sfx/time/2",
+   "crossfight:sfx/time/3"
+  ]
+ },
  "ability.seraphina_retour": {
   "sounds": [
    "crossfight:sfx/time/1",
@@ -1273,6 +1343,15 @@
    "crossfight:sfx/earth/1",
    "crossfight:sfx/earth/2",
    "crossfight:sfx/earth/3"
+  ]
+ },
+ "ability.shoja_ego": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
   ]
  },
  "ability.shoja_epee_eventail": {
@@ -1729,6 +1808,13 @@
    "crossfight:sfx/whoosh/1",
    "crossfight:sfx/whoosh/2",
    "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.yuki_insatiable": {
+  "sounds": [
+   "crossfight:sfx/dark/1",
+   "crossfight:sfx/dark/2",
+   "crossfight:sfx/dark/3"
   ]
  },
  "ability.yuki_snow": {

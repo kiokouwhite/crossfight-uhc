@@ -126,6 +126,7 @@ public final class John extends Character {
     static void choose(Player p, Ability a, String from) {
         if (!test() && borrowed(p).size() >= 3) { Msg.send(p, "<red>Tu as deja 3 pouvoirs : retire-en un dans /cf choose."); return; }
         Borrowed.add(p, a, from, test() ? Long.MAX_VALUE : System.currentTimeMillis() + 5 * 60 * 1000L);
+        com.kiokouwhite.crossfight.util.Sounds.ability(p, "john_choose");
         p.getWorld().spawnParticle(Particle.WITCH, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.1);
         p.playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_PREPARE_MIRROR, 1f, 1.4f);
         Msg.send(p, "<dark_red>Pouvoir absorbe : <white>" + a.name() + "</white> (de " + from + (test() ? ")." : ", 5 minutes)."));
@@ -150,6 +151,7 @@ public final class John extends Character {
             Character ch = Unordinary.plugin().characters().character(charId);
             if (ch == null || ch.licence() == null || ch.licence().teamSize() != TeamSize.TRIO) return;
             if (pool(attacker).add(charId)) {
+                com.kiokouwhite.crossfight.util.Sounds.ability(attacker, "john_absorption");
                 Msg.send(attacker, "<dark_red>Absorption : les pouvoirs de <white>" + ch.name() + "</white> sont disponibles (/cf choose).");
                 attacker.playSound(attacker.getLocation(), Sound.ENTITY_ILLUSIONER_CAST_SPELL, 0.8f, 1.6f);
             }

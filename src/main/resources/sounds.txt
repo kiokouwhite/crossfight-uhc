@@ -6,6 +6,7 @@ ability.acura_pod
 ability.acura_ult
 ability.aida_bulle
 ability.aida_clone
+ability.aida_eponge
 ability.aida_jet
 ability.aida_ult
 ability.arlo_barriere
@@ -40,9 +41,9 @@ ability.drifter_chain
 ability.drifter_grenade
 ability.drifter_hardlight
 ability.drifter_ult
-ability.duo_synergie
 ability.eirika_absorption
 ability.eirika_effroi
+ability.eirika_marque
 ability.eirika_rain
 ability.eirika_ult
 ability.eren_charge
@@ -60,6 +61,7 @@ ability.gv_dash
 ability.gv_ult
 ability.hannah_abnegation
 ability.hannah_protection
+ability.hannah_resister
 ability.hannah_ult
 ability.hano_tome_aqua_affinity
 ability.hano_tome_bane_of_arthropods
@@ -99,8 +101,11 @@ ability.jett_courant
 ability.jett_flottement
 ability.jett_ult
 ability.jett_vent
+ability.john_absorption
+ability.john_choose
 ability.john_ult
 ability.kaze_homerun
+ability.kaze_powerhit
 ability.kaze_prise
 ability.kaze_risque
 ability.kaze_ult
@@ -110,6 +115,7 @@ ability.kirin_talisman
 ability.kirin_ult
 ability.kirin_yakumo
 ability.kishi_aura
+ability.kishi_explosion
 ability.kishi_lumiere
 ability.kishi_ult
 ability.kura_assassin
@@ -134,7 +140,9 @@ ability.netsu_ailes
 ability.netsu_crawnatus
 ability.netsu_jetee
 ability.netsu_papillons
+ability.netsu_papillons_fin
 ability.netsu_ult
+ability.netsu_ult_tp
 ability.pinkou_cocon
 ability.pinkou_ronces
 ability.pinkou_ult
@@ -153,6 +161,7 @@ ability.sage_lenteur
 ability.sage_soin
 ability.sage_ult
 ability.seraphina_arret
+ability.seraphina_choc
 ability.seraphina_retour
 ability.seraphina_ult
 ability.shoja_absorption_ardente
@@ -168,6 +177,7 @@ ability.shoja_crevasse
 ability.shoja_cyclone_amenant
 ability.shoja_ding_dong
 ability.shoja_division_du_territoire
+ability.shoja_ego
 ability.shoja_epee_eventail
 ability.shoja_espace_incapacitant
 ability.shoja_explosion_denergie
@@ -227,6 +237,7 @@ ability.yang_incendie
 ability.yang_ult
 ability.yuki_desesperee
 ability.yuki_insaisissable
+ability.yuki_insatiable
 ability.yuki_snow
 ability.yuki_ult
 sfx.big_explosion
