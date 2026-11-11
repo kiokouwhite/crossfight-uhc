@@ -23,10 +23,12 @@ public final class ConnectionListener implements Listener {
     public void onPackStatus(org.bukkit.event.player.PlayerResourcePackStatusEvent e) {
         Player p = e.getPlayer();
         switch (e.getStatus()) {
-            case SUCCESSFULLY_LOADED -> Msg.send(p, "<green>Sons et voix charges.");
-            case DECLINED -> Msg.send(p, "<yellow>Pack de sons refuse : tu joueras sans bruitages ni voix. <gray>/cf pack pour le redemander.");
-            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED ->
-                    Msg.send(p, "<red>Le pack de sons n'a pas pu etre charge. <gray>/cf pack pour reessayer.");
+            case SUCCESSFULLY_LOADED -> { Msg.send(p, "<green>Sons et voix charges."); com.kiokouwhite.crossfight.util.Sounds.packSettled(p); }
+            case DECLINED -> { Msg.send(p, "<yellow>Pack de sons refuse : tu joueras sans bruitages ni voix. <gray>/cf pack pour le redemander."); com.kiokouwhite.crossfight.util.Sounds.packSettled(p); }
+            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> {
+                Msg.send(p, "<red>Le pack de sons n'a pas pu etre charge. <gray>/cf pack pour reessayer.");
+                com.kiokouwhite.crossfight.util.Sounds.packSettled(p);
+            }
             default -> { }
         }
     }
@@ -37,8 +39,10 @@ public final class ConnectionListener implements Listener {
         CfPlayer cf = plugin.players().get(p);
         e.joinMessage(Msg.prefixed("<gray>" + p.getName() + " a rejoint."));
         // Le pack est propose une fois le joueur installe : envoye pendant le chargement du monde,
-        // l'ecran de confirmation est referme aussitot par le jeu.
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.sendPack(p); }, 60L);
+        // l'ecran de confirmation est referme aussitot par le jeu. Les menus (choix du personnage,
+        // mode test) attendent sa reponse pour ne pas le recouvrir.
+        com.kiokouwhite.crossfight.util.Sounds.expectPack(p);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.sendPack(p); }, 40L);
         if (plugin.testMode().resumeIfPending(p)) return;
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);
@@ -65,6 +69,7 @@ public final class ConnectionListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
+        com.kiokouwhite.crossfight.util.Sounds.forget(e.getPlayer());
         e.quitMessage(Msg.prefixed("<gray>" + e.getPlayer().getName() + " est parti."));
         plugin.scoreboard().remove(e.getPlayer());
         plugin.abilities().clearGaugeBars(e.getPlayer());

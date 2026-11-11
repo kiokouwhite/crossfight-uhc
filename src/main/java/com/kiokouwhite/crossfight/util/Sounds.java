@@ -148,6 +148,44 @@ public final class Sounds {
         voiceLater(partner, base + idPartner, 45L);
     }
 
+    /** Joueurs a qui le pack vient d'etre propose et qui n'ont pas encore repondu. */
+    private static final java.util.Set<UUID> PACK_PENDING = new java.util.HashSet<>();
+    /** Ce qui attend leur reponse (ouverture des menus). */
+    private static final Map<UUID, java.util.List<Runnable>> AFTER_PACK = new HashMap<>();
+
+    /** Vrai si le pack est configure et sera propose a la connexion. */
+    private static boolean packConfigured() {
+        CrossfightPlugin plugin = CrossfightPlugin.get();
+        String url = plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
+        return plugin.getConfig().getBoolean("resource-pack.enabled", true) && url != null && !url.isBlank() && packSha1.length() == 40;
+    }
+
+    /** A la connexion : le joueur va recevoir la demande du pack, les menus attendront sa reponse. */
+    public static void expectPack(Player p) {
+        if (packConfigured()) PACK_PENDING.add(p.getUniqueId());
+    }
+
+    /**
+     * Execute l'action tout de suite, ou apres la reponse du joueur a la demande du pack :
+     * un menu ouvert par-dessus l'ecran de confirmation le refermerait.
+     */
+    public static void afterPack(Player p, Runnable action) {
+        if (!PACK_PENDING.contains(p.getUniqueId())) { action.run(); return; }
+        AFTER_PACK.computeIfAbsent(p.getUniqueId(), u -> new java.util.ArrayList<>()).add(action);
+    }
+
+    /** Le joueur a repondu (pack charge, refuse ou en echec), ou n'a pas repondu a temps. */
+    public static void packSettled(Player p) {
+        PACK_PENDING.remove(p.getUniqueId());
+        java.util.List<Runnable> waiting = AFTER_PACK.remove(p.getUniqueId());
+        if (waiting == null) return;
+        Bukkit.getScheduler().runTask(CrossfightPlugin.get(), () -> { if (p.isOnline()) for (Runnable r : waiting) r.run(); });
+    }
+
+    public static boolean packPending(Player p) { return PACK_PENDING.contains(p.getUniqueId()); }
+
+    public static void forget(Player p) { PACK_PENDING.remove(p.getUniqueId()); AFTER_PACK.remove(p.getUniqueId()); }
+
     /** Propose (ou impose) le pack de ressources au joueur qui se connecte. */
     public static void sendPack(Player p) {
         CrossfightPlugin plugin = CrossfightPlugin.get();
@@ -156,7 +194,11 @@ public final class Sounds {
         if (url == null || url.isBlank() || packSha1.length() != 40) return;
         boolean required = plugin.getConfig().getBoolean("resource-pack.required", false);
         try {
+            p.closeInventory();
+            PACK_PENDING.add(p.getUniqueId());
             p.setResourcePack(url, packSha1, required, Msg.mm("<gold>Crossfight UHC</gold> <gray>: sons et voix des personnages."));
-        } catch (Exception ex) { plugin.getLogger().warning("Pack de ressources non envoye : " + ex); }
+            // Sans reponse au bout d'une minute, on n'attend plus.
+            Bukkit.getScheduler().runTaskLater(plugin, () -> { if (PACK_PENDING.contains(p.getUniqueId())) packSettled(p); }, 20L * 60);
+        } catch (Exception ex) { plugin.getLogger().warning("Pack de ressources non envoye : " + ex); packSettled(p); }
     }
 }

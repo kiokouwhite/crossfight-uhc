@@ -150,9 +150,9 @@ public final class CharacterSelectMenu implements Listener {
         if (!(e.getPlayer() instanceof Player p)) return;
         CfPlayer cf = plugin.players().get(p);
         if (cf.character() == null && plugin.game().isSelecting()) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> com.kiokouwhite.crossfight.util.Sounds.afterPack(p, () -> {
                 if (p.isOnline() && cf.character() == null && plugin.game().isSelecting()) open(p);
-            }, 20L);
+            }), 20L);
         }
     }
 }

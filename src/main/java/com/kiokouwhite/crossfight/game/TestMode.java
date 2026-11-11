@@ -162,12 +162,17 @@ public final class TestMode implements Listener {
     }
 
     /** A appeler a la connexion : remet le joueur en mode test s'il y etait avant le redemarrage. */
+    /** Joueurs dont le menu de choix ne doit pas s'ouvrir apres la demande du pack (personnage deja restaure). */
+    private final java.util.Set<java.util.UUID> skipMenu = new java.util.HashSet<>();
+
     public boolean resumeIfPending(Player p) {
         String charId = pending.remove(p.getUniqueId());
         if (charId == null) return false;
         if (!enter(p)) return false;
         Character c = charId.isEmpty() ? null : plugin.characters().character(charId);
         if (c != null) {
+            // Le personnage est restaure : le menu, s'il attend la reponse au pack de sons, ne s'ouvrira pas.
+            if (com.kiokouwhite.crossfight.util.Sounds.packPending(p)) skipMenu.add(p.getUniqueId());
             p.closeInventory();
             change(p, c);
         }
@@ -212,7 +217,8 @@ public final class TestMode implements Listener {
         gear(p);
         Msg.send(p, "<green>Mode test active. <gray>/cf change pour choisir un personnage, /cf mannequin pour des cibles, /cf test pour sortir.");
         save();
-        openMenu(p);
+        // Si la demande du pack de sons est a l'ecran, le menu attend la reponse du joueur.
+        com.kiokouwhite.crossfight.util.Sounds.afterPack(p, () -> { if (isTester(p) && !skipMenu.remove(p.getUniqueId())) openMenu(p); });
         return true;
     }
 
