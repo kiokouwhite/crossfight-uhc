@@ -96,11 +96,11 @@ def main() -> int:
             r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(f)],
                                capture_output=True, text=True)
             try:
-                seconds = int(float(r.stdout.strip()) + 0.999)
+                millis = int(round(float(r.stdout.strip()) * 1000))
             except ValueError:
                 print(f"duree illisible (ffprobe) : {f.name}, 180 s par defaut")
-                seconds = 180
-            tracks[f.stem] = seconds
+                millis = 180000
+            tracks[f.stem] = millis
             events["music." + f.stem] = [f]
     pairs, missing = [], []
     music_map = PACK / "music.txt"

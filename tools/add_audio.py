@@ -37,7 +37,10 @@ def main() -> int:
     dst.parent.mkdir(parents=True, exist_ok=True)
     if kind == "music":
         # Stereo, niveau sonore uniformise entre les pistes, qualite 3 (environ 110 kbit/s).
-        audio = ["-ac", "2", "-ar", "44100", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "libvorbis", "-q:a", "3"]
+        # Les silences de debut et de fin sont retires : la piste s'enchaine sur elle-meme sans blanc.
+        trim = "silenceremove=start_periods=1:start_threshold=-60dB:start_silence=0"
+        loop = f"{trim},areverse,{trim},areverse"
+        audio = ["-ac", "2", "-ar", "44100", "-af", loop + ",loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "libvorbis", "-q:a", "3"]
     else:
         # Mono : indispensable pour que le son soit entendu a l'endroit du personnage.
         audio = ["-ac", "1", "-ar", "44100", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "libvorbis", "-q:a", "4"]

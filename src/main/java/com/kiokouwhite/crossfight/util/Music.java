@@ -35,8 +35,8 @@ public final class Music implements Listener {
 
     /** "licenceA|licenceB" (triees) -> piste. */
     private static final Map<String, String> PAIR_TRACK = new TreeMap<>();
-    /** Piste -> duree en secondes, pour la rejouer en boucle. */
-    private static final Map<String, Integer> DURATION = new TreeMap<>();
+    /** Piste -> duree en millisecondes, pour l'enchainer sur elle-meme sans blanc. */
+    private static final Map<String, Long> DURATION = new TreeMap<>();
 
     private static final class Fight {
         final int teamA, teamB; final String track; long lastHit;
@@ -56,7 +56,8 @@ public final class Music implements Listener {
     public Music(CrossfightPlugin plugin) {
         this.plugin = plugin;
         load();
-        Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20L, 20L);
+        // A chaque tick : la boucle doit repartir au tick exact ou la piste se termine.
+        Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 1L, 1L);
     }
 
     private void load() {
@@ -66,7 +67,7 @@ public final class Music implements Listener {
             BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             for (String line; (line = r.readLine()) != null; ) {
                 String[] p = line.trim().split("\\s+");
-                if (p.length == 3 && p[0].equals("track")) DURATION.put(p[1], Integer.parseInt(p[2]));
+                if (p.length == 3 && p[0].equals("track")) DURATION.put(p[1], Long.parseLong(p[2]));
                 else if (p.length == 4 && p[0].equals("pair")) PAIR_TRACK.put(pairKey(p[1], p[2]), p[3]);
             }
         } catch (Exception ex) { plugin.getLogger().warning("music.txt illisible : " + ex); }
@@ -76,11 +77,13 @@ public final class Music implements Listener {
     private static String pairKey(String a, String b) { return a.compareTo(b) < 0 ? a + "|" + b : b + "|" + a; }
 
     public static Map<String, String> pairs() { return PAIR_TRACK; }
-    public static Map<String, Integer> tracks() { return DURATION; }
+    public static Map<String, Long> tracks() { return DURATION; }
     public static String trackFor(String licenceA, String licenceB) { return PAIR_TRACK.get(pairKey(licenceA, licenceB)); }
 
     private boolean enabled() { return plugin.getConfig().getBoolean("music.enabled", true); }
     private long silenceMillis() { return plugin.getConfig().getInt("music.silence-seconds", 20) * 1000L; }
+    /** La reprise part un peu avant la fin : un leger recouvrement s'entend moins qu'un blanc. */
+    private long overlapMillis() { return plugin.getConfig().getInt("music.loop-overlap-ms", 50); }
     private float volume() { return (float) plugin.getConfig().getDouble("music.volume", 0.6); }
 
     private String licenceOf(Player p) {
@@ -132,7 +135,11 @@ public final class Music implements Listener {
         if (want == null) { if (now != null) stop(p); return; }
         if (now != null && now.track.equals(want)) {
             // Fin de la piste : on la relance tant que le combat dure.
-            if (System.currentTimeMillis() - now.startedAt >= DURATION.getOrDefault(want, 180) * 1000L) { now.startedAt = System.currentTimeMillis(); play(p, want); }
+            long length = DURATION.getOrDefault(want, 180000L);
+            if (System.currentTimeMillis() - now.startedAt >= length - overlapMillis()) {
+                now.startedAt = System.currentTimeMillis();
+                play(p, want);
+            }
             return;
         }
         if (now != null) stop(p);
@@ -172,7 +179,7 @@ public final class Music implements Listener {
         playing.put(p.getUniqueId(), new Playing(track));
         // Un combat fictif de l'equipe contre elle-meme tient la piste jusqu'a sa fin.
         Team t = plugin.teams().teamOf(p);
-        if (t != null) { Fight f = new Fight(t.id(), t.id(), track); f.lastHit = System.currentTimeMillis() + DURATION.getOrDefault(track, 180) * 1000L; fights.put("preview|" + p.getUniqueId(), f); }
+        if (t != null) { Fight f = new Fight(t.id(), t.id(), track); f.lastHit = System.currentTimeMillis() + DURATION.getOrDefault(track, 180000L); fights.put("preview|" + p.getUniqueId(), f); }
         p.stopSound(SoundCategory.MUSIC);
         play(p, track);
     }

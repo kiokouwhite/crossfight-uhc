@@ -28,6 +28,8 @@ music:
   silence-seconds: 20
   # Volume de la musique (reglage "Juke-box / Blocs musicaux" cote joueur)
   volume: 0.6
+  # La boucle repart ce nombre de millisecondes avant la fin de la piste, pour ne laisser aucun blanc
+  loop-overlap-ms: 50
 
 world:
   # Nom du monde de jeu
