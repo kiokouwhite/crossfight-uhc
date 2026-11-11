@@ -53,6 +53,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf burst` | Rendre son Burst de solitaire prêt (test) |
 | `/cf sante <0-100>` | Régler la santé du Cœur Mourant du Drifter (test) |
 | `/cf shoja <liste\|id\|tous\|raz>` | Arbre de Shoja : lister, équiper une capacité, tout débloquer, tout retirer (test) |
+| `/cf pack` | Redemander le pack de sons (ouvert à tous) |
 | `/cf son [nom]` | Compter les sons du pack, ou en jouer un (test) |
 | `/cf musique [piste\|stop]` | Lister les musiques de combat, en écouter une, l'arrêter (test) |
 

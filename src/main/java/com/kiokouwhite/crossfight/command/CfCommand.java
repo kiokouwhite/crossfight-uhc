@@ -45,6 +45,12 @@ public final class CfCommand implements TabExecutor {
                 if (!(sender instanceof Player sp)) return true;
                 if (!com.kiokouwhite.crossfight.character.unordinary.John.openChoose(sp)) Msg.send(sp, "<red>Seul John peut choisir ses pouvoirs absorbes.");
             }
+            case "pack" -> {
+                // Redemande le pack de sons (ecran de confirmation ferme trop vite, pack refuse...).
+                if (!(sender instanceof Player sp)) return true;
+                com.kiokouwhite.crossfight.util.Sounds.sendPack(sp);
+                Msg.send(sp, "<gray>Pack de sons propose a nouveau. S'il ne s'affiche pas, regle \"Packs de ressources du serveur\" sur Demander dans la liste des serveurs.");
+            }
             default -> {
                 if (!sender.hasPermission("crossfight.admin")) {
                     Msg.send(sender, "<red>Tu n'as pas la permission.");
@@ -410,7 +416,7 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
             if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {

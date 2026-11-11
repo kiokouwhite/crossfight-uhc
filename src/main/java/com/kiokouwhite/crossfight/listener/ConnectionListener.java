@@ -18,12 +18,27 @@ public final class ConnectionListener implements Listener {
         this.plugin = plugin;
     }
 
+    /** Reponse du joueur au pack de sons : on lui dit ou il en est, et comment le redemander. */
+    @EventHandler
+    public void onPackStatus(org.bukkit.event.player.PlayerResourcePackStatusEvent e) {
+        Player p = e.getPlayer();
+        switch (e.getStatus()) {
+            case SUCCESSFULLY_LOADED -> Msg.send(p, "<green>Sons et voix charges.");
+            case DECLINED -> Msg.send(p, "<yellow>Pack de sons refuse : tu joueras sans bruitages ni voix. <gray>/cf pack pour le redemander.");
+            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED ->
+                    Msg.send(p, "<red>Le pack de sons n'a pas pu etre charge. <gray>/cf pack pour reessayer.");
+            default -> { }
+        }
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         CfPlayer cf = plugin.players().get(p);
         e.joinMessage(Msg.prefixed("<gray>" + p.getName() + " a rejoint."));
-        com.kiokouwhite.crossfight.util.Sounds.sendPack(p);
+        // Le pack est propose une fois le joueur installe : envoye pendant le chargement du monde,
+        // l'ecran de confirmation est referme aussitot par le jeu.
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.sendPack(p); }, 60L);
         if (plugin.testMode().resumeIfPending(p)) return;
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);
