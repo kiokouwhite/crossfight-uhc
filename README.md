@@ -133,6 +133,18 @@ Sur une machine qui n'a plus `resourcepack-prive/`, `python3 tools/build_pack.py
 python3 tools/add_audio.py --prive voice vc_marth_appeal01.wav marth_ult
 ```
 
+### Animations (modèle articulé)
+
+Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur.
+
+- `python3 tools/add_skin.py skin.png <personnage> [--prive]` fabrique le modèle à partir d'un skin Minecraft 64×64 (bras fins détectés). Avec `--prive`, il reste hors du dépôt, comme les voix officielles.
+- Les poses sont dans `src/main/resources/poses.txt` (angles de chaque partie, en degrés).
+- `python3 tools/pose_preview.py <personnage> <pose> [image.png] [--prive]` dessine une pose sous cinq angles sans lancer le jeu.
+- En jeu : `/cf pose <nom> [secondes]`, à regarder en vue extérieure (F5).
+- `poses.enabled: false` dans `config.yml` coupe tout. Sans le modèle dans le pack, la capacité garde simplement ses effets habituels.
+
+Première animation : le Contre de Marth (garde, épée tenue haut lame vers le bas, puis fente avant à la riposte).
+
 ### Items de capacité
 Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que personne ne frappe avec : les icônes en épée deviennent des éclats d'améthyste, les haches du fer brut, les arcs des flèches, les tridents des éclats de prismarine, les pioches, pelles et houes des matériaux bruts. Seuls les vrais arcs à bander (Sova) gardent leur apparence. L'arme du personnage reste en premier slot.
 

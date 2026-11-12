@@ -182,6 +182,24 @@ public final class CfCommand implements TabExecutor {
                         sp.playSound(sp.getLocation(), "crossfight:" + ev, org.bukkit.SoundCategory.MASTER, 1f, 1f);
                         Msg.send(sp, "<green>Son joue : <white>" + ev);
                     }
+                    case "pose" -> {
+                        // Test : prend une pose du modele articule (/cf pose marth_contre 5), a regarder en vue exterieure (F5).
+                        if (!(sender instanceof Player sp)) return true;
+                        var poses = com.kiokouwhite.crossfight.util.Puppet.poses();
+                        if (args.length < 2) { Msg.send(sp, "<gold>Poses : <white>" + String.join(", ", poses) + " <gray>(/cf pose <nom> [secondes], a regarder en F5)."); return true; }
+                        CfPlayer pcf = plugin.players().get(sp);
+                        String who = pcf != null && pcf.character() != null ? pcf.character().id() : "";
+                        if (!com.kiokouwhite.crossfight.util.Puppet.available(who)) { Msg.send(sp, "<red>Pas de modele articule pour ce personnage dans le pack."); return true; }
+                        String pose = args[1].toLowerCase();
+                        if (!poses.contains(pose)) { Msg.send(sp, "<red>Pose inconnue : " + pose); return true; }
+                        int seconds = 5;
+                        if (args.length > 2) { try { seconds = Math.max(1, Math.min(25, Integer.parseInt(args[2]))); } catch (NumberFormatException ignored) { } }
+                        var pu = com.kiokouwhite.crossfight.util.Puppet.show(sp, who, sp.getInventory().getItem(0), "debout");
+                        if (pu == null) return true;
+                        pu.pose(pose, 4);
+                        pu.endAfter(seconds * 20, 4);
+                        Msg.send(sp, "<green>Pose <white>" + pose + "<green> pendant " + seconds + " s (vue exterieure : F5).");
+                    }
                     case "musique", "music" -> {
                         // Test : liste les musiques de combat, en joue une (/cf musique <piste>) ou l'arrete (/cf musique stop).
                         if (!(sender instanceof Player sp)) return true;
@@ -417,7 +435,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -431,7 +449,8 @@ public final class CfCommand implements TabExecutor {
                 case "delta" -> out.addAll(List.of("regen", "coeurs", "feu", "vitesse", "explosion", "aleatoire"));
                 case "kills" -> out.addAll(List.of("0", "2", "4", "6", "8"));
                 case "sante" -> out.addAll(List.of("100", "75", "50", "25", "10"));
-                case "son", "sons" -> out.addAll(com.kiokouwhite.crossfight.util.Sounds.events());
+                case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
+                case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }

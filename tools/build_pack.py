@@ -24,6 +24,8 @@ Conventions de nommage, sous sounds/ :
   ability/<id>.ogg            bruitage propre a une capacite (prioritaire sur abilities.txt)
   voice/<cle>.ogg             une replique ; <cle>_1.ogg, <cle>_2.ogg... = variantes tirees au hasard
   music/<piste>.ogg           une musique de combat (stereo)
+Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un personnage qui a un modele
+articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>".
 Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
@@ -89,6 +91,24 @@ def collect(base: Path, with_library: bool):
             tracks[f.stem] = millis(f)
             events["music." + f.stem] = [f]
     return events, tracks, library
+
+
+def skins(base: Path):
+    """Les personnages qui ont un modele articule (tools/add_skin.py)."""
+    folder = base / "assets" / NS / "textures" / "item" / "pose"
+    return {"skin." + f.stem for f in folder.glob("*.png")} if folder.is_dir() else set()
+
+
+def other_assets(base: Path):
+    """Les fichiers du pack qui ne sont pas des sons : modeles, textures, objets."""
+    out = {}
+    assets = base / "assets"
+    if assets.is_dir():
+        for f in sorted(assets.rglob("*")):
+            rel = f.relative_to(base)
+            if f.is_file() and f.name != ".gitkeep" and SUB not in rel.parents and rel != Path("assets") / NS / "sounds.json":
+                out[rel.as_posix()] = f.read_bytes()
+    return out
 
 
 def sounds_json(events, root_of):
@@ -158,7 +178,7 @@ def main() -> int:
     private_names, private_tracks, p_events = set(), {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _ = collect(PRIVATE, False)
-        private_names = set(p_events)
+        private_names = set(p_events) | skins(PRIVATE)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
             if before - private_names:
@@ -166,7 +186,7 @@ def main() -> int:
                       ", ".join(sorted(before - private_names)))
         lines = ["# Sons du pack prive (resourcepack-prive/, non versionne). Genere par tools/build_pack.py.",
                  "# Seuls les noms sont ici : le plugin doit les connaitre pour les jouer."]
-        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else "") for name in sorted(p_events)]
+        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else "") for name in sorted(private_names)]
         private_list.write_text("\n".join(lines) + "\n", encoding="utf-8")
     elif private_list.exists():
         for line in private_list.read_text(encoding="utf-8").splitlines():
@@ -189,12 +209,13 @@ def main() -> int:
         members["CREDITS.md"] = (PACK / "CREDITS.md").read_bytes()
     for f in {f for files in public.values() for f in files}:
         members[f.relative_to(PACK).as_posix()] = f.read_bytes()
+    members.update(other_assets(PACK))
     public_zip = ROOT / "dist" / "CrossfightPack.zip"
     sha1 = write_zip(public_zip, members)
 
     # Pack complet : les sons publics, plus les sons prives qui les completent ou les remplacent.
     complete_zip = None
-    if p_events:
+    if private_names and PRIVATE.is_dir():
         merged = dict(events)
         merged.update(p_events)
         json_complete = sounds_json(merged, lambda f: PRIVATE if PRIVATE in f.parents else PACK)
@@ -202,6 +223,7 @@ def main() -> int:
         c_members[f"assets/{NS}/sounds.json"] = json_complete.encode("utf-8")
         for f in {f for files in merged.values() for f in files}:
             c_members[f.relative_to(PRIVATE if PRIVATE in f.parents else PACK).as_posix()] = f.read_bytes()
+        c_members.update(other_assets(PRIVATE))
         complete_zip = ROOT / "prive" / "CrossfightPackComplet.zip"
         complete_sha1 = write_zip(complete_zip, c_members)
 
@@ -224,7 +246,7 @@ def main() -> int:
 
     # Ce que le plugin embarque : tous les sons connus (publics et prives), l'empreinte du pack public.
     res = ROOT / "src" / "main" / "resources"
-    index = sorted(set(events) | private_names)
+    index = sorted(set(events) | skins(PACK) | private_names)
     (res / "sounds.txt").write_text("# Genere par tools/build_pack.py\n" + "\n".join(index) + "\n", encoding="utf-8")
     (res / "pack.sha1").write_text(sha1 + "\n", encoding="utf-8")
     lines = ["# Genere par tools/build_pack.py"]

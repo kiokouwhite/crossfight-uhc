@@ -128,7 +128,10 @@ public final class Marth extends Character {
             st.set("counterUntil", until);
             p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.6f);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 1.4f);
-            // La pose : Marth scintille en blanc, comme le flash du Contre de Melee.
+            // La pose du Contre : le joueur est remplace une seconde par son modele articule (si le pack l'a).
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "marth", heldFalchion(p), "debout");
+            if (puppet != null) { puppet.pose("marth_contre", 3); puppet.endAfter(21, 3); }
+            // Marth scintille en blanc, comme le flash du Contre de Melee.
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
@@ -165,8 +168,11 @@ public final class Marth extends Character {
             attacker.setVelocity(toward.clone().multiply(2.2).setY(0.85));
             Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (!attacker.isDead()) Effects.root(attacker, 20); }, 16L);
             crescent(victim, toward);
+            // La riposte : fente avant, epee tendue.
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.of(victim);
+            if (puppet != null) { puppet.pose("marth_contre_coup", 2); puppet.endAfter(11, 3); }
             org.bukkit.World w = victim.getWorld();
-            w.spawnParticle(Particle.FLASH, attacker.getLocation().add(0, 1, 0), 1);
+            w.spawnParticle(Particle.FLASH, attacker.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(245, 250, 255));
             w.spawnParticle(Particle.CRIT, attacker.getLocation().add(0, 1, 0), 30, 0.3, 0.5, 0.3, 0.3);
             w.playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.5f, 0.7f);
             w.playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.5f, 0.6f);
@@ -175,6 +181,14 @@ public final class Marth extends Character {
             Msg.actionBar(victim, "<gold>Contre reussi !");
             com.kiokouwhite.crossfight.util.Sounds.ability(victim, "marth_contre_hit");
             if (attacker instanceof Player ap) Msg.actionBar(ap, "<red>Marth a contre ton coup !");
+        }
+
+        /** La Falchion que porte Marth (ou la Sainte-Falchion), pour la montrer dans la main du modele. */
+        static ItemStack heldFalchion(Player p) {
+            for (ItemStack it : p.getInventory().getContents()) {
+                if (it != null && FALCHION_ID.equals(Items.tag(it, AbilityEngine.ABILITY_KEY))) return it;
+            }
+            return new ItemStack(Material.IRON_SWORD);
         }
 
         /** Le croissant du coup d'epee : un grand arc blanc balaye devant Marth en quelques ticks. */

@@ -1,0 +1,38 @@
+# Poses du modele articule des personnages (util/Puppet.java). Apercu : tools/pose_preview.py.
+#
+# Repere : X = gauche du personnage, Y = haut, Z = devant lui. Distances en pixels de skin
+# (un personnage fait 32 pixels de haut), angles en degres, appliques dans l'ordre Z, X, Y.
+#   rx > 0 : un bras ou une jambe part vers l'arriere, le corps ou la tete penchent vers l'avant ; rx < 0 : l'inverse
+#   ry > 0 : tourne vers sa gauche ; ry < 0 : vers sa droite
+#   rz > 0 : un membre s'ecarte vers la gauche ; rz < 0 : vers la droite
+#
+# pose <nom>
+#   root   rx ry rz  [dx dy dz]     tout le corps
+#   head | body | arm_r | arm_l | leg_r | leg_l   rx ry rz  [dx dy dz]
+#   item   rx ry rz                 l'objet tenu dans la main droite, par rapport au bras
+#                                   (0 0 0 : lame perpendiculaire au bras, comme une epee tenue)
+# Une partie absente reste au repos.
+
+pose debout
+  item -20 0 0
+
+# Le Contre de Marth (Smash Bros) : de profil, jambes flechies, l'epee tenue haut devant lui, lame vers le bas.
+pose marth_contre
+  root  0 -28 0   0 -1 0
+  head  4 28 0
+  body  6 0 0
+  arm_r -108 30 0
+  arm_l 38 0 28
+  leg_r 24 0 -9
+  leg_l -26 0 9
+  item  -136 0 0
+
+# La riposte : fente avant, le coup d'epee finit bas devant lui, bras tendu.
+pose marth_contre_coup
+  root  10 -14 0   0 -1 3
+  head  -10 14 0
+  arm_r -58 0 -16
+  arm_l 46 0 22
+  leg_r 32 0 -6
+  leg_l -40 0 6
+  item  68 0 0

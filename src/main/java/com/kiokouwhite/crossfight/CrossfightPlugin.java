@@ -41,6 +41,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         com.kiokouwhite.crossfight.util.Sounds.load(this);
+        com.kiokouwhite.crossfight.util.Puppet.load(this);
 
         playerManager = new PlayerManager();
         teamManager = new TeamManager(this);
@@ -102,6 +103,7 @@ public final class CrossfightPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        com.kiokouwhite.crossfight.util.Puppet.removeAll();
         if (testMode != null) testMode.save();
         if (gameManager != null) gameManager.shutdown();
         if (abilityEngine != null) abilityEngine.stop();
