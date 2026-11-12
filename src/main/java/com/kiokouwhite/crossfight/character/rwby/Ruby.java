@@ -219,6 +219,7 @@ public final class Ruby extends Character {
                 victim.getWorld().spawnParticle(Particle.FLASH, victim.getEyeLocation(), 2, 0, 0, 0, 0, Color.SILVER);
                 victim.getWorld().spawnParticle(Particle.END_ROD, victim.getEyeLocation(), 80, 5, 1, 5, 0.1);
                 victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1f, 2f);
+                com.kiokouwhite.crossfight.util.Sounds.ability(victim, "ruby_yeux");
                 Msg.send(victim, "<white><bold>Yeux d'Argent !</bold> <gray>" + n + " ennemi(s) touche(s).");
             });
         }

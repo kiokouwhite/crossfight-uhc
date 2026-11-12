@@ -190,6 +190,13 @@ public final class RWBY {
                 for (Player o : new Player[]{p, ally}) {
                     o.playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
                 }
+                // Comme les appels de partenaire de BlazBlue : le lanceur appelle sa coequipiere, qui repond par son nom.
+                var cp = CrossfightPlugin.get().players();
+                if (cp.get(p).character() != null && cp.get(ally).character() != null) {
+                    String a = cp.get(p).character().id(), b = cp.get(ally).character().id();
+                    com.kiokouwhite.crossfight.util.Sounds.voice(p, a + "_duo_" + b);
+                    com.kiokouwhite.crossfight.util.Sounds.voiceLater(ally, b + "_nom_" + a, 25L);
+                }
                 CrossfightPlugin.get().game().broadcastNear(p, "<light_purple>" + p.getName() + " et " + ally.getName() + " lancent <bold>" + name + "</bold> !");
             }
         }
