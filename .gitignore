@@ -6,3 +6,7 @@ out/
 .idea/
 .vscode/
 run/
+
+# Sons sous droits (voix officielles, musiques) : jamais sur le depot public
+resourcepack-prive/
+prive/

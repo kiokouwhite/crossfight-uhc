@@ -157,7 +157,17 @@ public final class Sounds {
     private static boolean packConfigured() {
         CrossfightPlugin plugin = CrossfightPlugin.get();
         String url = plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
-        return plugin.getConfig().getBoolean("resource-pack.enabled", true) && url != null && !url.isBlank() && packSha1.length() == 40;
+        return plugin.getConfig().getBoolean("resource-pack.enabled", true) && url != null && !url.isBlank() && sha1().length() == 40;
+    }
+
+    /**
+     * L'empreinte du pack envoye : celle de la configuration (pack complet heberge ailleurs, avec les
+     * voix officielles et les musiques), sinon celle du pack public embarquee dans le jar.
+     */
+    private static String sha1() {
+        String own = CrossfightPlugin.get().getConfig().getString("resource-pack.sha1", "");
+        own = own == null ? "" : own.trim().toLowerCase(java.util.Locale.ROOT);
+        return own.matches("[0-9a-f]{40}") ? own : packSha1;
     }
 
     /** A la connexion : le joueur va recevoir la demande du pack, les menus attendront sa reponse. */
@@ -191,12 +201,13 @@ public final class Sounds {
         CrossfightPlugin plugin = CrossfightPlugin.get();
         if (!plugin.getConfig().getBoolean("resource-pack.enabled", true)) return;
         String url = plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
-        if (url == null || url.isBlank() || packSha1.length() != 40) return;
+        String hash = sha1();
+        if (url == null || url.isBlank() || hash.length() != 40) return;
         boolean required = plugin.getConfig().getBoolean("resource-pack.required", false);
         try {
             p.closeInventory();
             PACK_PENDING.add(p.getUniqueId());
-            p.setResourcePack(url, packSha1, required, Msg.mm("<gold>Crossfight UHC</gold> <gray>: sons et voix des personnages."));
+            p.setResourcePack(url, hash, required, Msg.mm("<gold>Crossfight UHC</gold> <gray>: sons et voix des personnages."));
             // Sans reponse au bout d'une minute, on n'attend plus.
             Bukkit.getScheduler().runTaskLater(plugin, () -> { if (PACK_PENDING.contains(p.getUniqueId())) packSettled(p); }, 20L * 60);
         } catch (Exception ex) { plugin.getLogger().warning("Pack de ressources non envoye : " + ex); packSettled(p); }

@@ -18,6 +18,10 @@ resource-pack:
   # Le pack de sons et de voix, propose a chaque joueur a la connexion
   enabled: true
   url: "https://github.com/kiokouwhite/crossfight-uhc/raw/main/dist/CrossfightPack.zip"
+  # Empreinte SHA-1 du pack. Vide : celle du pack public fourni avec le plugin.
+  # A remplir quand "url" pointe vers un autre pack (le pack complet, avec les voix officielles et les musiques) :
+  # tools/build_pack.py affiche l'empreinte du pack complet.
+  sha1: ""
   # true : un joueur qui refuse le pack est deconnecte
   required: false
 
