@@ -46,6 +46,21 @@ public final class Skins {
 
     public static Collection<String> characters() { return SKINS.keySet(); }
 
+    /**
+     * Le skin d'un personnage sous forme de profil complet (pour un mannequin a son image), ou null
+     * s'il n'en a pas. Le profil porte deja sa texture signee : le client n'a rien a chercher.
+     */
+    public static io.papermc.paper.datacomponent.item.ResolvableProfile profile(String characterId) {
+        ProfileProperty skin = SKINS.get(characterId);
+        if (skin == null) return null;
+        String name = ("cf_" + characterId).length() > 16 ? ("cf_" + characterId).substring(0, 16) : "cf_" + characterId;
+        return io.papermc.paper.datacomponent.item.ResolvableProfile.resolvableProfile()
+                .uuid(UUID.nameUUIDFromBytes(("crossfight:" + characterId).getBytes(StandardCharsets.UTF_8)))
+                .name(name)
+                .addProperty(skin)
+                .build();
+    }
+
     private static boolean enabled() { return CrossfightPlugin.get().getConfig().getBoolean("skins.enabled", true); }
 
     /** Met au joueur le skin de ce personnage ; null, ou un personnage sans skin : son skin d'origine. */

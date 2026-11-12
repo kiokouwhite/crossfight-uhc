@@ -36,12 +36,15 @@ final class Synergies {
         Synergy.register("gunvolt", "acura", new Synergy.Effect() {
             public String name() { return "Vol Electrique"; }
             public String description() { return "Pendant 15 secondes, les deux volent et portent une barriere electrique de 3x3 (1 coeur par seconde)."; }
-            public boolean cast(Player a, Player b) {
-                for (Player p : new Player[]{a, b}) {
+            public boolean cast(Player a, LivingEntity b) {
+                for (LivingEntity e : new LivingEntity[]{a, b}) {
+                    // La barriere suit chacune des deux ; seul un joueur peut voler (un mannequin duo garde les pieds au sol).
+                    Player side = Effects.sideOf(e);
+                    if (side != null) ABG.zone(side, () -> e.isValid() ? e.getLocation() : null, 1.5, 15, 2.0, -1);
+                    if (!(e instanceof Player p)) continue;
                     p.setAllowFlight(true);
                     p.setFlying(true);
                     Effects.noFallUntil(p, 20000);
-                    ABG.zone(p, () -> p.isOnline() ? p.getLocation() : null, 1.5, 15, 2.0, -1);
                     Msg.send(p, "<aqua>Vol Electrique : tu voles pendant 15 secondes !");
                     new BukkitRunnable() {
                         @Override public void run() {
@@ -59,8 +62,8 @@ final class Synergies {
         Synergy.register("gunvolt", "kirin", new Synergy.Effect() {
             public String name() { return "Lame Electrisante"; }
             public String description() { return "Pendant 10 secondes, chacun de vos coups immobilise l'adversaire pendant 10 secondes."; }
-            public boolean cast(Player a, Player b) {
-                for (Player p : new Player[]{a, b}) {
+            public boolean cast(Player a, LivingEntity b) {
+                for (LivingEntity p : new LivingEntity[]{a, b}) {
                     ELECTRIC_BLADE.put(p.getUniqueId(), System.currentTimeMillis() + 10000L);
                     p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1, 0), 40, 0.5, 0.7, 0.5, 0.15);
                     Msg.send(p, "<aqua>Lame Electrisante : tes coups immobilisent 10 s pendant 10 s !");
@@ -72,7 +75,7 @@ final class Synergies {
         Synergy.register("gunvolt", "asimov", new Synergy.Effect() {
             public String name() { return "Double Electrocution"; }
             public String description() { return "Pendant 10 secondes, une zone electrique de 20x20 : 1 coeur par seconde."; }
-            public boolean cast(Player a, Player b) {
+            public boolean cast(Player a, LivingEntity b) {
                 Location c = a.getLocation().clone();
                 a.getWorld().strikeLightningEffect(c);
                 ABG.zone(a, () -> c, 10, 10, 2.0, 0);
@@ -84,14 +87,16 @@ final class Synergies {
             public String name() { return "Dash Double Lame"; }
             public String description() { return "Chacun a trois dashs de 10 blocs qui infligent 3 coeurs (clic droit sur la Synergie, 30 secondes)."; }
             public long activeMillis() { return 30000L; }
-            public boolean cast(Player a, Player b) {
-                for (Player p : new Player[]{a, b}) {
+            public boolean cast(Player a, LivingEntity b) {
+                // Les dashs se lancent avec l'item de Synergie : seuls les joueurs en recoivent.
+                for (LivingEntity e : new LivingEntity[]{a, b}) {
+                    if (!(e instanceof Player p)) continue;
                     ABG.plugin().abilities().state(p, Synergy.ITEM).set("dashes", 3);
                     Msg.send(p, "<aqua>Dash Double Lame : 3 dashs, clic droit sur la Synergie !");
                 }
                 return true;
             }
-            public boolean onUse(Player p, Player partner, AbilityState st, boolean sneaking) {
+            public boolean onUse(Player p, LivingEntity partner, AbilityState st, boolean sneaking) {
                 int left = st.get("dashes", 0);
                 if (left <= 0) { Msg.actionBar(p, "<red>Plus de dash."); return true; }
                 st.set("dashes", left - 1);
@@ -127,11 +132,12 @@ final class Synergies {
         Synergy.register("acura", "asimov", new Synergy.Effect() {
             public String name() { return "Prison de Chaine"; }
             public String description() { return "Pendant 10 secondes, tous les ennemis a 30 blocs sont emprisonnes dans des chaines (1 coeur toutes les 2 secondes) ; les deux volent."; }
-            public boolean cast(Player a, Player b) {
+            public boolean cast(Player a, LivingEntity b) {
                 List<LivingEntity> prisoners = new ArrayList<>(Effects.enemiesWithin(a, 30));
                 World w = a.getWorld();
                 Particle.DustOptions chain = new Particle.DustOptions(Color.fromRGB(190, 190, 200), 0.9f);
-                for (Player p : new Player[]{a, b}) {
+                for (LivingEntity e : new LivingEntity[]{a, b}) {
+                    if (!(e instanceof Player p)) continue;
                     p.setAllowFlight(true); p.setFlying(true); Effects.noFallUntil(p, 15000);
                     Msg.send(p, "<aqua>Prison de Chaine : " + prisoners.size() + " ennemi(s) enchaine(s), tu voles 10 s.");
                 }
@@ -141,7 +147,7 @@ final class Synergies {
                     @Override public void run() {
                         t++;
                         if (t > 200) {
-                            for (Player p : new Player[]{a, b}) if (p.isOnline() && (p.getGameMode() == org.bukkit.GameMode.SURVIVAL || p.getGameMode() == org.bukkit.GameMode.ADVENTURE)) { p.setFlying(false); p.setAllowFlight(false); Effects.noFallUntil(p, 6000); }
+                            for (LivingEntity e : new LivingEntity[]{a, b}) if (e instanceof Player p && p.isOnline() && (p.getGameMode() == org.bukkit.GameMode.SURVIVAL || p.getGameMode() == org.bukkit.GameMode.ADVENTURE)) { p.setFlying(false); p.setAllowFlight(false); Effects.noFallUntil(p, 6000); }
                             for (LivingEntity e : prisoners) Effects.unroot(e);
                             cancel(); return;
                         }
@@ -162,11 +168,11 @@ final class Synergies {
             public String name() { return "Talisman Electrifiant"; }
             public String description() { return "Pendant 10 secondes, les deux jettent des talismans (clic droit sur la Synergie) : toucher quelqu'un vous teleporte sur lui et l'immobilise 5 secondes."; }
             public long activeMillis() { return 10000L; }
-            public boolean cast(Player a, Player b) {
-                for (Player p : new Player[]{a, b}) Msg.send(p, "<aqua>Talisman Electrifiant : clic droit sur la Synergie pour jeter un talisman (10 s).");
+            public boolean cast(Player a, LivingEntity b) {
+                for (LivingEntity p : new LivingEntity[]{a, b}) Msg.send(p, "<aqua>Talisman Electrifiant : clic droit sur la Synergie pour jeter un talisman (10 s).");
                 return true;
             }
-            public boolean onUse(Player p, Player partner, AbilityState st, boolean sneaking) {
+            public boolean onUse(Player p, LivingEntity partner, AbilityState st, boolean sneaking) {
                 Kirin.throwTalisman(p, 0L, true);
                 return true;
             }

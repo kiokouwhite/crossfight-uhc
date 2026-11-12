@@ -35,6 +35,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf licences` | Lister les licences et personnages |
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
+| `/cf test duo [perso]` | Zone duo : essayer les ultimes en duo seul, avec un mannequin duo (une seconde fois sans personnage pour revenir) |
 | `/cf change [perso]` | Changer de personnage en mode test |
 | `/cf clear` | Remettre le terrain de test à neuf (blocs, entités, mannequins) |
 | `/cf mannequin adversaire <perso>` | Un mannequin qui incarne le personnage : ses capacités offensives sont données en items, et les activer les lance depuis le mannequin contre toi |
@@ -176,6 +177,11 @@ Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (
 Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que personne ne frappe avec : les icônes en épée deviennent des éclats d'améthyste, les haches du fer brut, les arcs des flèches, les tridents des éclats de prismarine, les pioches, pelles et houes des matériaux bruts. Seuls les vrais arcs à bander (Sova) gardent leur apparence. L'arme du personnage reste en premier slot.
 
 ### Mode test
+
+**Zone duo** (`/cf test duo`) : une plateforme à part pour essayer seul les ultimes en duo (l'Ultime en Duo de RWBY et les Synergies de Bloody Snow, Shoja's Memories et Armed Blue Gunvolt). Le testeur y a un **mannequin duo** : un allié à l'apparence de joueur, avec le skin du personnage qu'il incarne quand il en a un, qui tient le rôle de la partenaire. Un clic droit dessus ouvre le choix de son personnage (les autres personnes de la licence du testeur) et joue l'échange des deux personnages s'il existe. Trois cibles attendent devant le testeur, et ses ultimes en duo sont toujours prêts (les jauges avec un second testeur restent aussi à 100 %). `/cf test duo <perso>` choisit directement le personnage du mannequin. En arrivant sans personnage à ultime en duo, un menu ne propose que ceux-là. La mort fait réapparaître dans la zone ; `/cf test duo` ramène au terrain de test, `/cf test` quitte le mode test, `/cf clear` remet aussi la zone duo à neuf.
+
+Pour que la partenaire puisse être un mannequin, les 24 ultimes en duo prennent une entité vivante pour partenaire : ce qui n'a de sens que pour un joueur (vol, furtivité, dashs donnés par l'item de Synergie, portée, chute amortie) ne s'applique qu'aux joueurs, et un mannequin duo compte pour 0 là où l'effet dépend de son historique (barre de résistance d'Hannah, dégâts récents de Kaze). Un mannequin duo est dans le camp de son testeur (`Effects.sideOf`).
+
 
 En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé.
 Les chargeurs, munitions et jauges fonctionnent normalement.

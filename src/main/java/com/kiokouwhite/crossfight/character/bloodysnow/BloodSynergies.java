@@ -33,7 +33,11 @@ final class BloodSynergies implements Listener {
     /** Defense Aceree : joueur protege -> expiration. */
     static final Map<UUID, Long> SHARP_DEFENSE = new HashMap<>();
 
-    static Player byCharacter(Player a, Player b, String id) { return id.equals(BloodySnow.characterId(a)) ? a : b; }
+    /** Celle des deux qui incarne ce personnage (la partenaire peut etre un mannequin duo). */
+    static LivingEntity byCharacter(Player a, LivingEntity b, String id) { return id.equals(Synergy.characterOf(a)) ? a : b; }
+
+    /** La portee n'existe que pour un joueur. */
+    static void reach(LivingEntity e, Double value) { if (e instanceof Player p) BloodySnow.setReach(p, "synergie", value); }
 
     static void register() {
 
@@ -41,16 +45,16 @@ final class BloodSynergies implements Listener {
             public String name() { return "Complementarite fraternelle"; }
             public String description() { return "Pendant 30 secondes, Netsu gagne le Power Hit de Kaze et un Home Run (clic sur la Synergie en visant un ennemi), Kaze gagne une portee de 4 blocs."; }
             public long activeMillis() { return 30000L; }
-            public boolean cast(Player a, Player b) {
-                Player netsu = byCharacter(a, b, "netsu"), kaze = byCharacter(a, b, "kaze");
+            public boolean cast(Player a, LivingEntity b) {
+                LivingEntity netsu = byCharacter(a, b, "netsu"), kaze = byCharacter(a, b, "kaze");
                 Kaze.POWER_HIT.put(netsu.getUniqueId(), System.currentTimeMillis() + 30000L);
-                BloodySnow.setReach(kaze, "synergie", 4.0);
-                Bukkit.getScheduler().runTaskLater(BloodySnow.plugin(), () -> BloodySnow.setReach(kaze, "synergie", null), 600L);
+                reach(kaze, 4.0);
+                Bukkit.getScheduler().runTaskLater(BloodySnow.plugin(), () -> reach(kaze, null), 600L);
                 Msg.send(netsu, "<red>Complementarite fraternelle : Power Hit et Home Run (clic sur la Synergie) pendant 30 s.");
                 Msg.send(kaze, "<red>Complementarite fraternelle : portee de 4 blocs pendant 30 s.");
                 return true;
             }
-            public boolean onUse(Player p, Player partner, AbilityState st, boolean sneaking) {
+            public boolean onUse(Player p, LivingEntity partner, AbilityState st, boolean sneaking) {
                 if (!"netsu".equals(BloodySnow.characterId(p))) return false;
                 RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), 4, 0.8, e -> e instanceof LivingEntity le && Effects.isEnemy(p, le));
                 if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) { Msg.actionBar(p, "<red>Home Run : vise un ennemi a 4 blocs."); return true; }
@@ -62,20 +66,20 @@ final class BloodSynergies implements Listener {
         Synergy.register("netsu", "hannah", new Synergy.Effect() {
             public String name() { return "Invincibles ensemble"; }
             public String description() { return "Pendant 30 secondes, tant qu'Hannah et Netsu sont a moins de 5 blocs, elles ont une portee de 4 blocs et Resistance IV."; }
-            public boolean cast(Player a, Player b) {
+            public boolean cast(Player a, LivingEntity b) {
                 new BukkitRunnable() {
                     int t = 0;
                     @Override public void run() {
                         t++;
-                        boolean close = a.isOnline() && b.isOnline() && a.getWorld() == b.getWorld() && a.getLocation().distance(b.getLocation()) <= 5;
-                        if (t > 30 || !a.isOnline() || !b.isOnline()) { for (Player p : new Player[]{a, b}) BloodySnow.setReach(p, "synergie", null); cancel(); return; }
-                        for (Player p : new Player[]{a, b}) {
-                            BloodySnow.setReach(p, "synergie", close ? 4.0 : null);
+                        boolean close = a.isOnline() && b.isValid() && a.getWorld() == b.getWorld() && a.getLocation().distance(b.getLocation()) <= 5;
+                        if (t > 30 || !a.isOnline() || !b.isValid()) { for (LivingEntity p : new LivingEntity[]{a, b}) reach(p, null); cancel(); return; }
+                        for (LivingEntity p : new LivingEntity[]{a, b}) {
+                            reach(p, close ? 4.0 : null);
                             if (close) { Effects.give(p, PotionEffectType.RESISTANCE, 3, 30); p.getWorld().spawnParticle(Particle.ENCHANTED_HIT, p.getLocation().add(0, 1, 0), 4, 0.3, 0.5, 0.3, 0.02); }
                         }
                     }
                 }.runTaskTimer(BloodySnow.plugin(), 0L, 20L);
-                for (Player p : new Player[]{a, b}) Msg.send(p, "<gold>Invincibles ensemble : restez a 5 blocs l'une de l'autre (30 s).");
+                for (LivingEntity p : new LivingEntity[]{a, b}) Msg.send(p, "<gold>Invincibles ensemble : restez a 5 blocs l'une de l'autre (30 s).");
                 return true;
             }
         });
@@ -83,12 +87,12 @@ final class BloodSynergies implements Listener {
         Synergy.register("netsu", "eirika", new Synergy.Effect() {
             public String name() { return "Vision Emettrice"; }
             public String description() { return "Pendant 30 secondes, tous les ennemis a 100 blocs recoivent 2 Marques de Sang et Glowing ; Netsu et Eirika ont Force contre les marques, et Netsu peut marquer."; }
-            public boolean cast(Player a, Player b) {
-                Player netsu = byCharacter(a, b, "netsu");
+            public boolean cast(Player a, LivingEntity b) {
+                LivingEntity netsu = byCharacter(a, b, "netsu");
                 long until = System.currentTimeMillis() + 30000L;
                 int n = 0;
                 for (LivingEntity e : Effects.enemiesWithin(a, 100)) { BloodySnow.addMark(a, e); BloodySnow.addMark(a, e); Effects.give(e, PotionEffectType.GLOWING, 0, 600); n++; }
-                for (Player p : new Player[]{a, b}) { FORCE_VS_MARKED.put(p.getUniqueId(), until); Msg.send(p, "<dark_red>Vision Emettrice : " + n + " ennemi(s) marque(s), Force contre les marques 30 s."); }
+                for (LivingEntity p : new LivingEntity[]{a, b}) { FORCE_VS_MARKED.put(p.getUniqueId(), until); Msg.send(p, "<dark_red>Vision Emettrice : " + n + " ennemi(s) marque(s), Force contre les marques 30 s."); }
                 BloodySnow.MARKERS.put(netsu.getUniqueId(), until);
                 return true;
             }
@@ -97,11 +101,12 @@ final class BloodSynergies implements Listener {
         Synergy.register("kaze", "hannah", new Synergy.Effect() {
             public String name() { return "Defense et Attaque"; }
             public String description() { return "Pendant 30 secondes, les deux gagnent des coeurs d'absorption egaux a la barre de resistance d'Hannah et une Force selon les degats de Kaze de la derniere minute (10 coeurs = Force I, jusqu'a IV)."; }
-            public boolean cast(Player a, Player b) {
-                Player kaze = byCharacter(a, b, "kaze"), hannah = byCharacter(a, b, "hannah");
-                int res = Hannah.resistance(hannah);
-                int force = Math.min(4, (int) (Kaze.damageLastMinute(kaze) / 20.0));
-                for (Player p : new Player[]{a, b}) {
+            public boolean cast(Player a, LivingEntity b) {
+                LivingEntity kaze = byCharacter(a, b, "kaze"), hannah = byCharacter(a, b, "hannah");
+                // Un mannequin duo n'a ni barre de resistance ni historique de degats : sa part compte pour 0.
+                int res = hannah instanceof Player hp ? Hannah.resistance(hp) : 0;
+                int force = kaze instanceof Player kp ? Math.min(4, (int) (Kaze.damageLastMinute(kp) / 20.0)) : 0;
+                for (LivingEntity p : new LivingEntity[]{a, b}) {
                     p.setAbsorptionAmount(Math.min(40, p.getAbsorptionAmount() + res * 2));
                     if (force > 0) { Boosts.set(p, "synergie_da", new Boosts.Boost(force, 0, 0, 0)); Bukkit.getScheduler().runTaskLater(BloodySnow.plugin(), () -> Boosts.remove(p, "synergie_da"), 600L); }
                     p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.1);
@@ -114,20 +119,20 @@ final class BloodSynergies implements Listener {
         Synergy.register("kaze", "eirika", new Synergy.Effect() {
             public String name() { return "Hemorragie Puissante"; }
             public String description() { return "Pendant 30 secondes, les deux ont une Force egale au plus grand nombre de Marques de Sang portees par un adversaire, et Kaze peut marquer."; }
-            public boolean cast(Player a, Player b) {
-                Player kaze = byCharacter(a, b, "kaze");
+            public boolean cast(Player a, LivingEntity b) {
+                LivingEntity kaze = byCharacter(a, b, "kaze");
                 long until = System.currentTimeMillis() + 30000L;
                 BloodySnow.MARKERS.put(kaze.getUniqueId(), until);
                 new BukkitRunnable() {
                     int t = 0;
                     @Override public void run() {
                         t++;
-                        if (t > 30) { for (Player p : new Player[]{a, b}) Boosts.remove(p, "synergie_hemo"); cancel(); return; }
+                        if (t > 30) { for (LivingEntity p : new LivingEntity[]{a, b}) Boosts.remove(p, "synergie_hemo"); cancel(); return; }
                         int force = Math.min(5, BloodySnow.maxMarks(a));
-                        for (Player p : new Player[]{a, b}) if (p.isOnline()) { if (force > 0) Boosts.set(p, "synergie_hemo", new Boosts.Boost(force, 0, 0, 0)); else Boosts.remove(p, "synergie_hemo"); }
+                        for (LivingEntity p : new LivingEntity[]{a, b}) if (p.isValid()) { if (force > 0) Boosts.set(p, "synergie_hemo", new Boosts.Boost(force, 0, 0, 0)); else Boosts.remove(p, "synergie_hemo"); }
                     }
                 }.runTaskTimer(BloodySnow.plugin(), 0L, 20L);
-                for (Player p : new Player[]{a, b}) Msg.send(p, "<dark_red>Hemorragie Puissante : Force = marques maximales (30 s), Kaze peut marquer.");
+                for (LivingEntity p : new LivingEntity[]{a, b}) Msg.send(p, "<dark_red>Hemorragie Puissante : Force = marques maximales (30 s), Kaze peut marquer.");
                 return true;
             }
         });
@@ -135,11 +140,11 @@ final class BloodSynergies implements Listener {
         Synergy.register("hannah", "eirika", new Synergy.Effect() {
             public String name() { return "Defense Aceree"; }
             public String description() { return "Pendant 30 secondes, chaque ennemi qui touche Hannah ou Eirika perd 1 coeur par Marque de Sang qu'il porte, et Hannah peut marquer."; }
-            public boolean cast(Player a, Player b) {
-                Player hannah = byCharacter(a, b, "hannah");
+            public boolean cast(Player a, LivingEntity b) {
+                LivingEntity hannah = byCharacter(a, b, "hannah");
                 long until = System.currentTimeMillis() + 30000L;
                 BloodySnow.MARKERS.put(hannah.getUniqueId(), until);
-                for (Player p : new Player[]{a, b}) { SHARP_DEFENSE.put(p.getUniqueId(), until); Msg.send(p, "<dark_red>Defense Aceree : qui vous frappe saigne selon ses marques (30 s)."); }
+                for (LivingEntity p : new LivingEntity[]{a, b}) { SHARP_DEFENSE.put(p.getUniqueId(), until); Msg.send(p, "<dark_red>Defense Aceree : qui vous frappe saigne selon ses marques (30 s)."); }
                 return true;
             }
         });

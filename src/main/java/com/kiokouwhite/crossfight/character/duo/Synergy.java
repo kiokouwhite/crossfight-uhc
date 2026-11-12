@@ -26,6 +26,9 @@ import java.util.UUID;
 /**
  * Synergie des groupes duo : un second ultime commun a une paire de personnages, charge par les
  * degats que les deux infligent (200 % necessaires). Chaque licence duo enregistre ses paires.
+ *
+ * Le lanceur est toujours un joueur ; sa partenaire est un joueur ou, dans la zone duo du mode test,
+ * un mannequin duo a l'image du personnage (toujours pret).
  */
 public final class Synergy implements LicenceMechanic {
 
@@ -35,10 +38,13 @@ public final class Synergy implements LicenceMechanic {
     public interface Effect {
         String name();
         String description();
-        /** Lance la synergie pour les deux joueurs. Retourne false si rien n'a pu etre lance. */
-        boolean cast(Player a, Player b);
+        /**
+         * Lance la synergie : {@code a} est le joueur qui la lance, {@code b} sa partenaire (un joueur ou
+         * un mannequin duo). Retourne false si rien n'a pu etre lance.
+         */
+        boolean cast(Player a, LivingEntity b);
         /** Clics suivants sur l'item de Synergie pendant que l'effet est actif (dashs, talismans...). */
-        default boolean onUse(Player p, Player partner, AbilityState st, boolean sneaking) { return false; }
+        default boolean onUse(Player p, LivingEntity partner, AbilityState st, boolean sneaking) { return false; }
         /** Duree pendant laquelle l'item de Synergie reste "actif" pour ces clics suivants (ms). */
         default long activeMillis() { return 0L; }
     }
@@ -51,10 +57,26 @@ public final class Synergy implements LicenceMechanic {
     /** Declare la synergie de deux personnages. */
     public static void register(String charA, String charB, Effect effect) { EFFECTS.put(pairKey(charA, charB), effect); }
 
-    public static Effect effectOf(Player a, Player b) {
-        CfPlayer ca = plugin().players().get(a), cb = plugin().players().get(b);
-        if (ca.character() == null || cb.character() == null) return null;
-        return EFFECTS.get(pairKey(ca.character().id(), cb.character().id()));
+    public static Effect effectOf(LivingEntity a, LivingEntity b) {
+        String ca = characterOf(a), cb = characterOf(b);
+        if (ca == null || cb == null) return null;
+        return EFFECTS.get(pairKey(ca, cb));
+    }
+
+    /** Le personnage d'un joueur, ou celui qu'incarne un mannequin duo (null s'il n'y en a pas). */
+    public static String characterOf(LivingEntity e) {
+        if (e instanceof Player p) {
+            CfPlayer cf = plugin().players().get(p);
+            return cf.character() == null ? null : cf.character().id();
+        }
+        return com.kiokouwhite.crossfight.util.Mannequins.partnerCharacterOf(e);
+    }
+
+    /** Le nom d'une partenaire : le joueur, ou "mannequin" et son personnage. */
+    static String partnerName(LivingEntity e) {
+        if (e instanceof Player p) return p.getName();
+        var c = plugin().characters().character(characterOf(e));
+        return "mannequin " + (c == null ? "duo" : c.name());
     }
 
     static CrossfightPlugin plugin() { return CrossfightPlugin.get(); }
@@ -117,7 +139,25 @@ public final class Synergy implements LicenceMechanic {
     String summary(Player p) {
         StringBuilder sb = new StringBuilder();
         for (Player ally : partners(p)) sb.append(ally.getName()).append(' ').append((int) (gauge(p, ally)[0] / REQUIRED * 100)).append("% ");
+        for (LivingEntity m : partnerMannequins(p)) sb.append(partnerName(m)).append(" 100% ");
         return sb.toString().trim();
+    }
+
+    /** Les mannequins duo de ce joueur qui incarnent un personnage de la licence. */
+    List<LivingEntity> partnerMannequins(Player p) {
+        List<LivingEntity> out = new ArrayList<>();
+        for (LivingEntity m : com.kiokouwhite.crossfight.util.Mannequins.partnersOf(p)) {
+            var c = plugin().characters().character(characterOf(m));
+            if (c != null && c.licence() != null && licenceId.equals(c.licence().id())) out.add(m);
+        }
+        return out;
+    }
+
+    /** Les partenaires avec qui lancer la Synergie : jauge pleine (toutes en mode test), et les mannequins duo. */
+    List<LivingEntity> choices(Player p) {
+        List<LivingEntity> out = new ArrayList<>(plugin().game().isTest() ? partners(p) : readyPartners(p));
+        out.addAll(partnerMannequins(p));
+        return out;
     }
 
     /** Test : met les jauges du joueur avec ses partenaires a un pourcentage. */
@@ -152,40 +192,42 @@ public final class Synergy implements LicenceMechanic {
             if (s == null) return true;
             if (System.currentTimeMillis() < st.get("activeUntil", 0L)) {
                 String pid = st.get("activePartner", null);
-                Player partner = pid == null ? null : Bukkit.getPlayer(UUID.fromString(pid));
+                var pe = pid == null ? null : Bukkit.getEntity(UUID.fromString(pid));
+                LivingEntity partner = pe instanceof LivingEntity le && le.isValid() ? le : null;
                 Effect ef = partner == null ? null : effectOf(p, partner);
                 if (ef != null && ef.onUse(p, partner, st, sneaking)) return true;
             }
-            List<Player> ready = s.readyPartners(p);
-            if (plugin().game().isTest() && ready.isEmpty()) ready = s.partners(p);
+            List<LivingEntity> ready = s.choices(p);
             if (ready.isEmpty()) { Msg.actionBar(p, "<red>Aucune Synergie prete. <gray>" + s.summary(p)); return true; }
             if (ready.size() == 1) { launch(p, ready.get(0), st); return true; }
             List<ChoiceMenu.Option> options = new ArrayList<>();
-            for (Player ally : ready) {
+            for (LivingEntity ally : ready) {
                 Effect ef = effectOf(p, ally);
-                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + ally.getName(), List.of("<gray>" + (ef == null ? "?" : ef.name())), () -> launch(p, ally, st)));
+                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + partnerName(ally), List.of("<gray>" + (ef == null ? "?" : ef.name())), () -> launch(p, ally, st)));
             }
             ChoiceMenu.open(p, "<aqua>Synergie : avec qui ?", options);
             return true;
         }
 
-        private void launch(Player p, Player ally, AbilityState st) {
+        private void launch(Player p, LivingEntity ally, AbilityState st) {
             Synergy s = of(p);
-            if (s == null || !ally.isOnline() || !Effects.isAlly(p, ally)) { Msg.actionBar(p, "<red>Ton partenaire n'est plus disponible."); return; }
+            boolean available = ally instanceof Player ap ? ap.isOnline() && Effects.isAlly(p, ap) : ally.isValid();
+            if (s == null || !available) { Msg.actionBar(p, "<red>Ton partenaire n'est plus disponible."); return; }
             Effect ef = effectOf(p, ally);
             if (ef == null) { Msg.actionBar(p, "<red>Pas de Synergie pour cette paire."); return; }
             if (!ef.cast(p, ally)) return;
-            s.consume(p, ally);
-            var cp = plugin().players().get(p).character(); var ca = plugin().players().get(ally).character();
-            if (cp != null && ca != null) com.kiokouwhite.crossfight.util.Sounds.synergy(p, cp.id(), ally, ca.id());
-            for (Player o : new Player[]{p, ally}) {
-                o.playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
-                AbilityState os = plugin().abilities().state(o, ITEM);
+            if (ally instanceof Player ap) s.consume(p, ap);
+            String cp = characterOf(p), ca = characterOf(ally);
+            if (cp != null && ca != null) com.kiokouwhite.crossfight.util.Sounds.synergy(p, cp, ally, ca);
+            for (LivingEntity o : new LivingEntity[]{p, ally}) {
+                o.getWorld().playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
+                if (!(o instanceof Player op)) continue;
+                AbilityState os = plugin().abilities().state(op, ITEM);
                 os.set("activeUntil", System.currentTimeMillis() + ef.activeMillis());
                 os.set("activePartner", (o == p ? ally : p).getUniqueId().toString());
                 os.set("activeName", ef.name());
             }
-            plugin().game().broadcastNear(p, "<aqua>" + p.getName() + " et " + ally.getName() + " lancent <bold>" + ef.name() + "</bold> !");
+            plugin().game().broadcastNear(p, "<aqua>" + p.getName() + " et " + partnerName(ally) + " lancent <bold>" + ef.name() + "</bold> !");
         }
     }
 }

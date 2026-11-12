@@ -27,7 +27,9 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Les six Ultimes en Duo de RWBY.
+ * Les six Ultimes en Duo de RWBY. La partenaire du lanceur peut etre un joueur ou, dans la zone duo
+ * du mode test, un mannequin duo a l'image du personnage : les roles sont des entites vivantes, et ce
+ * qui n'a de sens que pour un joueur (furtivite, chute amortie) ne s'applique qu'aux joueurs.
  */
 final class DuoUltimates {
 
@@ -36,13 +38,13 @@ final class DuoUltimates {
     /** Joueurs sous "Weiss et Blake" : leurs coups immobilisent 5 secondes. Valeur = fin en millisecondes. */
     static final Map<UUID, Long> FREEZING_HITS = new HashMap<>();
 
-    private static Player of(Player a, Player b, String id) {
+    private static LivingEntity of(LivingEntity a, LivingEntity b, String id) {
         if (RWBY.characterId(a).equals(id)) return a;
         if (RWBY.characterId(b).equals(id)) return b;
         return null;
     }
 
-    static String name(Player a, Player b) {
+    static String name(LivingEntity a, LivingEntity b) {
         String x = RWBY.characterId(a), y = RWBY.characterId(b);
         java.util.Set<String> pair = java.util.Set.of(x, y);
         if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "la Patinoire";
@@ -54,7 +56,7 @@ final class DuoUltimates {
         return "l'Ultime en Duo";
     }
 
-    static String describe(Player a, Player b) {
+    static String describe(LivingEntity a, LivingEntity b) {
         String x = RWBY.characterId(a), y = RWBY.characterId(b);
         java.util.Set<String> pair = java.util.Set.of(x, y);
         if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "Patinoire de 50 blocs, Vitesse III pour les allies";
@@ -66,8 +68,8 @@ final class DuoUltimates {
         return "";
     }
 
-    static boolean cast(Player a, Player b) {
-        Player ruby = of(a, b, "ruby"), weiss = of(a, b, "weiss"), yang = of(a, b, "yang"), blake = of(a, b, "blake");
+    static boolean cast(Player a, LivingEntity b) {
+        LivingEntity ruby = of(a, b, "ruby"), weiss = of(a, b, "weiss"), yang = of(a, b, "yang"), blake = of(a, b, "blake");
         if (ruby != null && weiss != null) return patinoire(weiss, ruby);
         if (ruby != null && yang != null) return lancerDeRose(yang, ruby);
         if (ruby != null && blake != null) return ombreRouge(ruby, blake);
@@ -81,7 +83,7 @@ final class DuoUltimates {
     // ------------------------------------------------------------ Ruby + Weiss
 
     /** Patinoire de 50 blocs de large : les allies dessus ont Vitesse III. 30 secondes. */
-    static boolean patinoire(Player weiss, Player ruby) {
+    static boolean patinoire(LivingEntity weiss, LivingEntity ruby) {
         World w = weiss.getWorld();
         Location c = weiss.getLocation();
         TempBlocks rink = new TempBlocks();
@@ -100,12 +102,13 @@ final class DuoUltimates {
         w.playSound(c, Sound.BLOCK_GLASS_PLACE, 1f, 0.6f);
         w.playSound(c, Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.8f);
         w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(0, 1, 0), 200, radius / 2.0, 1, radius / 2.0, 0.02);
+        final Player side = Effects.sideOf(weiss);
         new BukkitRunnable() {
             int seconds = 0;
             @Override public void run() {
                 if (seconds++ >= 30) { rink.restore(); cancel(); return; }
                 for (Player p : w.getPlayers()) {
-                    if (!(p == weiss || Effects.isAlly(weiss, p))) continue;
+                    if (side == null || !(p == side || Effects.isAlly(side, p))) continue;
                     Block under = p.getLocation().subtract(0, 0.1, 0).getBlock();
                     if (rink.contains(under)) Effects.refresh(p, PotionEffectType.SPEED, 2, 45);
                 }
@@ -117,7 +120,7 @@ final class DuoUltimates {
     // ------------------------------------------------------------- Ruby + Yang
 
     /** Yang projette Ruby sur 10 blocs ; Ruby detruit ce qu'elle traverse et inflige 5 coeurs autour d'elle. */
-    static boolean lancerDeRose(Player yang, Player ruby) {
+    static boolean lancerDeRose(LivingEntity yang, LivingEntity ruby) {
         Vector dir = yang.getLocation().getDirection().setY(0);
         if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
         dir.normalize();
@@ -132,7 +135,7 @@ final class DuoUltimates {
             int ticks = 0;
             @Override public void run() {
                 ticks++;
-                if (ticks > 24 || !ruby.isOnline()) { cancel(); return; }
+                if (ticks > 24 || !ruby.isValid()) { cancel(); return; }
                 Location at = ruby.getLocation();
                 w.spawnParticle(Particle.CHERRY_LEAVES, at.clone().add(0, 1, 0), 10, 0.6, 0.6, 0.6, 0.05);
                 w.spawnParticle(Particle.DUST, at.clone().add(0, 1, 0), 8, 0.5, 0.5, 0.5, 0, new Particle.DustOptions(Color.fromRGB(220, 20, 60), 1.5f));
@@ -145,7 +148,7 @@ final class DuoUltimates {
                     w.spawnParticle(Particle.BLOCK, b.getLocation().add(0.5, 0.5, 0.5), 10, 0.3, 0.3, 0.3, 0, b.getBlockData());
                     b.setType(Material.AIR, false);
                 }
-                for (LivingEntity enemy : Effects.enemiesWithin(ruby, 3.0)) {
+                for (LivingEntity enemy : Effects.enemiesAround(ruby, 3.0)) {
                     if (hit.contains(enemy.getUniqueId())) continue;
                     hit.add(enemy.getUniqueId());
                     Effects.damage(enemy, 10.0, ruby);
@@ -154,21 +157,22 @@ final class DuoUltimates {
                 if (ticks < 12) ruby.setVelocity(fDir.clone().multiply(1.2).setY(ruby.getVelocity().getY()));
             }
         }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
-        Ruby.noFallUntil(ruby, 4000);
+        if (ruby instanceof Player rp) Ruby.noFallUntil(rp, 4000);
         return true;
     }
 
     // ------------------------------------------------------------ Ruby + Blake
 
     /** Les deux deviennent invisibles avec Vitesse III pendant 30 secondes. */
-    static boolean ombreRouge(Player ruby, Player blake) {
-        for (Player p : new Player[]{ruby, blake}) {
+    static boolean ombreRouge(LivingEntity ruby, LivingEntity blake) {
+        for (LivingEntity p : new LivingEntity[]{ruby, blake}) {
             Effects.give(p, PotionEffectType.SPEED, 2, 20 * 30);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 30);
-            Stealth.hideFromAll(p, "duo_rb", v -> Effects.isEnemy(p, v));
-            Stealth.hideArmor(p);
             p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
-            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(p, "duo_rb"); Stealth.showArmor(p); }, 20L * 30);
+            if (!(p instanceof Player pl)) continue;
+            Stealth.hideFromAll(pl, "duo_rb", v -> Effects.isEnemy(pl, v));
+            Stealth.hideArmor(pl);
+            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(pl, "duo_rb"); Stealth.showArmor(pl); }, 20L * 30);
         }
         ruby.getWorld().playSound(ruby.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.8f);
         return true;
@@ -177,10 +181,10 @@ final class DuoUltimates {
     // ------------------------------------------------------------ Weiss + Yang
 
     /** Trois piques de glace de 3x3 a moins de 10 blocs ; enflamment et ralentissent a 2 blocs. 30 secondes. */
-    static boolean piquesDeGlace(Player weiss, Player yang) {
+    static boolean piquesDeGlace(LivingEntity weiss, LivingEntity yang) {
         World w = weiss.getWorld();
         List<Location> centers = new ArrayList<>();
-        List<LivingEntity> enemies = Effects.enemiesWithin(weiss, 10);
+        List<LivingEntity> enemies = Effects.enemiesAround(weiss, 10);
         for (int i = 0; i < 3; i++) {
             Location c;
             if (i < enemies.size()) c = enemies.get(i).getLocation().add(Math.random() * 3 - 1.5, 0, Math.random() * 3 - 1.5);
@@ -210,7 +214,7 @@ final class DuoUltimates {
             @Override public void run() {
                 if (seconds++ >= 30) { spikes.restore(); cancel(); return; }
                 for (Location c : centers) {
-                    for (LivingEntity enemy : Effects.enemiesWithin(weiss, c.clone().add(0.5, 1, 0.5), 2.0 + 1.5)) {
+                    for (LivingEntity enemy : Effects.enemiesAround(weiss, c.clone().add(0.5, 1, 0.5), 2.0 + 1.5)) {
                         enemy.setFireTicks(Math.max(enemy.getFireTicks(), 100));
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 100);
                     }
@@ -224,15 +228,20 @@ final class DuoUltimates {
     // ----------------------------------------------------------- Weiss + Blake
 
     /** Invisibles 10 secondes ; chaque adversaire touche est immobilise 5 secondes. */
-    static boolean gelSilencieux(Player weiss, Player blake) {
+    static boolean gelSilencieux(LivingEntity weiss, LivingEntity blake) {
         long until = System.currentTimeMillis() + 10_000L;
-        for (Player p : new Player[]{weiss, blake}) {
+        for (LivingEntity p : new LivingEntity[]{weiss, blake}) {
             FREEZING_HITS.put(p.getUniqueId(), until);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 10);
-            Stealth.hideFromAll(p, "duo_wb", v -> Effects.isEnemy(p, v));
-            Stealth.hideArmor(p);
             p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
-            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(p, "duo_wb"); Stealth.showArmor(p); FREEZING_HITS.remove(p.getUniqueId()); }, 20L * 10);
+            if (p instanceof Player pl) {
+                Stealth.hideFromAll(pl, "duo_wb", v -> Effects.isEnemy(pl, v));
+                Stealth.hideArmor(pl);
+            }
+            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> {
+                if (p instanceof Player pl) { Stealth.reveal(pl, "duo_wb"); Stealth.showArmor(pl); }
+                FREEZING_HITS.remove(p.getUniqueId());
+            }, 20L * 10);
         }
         weiss.getWorld().playSound(weiss.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.6f);
         return true;
@@ -251,12 +260,14 @@ final class DuoUltimates {
     // ------------------------------------------------------------ Blake + Yang
 
     /** Trois clones de Yang foncent sur les trois ennemis les plus proches et explosent (3 coeurs) quand on les frappe. */
-    static boolean leurresExplosifs(Player yang, Player blake) {
-        List<LivingEntity> enemies = Effects.enemiesWithin(yang, 40);
+    static boolean leurresExplosifs(LivingEntity yang, LivingEntity blake) {
+        Player owner = Effects.sideOf(yang);
+        if (owner == null) return false;
+        List<LivingEntity> enemies = Effects.enemiesAround(yang, 40);
         enemies.sort(java.util.Comparator.comparingDouble(e -> e.getLocation().distanceSquared(yang.getLocation())));
         for (int i = 0; i < 3; i++) {
             LivingEntity target = i < enemies.size() ? enemies.get(i) : (enemies.isEmpty() ? null : enemies.get(i % enemies.size()));
-            Clones.spawn(yang, target, 20 * 20, (clone, attacker) -> {
+            Clones.spawn(owner, yang, target, 20 * 20, (clone, attacker) -> {
                 World w = clone.getWorld();
                 w.spawnParticle(Particle.EXPLOSION, clone.getLocation().add(0, 1, 0), 2);
                 w.spawnParticle(Particle.FLAME, clone.getLocation().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);

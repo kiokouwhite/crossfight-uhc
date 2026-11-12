@@ -163,6 +163,32 @@ public final class Effects {
         return plugin.teams().sameTeam(self, other);
     }
 
+    /**
+     * Le joueur dont une entite partage le camp : elle-meme pour un joueur, son testeur pour un
+     * mannequin duo, null sinon. Sert aux ultimes en duo, dont la partenaire peut etre un mannequin.
+     */
+    public static Player sideOf(LivingEntity e) {
+        if (e instanceof Player p) return p;
+        return Mannequins.partnerOwner(e);
+    }
+
+    /** Les ennemis du camp d'une entite (joueur ou mannequin duo) autour d'un point. */
+    public static List<LivingEntity> enemiesAround(LivingEntity self, Location center, double radius) {
+        Player side = sideOf(self);
+        if (side == null) return new ArrayList<>();
+        return within(center, radius, le -> le != self && isEnemy(side, le));
+    }
+
+    public static List<LivingEntity> enemiesAround(LivingEntity self, double radius) {
+        return enemiesAround(self, self.getLocation(), radius);
+    }
+
+    /** Vrai si l'entite est une ennemie du camp de {@code self} (joueur ou mannequin duo). */
+    public static boolean isEnemyOf(LivingEntity self, LivingEntity entity) {
+        Player side = sideOf(self);
+        return side != null && entity != self && isEnemy(side, entity);
+    }
+
     /** Joueurs allies uniquement (Soutien, messages...). */
     public static List<Player> allyPlayersWithin(Player self, double radius) {
         List<Player> out = new ArrayList<>();

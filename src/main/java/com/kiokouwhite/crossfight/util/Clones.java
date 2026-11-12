@@ -58,21 +58,32 @@ public final class Clones implements Listener {
      * @param onHit appele (clone, attaquant) quand un joueur ennemi frappe le clone ; le clone est retire ensuite.
      */
     public static LivingEntity spawn(Player owner, LivingEntity target, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
-        Location at = owner.getLocation().clone().add(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
-        at.setDirection(target != null ? target.getLocation().toVector().subtract(at.toVector()) : owner.getLocation().getDirection());
-        Mannequin m = (Mannequin) owner.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
+        return spawn(owner, owner, target, lifetimeTicks, onHit);
+    }
+
+    /**
+     * Cree un clone de {@code source} (le joueur lui-meme, ou un mannequin duo a l'image d'un personnage)
+     * dans le camp de {@code owner}, qui court vers {@code target}.
+     */
+    public static LivingEntity spawn(Player owner, LivingEntity source, LivingEntity target, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
+        Location at = source.getLocation().clone().add(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
+        at.setDirection(target != null ? target.getLocation().toVector().subtract(at.toVector()) : source.getLocation().getDirection());
+        Mannequin m = (Mannequin) source.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
         m.addScoreboardTag(TAG);
         m.getPersistentDataContainer().set(OWNER_KEY, PersistentDataType.STRING, owner.getUniqueId().toString());
-        m.setProfile(ResolvableProfile.resolvableProfile(owner.getPlayerProfile()));
+        if (source instanceof Mannequin look) m.setProfile(look.getProfile());
+        else m.setProfile(ResolvableProfile.resolvableProfile(owner.getPlayerProfile()));
         m.setDescription(Component.empty());
         m.setImmovable(false);
         m.setSilent(true);
         m.setPersistent(false);
-        try {
-            m.setSkinParts(owner.getClientOption(com.destroystokyo.paper.ClientOption.SKIN_PARTS));
-            m.setMainHand(owner.getClientOption(com.destroystokyo.paper.ClientOption.MAIN_HAND));
-        } catch (Exception ignored) { }
-        var src = owner.getEquipment();
+        if (source == owner) {
+            try {
+                m.setSkinParts(owner.getClientOption(com.destroystokyo.paper.ClientOption.SKIN_PARTS));
+                m.setMainHand(owner.getClientOption(com.destroystokyo.paper.ClientOption.MAIN_HAND));
+            } catch (Exception ignored) { }
+        }
+        var src = source.getEquipment();
         var eq = m.getEquipment();
         if (src != null && eq != null) {
             if (!CrossfightPlugin.get().getConfig().getBoolean("visuals.hide-armor", true)) {
@@ -85,8 +96,8 @@ public final class Clones implements Listener {
             eq.setItemInOffHand(src.getItemInOffHand().clone());
         }
         if (onHit != null) ON_HIT.put(m.getUniqueId(), onHit);
-        owner.getWorld().spawnParticle(Particle.SMOKE, at.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
-        owner.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.5f, 1.8f);
+        source.getWorld().spawnParticle(Particle.SMOKE, at.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
+        source.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.5f, 1.8f);
         if (target != null) run(m, target, lifetimeTicks);
         return m;
     }

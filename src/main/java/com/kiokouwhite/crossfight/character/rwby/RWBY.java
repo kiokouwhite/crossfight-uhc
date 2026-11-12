@@ -112,7 +112,25 @@ public final class RWBY {
                 int pct = g == null ? 0 : (int) (g.progress / DUO_REQUIRED * 100);
                 sb.append(ally.getName()).append(' ').append(pct).append("% ");
             }
+            // Les mannequins duo (zone duo du mode test) sont toujours prets.
+            for (LivingEntity m : partnerMannequins(p)) sb.append(partnerName(m)).append(" 100% ");
             return sb.toString().trim();
+        }
+
+        /**
+         * Les partenaires avec qui ce joueur peut lancer un Ultime en Duo : ses allies RWBY dont la jauge
+         * commune est pleine (toutes, en mode test), et ses mannequins duo RWBY.
+         */
+        List<LivingEntity> choices(Player p) {
+            List<LivingEntity> out = new ArrayList<>();
+            boolean test = CrossfightPlugin.get().game().isTest();
+            for (Player ally : Bukkit.getOnlinePlayers()) {
+                if (ally == p || !Effects.isAlly(p, ally) || !isRwby(ally)) continue;
+                PairGauge g = gauges.get(key(p.getUniqueId(), ally.getUniqueId()));
+                if (test || (g != null && g.progress >= DUO_REQUIRED)) out.add(ally);
+            }
+            out.addAll(partnerMannequins(p));
+            return out;
         }
 
         /** Test : met toutes les jauges du joueur avec ses allies RWBY a un pourcentage. */
@@ -137,9 +155,31 @@ public final class RWBY {
         return cf.character() != null && cf.character().licence() != null && "rwby".equals(cf.character().licence().id());
     }
 
-    static String characterId(Player p) {
-        CfPlayer cf = CrossfightPlugin.get().players().get(p);
-        return cf.character() == null ? "" : cf.character().id();
+    /** Le personnage d'un joueur, ou celui qu'incarne un mannequin duo. */
+    static String characterId(LivingEntity e) {
+        if (e instanceof Player p) {
+            CfPlayer cf = CrossfightPlugin.get().players().get(p);
+            return cf.character() == null ? "" : cf.character().id();
+        }
+        String c = com.kiokouwhite.crossfight.util.Mannequins.partnerCharacterOf(e);
+        return c == null ? "" : c;
+    }
+
+    /** Les mannequins duo de ce joueur qui incarnent un personnage RWBY. */
+    static List<LivingEntity> partnerMannequins(Player p) {
+        List<LivingEntity> out = new ArrayList<>();
+        for (LivingEntity m : com.kiokouwhite.crossfight.util.Mannequins.partnersOf(p)) {
+            var c = CrossfightPlugin.get().characters().character(characterId(m));
+            if (c != null && c.licence() != null && "rwby".equals(c.licence().id())) out.add(m);
+        }
+        return out;
+    }
+
+    /** Le nom d'une partenaire : le joueur, ou "mannequin" et son personnage. */
+    static String partnerName(LivingEntity e) {
+        if (e instanceof Player p) return p.getName();
+        var c = CrossfightPlugin.get().characters().character(characterId(e));
+        return "mannequin " + (c == null ? "duo" : c.name());
     }
 
     static Duo duo() {
@@ -165,7 +205,7 @@ public final class RWBY {
 
         @Override
         public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
-            List<Player> ready = duo().readyPartners(p);
+            List<LivingEntity> ready = duo().choices(p);
             if (ready.isEmpty()) {
                 Msg.actionBar(p, "<red>Aucun Ultime en Duo pret. <gray>" + duo().summary(p));
                 return true;
@@ -175,29 +215,29 @@ public final class RWBY {
                 return true;
             }
             List<ChoiceMenu.Option> options = new ArrayList<>();
-            for (Player ally : ready) {
-                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + ally.getName(), List.of("<gray>" + DuoUltimates.describe(p, ally)), () -> launch(p, ally)));
+            for (LivingEntity ally : ready) {
+                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + partnerName(ally), List.of("<gray>" + DuoUltimates.describe(p, ally)), () -> launch(p, ally)));
             }
             ChoiceMenu.open(p, "<dark_gray>Ultime en Duo : avec qui ?", options);
             return true;
         }
 
-        private void launch(Player p, Player ally) {
-            if (!ally.isOnline() || !Effects.isAlly(p, ally)) { Msg.actionBar(p, "<red>Ton allie n'est plus disponible."); return; }
+        private void launch(Player p, LivingEntity ally) {
+            boolean available = ally instanceof Player ap ? ap.isOnline() && Effects.isAlly(p, ap) : ally.isValid();
+            if (!available) { Msg.actionBar(p, "<red>Ton allie n'est plus disponible."); return; }
             if (DuoUltimates.cast(p, ally)) {
-                duo().consume(p, ally);
+                if (ally instanceof Player ap) duo().consume(p, ap);
                 String name = DuoUltimates.name(p, ally);
-                for (Player o : new Player[]{p, ally}) {
-                    o.playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
+                for (LivingEntity o : new LivingEntity[]{p, ally}) {
+                    o.getWorld().playSound(o.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.6f, 1.6f);
                 }
                 // Comme les appels de partenaire de BlazBlue : le lanceur appelle sa coequipiere, qui repond par son nom.
-                var cp = CrossfightPlugin.get().players();
-                if (cp.get(p).character() != null && cp.get(ally).character() != null) {
-                    String a = cp.get(p).character().id(), b = cp.get(ally).character().id();
+                String a = characterId(p), b = characterId(ally);
+                if (!a.isEmpty() && !b.isEmpty()) {
                     com.kiokouwhite.crossfight.util.Sounds.voice(p, a + "_duo_" + b);
                     com.kiokouwhite.crossfight.util.Sounds.voiceLater(ally, b + "_nom_" + a, com.kiokouwhite.crossfight.util.Sounds.after(a + "_duo_" + b, 25L));
                 }
-                CrossfightPlugin.get().game().broadcastNear(p, "<light_purple>" + p.getName() + " et " + ally.getName() + " lancent <bold>" + name + "</bold> !");
+                CrossfightPlugin.get().game().broadcastNear(p, "<light_purple>" + p.getName() + " et " + partnerName(ally) + " lancent <bold>" + name + "</bold> !");
             }
         }
     }

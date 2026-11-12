@@ -101,6 +101,14 @@ public final class CfCommand implements TabExecutor {
                     }
                     case "test" -> {
                         if (!(sender instanceof Player sp)) return true;
+                        if (args.length > 1 && args[1].equalsIgnoreCase("duo")) {
+                            // Zone duo : /cf test duo [perso du mannequin duo] ; sans personnage, une seconde fois pour en sortir.
+                            Character partner = args.length > 2 ? plugin.characters().character(args[2].toLowerCase()) : null;
+                            if (args.length > 2 && partner == null) { Msg.send(sp, "<red>Personnage inconnu : " + args[2]); return true; }
+                            if (plugin.testMode().isInDuoZone(sp) && partner == null) plugin.testMode().leaveDuo(sp);
+                            else plugin.testMode().enterDuo(sp, partner);
+                            return true;
+                        }
                         if (plugin.testMode().isTester(sp)) plugin.testMode().leave(sp);
                         else plugin.testMode().enter(sp);
                     }
@@ -460,11 +468,16 @@ public final class CfCommand implements TabExecutor {
                 case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
+                case "test" -> out.add("duo");
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("duo")) {
+            for (Licence l : plugin.characters().licences()) {
+                if (com.kiokouwhite.crossfight.game.TestMode.DUO_LICENCES.contains(l.id())) for (Character c : l.characters()) out.add(c.id());
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("mannequin") && args[1].equalsIgnoreCase("adversaire")) {
             for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id());

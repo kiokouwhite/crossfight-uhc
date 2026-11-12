@@ -222,8 +222,8 @@ public final class Pinkou extends Character implements Listener {
     /** Tir Curatif : le tir touche un adversaire, la tireuse regagne 2 coeurs et l'adversaire a Lenteur. */
     @EventHandler
     public void onHealShot(org.bukkit.event.entity.ProjectileHitEvent e) {
-        if (!(e.getEntity() instanceof org.bukkit.entity.Arrow a) || !a.getPersistentDataContainer().has(ShojaSynergies.HEAL_SHOT) || !(a.getShooter() instanceof Player p)) return;
-        if (!(e.getHitEntity() instanceof LivingEntity t) || !Effects.isEnemy(p, t)) return;
+        if (!(e.getEntity() instanceof org.bukkit.entity.Arrow a) || !a.getPersistentDataContainer().has(ShojaSynergies.HEAL_SHOT) || !(a.getShooter() instanceof LivingEntity p)) return;
+        if (!(e.getHitEntity() instanceof LivingEntity t) || !Effects.isEnemyOf(p, t)) return;
         Effects.give(t, PotionEffectType.SLOWNESS, 0, 100);
         Effects.heal(p, 4.0);
         p.getWorld().spawnParticle(Particle.HEART, p.getLocation().add(0, 2, 0), 4, 0.3, 0.2, 0.3);

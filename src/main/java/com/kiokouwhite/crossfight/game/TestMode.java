@@ -18,6 +18,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -56,7 +57,11 @@ public final class TestMode implements Listener {
     }
 
     public static World world() {
-        World w = ArenaWorlds.get(WORLD);
+        return built(ArenaWorlds.get(WORLD));
+    }
+
+    /** Construit la plateforme de test dans un monde vide, si ce n'est pas deja fait. */
+    private static World built(World w) {
         if (w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).getType() == Material.AIR) {
             ArenaWorlds.buildPlatform(w, 45, Material.GRASS_BLOCK, Material.BARRIER, 12);
             // Une couche de terre sous l'herbe pour pouvoir creuser un peu.
@@ -80,9 +85,31 @@ public final class TestMode implements Listener {
      * affichages) sont retirees. Les joueurs sont reposes au centre.
      */
     public int clearTerrain() {
-        World w = world();
-        int changed = 0;
         com.kiokouwhite.crossfight.util.TempBlocks.restoreAll();
+        int changed = resetPlatform(world());
+        World duo = Bukkit.getWorld(DUO_WORLD);
+        if (duo != null) changed += resetPlatform(duo);
+        Mannequins.clearAll();
+        for (World w : duo == null ? new World[]{world()} : new World[]{world(), duo}) {
+            for (Player p : w.getPlayers()) {
+                p.teleport(ArenaWorlds.center(w));
+                p.setFireTicks(0);
+                var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                p.setHealth(mh == null ? 20 : mh.getValue());
+                if (isTester(p)) gear(p);
+            }
+        }
+        // La zone duo retrouve ses cibles et chaque testeur son mannequin duo.
+        for (UUID u : new ArrayList<>(duoTesters)) {
+            Player p = Bukkit.getPlayer(u);
+            if (p != null) setupDuoZone(p, null);
+        }
+        return changed;
+    }
+
+    /** Remet une plateforme de test a neuf (sol, murs, lumieres) et retire tout ce qui n'est pas un joueur. */
+    private int resetPlatform(World w) {
+        int changed = 0;
         for (int x = -HALF; x <= HALF; x++) {
             for (int z = -HALF; z <= HALF; z++) {
                 boolean edge = Math.abs(x) == HALF || Math.abs(z) == HALF;
@@ -104,14 +131,6 @@ public final class TestMode implements Listener {
         }
         for (var e : w.getEntities()) {
             if (!(e instanceof Player)) e.remove();
-        }
-        Mannequins.clearAll();
-        for (Player p : w.getPlayers()) {
-            p.teleport(ArenaWorlds.center(w));
-            p.setFireTicks(0);
-            var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
-            p.setHealth(mh == null ? 20 : mh.getValue());
-            if (isTester(p)) gear(p);
         }
         return changed;
     }
@@ -223,6 +242,8 @@ public final class TestMode implements Listener {
     }
 
     public void leave(Player p) {
+        if (duoTesters.remove(p.getUniqueId())) clearDuoTargetsIfEmpty();
+        Mannequins.removePartners(p);
         Location back = returnPoints.remove(p.getUniqueId());
         plugin.abilities().unequip(p);
         plugin.players().get(p).setCharacter(null);
@@ -283,6 +304,7 @@ public final class TestMode implements Listener {
         gear(p);
         Msg.send(p, "<green>Tu incarnes <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.licence().name() + ")");
         com.kiokouwhite.crossfight.util.Sounds.selection(p, c.id());
+        if (isInDuoZone(p)) syncPartner(p, c);
         save();
     }
 
@@ -340,6 +362,7 @@ public final class TestMode implements Listener {
                 p.setFoodLevel(20);
                 CfPlayer cf = plugin.players().get(p);
                 if (!cf.isUltimateLocked()) cf.setUltimateCharge(100);
+                if (isInDuoZone(p)) fillDuo(p);
             }
         }
     }
@@ -350,7 +373,7 @@ public final class TestMode implements Listener {
         cf.setWaitingRespawn(false);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
-            if (!handled) p.teleport(ArenaWorlds.center(world()));
+            if (!handled) p.teleport(isInDuoZone(p) ? duoCenter() : ArenaWorlds.center(world()));
             p.setGameMode(GameMode.SURVIVAL);
             var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
             p.setHealth(mh == null ? 20 : mh.getValue());
@@ -361,6 +384,184 @@ public final class TestMode implements Listener {
         });
     }
 
+    // -------------------------------------------------------------- zone duo
+
+    /**
+     * Zone duo : une plateforme a part pour essayer les ultimes en duo seul. Le testeur y a un mannequin
+     * duo a l'image de sa partenaire (clic droit pour en changer), trois cibles devant lui, et ses
+     * ultimes en duo toujours prets.
+     */
+    public static final String DUO_WORLD = "crossfight_test_duo";
+    /** Les licences qui ont un ultime en duo : l'Ultime en Duo de RWBY et les Synergies des groupes duo. */
+    public static final java.util.Set<String> DUO_LICENCES = java.util.Set.of("rwby", "bloody_snow", "shojas_memories", "gunvolt");
+    private final java.util.Set<UUID> duoTesters = new java.util.HashSet<>();
+
+    public static World duoWorld() {
+        return built(ArenaWorlds.get(DUO_WORLD));
+    }
+
+    private static Location duoCenter() {
+        Location c = ArenaWorlds.center(duoWorld());
+        c.setYaw(0);
+        c.setPitch(0);
+        return c;
+    }
+
+    public boolean isInDuoZone(Player p) {
+        return duoTesters.contains(p.getUniqueId());
+    }
+
+    static boolean hasDuo(Character c) {
+        return c != null && c.licence() != null && DUO_LICENCES.contains(c.licence().id());
+    }
+
+    /** La partenaire proposee par defaut : le premier autre personnage de la licence. */
+    private static Character defaultPartner(Character mine) {
+        if (!hasDuo(mine)) return null;
+        for (Character c : mine.licence().characters()) if (c != mine) return c;
+        return null;
+    }
+
+    /**
+     * Envoie le testeur dans la zone duo (en ouvrant le mode test si besoin).
+     * @param partner le personnage du mannequin duo, ou null pour celui par defaut
+     */
+    public boolean enterDuo(Player p, Character partner) {
+        if (!isTester(p)) {
+            // Le menu complet de personnages ne s'ouvre pas : la zone duo propose le sien.
+            skipMenu.add(p.getUniqueId());
+            if (!enter(p)) { skipMenu.remove(p.getUniqueId()); return false; }
+        }
+        duoTesters.add(p.getUniqueId());
+        p.teleport(duoCenter());
+        p.setFallDistance(0);
+        setupDuoZone(p, partner);
+        Msg.send(p, "<light_purple><bold>Zone duo.</bold> <gray>Tes ultimes en duo sont toujours prets. Clic droit sur le mannequin duo pour changer son personnage. "
+                + "<white>/cf test duo</white> pour revenir au terrain de test, <white>/cf test</white> pour quitter.");
+        Character mine = plugin.players().get(p).character();
+        if (!hasDuo(mine)) {
+            Msg.send(p, "<yellow>Choisis un personnage qui a un ultime en duo (RWBY, Bloody Snow, Shoja's Memories, Armed Blue Gunvolt).");
+            com.kiokouwhite.crossfight.util.Sounds.afterPack(p, () -> { if (isInDuoZone(p)) openMenu(p, TestMode::hasDuo, "<dark_gray>Zone duo : choisis ton personnage"); });
+        }
+        save();
+        return true;
+    }
+
+    /** Retour au terrain de test normal. */
+    public void leaveDuo(Player p) {
+        duoTesters.remove(p.getUniqueId());
+        Mannequins.removePartners(p);
+        p.teleport(ArenaWorlds.center(world()));
+        p.setFallDistance(0);
+        clearDuoTargetsIfEmpty();
+        Msg.send(p, "<gray>Retour au terrain de test.");
+    }
+
+    /** Les cibles de la zone duo et le mannequin duo du testeur ; les jauges de duo pleines. */
+    private void setupDuoZone(Player p, Character partner) {
+        World w = duoWorld();
+        Location c = duoCenter();
+        // Trois cibles devant le testeur (il regarde vers le sud a son arrivee).
+        int targets = 0;
+        for (LivingEntity e : w.getLivingEntities()) if (Mannequins.isMannequin(e) && !Mannequins.isAlly(e)) targets++;
+        double[][] spots = {{-4, 8}, {0, 11}, {4, 8}};
+        for (int i = targets; i < spots.length; i++) {
+            Location at = c.clone().add(spots[i][0], 0, spots[i][1]);
+            at.setYaw(180);
+            Mannequins.spawn(at);
+        }
+        Mannequins.removePartners(p);
+        Character mine = plugin.players().get(p).character();
+        Character chosen = partner != null ? partner : defaultPartner(mine);
+        if (chosen != null) Mannequins.spawnPartner(partnerSpot(p), chosen, p);
+        fillDuo(p);
+    }
+
+    /** A gauche du testeur, tourne dans la meme direction que lui. */
+    private static Location partnerSpot(Player p) {
+        Location at = p.getLocation().clone();
+        at.setPitch(0);
+        org.bukkit.util.Vector dir = at.getDirection().setY(0);
+        if (dir.lengthSquared() < 1e-4) dir = new org.bukkit.util.Vector(0, 0, 1);
+        dir.normalize();
+        return at.add(new org.bukkit.util.Vector(dir.getZ(), 0, -dir.getX()).multiply(2.0));
+    }
+
+    /** Le testeur a change de personnage : sa partenaire reste d'une autre personne de la meme licence. */
+    private void syncPartner(Player p, Character mine) {
+        if (!hasDuo(mine)) {
+            Msg.send(p, "<yellow>" + mine.name() + " n'a pas d'ultime en duo.");
+            return;
+        }
+        List<LivingEntity> partners = Mannequins.partnersOf(p);
+        if (partners.isEmpty()) {
+            Character d = defaultPartner(mine);
+            if (d != null) Mannequins.spawnPartner(partnerSpot(p), d, p);
+            return;
+        }
+        for (LivingEntity m : partners) {
+            Character theirs = plugin.characters().character(Mannequins.partnerCharacterOf(m));
+            if (theirs == null || theirs == mine || theirs.licence() != mine.licence()) {
+                Character d = defaultPartner(mine);
+                if (d != null) Mannequins.setPartnerCharacter(m, d);
+            }
+        }
+    }
+
+    /** Les jauges de duo du testeur avec ses vrais partenaires (un second testeur) a 100 %. */
+    private void fillDuo(Player p) {
+        var rwby = plugin.characters().licence("rwby");
+        if (rwby != null && rwby.mechanic() instanceof com.kiokouwhite.crossfight.character.rwby.RWBY.Duo duo) duo.fill(p, 100);
+        var syn = com.kiokouwhite.crossfight.character.duo.Synergy.of(p);
+        if (syn != null) syn.fill(p, 100);
+    }
+
+    private void clearDuoTargetsIfEmpty() {
+        if (!duoTesters.isEmpty()) return;
+        World w = Bukkit.getWorld(DUO_WORLD);
+        if (w == null) return;
+        for (LivingEntity e : w.getLivingEntities()) if (Mannequins.isMannequin(e)) e.remove();
+    }
+
+    /** Clic droit sur un mannequin duo : le choix de son personnage. */
+    @EventHandler
+    public void onClickPartner(org.bukkit.event.player.PlayerInteractEntityEvent e) {
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND || !Mannequins.isPartner(e.getRightClicked())) return;
+        e.setCancelled(true);
+        Player p = e.getPlayer();
+        if (!(e.getRightClicked() instanceof LivingEntity m)) return;
+        if (!p.equals(Mannequins.partnerOwner(m))) { Msg.actionBar(p, "<red>Ce mannequin duo est celui d'un autre testeur."); return; }
+        Character mine = plugin.players().get(p).character();
+        List<com.kiokouwhite.crossfight.util.ChoiceMenu.Option> options = new ArrayList<>();
+        for (Licence l : plugin.characters().licences()) {
+            if (!DUO_LICENCES.contains(l.id())) continue;
+            // Avec un personnage a ultime en duo, seules les autres personnes de sa licence ; sinon, toutes.
+            if (hasDuo(mine) && l != mine.licence()) continue;
+            for (Character c : l.characters()) {
+                if (c == mine) continue;
+                List<String> lore = new ArrayList<>();
+                lore.add("<gold>" + l.name());
+                lore.add("<gray>Clique pour que le mannequin l'incarne.");
+                options.add(new com.kiokouwhite.crossfight.util.ChoiceMenu.Option(c.icon(), "<gold><bold>" + c.name(), lore, () -> setPartner(p, m, c)));
+            }
+        }
+        com.kiokouwhite.crossfight.util.ChoiceMenu.open(p, "<dark_gray>Mannequin duo : quel personnage ?", options);
+    }
+
+    private void setPartner(Player p, LivingEntity m, Character c) {
+        if (!m.isValid()) return;
+        Mannequins.setPartnerCharacter(m, c);
+        Character mine = plugin.players().get(p).character();
+        Msg.actionBar(p, "<light_purple>Le mannequin duo incarne " + c.name() + ".");
+        // L'echange des deux personnages s'il existe ; sinon la replique de selection de la partenaire.
+        if (mine != null && com.kiokouwhite.crossfight.util.Sounds.hasDialogue(mine.id(), c.id())) {
+            com.kiokouwhite.crossfight.util.Sounds.duoDialogue(p, mine.id(), p, c.id());
+        } else {
+            com.kiokouwhite.crossfight.util.Sounds.voice(m, c.id() + "_selection");
+        }
+        if (mine != null && mine.licence() != c.licence()) Msg.send(p, "<yellow>Pour lancer l'ultime en duo, prends un personnage de " + c.licence().name() + " (/cf change).");
+    }
+
     // ------------------------------------------------------------------ menu
 
     private static final class Holder implements InventoryHolder {
@@ -369,11 +570,15 @@ public final class TestMode implements Listener {
     }
 
     public void openMenu(Player p) {
+        openMenu(p, c -> true, "<dark_gray>Mode test : choisis un personnage");
+    }
+
+    public void openMenu(Player p, java.util.function.Predicate<Character> filter, String title) {
         List<Character> all = new ArrayList<>();
-        for (Licence l : plugin.characters().licences()) all.addAll(l.characters());
+        for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) if (filter.test(c)) all.add(c);
         int rows = Math.max(1, Math.min(6, (all.size() + 8) / 9));
         Holder holder = new Holder();
-        Inventory inv = Bukkit.createInventory(holder, rows * 9, Msg.mm("<dark_gray>Mode test : choisis un personnage"));
+        Inventory inv = Bukkit.createInventory(holder, rows * 9, Msg.mm(title));
         holder.inv = inv;
         int slot = 0;
         for (Character c : all) {

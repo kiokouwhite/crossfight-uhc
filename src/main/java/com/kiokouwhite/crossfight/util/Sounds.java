@@ -90,10 +90,10 @@ public final class Sounds {
         at.getWorld().playSound(at, NS + ":" + event, category, volume, 1f);
     }
 
-    /** Un son attache au joueur : il le suit, meme pendant une ruee ou une teleportation courte. */
-    private static void playOn(Player p, String event, SoundCategory category, float volume) {
+    /** Un son attache a une entite : il la suit, meme pendant une ruee ou une teleportation courte. */
+    private static void playOn(org.bukkit.entity.Entity e, String event, SoundCategory category, float volume) {
         if (!INDEX.contains(event)) return;
-        p.getWorld().playSound(p, NS + ":" + event, category, volume, 1f);
+        e.getWorld().playSound(e, NS + ":" + event, category, volume, 1f);
     }
 
     /** Un son du pack, a un endroit fixe (ex. "ability.corrin_sang_eau"). */
@@ -108,8 +108,11 @@ public final class Sounds {
         voice(p, abilityId);
     }
 
-    /** Une replique, entendue autour du joueur. Deux repliques du meme joueur ne se chevauchent pas. */
-    public static boolean voice(Player p, String key) {
+    /**
+     * Une replique, entendue autour du joueur (ou d'un mannequin duo). Deux repliques de la meme
+     * entite ne se chevauchent pas.
+     */
+    public static boolean voice(org.bukkit.entity.LivingEntity p, String key) {
         String event = "voice." + resolve(key);
         if (!INDEX.contains(event)) return false;
         long now = System.currentTimeMillis();
@@ -125,8 +128,10 @@ public final class Sounds {
         return true;
     }
 
-    public static void voiceLater(Player p, String key, long ticks) {
-        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (p.isOnline()) voice(p, key); }, ticks);
+    public static void voiceLater(org.bukkit.entity.LivingEntity e, String key, long ticks) {
+        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> {
+            if (e instanceof Player p ? p.isOnline() : e.isValid()) voice(e, key);
+        }, ticks);
     }
 
     /** Une replique que seul ce joueur entend (menu de selection). */
@@ -161,6 +166,12 @@ public final class Sounds {
         voiceTo(p, characterId + "_selection");
     }
 
+    /** Vrai si ces deux personnages ont un echange enregistre (au moins sa premiere replique). */
+    public static boolean hasDialogue(String idA, String idB) {
+        String[] d = duo(idA, idB);
+        return d != null && INDEX.contains("voice.duo_" + d[0] + "_" + d[1] + "_" + d[2]);
+    }
+
     /** Les deux membres d'un duo ont choisi : leur court echange, entendu des deux. */
     public static void duoDialogue(Player a, String idA, Player b, String idB) {
         String[] d = duo(idA, idB);
@@ -176,7 +187,7 @@ public final class Sounds {
     }
 
     /** Une Synergie est lancee : le lanceur dit sa replique, son partenaire repond. */
-    public static void synergy(Player caster, String idCaster, Player partner, String idPartner) {
+    public static void synergy(Player caster, String idCaster, org.bukkit.entity.LivingEntity partner, String idPartner) {
         playOn(caster, "sfx.ultimate", SoundCategory.PLAYERS, 1f);
         String[] d = duo(idCaster, idPartner);
         if (d == null) return;

@@ -134,6 +134,82 @@ public final class Mannequins implements Listener {
         return e != null && e.getScoreboardTags().contains(ALLY_TAG);
     }
 
+    // ------------------------------------------------------------ mannequin duo
+
+    /**
+     * Mannequin duo (zone duo du mode test) : un allie a l'image d'un personnage, qui tient le role de
+     * la partenaire pour les ultimes en duo. Il est dans le camp du testeur qui l'a fait apparaitre.
+     */
+    public static final String PARTNER_TAG = "cf_mannequin_partner";
+    private static final org.bukkit.NamespacedKey PARTNER_CHARACTER_KEY = new org.bukkit.NamespacedKey("crossfight", "partner_character");
+    private static final org.bukkit.NamespacedKey PARTNER_OWNER_KEY = new org.bukkit.NamespacedKey("crossfight", "partner_owner");
+
+    public static boolean isPartner(Entity e) {
+        return e != null && e.getScoreboardTags().contains(PARTNER_TAG);
+    }
+
+    /** Le personnage incarne par un mannequin duo, ou null. */
+    public static String partnerCharacterOf(Entity e) {
+        if (!isPartner(e)) return null;
+        return e.getPersistentDataContainer().get(PARTNER_CHARACTER_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+    }
+
+    /** Le testeur d'un mannequin duo (s'il est connecte), ou null. */
+    public static Player partnerOwner(Entity e) {
+        if (!isPartner(e)) return null;
+        String s = e.getPersistentDataContainer().get(PARTNER_OWNER_KEY, org.bukkit.persistence.PersistentDataType.STRING);
+        return s == null ? null : Bukkit.getPlayer(UUID.fromString(s));
+    }
+
+    /** Les mannequins duo d'un joueur, dans tous les mondes. */
+    public static java.util.List<LivingEntity> partnersOf(Player owner) {
+        java.util.List<LivingEntity> out = new java.util.ArrayList<>();
+        String id = owner.getUniqueId().toString();
+        for (World w : Bukkit.getWorlds()) {
+            for (LivingEntity e : w.getLivingEntities()) {
+                if (isPartner(e) && id.equals(e.getPersistentDataContainer().get(PARTNER_OWNER_KEY, org.bukkit.persistence.PersistentDataType.STRING))) out.add(e);
+            }
+        }
+        return out;
+    }
+
+    public static void removePartners(Player owner) {
+        for (LivingEntity e : partnersOf(owner)) e.remove();
+    }
+
+    /** Fait apparaitre le mannequin duo d'un joueur, a l'image d'un personnage. */
+    public static LivingEntity spawnPartner(Location loc, com.kiokouwhite.crossfight.character.Character character, Player owner) {
+        org.bukkit.entity.Mannequin m = (org.bukkit.entity.Mannequin) loc.getWorld().spawnEntity(loc, EntityType.MANNEQUIN);
+        m.addScoreboardTag(TAG);
+        m.addScoreboardTag(ALLY_TAG);
+        m.addScoreboardTag(PARTNER_TAG);
+        m.getPersistentDataContainer().set(PARTNER_OWNER_KEY, org.bukkit.persistence.PersistentDataType.STRING, owner.getUniqueId().toString());
+        // Il peut etre projete (Yang lance Ruby...), mais ne se deplace jamais seul.
+        m.setImmovable(false);
+        m.setSilent(true);
+        m.setPersistent(false);
+        m.setCustomNameVisible(true);
+        m.setDescription(Msg.mm("<gray>Clic droit : changer de personnage"));
+        var mh = m.getAttribute(Attribute.MAX_HEALTH);
+        if (mh != null) mh.setBaseValue(MAX_HEALTH);
+        m.setHealth(mh != null ? MAX_HEALTH : m.getHealth());
+        setPartnerCharacter(m, character);
+        return m;
+    }
+
+    /** Change le personnage d'un mannequin duo : son skin (s'il en a un), son arme et son nom. */
+    public static void setPartnerCharacter(LivingEntity e, com.kiokouwhite.crossfight.character.Character character) {
+        e.getPersistentDataContainer().set(PARTNER_CHARACTER_KEY, org.bukkit.persistence.PersistentDataType.STRING, character.id());
+        if (e instanceof org.bukkit.entity.Mannequin m) {
+            var skin = Skins.profile(character.id());
+            m.setProfile(skin != null ? skin : org.bukkit.entity.Mannequin.defaultProfile());
+            var eq = m.getEquipment();
+            if (eq != null) eq.setItemInMainHand(character.createWeapon());
+        }
+        for (var eff : e.getActivePotionEffects()) e.removePotionEffect(eff.getType());
+        updateName(e);
+    }
+
     public static LivingEntity spawn(Location loc, boolean aggressive) {
         return spawn(loc, aggressive, false);
     }
@@ -220,6 +296,9 @@ public final class Mannequins implements Listener {
         if (isAdversary(e)) {
             var c = CrossfightPlugin.get().characters().character(characterOf(e));
             label = "<red>" + (c == null ? "Adversaire" : c.name()) + " <dark_red>(adversaire)";
+        } else if (isPartner(e)) {
+            var c = CrossfightPlugin.get().characters().character(partnerCharacterOf(e));
+            label = "<green>" + (c == null ? "Partenaire" : c.name()) + " <dark_green>(mannequin duo)";
         } else label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
         int pct = (int) Math.round(hp / MAX_HEALTH * 100);
         e.customName(Msg.mm(label + " <red>❤ " + pct + "%"));
