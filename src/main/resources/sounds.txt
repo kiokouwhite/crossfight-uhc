@@ -310,3 +310,11 @@ voice.marth_kill
 voice.marth_mort
 voice.marth_selection
 voice.marth_ult
+voice.takumi_contre
+voice.takumi_furie
+voice.takumi_kill
+voice.takumi_mort
+voice.takumi_selection
+voice.takumi_ult
+voice.takumi_ult_tir
+voice.takumi_vengeance

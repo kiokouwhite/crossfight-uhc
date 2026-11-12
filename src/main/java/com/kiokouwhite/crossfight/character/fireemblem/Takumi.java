@@ -317,6 +317,8 @@ public final class Takumi extends Character implements Listener {
             final List<UUID> hit = new ArrayList<>();
             Effects.root(p, 40);
             w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_SHOOT, 1f, 0.5f);
+            // Le rayon part : sa seconde replique.
+            if (p instanceof Player tp) com.kiokouwhite.crossfight.util.Sounds.voice(tp, "takumi_ult_tir");
             w.playSound(p.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
 
             new BukkitRunnable() {
