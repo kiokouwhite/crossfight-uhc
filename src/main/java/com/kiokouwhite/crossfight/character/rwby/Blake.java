@@ -113,7 +113,9 @@ public final class Blake extends Character implements Listener {
             switch (st.mode()) {
                 case 1 -> throwKatana(p, st);
                 case 2 -> shoot(p, st);
-                default -> Msg.actionBar(p, "<gray>Couperet : accroupi + clic droit pour changer de mode.");
+                // Rien a faire en mode Couperet : message rouge, donc ni bruitage ni replique.
+                case 0 -> Msg.actionBar(p, "<red>Couperet : accroupi + clic droit pour changer de mode.");
+                default -> { }
             }
             return true;
         }
@@ -322,6 +324,10 @@ public final class Blake extends Character implements Listener {
             p.playSound(p.getLocation(), Sound.ENTITY_RABBIT_JUMP, 1f, 0.8f);
             return true;
         }
+
+        /** Un bond pendant l'ultime n'est pas son lancement : il a son propre son, plus court. */
+        @Override
+        public String useSoundKey() { return "blake_ult_bond"; }
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {

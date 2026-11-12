@@ -168,6 +168,12 @@ public final class Yang extends Character {
         public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (attacker.getHealth() < 10.0 && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
                 victim.setFireTicks(Math.max(victim.getFireTicks(), 80));
+                // Sa colere s'allume : elle le dit, au plus une fois toutes les 30 secondes.
+                long now = System.currentTimeMillis();
+                if (now - (long) st.get("said", 0L) > 30_000L) {
+                    st.set("said", now);
+                    com.kiokouwhite.crossfight.util.Sounds.voice(attacker, "yang_colere");
+                }
             }
         }
     }

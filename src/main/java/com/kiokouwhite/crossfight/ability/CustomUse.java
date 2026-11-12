@@ -12,4 +12,11 @@ public interface CustomUse {
 
     /** @return true si le clic a ete consomme ; false pour laisser le comportement standard. */
     boolean onUse(Player p, CfPlayer cf, AbilityState state, boolean sneaking);
+
+    /**
+     * Le son joue apres un clic consomme (bruitage "ability.<cle>" et replique "voice.<cle>").
+     * Null : celui de la capacite. Utile quand un clic ne fait pas la meme chose que le lancement
+     * (les bonds pendant un ultime, par exemple).
+     */
+    default String useSoundKey() { return null; }
 }

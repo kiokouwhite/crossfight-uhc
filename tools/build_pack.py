@@ -17,7 +17,7 @@ Ecrit    resourcepack/assets/crossfight/sounds.json   la declaration des sons pu
          dist/CrossfightPack.zip                      le pack public, envoye par defaut aux joueurs
          prive/CrossfightPackComplet.zip              public + prive, si resourcepack-prive/ existe (non versionne)
          resourcepack/prive.txt                       les noms des sons prives (versionne : des noms, pas de son)
-         src/main/resources/sounds.txt, music.txt, pack.sha1    embarques dans le plugin
+         src/main/resources/sounds.txt, music.txt, durations.txt, pack.sha1    embarques dans le plugin
 
 Conventions de nommage, sous sounds/ :
   sfx/<categorie>/<n>.ogg     bibliotheque de bruitages : tous les fichiers d'un dossier sont des variantes
@@ -111,6 +111,11 @@ def other_assets(base: Path):
     return out
 
 
+def voice_ms(events):
+    """La duree (ms) de chaque replique : la plus longue de ses variantes."""
+    return {name: max(millis(f) for f in files) for name, files in events.items() if name.startswith("voice.")}
+
+
 def sounds_json(events, root_of):
     out = {}
     for name in sorted(events):
@@ -175,10 +180,11 @@ def main() -> int:
 
     # Sons prives : presents sur cette machine, ou seulement connus par leur nom (prive.txt).
     private_list = PACK / "prive.txt"
-    private_names, private_tracks, p_events = set(), {}, {}
+    private_names, private_tracks, p_events, private_voice_ms = set(), {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _ = collect(PRIVATE, False)
         private_names = set(p_events) | skins(PRIVATE)
+        private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
             if before - private_names:
@@ -186,7 +192,8 @@ def main() -> int:
                       ", ".join(sorted(before - private_names)))
         lines = ["# Sons du pack prive (resourcepack-prive/, non versionne). Genere par tools/build_pack.py.",
                  "# Seuls les noms sont ici : le plugin doit les connaitre pour les jouer."]
-        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else "") for name in sorted(private_names)]
+        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else f" {private_voice_ms[name]}" if name in private_voice_ms else "")
+                  for name in sorted(private_names)]
         private_list.write_text("\n".join(lines) + "\n", encoding="utf-8")
     elif private_list.exists():
         for line in private_list.read_text(encoding="utf-8").splitlines():
@@ -196,6 +203,8 @@ def main() -> int:
             private_names.add(parts[0])
             if parts[0].startswith("music.") and len(parts) > 1:
                 private_tracks[parts[0][6:]] = int(parts[1])
+            if parts[0].startswith("voice.") and len(parts) > 1:
+                private_voice_ms[parts[0]] = int(parts[1])
 
     # Pack public. Un son qui a une version privee n'y est pas declare : Minecraft additionne les
     # declarations d'un meme son venant de deux packs (le pack public envoye par le serveur et le pack
@@ -249,6 +258,11 @@ def main() -> int:
     index = sorted(set(events) | skins(PACK) | private_names)
     (res / "sounds.txt").write_text("# Genere par tools/build_pack.py\n" + "\n".join(index) + "\n", encoding="utf-8")
     (res / "pack.sha1").write_text(sha1 + "\n", encoding="utf-8")
+    # La duree des repliques : le plugin enchaine un dialogue sans que la seconde replique coupe la premiere.
+    durations = voice_ms(public)
+    durations.update(private_voice_ms)
+    (res / "durations.txt").write_text("# Genere par tools/build_pack.py : duree (ms) de chaque replique\n"
+                                       + "".join(f"{k} {v}\n" for k, v in sorted(durations.items())), encoding="utf-8")
     lines = ["# Genere par tools/build_pack.py"]
     lines += [f"track {t} {s}" for t, s in sorted(all_tracks.items())]
     lines += [f"pair {a} {b} {t}" for a, b, t in pairs]

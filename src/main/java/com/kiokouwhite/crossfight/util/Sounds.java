@@ -34,6 +34,8 @@ public final class Sounds {
     public static final String DEFAULT_PACK_URL = "https://github.com/kiokouwhite/crossfight-uhc/raw/main/dist/CrossfightPack.zip";
 
     private static final TreeSet<String> INDEX = new TreeSet<>();
+    /** La duree (ms) de chaque replique (la plus longue de ses variantes), d'apres durations.txt. */
+    private static final Map<String, Integer> DURATION = new HashMap<>();
     private static String packSha1 = "";
     /** Derniere replique de chaque joueur, pour ne pas en superposer deux. */
     private static final Map<UUID, Long> LAST_VOICE = new HashMap<>();
@@ -46,6 +48,9 @@ public final class Sounds {
             {"kaze", "hannah", "hannah"}, {"kaze", "eirika", "kaze"}, {"hannah", "eirika", "hannah"},
             {"hiro", "pinkou", "hiro"}, {"hiro", "aida", "aida"}, {"hiro", "crystal", "crystal"},
             {"pinkou", "aida", "pinkou"}, {"pinkou", "crystal", "pinkou"}, {"aida", "crystal", "aida"},
+            // RWBY : les entrees en duo de BlazBlue Cross Tag Battle (celle qui parle en premier, puis sa partenaire).
+            {"ruby", "weiss", "weiss"}, {"ruby", "blake", "ruby"}, {"ruby", "yang", "yang"},
+            {"weiss", "blake", "weiss"}, {"weiss", "yang", "weiss"}, {"blake", "yang", "blake"},
     };
 
     private Sounds() {}
@@ -58,6 +63,18 @@ public final class Sounds {
                 for (String line; (line = r.readLine()) != null; ) { line = line.trim(); if (!line.isEmpty() && !line.startsWith("#")) INDEX.add(line); }
             }
         } catch (Exception ex) { plugin.getLogger().warning("sounds.txt illisible : " + ex); }
+        DURATION.clear();
+        try (InputStream in = plugin.getResource("durations.txt")) {
+            if (in != null) {
+                BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+                for (String line; (line = r.readLine()) != null; ) {
+                    String[] t = line.trim().split("\\s+");
+                    if (t.length == 2 && !t[0].startsWith("#")) {
+                        try { DURATION.put(t[0], Integer.parseInt(t[1])); } catch (NumberFormatException ignored) { }
+                    }
+                }
+            }
+        } catch (Exception ex) { plugin.getLogger().warning("durations.txt illisible : " + ex); }
         packSha1 = "";
         try (InputStream in = plugin.getResource("pack.sha1")) {
             if (in != null) packSha1 = new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
@@ -118,6 +135,15 @@ public final class Sounds {
         if (INDEX.contains(event)) listener.playSound(listener.getLocation(), NS + ":" + event, SoundCategory.VOICE, 1f, 1f);
     }
 
+    /**
+     * Le delai (ticks) avant de lancer la replique qui repond a celle-ci : sa duree, plus un court
+     * silence. Une replique dont la duree est inconnue compte pour {@code fallback} ticks.
+     */
+    public static long after(String key, long fallback) {
+        Integer ms = DURATION.get("voice." + resolve(key));
+        return ms == null ? fallback : Math.max(10L, (ms + 450L + 49L) / 50L);
+    }
+
     /** Les capacites qui partagent une replique (les 28 tomes de Hano tirent parmi trois). */
     private static String resolve(String key) {
         if (key.startsWith("hano_tome_") && !INDEX.contains("voice." + key)) return "hano_tome";
@@ -141,9 +167,11 @@ public final class Sounds {
         if (d == null) return;
         String base = "duo_" + d[0] + "_" + d[1] + "_";
         String first = d[2], second = d[2].equals(d[0]) ? d[1] : d[0];
-        for (Player listener : new Player[]{a, b}) {
+        // La seconde replique part quand la premiere est finie.
+        long reply = 50L + after(base + first, 60L);
+        for (Player listener : a == b ? new Player[]{a} : new Player[]{a, b}) {
             Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (listener.isOnline()) voiceTo(listener, base + first); }, 50L);
-            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (listener.isOnline()) voiceTo(listener, base + second); }, 110L);
+            Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (listener.isOnline()) voiceTo(listener, base + second); }, reply);
         }
     }
 
@@ -154,7 +182,7 @@ public final class Sounds {
         if (d == null) return;
         String base = "syn_" + d[0] + "_" + d[1] + "_";
         voice(caster, base + idCaster);
-        voiceLater(partner, base + idPartner, 45L);
+        voiceLater(partner, base + idPartner, after(base + idCaster, 45L));
     }
 
     /** Joueurs a qui le pack vient d'etre propose et qui n'ont pas encore repondu. */

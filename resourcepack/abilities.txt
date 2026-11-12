@@ -35,10 +35,12 @@ weiss_myrtenaster = weapon
 weiss_glyphs1 = crystal
 weiss_glyphs2 = magic
 weiss_ult = magic
+weiss_ult_invoque = magic                   # l'ennemi rappele rejoint l'equipe
 blake_gambol = weapon
 blake_ombre = dark
 blake_discretion = dark
 blake_ult = roar
+blake_ult_bond = whoosh                     # bond pendant l'ultime
 rwby_duo = magic
 
 # --------------------------------------------------------------- Valorant

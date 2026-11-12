@@ -204,6 +204,13 @@
    "crossfight:sfx/roar/3"
   ]
  },
+ "ability.blake_ult_bond": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
  "ability.byleth_tutorat": {
   "sounds": [
    "crossfight:sfx/book/1",
@@ -1712,6 +1719,15 @@
   ]
  },
  "ability.weiss_ult": {
+  "sounds": [
+   "crossfight:sfx/magic/1",
+   "crossfight:sfx/magic/2",
+   "crossfight:sfx/magic/3",
+   "crossfight:sfx/magic/4",
+   "crossfight:sfx/magic/5"
+  ]
+ },
+ "ability.weiss_ult_invoque": {
   "sounds": [
    "crossfight:sfx/magic/1",
    "crossfight:sfx/magic/2",

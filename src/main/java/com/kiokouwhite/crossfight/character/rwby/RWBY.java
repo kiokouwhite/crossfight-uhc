@@ -195,7 +195,7 @@ public final class RWBY {
                 if (cp.get(p).character() != null && cp.get(ally).character() != null) {
                     String a = cp.get(p).character().id(), b = cp.get(ally).character().id();
                     com.kiokouwhite.crossfight.util.Sounds.voice(p, a + "_duo_" + b);
-                    com.kiokouwhite.crossfight.util.Sounds.voiceLater(ally, b + "_nom_" + a, 25L);
+                    com.kiokouwhite.crossfight.util.Sounds.voiceLater(ally, b + "_nom_" + a, com.kiokouwhite.crossfight.util.Sounds.after(a + "_duo_" + b, 25L));
                 }
                 CrossfightPlugin.get().game().broadcastNear(p, "<light_purple>" + p.getName() + " et " + ally.getName() + " lancent <bold>" + name + "</bold> !");
             }

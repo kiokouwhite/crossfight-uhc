@@ -417,6 +417,8 @@ public final class Weiss extends Character implements Listener {
             if (tcf.lives() > 0 || !target.isOnline()) { Msg.actionBar(weiss, "<red>Ce joueur n'est plus invocable."); wcf.setUltimateCharge(100); return; }
             Team team = wcf.team();
             com.kiokouwhite.crossfight.util.Revived.revive(weiss, target, team);
+            // L'invocation elle-meme : son cri d'invocation (le chevalier blanc de BlazBlue).
+            com.kiokouwhite.crossfight.util.Sounds.ability(weiss, "weiss_ult_invoque");
             Msg.broadcast("<light_purple>" + weiss.getName() + " invoque <yellow>" + target.getName() + "</yellow> dans " + team.coloredName() + " <light_purple>!");
         }
     }

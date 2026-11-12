@@ -374,7 +374,7 @@ public final class AbilityEngine implements Listener {
         long usedAt = System.currentTimeMillis();
         if (a instanceof CustomUse custom && custom.onUse(p, cf, st, p.isSneaking())) {
             // Une capacite a usage particulier a reussi si elle n'a envoye aucun message de refus (rouge).
-            if (!Msg.refusedSince(p, usedAt)) com.kiokouwhite.crossfight.util.Sounds.ability(p, a.id());
+            if (!Msg.refusedSince(p, usedAt)) com.kiokouwhite.crossfight.util.Sounds.ability(p, custom.useSoundKey() != null ? custom.useSoundKey() : a.id());
             return;
         }
         switch (a) {
