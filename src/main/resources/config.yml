@@ -25,6 +25,10 @@ resource-pack:
   # true : un joueur qui refuse le pack est deconnecte
   required: false
 
+armor:
+  # L'armure portee n'est plus dessinee sur le corps (on voit le skin du personnage) ; elle protege autant
+  hidden: true
+
 skins:
   # Le joueur porte le skin Minecraft du personnage qu'il incarne (personnages qui en ont un)
   enabled: true

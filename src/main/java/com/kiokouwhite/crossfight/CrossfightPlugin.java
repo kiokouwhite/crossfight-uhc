@@ -59,6 +59,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         var pm = getServer().getPluginManager();
         pm.registerEvents(abilityEngine, this);
         pm.registerEvents(new ConnectionListener(this), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.listener.ArmorHider(this), this);
         music = new com.kiokouwhite.crossfight.util.Music(this);
         pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);

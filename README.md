@@ -139,6 +139,10 @@ Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le cho
 
 Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py <dossier de <personnage>.png>` fait signer les images par MineSkin (en « non listé ») et inscrit les références dans `src/main/resources/skins.txt`. Ce fichier ne contient pas les images, seulement leur référence signée chez Mojang. Le changement de skin recharge un instant l'affichage du joueur.
 
+### Armure invisible
+
+L'armure portée n'est plus dessinée sur le corps : on voit le skin du personnage, pour le joueur comme pour les autres. Dès qu'un joueur enfile une pièce, le plugin lui retire l'indication du modèle à dessiner (composant `equippable`, champ `asset_id`) : elle protège autant, garde son icône et ses enchantements, mais ne se voit plus une fois portée. Le changement est inscrit dans l'objet : une pièce déjà portée reste invisible même si on la donne à quelqu'un d'autre. `armor.hidden: false` dans `config.yml` arrête de modifier les nouvelles pièces. Les élytres ne sont pas concernés.
+
 ### Animations (modèle articulé)
 
 Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur.
