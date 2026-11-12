@@ -270,6 +270,7 @@ public final class Corrin extends Character {
                 }
             }
             loc.getWorld().playSound(loc, Sound.ENTITY_GENERIC_SPLASH, 1f, 1f);
+            com.kiokouwhite.crossfight.util.Sounds.at(loc.clone().add(0.5, 0.5, 0.5), "ability.corrin_sang_eau");
             loc.getWorld().spawnParticle(Particle.SPLASH, loc.clone().add(0.5, 0.5, 0.5), 60, 1.5, 0.3, 1.5);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> {
                 for (Block b : placed) if (b.getType() == Material.WATER) b.setType(Material.AIR, false);
@@ -331,6 +332,8 @@ public final class Corrin extends Character {
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
+            // Apres sa replique, le rugissement du dragon.
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.ability(p, "corrin_ult_dragon"); }, 14L);
             return true;
         }
 

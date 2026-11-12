@@ -233,21 +233,6 @@
    "crossfight:sfx/dark/3"
   ]
  },
- "ability.corrin_sang": {
-  "sounds": [
-   "crossfight:sfx/roar/1",
-   "crossfight:sfx/roar/2",
-   "crossfight:sfx/roar/3"
-  ]
- },
- "ability.corrin_ult": {
-  "sounds": [
-   "crossfight:sfx/water/1",
-   "crossfight:sfx/water/2",
-   "crossfight:sfx/water/3",
-   "crossfight:sfx/water/4"
-  ]
- },
  "ability.crystal_cristal": {
   "sounds": [
    "crossfight:sfx/crystal/1",

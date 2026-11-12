@@ -1,5 +1,9 @@
 # Sons du pack prive (resourcepack-prive/, non versionne). Genere par tools/build_pack.py.
 # Seuls les noms sont ici : le plugin doit les connaitre pour les jouer.
+ability.corrin_sang
+ability.corrin_sang_eau
+ability.corrin_ult
+ability.corrin_ult_dragon
 ability.marth_contre
 ability.marth_contre_hit
 ability.marth_ult_charge
@@ -30,6 +34,11 @@ skin.sova
 skin.takumi
 skin.weiss
 skin.yang
+voice.corrin_kill
+voice.corrin_mort
+voice.corrin_sang
+voice.corrin_selection
+voice.corrin_ult
 voice.marth_contre_hit
 voice.marth_falchion
 voice.marth_kill

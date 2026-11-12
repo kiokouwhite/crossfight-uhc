@@ -79,6 +79,9 @@ public final class Sounds {
         p.getWorld().playSound(p, NS + ":" + event, category, volume, 1f);
     }
 
+    /** Un son du pack, a un endroit fixe (ex. "ability.corrin_sang_eau"). */
+    public static void at(Location at, String event) { playAt(at, event, SoundCategory.PLAYERS, 1f); }
+
     /** Un bruitage de la bibliotheque, a un endroit. */
     public static void sfx(Location at, String category) { playAt(at, "sfx." + category, SoundCategory.PLAYERS, 1f); }
 
