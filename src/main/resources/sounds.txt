@@ -130,6 +130,9 @@ ability.marth_contre
 ability.marth_contre_hit
 ability.marth_falchion
 ability.marth_ult
+ability.marth_ult_charge
+ability.marth_ult_eclat
+ability.marth_ult_hit
 ability.mikasa_assommage
 ability.mikasa_cible
 ability.mikasa_ult

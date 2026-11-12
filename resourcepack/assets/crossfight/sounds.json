@@ -967,6 +967,13 @@
    "crossfight:sfx/heal/2"
   ]
  },
+ "ability.marth_ult": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
  "ability.mikasa_assommage": {
   "sounds": [
    "crossfight:sfx/slash/1",

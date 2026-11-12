@@ -149,7 +149,11 @@ Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pos
 - En jeu : `/cf pose <nom> [secondes]`, à regarder en vue extérieure (F5).
 - `poses.enabled: false` dans `config.yml` coupe tout. Sans le modèle dans le pack, la capacité garde simplement ses effets habituels.
 
-Première animation : le Contre de Marth (garde, épée tenue haut lame vers le bas, puis fente avant à la riposte).
+Animations de Marth :
+
+- **Contre** : garde, épée tenue haut lame vers le bas, puis fente avant à la riposte.
+- **Falchion** : l'épée plantée dans le sol devant lui, les deux mains sur le pommeau, tête baissée, pendant les 3 secondes du soin.
+- **Coup Critique**, d'après le Final Smash de Smash Bros : moulinet, épée levée vers le ciel avec un éclat à la pointe (0,8 s, immobile, pendant lesquelles il choisit sa direction en regardant), il se ramasse, fonce à l'horizontale dans une traînée blanche et bleue, puis tient l'estoc bras tendu. Il est invulnérable de la levée d'épée à la fin de la charge. Bruitages d'origine dans le pack privé : `ability.marth_ult_eclat`, `ability.marth_ult_charge`, `ability.marth_ult_hit`.
 
 Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus sa propre armure en vue extérieure (ses quatre cases d'armure lui sont envoyées vides, sans toucher à son inventaire ; elles sont renvoyées à la fin). Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
 

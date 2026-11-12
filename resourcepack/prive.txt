@@ -2,7 +2,9 @@
 # Seuls les noms sont ici : le plugin doit les connaitre pour les jouer.
 ability.marth_contre
 ability.marth_contre_hit
-ability.marth_ult
+ability.marth_ult_charge
+ability.marth_ult_eclat
+ability.marth_ult_hit
 skin.acura
 skin.arlo
 skin.armin

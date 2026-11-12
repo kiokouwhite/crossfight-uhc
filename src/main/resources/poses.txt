@@ -11,6 +11,9 @@
 #   head | body | arm_r | arm_l | leg_r | leg_l   rx ry rz  [dx dy dz]
 #   item   rx ry rz                 l'objet tenu dans la main droite, par rapport au bras
 #                                   (0 0 0 : lame perpendiculaire au bras, comme une epee tenue)
+#   item_world rx ry rz             a la place de item : orientation de l'objet par rapport au corps,
+#                                   quelle que soit celle du bras (0 0 0 : lame vers l'avant, a plat sur la tranche ;
+#                                   90 90 0 : lame droit vers le bas, garde de gauche a droite)
 # Une partie absente reste au repos.
 
 pose debout
@@ -36,3 +39,51 @@ pose marth_contre_coup
   leg_r 32 0 -6
   leg_l -40 0 6
   item  68 0 0
+
+# Falchion (soin) : l'epee plantee dans le sol devant lui, les deux mains posees sur le pommeau, tete baissee.
+pose marth_falchion
+  head  12 0 0
+  arm_r -37 0 34
+  arm_l -37 0 -34
+  leg_r 0 0 -7
+  leg_l 0 0 7
+  item_world 90 90 0
+
+# Coup Critique (Smash Bros) : l'epee levee droit vers le ciel, tete relevee.
+pose marth_ult_leve
+  head  -14 0 0
+  arm_r -180 0 -6
+  arm_l 0 0 10
+  leg_r 0 0 -5
+  leg_l 0 0 5
+  item_world -90 90 0
+
+# Il se ramasse avant de bondir : buste penche, epee ramenee en arriere.
+pose marth_ult_elan
+  root  28 0 0   0 -3 0
+  head  -20 0 0
+  arm_r 38 0 -10
+  arm_l -20 0 10
+  leg_r -38 0 -4
+  leg_l -8 0 4
+  item  -40 0 0
+
+# La charge : le corps presque a l'horizontale, l'epee pointee droit devant.
+pose marth_ult_charge
+  root  58 0 0   0 2 0
+  head  -46 0 0
+  arm_r -148 0 0
+  arm_l 26 0 12
+  leg_r 22 0 -3
+  leg_l -34 0 3
+  item_world -58 0 0
+
+# L'estoc final : fente profonde, bras tendu, l'epee a l'horizontale dans l'adversaire.
+pose marth_ult_estoc
+  root  24 0 0   0 -3 0
+  head  -20 0 0
+  arm_r -114 0 0
+  arm_l 52 0 16
+  leg_r 34 0 -4
+  leg_l -62 0 4
+  item_world -24 0 0

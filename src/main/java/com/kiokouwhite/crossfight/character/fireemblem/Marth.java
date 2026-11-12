@@ -96,6 +96,9 @@ public final class Marth extends Character {
             double total = holy ? 20.0 : 10.0;
             Effects.root(p, 60);
             Msg.actionBar(p, "<green>Regeneration...");
+            // La pose : l'epee plantee dans le sol, les deux mains sur le pommeau, le temps du soin.
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "marth", Contre.heldFalchion(p), "debout");
+            if (puppet != null) { puppet.pose("marth_falchion", 6); puppet.endAfter(60, 5); }
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override public void run() {
@@ -249,13 +252,87 @@ public final class Marth extends Character {
     static final class CoupCritique extends UltimateAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
         CoupCritique() {
             super("marth_ult", "Coup Critique",
-                    "Marth fonce de 10 blocs, invulnerable pendant la charge. Les ennemis touches perdent 5 coeurs et tous les allies gagnent Force (1 niveau par ennemi touche) pendant 1 minute.",
+                    "Marth leve son epee un instant, puis fonce de 10 blocs dans la direction ou il regarde ; invulnerable du debut a la fin. Les ennemis touches perdent 5 coeurs et tous les allies gagnent Force (1 niveau par ennemi touche) pendant 1 minute.",
                     Material.NETHER_STAR);
         }
 
+        /** Duree de la preparation, epee levee, avant la charge (en ticks). */
+        static final int WINDUP = 16;
+        static final Particle.DustOptions GLOW = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 250, 215), 1.2f);
+        static final Particle.DustOptions STREAK = new Particle.DustOptions(org.bukkit.Color.fromRGB(235, 240, 255), 1.6f);
+        static final Particle.DustOptions STREAK_BLUE = new Particle.DustOptions(org.bukkit.Color.fromRGB(120, 150, 255), 1.3f);
+        static final Particle.DustOptions IMPACT_RED = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 60, 50), 1.8f);
+
+        /**
+         * Comme dans Smash Bros : Marth fait tournoyer son epee, la leve vers le ciel (eclat a la pointe),
+         * se ramasse, puis fonce droit devant lui et finit en estoc. Il vise pendant la preparation :
+         * la charge part dans la direction ou il regarde a ce moment-la.
+         */
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
-            st.set("invulnUntil", System.currentTimeMillis() + 1200L);
+            st.set("invulnUntil", System.currentTimeMillis() + WINDUP * 50L + 1200L);
+            Effects.root(p, WINDUP);
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "marth", Contre.heldFalchion(p), "debout");
+            if (puppet != null) puppet.pose("marth_ult_leve", 4);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.3f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                    t++;
+                    org.bukkit.World w = p.getWorld();
+                    Location feet = p.getLocation();
+                    Vector dir = feet.getDirection().setY(0);
+                    if (dir.lengthSquared() < 1e-4) dir = new Vector(0, 0, 1);
+                    dir.normalize();
+                    Vector right = new Vector(-dir.getZ(), 0, dir.getX());
+                    // La pointe de l'epee levee, au-dessus de l'epaule droite.
+                    Location tip = feet.clone().add(right.clone().multiply(0.33)).add(0, 2.85, 0);
+                    if (t <= 4) {
+                        // Le moulinet : un croissant blanc qui monte de devant lui jusqu'au-dessus de sa tete.
+                        Location shoulder = feet.clone().add(right.clone().multiply(0.33)).add(0, 1.35, 0);
+                        double from = Math.toRadians(-50 + (t - 1) * 35), to = from + Math.toRadians(35);
+                        for (double a = from; a <= to; a += Math.toRadians(5)) {
+                            for (double r = 0.9; r <= 1.5; r += 0.3) {
+                                Location at = shoulder.clone().add(dir.clone().multiply(Math.cos(a) * r)).add(0, Math.sin(a) * r, 0);
+                                w.spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, STREAK);
+                            }
+                        }
+                    }
+                    if (t == 5) {
+                        // L'eclat a la pointe de l'epee.
+                        w.spawnParticle(Particle.FLASH, tip, 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 255, 240));
+                        w.spawnParticle(Particle.END_ROD, tip, 25, 0.05, 0.05, 0.05, 0.12);
+                        w.spawnParticle(Particle.FIREWORK, tip, 12, 0.05, 0.05, 0.05, 0.1);
+                        w.playSound(tip, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.6f);
+                        com.kiokouwhite.crossfight.util.Sounds.ability(p, "marth_ult_eclat");
+                    }
+                    if (t >= 5 && t < WINDUP) {
+                        // Marth s'illumine, un rai de lumiere monte de la lame.
+                        w.spawnParticle(Particle.DUST, feet.clone().add(0, 1, 0), 8, 0.3, 0.6, 0.3, 0, GLOW);
+                        w.spawnParticle(Particle.END_ROD, tip, 2, 0.03, 0.03, 0.03, 0.02);
+                        for (double h = 0.3; h <= 3.5; h += 0.35) w.spawnParticle(Particle.DUST, tip.clone().add(0, h, 0), 1, 0, 0, 0, 0, GLOW);
+                    }
+                    if (t == WINDUP - 2) {
+                        var pu = com.kiokouwhite.crossfight.util.Puppet.of(p);
+                        if (pu != null) pu.pose("marth_ult_elan", 2);
+                    }
+                    if (t >= WINDUP) { cancel(); charge(p, st); }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+            return true;
+        }
+
+        /** La charge elle-meme, a la fin de la preparation. */
+        private void charge(Player p, AbilityState st) {
+            Effects.unroot(p);
+            org.bukkit.World w = p.getWorld();
+            Location start = p.getLocation();
+            // Le depart : une gerbe blanche la ou il se tenait.
+            w.spawnParticle(Particle.CLOUD, start.clone().add(0, 0.4, 0), 14, 0.3, 0.2, 0.3, 0.06);
+            w.spawnParticle(Particle.DUST, start.clone().add(0, 1, 0), 40, 0.5, 0.7, 0.5, 0, STREAK);
+            w.playSound(start, Sound.ITEM_TRIDENT_RIPTIDE_3, 0.9f, 1.3f);
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, "marth_ult_charge");
             int hits = perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
             if (hits > 0) {
                 int level = Math.min(hits, 5) - 1;
@@ -265,7 +342,24 @@ public final class Marth extends Character {
             } else {
                 Msg.send(p, "<gray>Coup Critique : aucun ennemi touche.");
             }
-            return true;
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.of(p);
+            if (puppet != null) puppet.pose("marth_ult_charge", 1);
+            // La trainee blanche et bleue qui le suit pendant qu'il file.
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || ++t > 5) { cancel(); return; }
+                    Location c = p.getLocation().add(0, 0.9, 0);
+                    w.spawnParticle(Particle.DUST, c, 10, 0.25, 0.25, 0.25, 0, STREAK);
+                    w.spawnParticle(Particle.DUST, c, 5, 0.3, 0.3, 0.3, 0, STREAK_BLUE);
+                    w.spawnParticle(Particle.END_ROD, c, 2, 0.2, 0.2, 0.2, 0.01);
+                    if (t == 4) {
+                        // L'estoc final, tenu un instant.
+                        var pu = com.kiokouwhite.crossfight.util.Puppet.of(p);
+                        if (pu != null) { pu.pose("marth_ult_estoc", 2); pu.endAfter(hits > 0 ? 14 : 8, 4); }
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
 
         @Override
@@ -291,12 +385,26 @@ public final class Marth extends Character {
                 com.kiokouwhite.crossfight.util.HealthBar.drainToZero(enemy);
             }
             caster.setVelocity(dir.clone().multiply(2.6).setY(0.25));
-            for (double d = 0; d <= 10; d += 0.5) {
+            org.bukkit.World w = caster.getWorld();
+            // Le trait de lumiere de la charge, sur tout le trajet.
+            for (double d = 0; d <= 10; d += 0.35) {
                 Location l = start.clone().add(dir.clone().multiply(d)).add(0, 1, 0);
-                caster.getWorld().spawnParticle(Particle.SWEEP_ATTACK, l, 1);
-                caster.getWorld().spawnParticle(Particle.CRIT, l, 3, 0.3, 0.3, 0.3, 0);
+                w.spawnParticle(Particle.DUST, l, 2, 0.08, 0.08, 0.08, 0, STREAK);
+                w.spawnParticle(Particle.DUST, l.clone().add(0, -0.25, 0), 1, 0.05, 0.05, 0.05, 0, STREAK_BLUE);
+                if (((int) (d / 0.35)) % 4 == 0) w.spawnParticle(Particle.CRIT, l, 2, 0.2, 0.2, 0.2, 0);
             }
-            caster.getWorld().playSound(start, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+            w.playSound(start, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+            // L'impact : un eclat rouge puis un grand flash blanc sur chaque ennemi touche.
+            for (org.bukkit.entity.LivingEntity enemy : touched) {
+                Location c = enemy.getLocation().add(0, 1, 0);
+                w.spawnParticle(Particle.FLASH, c, 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 255, 255));
+                w.spawnParticle(Particle.DUST, c, 30, 0.5, 0.5, 0.5, 0, IMPACT_RED);
+                w.spawnParticle(Particle.CRIT, c, 40, 0.4, 0.5, 0.4, 0.5);
+                w.spawnParticle(Particle.EXPLOSION, c, 1);
+                w.playSound(c, Sound.ENTITY_PLAYER_ATTACK_CRIT, 1.5f, 0.7f);
+                w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 1.5f);
+            }
+            if (!touched.isEmpty() && caster instanceof Player cp) com.kiokouwhite.crossfight.util.Sounds.ability(cp, "marth_ult_hit");
             return touched.size();
         }
 

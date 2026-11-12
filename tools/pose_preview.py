@@ -96,7 +96,7 @@ def quads(name, pose_name, private):
                 u1, v1, u2, v2 = (c * 4 for c in f["uv"])
                 out.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], skin))
         if part == "arm_r":
-            ri = r @ rot(*get("item")[0]) @ ITEM_BASE
+            ri = (root_r @ rot(*pose["item_world"][0]) if "item_world" in pose else r @ rot(*get("item")[0])) @ ITEM_BASE
             hand = t + r @ (np.array(HAND) / 16 * K)
             ti = hand - ri @ (np.array(GRIP) / 16 * ITEM_SCALE)
             pts = [ti + ri @ (ITEM_SCALE * (flip @ (np.array(p) / 16))) for p in ((-8, 8, 0), (8, 8, 0), (-8, -8, 0), (8, -8, 0))]
@@ -104,7 +104,7 @@ def quads(name, pose_name, private):
     return out
 
 
-def render(qs, view_yaw, size=(300, 420), scale=150):
+def render(qs, view_yaw, size=(420, 460), scale=115):
     """Vue orthographique : la camera tourne autour du personnage (0 = de face)."""
     w, h = size
     img = np.full((h, w, 3), 235, dtype=np.float32)
@@ -117,7 +117,7 @@ def render(qs, view_yaw, size=(300, 420), scale=150):
         p = np.array(pts)
         n = np.cross(p[1] - p[0], p[2] - p[0]); n = n / (np.linalg.norm(n) + 1e-9)
         shade = 0.62 + 0.38 * abs(float(n @ (right * light[0] + np.array([0, 1, 0]) * light[1] + fwd * light[2])))
-        sx = w / 2 + (p @ right) * scale; sy = h - 30 - p[:, 1] * scale; sz = -(p @ fwd)
+        sx = w / 2 + (p @ right) * scale; sy = h - 70 - p[:, 1] * scale; sz = -(p @ fwd)
         for tri in ((0, 1, 2), (1, 3, 2)):
             x, y = sx[list(tri)], sy[list(tri)]
             x0, x1 = int(max(0, math.floor(x.min()))), int(min(w - 1, math.ceil(x.max())))

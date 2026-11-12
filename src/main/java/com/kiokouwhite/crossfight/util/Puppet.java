@@ -71,7 +71,7 @@ public final class Puppet {
     private final Map<Part, ItemDisplay> parts = new EnumMap<>(Part.class);
     private ItemDisplay held;
     private BukkitTask task;
-    private boolean addedInvisibility;
+    private boolean addedInvisibility, ownArmorHidden;
     private int age, endAt = -1, removeAt = 20 * 30;
     private final List<Runnable> restore = new ArrayList<>();
 
@@ -180,6 +180,9 @@ public final class Puppet {
         age++;
         if (!player.isOnline() || player.isDead() || age >= removeAt || parts.values().stream().anyMatch(d -> !d.isValid())
                 || !player.getWorld().equals(parts.get(Part.BODY).getWorld())) { remove(); return; }
+        // Un clic sur une capacite fait renvoyer tout l'inventaire au joueur juste apres : son armure
+        // reapparaitrait chez lui. On la re-masque donc regulierement tant que dure l'animation.
+        if (ownArmorHidden && age % 4 == 1) hideOwnArmor(player);
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
         if (held != null) held.teleport(at);
@@ -197,7 +200,10 @@ public final class Puppet {
             Vector3f t = rootR.transform(new Vector3f(part.pivot).add(j.offset).mul(K / 16f)).add(rootT);
             set(parts.get(part), new Transformation(t, r, new Vector3f(K, K, K), new Quaternionf()), ticks);
             if (part == Part.ARM_R && held != null) {
-                Quaternionf ri = new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles)).mul(ITEM_BASE);
+                // "item" : oriente par rapport au bras ; "item_world" : par rapport au corps, quel que soit le bras.
+                Joint world = joints.get("item_world");
+                Quaternionf ri = (world != null ? new Quaternionf(rootR).mul(euler(world.angles))
+                        : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles))).mul(ITEM_BASE);
                 Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
                 Vector3f ti = hand.sub(ri.transform(new Vector3f(GRIP).mul(ITEM_SCALE / 16f)));
                 set(held, new Transformation(ti, ri, new Vector3f(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE), new Quaternionf()), ticks);
@@ -233,7 +239,10 @@ public final class Puppet {
         // Le joueur lui-meme (vue exterieure) : son client ne tient pas compte d'un paquet d'equipement
         // qui le concerne, il affiche l'armure de son propre inventaire. On vide donc chez lui, et chez lui
         // seulement, ses quatre cases d'armure ; elles sont renvoyees telles quelles a la fin.
-        if (hideOwnArmor(player)) restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
+        if (hideOwnArmor(player)) {
+            ownArmorHidden = true;
+            restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
+        }
     }
 
     private static boolean ownArmorWarned;
