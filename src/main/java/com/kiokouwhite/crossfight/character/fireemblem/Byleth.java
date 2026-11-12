@@ -603,6 +603,8 @@ public final class Byleth extends Character implements Listener {
             final World w = p.getWorld();
             final List<org.bukkit.entity.LivingEntity> caught = new ArrayList<>();
             w.playSound(origin, Sound.ENTITY_WITHER_AMBIENT, 1f, 0.4f);
+            // Une seconde apres sa replique : son cri et le fracas du Final Smash.
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.ability(p, "byleth_ult_cri"); }, 20L);
             w.playSound(origin, Sound.BLOCK_PORTAL_TRIGGER, 0.6f, 0.5f);
 
             new BukkitRunnable() {

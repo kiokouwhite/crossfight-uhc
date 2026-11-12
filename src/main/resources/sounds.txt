@@ -30,6 +30,7 @@ ability.byleth_epine
 ability.byleth_sword
 ability.byleth_tutorat
 ability.byleth_ult
+ability.byleth_ult_cri
 ability.corrin_sang
 ability.corrin_sang_eau
 ability.corrin_ult
@@ -299,6 +300,14 @@ skin.sova
 skin.takumi
 skin.weiss
 skin.yang
+voice.byleth_epine
+voice.byleth_kill
+voice.byleth_mort
+voice.byleth_selection
+voice.byleth_sword
+voice.byleth_tutorat
+voice.byleth_ult
+voice.byleth_ult_cri
 voice.corrin_kill
 voice.corrin_mort
 voice.corrin_sang

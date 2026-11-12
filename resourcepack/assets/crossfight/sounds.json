@@ -204,33 +204,12 @@
    "crossfight:sfx/roar/3"
   ]
  },
- "ability.byleth_epine": {
-  "sounds": [
-   "crossfight:sfx/slash/1",
-   "crossfight:sfx/slash/2",
-   "crossfight:sfx/slash/3"
-  ]
- },
- "ability.byleth_sword": {
-  "sounds": [
-   "crossfight:sfx/slash/1",
-   "crossfight:sfx/slash/2",
-   "crossfight:sfx/slash/3"
-  ]
- },
  "ability.byleth_tutorat": {
   "sounds": [
    "crossfight:sfx/book/1",
    "crossfight:sfx/book/2",
    "crossfight:sfx/book/3",
    "crossfight:sfx/book/4"
-  ]
- },
- "ability.byleth_ult": {
-  "sounds": [
-   "crossfight:sfx/dark/1",
-   "crossfight:sfx/dark/2",
-   "crossfight:sfx/dark/3"
   ]
  },
  "ability.crystal_cristal": {
