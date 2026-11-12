@@ -96,3 +96,37 @@ pose corrin_ult
   arm_l -75 0 9
   leg_r -20 0 -7
   leg_l -20 0 7
+
+# Takumi, arc en main : debout, l'arc tenu droit, le ventre de l'arc vers l'avant.
+pose takumi_arc
+  item 90 0 0
+
+# Contre Rapproche : il leve son arc bien haut derriere lui...
+pose takumi_arc_leve
+  root  -10 0 0
+  head  -8 0 0
+  arm_r -205 0 -12
+  arm_l -35 0 14
+  leg_r 14 0 -5
+  leg_l -16 0 5
+  item  90 0 0
+
+# ... et le jette violemment au sol : buste casse en avant, bras rabattu, jambes ecartees.
+pose takumi_arc_jete
+  root  38 0 0   0 -2 -3
+  head  -14 0 0
+  arm_r -62 0 -6
+  arm_l 10 0 22
+  leg_r -6 0 -8
+  leg_l -72 0 8
+  item  90 0 0
+
+# Fin du Contre Rapproche : il se baisse en fente et attrape l'arc au sol de la main droite.
+pose takumi_arc_ramasse
+  root  70 0 0   0 3.6 -9.3
+  head  -40 0 0
+  arm_r -70 0 0
+  arm_l -20 0 18
+  leg_r -20 0 -5
+  leg_l -120 0 5
+  item  0 0 0

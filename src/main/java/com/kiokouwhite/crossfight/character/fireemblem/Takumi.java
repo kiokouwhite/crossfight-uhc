@@ -134,7 +134,7 @@ public final class Takumi extends Character implements Listener {
 
     static final class ContreRapproche extends ActiveAbility {
         ContreRapproche() {
-            super("takumi_contre", "Contre Rapproche", "Le Yumi Fujin est remplace par une epee de 9 degats pendant 30 secondes.",
+            super("takumi_contre", "Contre Rapproche", "Takumi jette son arc au sol : le Yumi Fujin est remplace par une epee de 9 degats pendant 30 secondes, puis il le ramasse.",
                     Material.IRON_SWORD, 90);
         }
 
@@ -157,8 +157,161 @@ public final class Takumi extends Character implements Listener {
             st.set("lockedUntil", System.currentTimeMillis() + 30_000L);
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f);
             Msg.actionBar(p, "<red>Lame en main ! Ton arc revient dans 30 s.");
-            Bukkit.getScheduler().runTaskLater(plugin(), () -> restoreBow(p, st), 20L * 30);
+            final ItemStack bowLook = ((ItemStack) st.get("bow", null)).clone();
+            throwBow(p, bowLook);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                boolean stillOut = st.get("bow", null) != null;
+                restoreBow(p, st);
+                // Fin normale des 30 secondes : l'arc revient a ses pieds et il le ramasse.
+                if (stillOut && p.isOnline() && !p.isDead()) pickUpBow(p, bowLook);
+                else removeGroundBow(p.getUniqueId());
+            }, 20L * 30);
             return true;
+        }
+
+        // ------------------------------------------------ l'arc jete puis ramasse
+
+        /** L'arc que chaque Takumi a jete au sol, le temps de la lame. */
+        static final Map<UUID, org.bukkit.entity.ItemDisplay> GROUND_BOWS = new java.util.HashMap<>();
+
+        static void removeGroundBow(UUID id) {
+            var d = GROUND_BOWS.remove(id);
+            if (d != null) d.remove();
+        }
+
+        /** L'image de l'arc, couchee sur le sol et tournee de {@code yaw} degres, a {@code y} blocs de haut. */
+        private static org.bukkit.util.Transformation lying(float yaw, float tilt, float y) {
+            var rot = new org.joml.Quaternionf().rotationY((float) Math.toRadians(yaw)).rotateX((float) Math.toRadians(90 - tilt));
+            return new org.bukkit.util.Transformation(new org.joml.Vector3f(0, y, 0), rot, new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf());
+        }
+
+        /** Le dessus du premier bloc plein sous ce point (au plus 8 blocs plus bas). */
+        private static Location ground(Location from) {
+            Block b = from.getBlock();
+            for (int i = 0; i < 8 && b.isPassable(); i++) b = b.getRelative(0, -1, 0);
+            Location l = from.clone();
+            l.setY(b.isPassable() ? from.getY() : b.getY() + 1);
+            l.setYaw(0); l.setPitch(0);
+            return l;
+        }
+
+        /** Devant le joueur, un peu sur sa droite : la ou tombe sa main quand il se baisse. */
+        private static Location inFront(Player p, double forward, double right) {
+            Vector dir = p.getLocation().getDirection().setY(0);
+            if (dir.lengthSquared() < 1e-4) dir = new Vector(0, 0, 1);
+            dir.normalize();
+            Vector side = new Vector(-dir.getZ(), 0, dir.getX());
+            return ground(p.getLocation().add(0, 0.5, 0).add(dir.multiply(forward)).add(side.multiply(right)));
+        }
+
+        /** Takumi leve son arc bien haut et le jette violemment au sol, ou il reste jusqu'a la fin de la lame. */
+        private static void throwBow(Player p, ItemStack bowLook) {
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "takumi", bowLook, "takumi_arc");
+            if (puppet == null) return;
+            puppet.pose("takumi_arc_leve", 4);
+            puppet.endAfter(19, 4);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                if (com.kiokouwhite.crossfight.util.Puppet.of(p) != puppet) return;
+                puppet.pose("takumi_arc_jete", 2);
+                p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 0.7f);
+            }, 7L);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                if (com.kiokouwhite.crossfight.util.Puppet.of(p) != puppet) return;
+                // L'arc quitte sa main et va s'ecraser devant lui.
+                Location hand = puppet.hand();
+                puppet.held(null);
+                Location spot = inFront(p, 1.0, 0.3);
+                float yaw = (float) (Math.random() * 360), drop = (float) Math.max(0.1, hand.getY() - spot.getY());
+                World w = p.getWorld();
+                removeGroundBow(p.getUniqueId());
+                var bow = w.spawn(spot, org.bukkit.entity.ItemDisplay.class, d -> {
+                    d.setPersistent(false);
+                    d.setItemStack(bowLook.clone());
+                    d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
+                    d.setTransformation(lying(yaw - 60, 70, drop));
+                    d.setViewRange(1.5f);
+                });
+                GROUND_BOWS.put(p.getUniqueId(), bow);
+                // Chute, impact, rebond, puis il retombe a plat.
+                int[] when = {2, 4, 7};
+                float[][] step = {{yaw, 10, 0.03f}, {yaw + 45, 35, 0.4f}, {yaw + 80, 0, 0.03f}};
+                for (int i = 0; i < when.length; i++) {
+                    final int k = i;
+                    Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                        if (!bow.isValid()) return;
+                        bow.setInterpolationDelay(0);
+                        bow.setInterpolationDuration(k == 0 ? 2 : 3);
+                        bow.setTransformation(lying(step[k][0], step[k][1], step[k][2]));
+                    }, when[i]);
+                }
+                for (int hit : new int[]{4, 10}) {
+                    final boolean first = hit == 4;
+                    Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                        if (!bow.isValid()) return;
+                        Location c = spot.clone().add(0, 0.1, 0);
+                        w.playSound(c, Sound.BLOCK_WOOD_BREAK, first ? 1.2f : 0.5f, first ? 0.6f : 0.9f);
+                        if (first) {
+                            w.playSound(c, Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 0.6f, 1.3f);
+                            w.spawnParticle(Particle.CRIT, c, 14, 0.25, 0.1, 0.25, 0.25);
+                            w.spawnParticle(Particle.CLOUD, c, 5, 0.2, 0.05, 0.2, 0.03);
+                            Block under = spot.clone().add(0, -0.5, 0).getBlock();
+                            if (!under.isPassable()) w.spawnParticle(Particle.BLOCK, c, 18, 0.25, 0.05, 0.25, under.getBlockData());
+                        }
+                    }, hit);
+                }
+            }, 8L);
+        }
+
+        /** L'arc glisse jusqu'a ses pieds dans un souffle de vent (c'est l'arc du dieu du vent), il se baisse et l'attrape. */
+        private static void pickUpBow(Player p, ItemStack bowLook) {
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "takumi", null, "debout");
+            if (puppet == null) { removeGroundBow(p.getUniqueId()); return; }
+            puppet.rest("takumi_arc");
+            puppet.pose("takumi_arc_ramasse", 4);
+            puppet.endAfter(20, 2);
+            World w = p.getWorld();
+            Location spot = inFront(p, 0.67, 0.29);
+            org.bukkit.entity.ItemDisplay old = GROUND_BOWS.get(p.getUniqueId());
+            final org.bukkit.entity.ItemDisplay bow;
+            if (old != null && old.isValid() && old.getWorld().equals(w)) {
+                bow = old;
+                w.spawnParticle(Particle.CLOUD, bow.getLocation().add(0, 0.2, 0), 8, 0.3, 0.1, 0.3, 0.05);
+            } else {
+                removeGroundBow(p.getUniqueId());
+                bow = w.spawn(spot, org.bukkit.entity.ItemDisplay.class, d -> {
+                    d.setPersistent(false);
+                    d.setItemStack(bowLook.clone());
+                    d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
+                    d.setTransformation(lying((float) (Math.random() * 360), 0, 0.03f));
+                    d.setViewRange(1.5f);
+                });
+                GROUND_BOWS.put(p.getUniqueId(), bow);
+            }
+            bow.setTeleportDuration(3);
+            w.playSound(p.getLocation(), Sound.ENTITY_PHANTOM_FLAP, 0.8f, 1.7f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead() || !bow.isValid() || com.kiokouwhite.crossfight.util.Puppet.of(p) != puppet) {
+                        removeGroundBow(p.getUniqueId());
+                        cancel();
+                        return;
+                    }
+                    if (t < 9) {
+                        // L'arc file au ras du sol jusqu'a l'endroit ou sa main va se poser.
+                        bow.teleport(inFront(p, 0.67, 0.29));
+                        w.spawnParticle(Particle.CLOUD, bow.getLocation().add(0, 0.1, 0), 2, 0.15, 0.05, 0.15, 0.02);
+                        return;
+                    }
+                    // Il le tient : l'arc quitte le sol pour sa main, et il se releve.
+                    removeGroundBow(p.getUniqueId());
+                    puppet.held(bowLook);
+                    puppet.pose("takumi_arc", 4);
+                    w.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_LEATHER, 1f, 1.1f);
+                    cancel();
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
 
         /** Remet le Yumi Fujin a la place de la lame. */
@@ -191,6 +344,7 @@ public final class Takumi extends Character implements Listener {
         public void onUnequip(Player p, CfPlayer cf) {
             // Mort ou fin de partie pendant la lame : on remet l'arc pour que le prochain equipement soit propre.
             restoreBow(p, plugin().abilities().state(p, this));
+            removeGroundBow(p.getUniqueId());
         }
     }
 

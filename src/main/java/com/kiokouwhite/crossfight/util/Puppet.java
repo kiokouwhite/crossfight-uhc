@@ -45,6 +45,8 @@ public final class Puppet {
     private static final float ITEM_SCALE = 0.85f;
     /** La main, dans le repere du bras ; la poignee d'une epee dans l'image de l'objet. En pixels. */
     private static final Vector3f HAND = new Vector3f(0, -9, 0), GRIP = new Vector3f(5.5f, -5.5f, 0);
+    /** Un arc se tient par le milieu de son bois. */
+    private static final Vector3f GRIP_BOW = new Vector3f(2, 2, 0);
     /** Amene la lame d'un objet tenu (dessinee en diagonale) perpendiculaire au bras, tranchant vertical. */
     private static final Quaternionf ITEM_BASE = euler(90, 0, 0).mul(euler(0, 90, 0)).mul(euler(0, 0, -45));
 
@@ -74,6 +76,8 @@ public final class Puppet {
     private boolean addedInvisibility, ownItemsHidden;
     private int heldSlot;
     private int age, endAt = -1, removeAt = 20 * 30;
+    private String pose, restPose = "debout";
+    private Vector3f grip = GRIP;
     private final List<Runnable> restore = new ArrayList<>();
 
     private Puppet(Player player) { this.player = player; }
@@ -136,12 +140,42 @@ public final class Puppet {
             model.setItemMeta(meta);
             pu.parts.put(part, pu.spawn(at, model));
         }
-        if (heldItem != null && !heldItem.getType().isAir()) pu.held = pu.spawn(at, heldItem.clone());
+        pu.spawnHeld(at, heldItem);
         pu.apply(pose, 0);
         pu.hidePlayer();
         ACTIVE.put(p.getUniqueId(), pu);
         pu.task = Bukkit.getScheduler().runTaskTimer(CrossfightPlugin.get(), pu::tick, 1L, 1L);
         return pu;
+    }
+
+    private void spawnHeld(Location at, ItemStack item) {
+        if (item == null || item.getType().isAir()) return;
+        held = spawn(at, item.clone());
+        String type = item.getType().name();
+        grip = type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
+    }
+
+    /** Change l'objet montre dans la main droite en cours d'animation (null : la main se vide). */
+    public void held(ItemStack item) {
+        if (held != null) { held.remove(); held = null; }
+        if (task == null) return;
+        spawnHeld(anchor(), item);
+        if (held != null && pose != null) apply(pose, 0);
+    }
+
+    /** La pose de repos vers laquelle l'animation revient avant de finir ("debout" par defaut). */
+    public void rest(String restPose) { if (POSES.containsKey(restPose)) this.restPose = restPose; }
+
+    /** La main droite du pantin, en coordonnees du monde, dans la pose actuelle. */
+    public Location hand() {
+        Map<String, Joint> joints = POSES.get(pose == null ? "debout" : pose);
+        Joint root = joints.getOrDefault("root", Joint.REST), arm = joints.getOrDefault(Part.ARM_R.id, Joint.REST);
+        Quaternionf rootR = euler(root.angles);
+        Vector3f t = rootR.transform(new Vector3f(Part.ARM_R.pivot).add(arm.offset).mul(K / 16f)).add(new Vector3f(root.offset).mul(K / 16f));
+        Vector3f hand = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(HAND).mul(K / 16f)).add(t);
+        // Du repere du pantin (X gauche, Z devant) vers le monde, selon l'orientation du joueur.
+        new Quaternionf().rotationY((float) Math.toRadians(-player.getLocation().getYaw())).transform(hand);
+        return player.getLocation().add(hand.x, hand.y, hand.z);
     }
 
     private ItemDisplay spawn(Location at, ItemStack item) {
@@ -192,10 +226,11 @@ public final class Puppet {
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
         if (held != null) held.teleport(at);
-        if (age == endAt) apply("debout", blend);
+        if (age == endAt) apply(restPose, blend);
     }
 
     private void apply(String pose, int ticks) {
+        this.pose = pose;
         Map<String, Joint> joints = POSES.get(pose);
         Joint root = joints.getOrDefault("root", Joint.REST);
         Quaternionf rootR = euler(root.angles);
@@ -211,7 +246,7 @@ public final class Puppet {
                 Quaternionf ri = (world != null ? new Quaternionf(rootR).mul(euler(world.angles))
                         : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles))).mul(ITEM_BASE);
                 Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
-                Vector3f ti = hand.sub(ri.transform(new Vector3f(GRIP).mul(ITEM_SCALE / 16f)));
+                Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(ITEM_SCALE / 16f)));
                 set(held, new Transformation(ti, ri, new Vector3f(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE), new Quaternionf()), ticks);
             }
         }

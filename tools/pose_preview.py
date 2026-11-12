@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Dessine une pose du modele articule sans lancer le jeu.
 
-Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet]
+Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet] [--objet image.png] [--arc]
+
+--objet : l'image 16x16 de l'objet tenu (sinon une epee de remplacement). --arc : tenu par le milieu, comme un arc.
 
 Relit les modeles ecrits par add_skin.py et src/main/resources/poses.txt, et applique les memes
 transformations que util/Puppet.java et que le client Minecraft (objet affiche centre sur son
@@ -23,6 +25,7 @@ PIVOT = {"head": (0, 24, 0), "body": (0, 24, 0), "arm_r": (-5, 22, 0), "arm_l": 
 HAND = (0, -9, 0)               # la main, dans le repere du bras
 ITEM_SCALE = 0.85
 GRIP = (5.5, -5.5, 0)           # la poignee de l'epee dans l'image de l'objet (pixels, apres le demi-tour)
+GRIP_BOW = (2, 2, 0)            # le milieu du bois d'un arc
 
 
 def rot(rx, ry, rz):
@@ -75,6 +78,12 @@ def sword_sprite():
     return im
 
 
+def held_sprite():
+    if "--objet" in sys.argv:
+        return np.array(Image.open(sys.argv[sys.argv.index("--objet") + 1]).convert("RGBA"))
+    return sword_sprite()
+
+
 def quads(name, pose_name, private):
     """Tous les quadrilateres (4 points en blocs, repere X gauche / Y haut / Z avant, 4 uv, texture)."""
     base = ROOT / ("resourcepack-prive" if private else "resourcepack") / "assets" / "crossfight"
@@ -98,9 +107,9 @@ def quads(name, pose_name, private):
         if part == "arm_r" and "--sans-objet" not in sys.argv:
             ri = (root_r @ rot(*pose["item_world"][0]) if "item_world" in pose else r @ rot(*get("item")[0])) @ ITEM_BASE
             hand = t + r @ (np.array(HAND) / 16 * K)
-            ti = hand - ri @ (np.array(GRIP) / 16 * ITEM_SCALE)
+            ti = hand - ri @ (np.array(GRIP_BOW if "--arc" in sys.argv else GRIP) / 16 * ITEM_SCALE)
             pts = [ti + ri @ (ITEM_SCALE * (flip @ (np.array(p) / 16))) for p in ((-8, 8, 0), (8, 8, 0), (-8, -8, 0), (8, -8, 0))]
-            out.append((pts, [(0, 0), (16, 0), (0, 16), (16, 16)], sword_sprite()))
+            out.append((pts, [(0, 0), (16, 0), (0, 16), (16, 16)], held_sprite()))
     return out
 
 
@@ -147,7 +156,8 @@ def render(qs, view_yaw, size=(420, 460), scale=115):
 
 
 def main() -> int:
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    skip = sys.argv.index("--objet") + 1 if "--objet" in sys.argv else -1
+    args = [a for i, a in enumerate(sys.argv) if i > 0 and i != skip and not a.startswith("--")]
     if len(args) < 2:
         print(__doc__)
         return 1
