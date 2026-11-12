@@ -17,8 +17,12 @@ import org.bukkit.inventory.ItemStack;
  * L'armure portee ne se voit plus sur le corps : on voit le skin du personnage, pas une armure de diamant.
  *
  * Une piece d'armure dit au jeu quel modele dessiner sur le corps (composant "equippable", champ
- * asset_id). On retire ce champ a toute piece qu'un joueur enfile : elle protege autant, garde son
- * icone dans l'inventaire, mais n'est plus dessinee, ni pour lui ni pour les autres.
+ * asset_id). On remplace ce modele par un modele vide du pack (equipment/hidden.json) sur toute piece
+ * qu'un joueur enfile : elle protege autant, garde son icone dans l'inventaire, mais n'est plus dessinee,
+ * ni pour lui ni pour les autres.
+ *
+ * Retirer le champ ne suffit pas : sans modele, le jeu prend un casque pour un objet quelconque pose sur
+ * la tete et dessine son icone au-dessus du crane.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ArmorHider implements Listener {
@@ -31,12 +35,20 @@ public final class ArmorHider implements Listener {
 
     private boolean enabled() { return plugin.getConfig().getBoolean("armor.hidden", true); }
 
+    /** Le modele vide du pack. Un client sans le pack ne le trouve pas et ne dessine rien non plus. */
+    private static final net.kyori.adventure.key.Key HIDDEN = net.kyori.adventure.key.Key.key("crossfight", "hidden");
+
     /** Rend la piece invisible une fois portee. Vrai si elle a ete modifiee. */
     public static boolean hide(ItemStack item) {
         if (item == null || item.getType().isAir() || item.getType() == Material.ELYTRA) return false;
+        // Seules les vraies pieces d'armure : celles qui, d'origine, ont un modele a dessiner sur le corps
+        // (pas une citrouille ni une tete, qui se portent sans).
+        Equippable original = item.getType().getDefaultData(DataComponentTypes.EQUIPPABLE);
+        if (original == null || original.assetId() == null) return false;
         Equippable worn = item.getData(DataComponentTypes.EQUIPPABLE);
-        if (worn == null || worn.assetId() == null) return false;
-        item.setData(DataComponentTypes.EQUIPPABLE, worn.toBuilder().assetId(null));
+        if (worn == null) worn = original;
+        if (HIDDEN.equals(worn.assetId())) return false;
+        item.setData(DataComponentTypes.EQUIPPABLE, worn.toBuilder().assetId(HIDDEN));
         return true;
     }
 
