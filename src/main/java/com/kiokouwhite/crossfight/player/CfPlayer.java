@@ -45,7 +45,15 @@ public final class CfPlayer {
     public void setTeam(Team team) { this.team = team; }
 
     public Character character() { return character; }
-    public void setCharacter(Character character) { this.character = character; }
+    public void setCharacter(Character character) {
+        this.character = character;
+        // Le joueur porte le skin de son personnage (au tick suivant : on est souvent en plein clic de menu).
+        Player p = bukkit();
+        var plugin = com.kiokouwhite.crossfight.CrossfightPlugin.get();
+        if (p != null && plugin != null && plugin.isEnabled()) {
+            Bukkit.getScheduler().runTask(plugin, () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Skins.apply(p, this.character); });
+        }
+    }
 
     public int lives() { return lives; }
     public void setLives(int lives) { this.lives = Math.max(0, lives); }

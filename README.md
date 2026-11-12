@@ -133,6 +133,12 @@ Sur une machine qui n'a plus `resourcepack-prive/`, `python3 tools/build_pack.py
 python3 tools/add_audio.py --prive voice vc_marth_appeal01.wav marth_ult
 ```
 
+### Skins des personnages
+
+Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. `skins.enabled: false` dans `config.yml` coupe tout.
+
+Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py <dossier de <personnage>.png>` fait signer les images par MineSkin (en « non listé ») et inscrit les références dans `src/main/resources/skins.txt`. Ce fichier ne contient pas les images, seulement leur référence signée chez Mojang. Le changement de skin recharge un instant l'affichage du joueur.
+
 ### Animations (modèle articulé)
 
 Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur.

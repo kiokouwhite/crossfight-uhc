@@ -43,6 +43,10 @@ public final class ConnectionListener implements Listener {
         // mode test) attendent sa reponse pour ne pas le recouvrir.
         com.kiokouwhite.crossfight.util.Sounds.expectPack(p);
         org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.sendPack(p); }, 40L);
+        // Un joueur qui revient en cours de partie retrouve le skin de son personnage.
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (p.isOnline() && cf.character() != null) com.kiokouwhite.crossfight.util.Skins.apply(p, cf.character());
+        }, 10L);
         if (plugin.testMode().resumeIfPending(p)) return;
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);
@@ -70,6 +74,7 @@ public final class ConnectionListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         com.kiokouwhite.crossfight.util.Sounds.forget(e.getPlayer());
+        com.kiokouwhite.crossfight.util.Skins.forget(e.getPlayer());
         e.quitMessage(Msg.prefixed("<gray>" + e.getPlayer().getName() + " est parti."));
         plugin.scoreboard().remove(e.getPlayer());
         plugin.abilities().clearGaugeBars(e.getPlayer());

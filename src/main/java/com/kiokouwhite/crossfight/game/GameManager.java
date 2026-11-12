@@ -286,6 +286,8 @@ public final class GameManager {
             p.getInventory().clear();
             p.setHealth(20);
             plugin.players().get(p).setWaitingRespawn(false);
+            // Retour au lobby : chacun retrouve son propre skin.
+            com.kiokouwhite.crossfight.util.Skins.restore(p);
         }
         plugin.teams().clear();
         com.kiokouwhite.crossfight.util.Mannequins.clearAll();

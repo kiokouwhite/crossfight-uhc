@@ -42,6 +42,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         saveDefaultConfig();
         com.kiokouwhite.crossfight.util.Sounds.load(this);
         com.kiokouwhite.crossfight.util.Puppet.load(this);
+        com.kiokouwhite.crossfight.util.Skins.load(this);
 
         playerManager = new PlayerManager();
         teamManager = new TeamManager(this);
