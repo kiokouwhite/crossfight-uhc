@@ -377,7 +377,7 @@ public final class Takumi extends Character implements Listener {
 
     static final class Furie extends ActiveAbility {
         Furie() {
-            super("takumi_furie", "Furie", "Takumi gagne un niveau de Puissance et Vitesse II pendant 10 secondes, mais perd 5 coeurs.",
+            super("takumi_furie", "Furie", "Takumi frappe le sol et s'embrase : un niveau de Puissance et Vitesse II pendant 10 secondes, mais il perd 5 coeurs.",
                     Material.BLAZE_POWDER, 10);
         }
 
@@ -391,13 +391,75 @@ public final class Takumi extends Character implements Listener {
             st.set("bonus", 1);
             refreshPower(p);
             Effects.give(p, PotionEffectType.SPEED, 1, 20 * 10);
-            p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_HURT, 1f, 0.7f);
+            strikeGround(p);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> {
                 st.set("bonus", 0);
                 if (p.isOnline()) refreshPower(p);
             }, 200L);
             return true;
+        }
+
+        /** Le coup part 8 ticks apres le lancement ; Takumi reste sur place le temps de frapper. */
+        private static final int IMPACT = 8, HELD = 14;
+
+        /**
+         * Takumi leve le poing et frappe le sol : des flammes jaillissent de l'impact et l'engloutissent,
+         * puis quelques-unes continuent de l'entourer tant que dure la Furie.
+         */
+        private static void strikeGround(Player p) {
+            Effects.root(p, HELD);
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "takumi", null, "debout");
+            if (puppet != null) {
+                puppet.pose("takumi_furie_leve", 3);
+                puppet.endAfter(24, 5);
+            }
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || ++t > 200) { cancel(); return; }
+                    World w = p.getWorld();
+                    Location feet = p.getLocation();
+                    if (t == IMPACT - 2 && com.kiokouwhite.crossfight.util.Puppet.of(p) == puppet && puppet != null) puppet.pose("takumi_furie_frappe", 2);
+                    if (t == IMPACT) {
+                        // L'impact : le sol tremble et crache du feu.
+                        Vector dir = feet.getDirection().setY(0);
+                        if (dir.lengthSquared() < 1e-4) dir = new Vector(0, 0, 1);
+                        Location fist = feet.clone().add(dir.normalize().multiply(0.6)).add(0, 0.1, 0);
+                        w.playSound(fist, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.6f);
+                        w.playSound(fist, Sound.ITEM_FIRECHARGE_USE, 1.2f, 0.6f);
+                        w.playSound(fist, Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.5f);
+                        w.spawnParticle(Particle.EXPLOSION, fist, 1);
+                        w.spawnParticle(Particle.LAVA, fist, 14, 0.4, 0.1, 0.4);
+                        Block under = feet.clone().add(0, -0.5, 0).getBlock();
+                        if (!under.isPassable()) w.spawnParticle(Particle.BLOCK, fist, 30, 0.6, 0.1, 0.6, under.getBlockData());
+                    }
+                    if (t >= IMPACT && t < IMPACT + 7) {
+                        // L'onde de feu qui s'elargit au ras du sol.
+                        double r = 0.5 + (t - IMPACT) * 0.4;
+                        for (double a = 0; a < Math.PI * 2; a += Math.PI / 14) {
+                            w.spawnParticle(Particle.FLAME, feet.clone().add(Math.cos(a) * r, 0.1, Math.sin(a) * r), 1, 0.03, 0.03, 0.03, 0.01);
+                        }
+                    }
+                    if (t >= IMPACT && t < IMPACT + 26) {
+                        // La colonne de flammes qui monte en vrille et l'engloutit.
+                        int age = t - IMPACT;
+                        double top = Math.min(2.6, 0.4 + age * 0.25);
+                        for (int k = 0; k < 14; k++) {
+                            double h = Math.random() * top, a = age * 0.7 + k * (Math.PI * 2 / 14) + h * 1.5;
+                            double r = 0.75 - h * 0.12;
+                            w.spawnParticle(Particle.FLAME, feet.clone().add(Math.cos(a) * r, h, Math.sin(a) * r), 1, 0.02, 0.02, 0.02, 0.015);
+                        }
+                        w.spawnParticle(Particle.FLAME, feet.clone().add(0, top * 0.5, 0), 10, 0.3, top * 0.35, 0.3, 0.03);
+                        w.spawnParticle(Particle.SMALL_FLAME, feet.clone().add(0, top, 0), 4, 0.25, 0.15, 0.25, 0.02);
+                        if (age % 5 == 0) w.spawnParticle(Particle.LAVA, feet.clone().add(0, 0.5, 0), 2, 0.4, 0.2, 0.4);
+                        if (age % 6 == 0) w.playSound(feet, Sound.BLOCK_FIRE_AMBIENT, 1.2f, 0.8f);
+                    } else if (t >= IMPACT + 26 && t % 3 == 0) {
+                        // Ensuite : quelques flammes autour de lui, tant que dure la Furie.
+                        w.spawnParticle(Particle.FLAME, feet.clone().add(0, 1, 0), 2, 0.3, 0.5, 0.3, 0.01);
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
     }
 
