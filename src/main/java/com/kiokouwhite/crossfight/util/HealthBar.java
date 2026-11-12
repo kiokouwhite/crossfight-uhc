@@ -38,6 +38,14 @@ public final class HealthBar {
     private HealthBar() {}
 
     /**
+     * Effet purement visuel, comme un coup fatal de Fire Emblem : la barre part de 100 et se vide
+     * jusqu'a 0, quels que soient la vie et les degats reels de la cible.
+     */
+    public static void drainToZero(LivingEntity target) {
+        show(target, 100, 0, 100, 40);
+    }
+
+    /**
      * Affiche la barre au-dessus de la cible et la vide de sa vie d'avant le coup a sa vie actuelle.
      * A appeler juste apres avoir inflige les degats.
      */
@@ -46,10 +54,13 @@ public final class HealthBar {
         double max = Math.max(1, attr != null ? attr.getValue() : before);
         double after = target.isDead() ? 0 : Math.max(0, target.getHealth());
         double from = Math.min(max, Math.max(before, after));
+        // Rythme du jeu d'origine : environ un point toutes les tick et demi, entre une demi-seconde et 1,5 s.
+        show(target, from, after, max, (int) Math.max(10, Math.min(30, Math.round((from - after) * 1.5))));
+    }
+
+    private static void show(LivingEntity target, double from, double after, double max, int drainTicks) {
         int segments = (int) Math.min(MAX_SEGMENTS, Math.ceil(max));
         double perSegment = max / segments;
-        // Rythme du jeu d'origine : environ un point toutes les tick et demi, entre une demi-seconde et 1,5 s.
-        int drainTicks = (int) Math.max(10, Math.min(30, Math.round((from - after) * 1.5)));
 
         TextDisplay old = SHOWN.remove(target.getUniqueId());
         if (old != null) old.remove();
@@ -87,7 +98,7 @@ public final class HealthBar {
                     lastText = text;
                 }
                 // Le petit cliquetis de la barre qui se vide, a chaque point perdu.
-                if (points != lastShown && lastShown != -1) bar.getWorld().playSound(bar.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.35f, 1.9f);
+                if (points != lastShown && lastShown != -1 && tick % 2 == 0) bar.getWorld().playSound(bar.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.35f, 1.9f);
                 lastShown = points;
                 tick++;
             }
