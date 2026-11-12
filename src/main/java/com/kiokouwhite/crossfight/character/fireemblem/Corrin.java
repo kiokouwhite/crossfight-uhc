@@ -339,6 +339,14 @@ public final class Corrin extends Character {
             Effects.root(p, PLANT_TICKS);
             var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "corrin", null, "debout");
             if (puppet != null) { puppet.pose("corrin_ult", 4); puppet.endAfter(PLANT_TICKS, 5); }
+            // Ses ailes de dragon se deploient sur son dos le temps de la pose (sauf si elle les a deja, en plein vol).
+            if (puppet != null && !SangDraconique.WINGS.containsKey(p.getUniqueId())) {
+                Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                    if (!p.isOnline() || p.isDead() || com.kiokouwhite.crossfight.util.Puppet.of(p) == null) return;
+                    var wings = com.kiokouwhite.crossfight.util.DragonWings.grow(p, 0.45, 0.6);
+                    Bukkit.getScheduler().runTaskLater(plugin(), wings::remove, PLANT_TICKS - 3L);
+                }, 4L);
+            }
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {

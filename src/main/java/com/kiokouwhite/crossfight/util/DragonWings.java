@@ -33,11 +33,17 @@ public final class DragonWings {
     private BukkitRunnable task;
     private int t;
 
-    private DragonWings(Player p) { this.p = p; }
+    /** Ou les ailes s'attachent : distance devant le joueur (negative : dans son dos) et hauteur, en blocs. */
+    private final double forward, height;
 
-    /** Fait pousser les ailes et les anime jusqu'a {@link #remove()} (ou le joueur disparait). */
-    public static DragonWings grow(Player p) {
-        DragonWings w = new DragonWings(p);
+    private DragonWings(Player p, double forward, double height) { this.p = p; this.forward = forward; this.height = height; }
+
+    /** Fait pousser les ailes dans le dos d'un joueur debout et les anime jusqu'a {@link #remove()} (ou le joueur disparait). */
+    public static DragonWings grow(Player p) { return grow(p, -0.3, 1.25); }
+
+    /** Les memes ailes, attachees ailleurs (ex. sur le dos d'un personnage a quatre pattes). */
+    public static DragonWings grow(Player p, double forward, double height) {
+        DragonWings w = new DragonWings(p, forward, height);
         w.build();
         w.spawn();
         w.task = new BukkitRunnable() {
@@ -136,7 +142,7 @@ public final class DragonWings {
         double tilt = Math.toRadians(32);
         Vector up = upWorld.clone().multiply(Math.cos(tilt)).add(forward.clone().multiply(-Math.sin(tilt)));
         Vector normal = side.clone().crossProduct(up).normalize();
-        Location origin = base.clone().add(0, 1.25, 0).add(forward.clone().multiply(-0.3));
+        Location origin = base.clone().add(0, height, 0).add(forward.clone().multiply(this.forward));
         // Les morceaux sont orientes en coordonnees du monde : leur entite ne doit pas, en plus, tourner
         // avec le regard du joueur (sinon toute l'aile part de travers des qu'il tourne la tete).
         origin.setYaw(0);
