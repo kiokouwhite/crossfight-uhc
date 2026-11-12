@@ -127,6 +127,7 @@ ability.livai_charge
 ability.livai_toupie
 ability.livai_ult
 ability.marth_contre
+ability.marth_contre_hit
 ability.marth_falchion
 ability.marth_ult
 ability.mikasa_assommage

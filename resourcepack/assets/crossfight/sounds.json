@@ -969,6 +969,13 @@
    "crossfight:sfx/shield/4"
   ]
  },
+ "ability.marth_contre_hit": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
  "ability.marth_falchion": {
   "sounds": [
    "crossfight:sfx/heal/1",

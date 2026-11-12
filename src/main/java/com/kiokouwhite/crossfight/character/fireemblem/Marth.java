@@ -173,6 +173,7 @@ public final class Marth extends Character {
             w.playSound(victim.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.4f, 1.9f);
             w.playSound(attacker.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.4f);
             Msg.actionBar(victim, "<gold>Contre reussi !");
+            com.kiokouwhite.crossfight.util.Sounds.ability(victim, "marth_contre_hit");
             if (attacker instanceof Player ap) Msg.actionBar(ap, "<red>Marth a contre ton coup !");
         }
 

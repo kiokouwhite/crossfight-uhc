@@ -9,6 +9,7 @@
 # ------------------------------------------------------------ Fire Emblem
 marth_falchion = heal
 marth_contre = shield
+marth_contre_hit = slash                    # contre reussi
 marth_ult = slash
 corrin_sang = roar
 corrin_ult = water
