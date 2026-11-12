@@ -192,3 +192,33 @@ pose byleth_tutorat
   arm_l -60 -25 0
   item_abs 30 0 0
   item_shift 1.7 1.8 0.8
+
+# Dechainement d'Epine de Byleth. Preparation : penchee en avant, l'epee tenue basse devant elle.
+pose byleth_epine_garde
+  root  14 0 0   0 -1.5 0
+  head  -10 0 0
+  arm_r -64 0 -6
+  arm_l 30 0 14
+  leg_r 16 0 -8
+  leg_l -22 0 8
+  item  80 0 0
+
+# Elle arme son coup : buste tourne a gauche, le bras ramene loin sur sa gauche.
+pose byleth_epine_gauche
+  root  6 35 0   0 -2 0
+  head  -4 -35 0
+  arm_r -80 65 0
+  arm_l 20 0 20
+  leg_r 8 0 -12
+  leg_l -10 0 12
+  item  90 0 0
+
+# Fin du grand balayage : buste tourne a droite, le bras tendu loin sur sa droite.
+pose byleth_epine_droite
+  root  6 -35 0   0 -2 0
+  head  -4 35 0
+  arm_r -80 -65 0
+  arm_l -30 0 24
+  leg_r -8 0 -12
+  leg_l 10 0 12
+  item  90 0 0

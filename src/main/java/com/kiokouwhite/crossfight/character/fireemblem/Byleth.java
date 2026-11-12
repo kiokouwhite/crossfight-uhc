@@ -478,6 +478,14 @@ public final class Byleth extends Character implements Listener {
             w.playSound(caster.getLocation(), Sound.ENTITY_EVOKER_PREPARE_ATTACK, 0.8f, 1.4f);
             w.playSound(caster.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.6f, 1.8f);
             BoneWhip whip = new BoneWhip(true);
+            // Le modele de Byleth suit le coup : epee basse devant elle, bras arme a gauche, grand balayage
+            // jusqu'a sa droite. Il garde la direction du coup, meme si le joueur tourne la tete.
+            final var puppet = caster instanceof Player pl ? com.kiokouwhite.crossfight.util.Puppet.show(pl, "byleth", heldSword(pl), "debout") : null;
+            if (puppet != null) {
+                puppet.face((float) Math.toDegrees(Math.atan2(-fwd.getX(), fwd.getZ())));
+                puppet.pose("byleth_epine_garde", 3);
+                puppet.endAfter(TOTAL - 3, 4);
+            }
 
             new BukkitRunnable() {
                 int tick = 0;
@@ -486,6 +494,11 @@ public final class Byleth extends Character implements Listener {
                     if (!caster.isValid() || caster.isDead() || tick > TOTAL) { whip.clear(); Effects.unroot(caster); cancel(); return; }
                     int current = tick++;
                     try {
+                        if (puppet != null && caster instanceof Player pl && com.kiokouwhite.crossfight.util.Puppet.of(pl) == puppet) {
+                            // Elle arme a gauche juste avant le balayage, puis le bras traverse pendant qu'il dure.
+                            if (current == WINDUP_END - 2) puppet.pose("byleth_epine_gauche", 2);
+                            if (current == WINDUP_END) puppet.pose("byleth_epine_droite", SWEEP_END - WINDUP_END);
+                        }
                         if (current < WINDUP_END) windup(current);
                         else if (current <= SWEEP_END) sweep(current);
                         else if (current == BLAST_TICK) blast();
@@ -570,6 +583,14 @@ public final class Byleth extends Character implements Listener {
                     if (tick == BLAST_TICK + 3) Effects.unroot(caster);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
+        }
+
+        /** L'Epee du Createur que porte Byleth, pour la montrer dans la main du modele. */
+        private static ItemStack heldSword(Player p) {
+            for (ItemStack it : p.getInventory().getContents()) {
+                if (it != null && SWORD_ID.equals(com.kiokouwhite.crossfight.util.Items.tag(it, AbilityEngine.ABILITY_KEY))) return it;
+            }
+            return new ItemStack(Material.DIAMOND_SWORD);
         }
 
         private static void strike(org.bukkit.entity.LivingEntity caster, org.bukkit.entity.LivingEntity enemy) {

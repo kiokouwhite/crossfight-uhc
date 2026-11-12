@@ -79,6 +79,7 @@ public final class Puppet {
     private String pose, restPose = "debout";
     private Vector3f grip = GRIP;
     private boolean rawModel;
+    private Float fixedYaw;
     private final List<Runnable> restore = new ArrayList<>();
 
     private Puppet(Player player) { this.player = player; }
@@ -191,7 +192,7 @@ public final class Puppet {
         Vector3f t = rootR.transform(new Vector3f(part.pivot).add(arm.offset).mul(K / 16f)).add(new Vector3f(root.offset).mul(K / 16f));
         Vector3f point = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(0, (float) (-10 * along), 0).mul(K / 16f)).add(t);
         // Du repere du pantin (X gauche, Z devant) vers le monde, selon l'orientation du joueur.
-        new Quaternionf().rotationY((float) Math.toRadians(-player.getLocation().getYaw())).transform(point);
+        new Quaternionf().rotationY((float) Math.toRadians(-anchor().getYaw())).transform(point);
         return player.getLocation().add(point.x, point.y, point.z);
     }
 
@@ -208,7 +209,13 @@ public final class Puppet {
     private Location anchor() {
         Location l = player.getLocation();
         l.setPitch(0);
+        if (fixedYaw != null) l.setYaw(fixedYaw);
         return l;
+    }
+
+    /** Le pantin garde cette orientation au lieu de suivre le regard du joueur (coup dont la direction est figee). */
+    public void face(float yaw) {
+        fixedYaw = yaw;
     }
 
     /** Passe a une autre pose en quelques ticks (0 : tout de suite). */
