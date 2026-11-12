@@ -11,6 +11,9 @@
 #   head | body | arm_r | arm_l | leg_r | leg_l   rx ry rz  [dx dy dz]
 #   item   rx ry rz                 l'objet tenu dans la main droite, par rapport au bras
 #                                   (0 0 0 : lame perpendiculaire au bras, comme une epee tenue)
+#   item_abs rx ry rz               a la place de item : orientation par rapport au joueur lui-meme (la ou il regarde),
+#                                   quelles que soient celles du corps et du bras (90 0 0 : un arc droit, ventre vers la cible)
+#   item_left 0 0 0                 l'objet est tenu dans la main gauche au lieu de la droite
 #   item_world rx ry rz             a la place de item : orientation de l'objet par rapport au corps,
 #                                   quelle que soit celle du bras (0 0 0 : lame vers l'avant, a plat sur la tranche ;
 #                                   90 90 0 : lame droit vers le bas, garde de gauche a droite)
@@ -157,3 +160,26 @@ pose takumi_furie_frappe
   arm_l 28 0 26
   leg_r 5 0 -6
   leg_l -125 0 6
+
+# Rayon Demoniaque : Takumi de profil, l'arc bande vers sa cible. Bras gauche tendu qui tient l'arc,
+# main droite ramenee sous le menton, tete tournee vers la cible.
+pose takumi_rayon
+  root  0 -70 0
+  head  0 70 0
+  arm_l -90 70 0
+  arm_r 0 0 90    0 0 3.2
+  leg_r 0 0 -12
+  leg_l 0 0 12
+  item_left 0 0 0
+  item_abs 90 0 0
+
+# Le rayon part : la main droite lache la corde et part en arriere.
+pose takumi_rayon_tir
+  root  0 -70 -4
+  head  0 70 0
+  arm_l -90 70 0
+  arm_r 0 0 -72
+  leg_r 0 0 -14
+  leg_l 0 0 12
+  item_left 0 0 0
+  item_abs 90 0 0

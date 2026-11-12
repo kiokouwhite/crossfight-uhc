@@ -247,10 +247,13 @@ public final class Puppet {
             Quaternionf r = new Quaternionf(rootR).mul(euler(j.angles));
             Vector3f t = rootR.transform(new Vector3f(part.pivot).add(j.offset).mul(K / 16f)).add(rootT);
             set(parts.get(part), new Transformation(t, r, new Vector3f(K, K, K), new Quaternionf()), ticks);
-            if (part == Part.ARM_R && held != null) {
-                // "item" : oriente par rapport au bras ; "item_world" : par rapport au corps, quel que soit le bras.
-                Joint world = joints.get("item_world");
-                Quaternionf ri = (world != null ? new Quaternionf(rootR).mul(euler(world.angles))
+            boolean leftHand = joints.containsKey("item_left");
+            if (part == (leftHand ? Part.ARM_L : Part.ARM_R) && held != null) {
+                // "item" : oriente par rapport au bras ; "item_world" : par rapport au corps ;
+                // "item_abs" : par rapport au joueur, quels que soient le corps et le bras.
+                Joint world = joints.get("item_world"), abs = joints.get("item_abs");
+                Quaternionf ri = (abs != null ? euler(abs.angles)
+                        : world != null ? new Quaternionf(rootR).mul(euler(world.angles))
                         : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles))).mul(ITEM_BASE);
                 Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
                 Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(ITEM_SCALE / 16f)));

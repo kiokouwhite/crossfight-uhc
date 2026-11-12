@@ -529,10 +529,14 @@ public final class Takumi extends Character implements Listener {
         private static final Particle.DustOptions PINK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 120, 220), 1.6f);
         private static final Particle.DustOptions MAGENTA = new Particle.DustOptions(org.bukkit.Color.fromRGB(200, 40, 200), 2.2f);
         private static final Particle.DustOptions WHITE = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 240, 255), 1.0f);
+        private static final Particle.DustOptions VIOLET = new Particle.DustOptions(org.bukkit.Color.fromRGB(150, 60, 225), 1.5f);
+        private static final Particle.DustOptions DARK_VIOLET = new Particle.DustOptions(org.bukkit.Color.fromRGB(70, 15, 110), 1.9f);
+        private static final Particle.DustOptions BLACK_ORB = new Particle.DustOptions(org.bukkit.Color.fromRGB(14, 4, 24), 2.6f);
+        private static final Particle.DustOptions RED_EYE = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 20, 20), 0.45f);
 
         RayonDemoniaque() {
             super("takumi_ult", "Rayon Demoniaque",
-                    "Takumi charge 4 secondes puis un rayon de verre de 10 blocs de large jaillit sur 30 blocs, infligeant 5 coeurs a tous les ennemis visibles sur son passage.",
+                    "Takumi bande son arc 4 secondes puis un rayon de verre de 10 blocs de large jaillit sur 30 blocs dans la direction ou il regarde, infligeant 5 coeurs a tous les ennemis visibles sur son passage.",
                     Material.AMETHYST_SHARD);
         }
 
@@ -548,28 +552,80 @@ public final class Takumi extends Character implements Listener {
             return true;
         }
 
-        /** Charge de 4 secondes puis tir. Avec une cible, le rayon part vers elle (direction figee au tir). */
+        /** L'arc que Takumi montre pendant l'ultime : le sien, meme s'il l'a jete au sol pour sa lame. */
+        private static ItemStack shownBow(Player p) {
+            for (ItemStack it : p.getInventory().getContents()) {
+                if (it != null && "takumi".equals(Items.tag(it, AbilityEngine.WEAPON_KEY))) return it;
+            }
+            return new ItemStack(Material.BOW);
+        }
+
+        /**
+         * Charge de 4 secondes puis tir. Avec une cible, le rayon part vers elle (direction figee au tir).
+         * Comme dans Fire Emblem Fates : Takumi bande son arc, enveloppe de flammes violettes et d'orbes
+         * noirs, les yeux rouges, pendant qu'un eclat blanc-rose pulse a la pointe de la fleche.
+         */
         static void charge(org.bukkit.entity.LivingEntity p, org.bukkit.entity.LivingEntity target, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
             Effects.give(p, PotionEffectType.SLOWNESS, 2, CHARGE_TICKS);
             Effects.say(p, "<light_purple>Rayon Demoniaque en charge...");
             final World w = p.getWorld();
+            final Player player = p instanceof Player pl ? pl : null;
+            final var puppet = player == null ? null : com.kiokouwhite.crossfight.util.Puppet.show(player, "takumi", shownBow(player), "takumi_arc");
+            if (puppet != null) {
+                puppet.rest("takumi_arc");
+                puppet.pose("takumi_rayon", 6);
+                puppet.endAfter(CHARGE_TICKS + 34, 5);
+            }
             new BukkitRunnable() {
                 int ticks = 0;
                 @Override public void run() {
                     if (!p.isValid() || p.isDead()) { cancel(); return; }
                     ticks++;
-                    // L'energie rose converge vers la pointe de l'arc.
-                    Location tip = p.getEyeLocation().add(p.getLocation().getDirection().multiply(1.2));
-                    double r = 2.5 - ticks / (double) CHARGE_TICKS * 2.2;
+                    Location feet = p.getLocation();
+                    Vector dir = feet.getDirection().setY(0);
+                    if (dir.lengthSquared() < 1e-4) dir = new Vector(0, 0, 1);
+                    dir.normalize();
+                    Vector side = new Vector(-dir.getZ(), 0, dir.getX());
+                    double progress = ticks / (double) CHARGE_TICKS;
+                    // L'energie rose converge vers la pointe de la fleche, devant l'arc.
+                    Location tip = feet.clone().add(0, 1.32, 0).add(dir.clone().multiply(1.15));
+                    double r = 2.5 - progress * 2.2;
                     for (int i = 0; i < 4; i++) {
                         double a = Math.random() * Math.PI * 2, b = Math.random() * Math.PI;
                         Location l = tip.clone().add(Math.sin(b) * Math.cos(a) * r, Math.cos(b) * r, Math.sin(b) * Math.sin(a) * r);
                         w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, ticks % 2 == 0 ? PINK : MAGENTA);
                     }
                     w.spawnParticle(Particle.DUST, tip, 2, 0.1, 0.1, 0.1, 0, WHITE);
+                    // L'eclat blanc-rose qui pulse a la pointe, de plus en plus vite.
+                    int pulse = progress < 0.5 ? 14 : progress < 0.8 ? 9 : 5;
+                    if (ticks > 8 && ticks % pulse == 0) {
+                        w.spawnParticle(Particle.FLASH, tip, 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 215, 250));
+                        w.spawnParticle(Particle.END_ROD, tip, 6, 0.05, 0.05, 0.05, 0.06 + progress * 0.08);
+                        w.playSound(tip, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 0.7f + (float) progress);
+                    }
+                    // Les flammes violettes qui l'enveloppent, en vrille.
+                    for (int k = 0; k < 10; k++) {
+                        double h = Math.random() * 2.3, a = ticks * 0.45 + k * (Math.PI * 2 / 10) + h * 1.4, rad = 0.85 - h * 0.1;
+                        w.spawnParticle(Particle.DUST, feet.clone().add(Math.cos(a) * rad, h, Math.sin(a) * rad), 1, 0.03, 0.03, 0.03, 0,
+                                k % 3 == 0 ? DARK_VIOLET : k % 3 == 1 ? VIOLET : MAGENTA);
+                    }
+                    w.spawnParticle(Particle.WITCH, feet.clone().add(0, 1, 0), 3, 0.45, 0.7, 0.45, 0);
+                    if (ticks % 2 == 0) w.spawnParticle(Particle.PORTAL, feet.clone().add(0, 1, 0), 6, 0.5, 0.6, 0.5, 0.4);
+                    // Les orbes noirs qui tournent autour de lui.
+                    for (int k = 0; k < 4; k++) {
+                        double a = ticks * 0.12 + k * Math.PI / 2, h = 0.6 + 1.2 * (0.5 + 0.5 * Math.sin(ticks * 0.07 + k * 1.7));
+                        w.spawnParticle(Particle.DUST, feet.clone().add(Math.cos(a) * 1.7, h, Math.sin(a) * 1.7), 1, 0, 0, 0, 0, BLACK_ORB);
+                    }
+                    // Ses yeux rouges.
+                    for (int k = -1; k <= 1; k += 2) {
+                        w.spawnParticle(Particle.DUST, feet.clone().add(0, 1.63, 0).add(dir.clone().multiply(0.27)).add(side.clone().multiply(0.1 * k)), 1, 0, 0, 0, 0, RED_EYE);
+                    }
                     if (ticks % 10 == 0) w.playSound(p.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 1f, 0.5f + ticks / 80f);
                     if (ticks >= CHARGE_TICKS) {
                         cancel();
+                        // Il lache la corde.
+                        if (puppet != null && com.kiokouwhite.crossfight.util.Puppet.of(player) == puppet) puppet.pose("takumi_rayon_tir", 2);
+                        w.spawnParticle(Particle.FLASH, tip, 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 240, 255));
                         fire(p, w, Effects.towards(p, target), isTarget);
                     }
                 }
@@ -577,10 +633,24 @@ public final class Takumi extends Character implements Listener {
         }
 
         private static void fire(org.bukkit.entity.LivingEntity p, World w, Vector dir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
-            final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
-                    ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
+            // Le rayon part exactement la ou Takumi regarde (a l'horizontale) : droit, en diagonale, ou entre les deux.
+            final Vector axis = dir.clone().setY(0).normalize();
             final Vector side = new Vector(-axis.getZ(), 0, axis.getX());
             final Location origin = p.getEyeLocation().getBlock().getLocation(); // hauteur des yeux
+            // Les blocs du rayon, ranges par tranche (distance le long de l'axe). Chaque case de la grille dont
+            // le centre tombe dans le rectangle du rayon en fait partie : {x, z, ecart au centre en dixiemes}.
+            final Map<Integer, List<int[]>> slices = new java.util.HashMap<>();
+            {
+                int ox = origin.getBlockX(), oz = origin.getBlockZ(), span = LENGTH + HALF_WIDTH + 2;
+                for (int dx = -span; dx <= span; dx++) {
+                    for (int dz = -span; dz <= span; dz++) {
+                        // Le demi-bloc de decalage garde les 10 blocs de large d'avant quand le rayon est droit.
+                        double along = dx * axis.getX() + dz * axis.getZ(), lat = Math.abs(dx * side.getX() + dz * side.getZ() - 0.5);
+                        if (along <= 0.5 || along > LENGTH + 0.5 || lat >= HALF_WIDTH) continue;
+                        slices.computeIfAbsent((int) Math.ceil(along - 0.5), k -> new ArrayList<>()).add(new int[]{ox + dx, oz + dz, (int) (lat * 10)});
+                    }
+                }
+            }
             final Map<Block, BlockState> placed = new LinkedHashMap<>();
             final List<Block> order = new ArrayList<>();
             final List<UUID> hit = new ArrayList<>();
@@ -631,19 +701,15 @@ public final class Takumi extends Character implements Listener {
 
                 /** Une tranche du rayon : 10 de large, 3 de haut, coeur blanc, corps rose, bords magenta. */
                 void buildSlice(int along) {
-                    for (int lateral = -HALF_WIDTH + 1; lateral <= HALF_WIDTH; lateral++) {
-                        int dist = Math.abs(lateral - (lateral > 0 ? 1 : 0)); // 0 au centre, 4 au bord
+                    for (int[] cell : slices.getOrDefault(along, List.of())) {
+                        double dist = cell[2] / 10.0; // 0 au centre, 5 au bord
                         for (int up = -1; up <= 1; up++) {
-                            boolean edge = dist == 4 || up != 0;
                             // Bords arrondis : pas de coins sur les couches haute et basse.
-                            if (up != 0 && dist == 4) continue;
-                            Material m = (dist <= 1 && up == 0) ? Material.WHITE_STAINED_GLASS
-                                    : (dist <= 2 && up == 0) || (dist <= 1) ? Material.PINK_STAINED_GLASS
+                            if (up != 0 && dist >= 4) continue;
+                            Material m = (dist < 2 && up == 0) ? Material.WHITE_STAINED_GLASS
+                                    : (dist < 3 && up == 0) || (dist < 2) ? Material.PINK_STAINED_GLASS
                                     : Material.MAGENTA_STAINED_GLASS;
-                            int x = origin.getBlockX() + axis.getBlockX() * along + side.getBlockX() * lateral;
-                            int y = origin.getBlockY() + up;
-                            int z = origin.getBlockZ() + axis.getBlockZ() * along + side.getBlockZ() * lateral;
-                            Block b = w.getBlockAt(x, y, z);
+                            Block b = w.getBlockAt(cell[0], origin.getBlockY() + up, cell[1]);
                             if (!(b.getType().isAir() || b.isReplaceable()) || placed.containsKey(b)) continue;
                             placed.put(b, b.getState());
                             order.add(b);

@@ -327,7 +327,7 @@ public final class Corrin extends Character {
 
         VaguesBleues() {
             super("corrin_ult", "Les Vagues Bleues de l'Ocean Gris",
-                    "Corrin plante ses bras dans le sol, immobile 1,5 s : une vraie vague de 10 blocs de large se dresse et deferle sur 40 blocs (10 blocs/s). Les ennemis touches sont ejectes a 30 blocs de haut et ont Lenteur III pendant 10 secondes.",
+                    "Corrin plante ses bras dans le sol, immobile 1,5 s : une vraie vague de 10 blocs de large se dresse et deferle sur 40 blocs (10 blocs/s) dans la direction ou elle regarde. Les ennemis touches sont ejectes a 30 blocs de haut et ont Lenteur III pendant 10 secondes.",
                     Material.HEART_OF_THE_SEA);
         }
 
@@ -376,11 +376,23 @@ public final class Corrin extends Character {
         }
 
         static void perform(org.bukkit.entity.LivingEntity p, Vector dir, java.util.function.Predicate<org.bukkit.entity.LivingEntity> isTarget) {
-            // On avance sur l'axe dominant pour que la vague reste alignee sur la grille de blocs.
-            final Vector axis = Math.abs(dir.getX()) >= Math.abs(dir.getZ())
-                    ? new Vector(Math.signum(dir.getX()), 0, 0) : new Vector(0, 0, Math.signum(dir.getZ()));
+            // La vague part exactement la ou Corrin regarde (a l'horizontale) : droit, en diagonale, ou entre les deux.
+            final Vector axis = dir.clone().setY(0).normalize();
             final Vector side = new Vector(-axis.getZ(), 0, axis.getX());
             final Location origin = p.getLocation().getBlock().getLocation();
+            // Toutes les cases de la grille que la vague balaiera : {x, z, distance le long de l'axe en
+            // dixiemes, ecart au centre en dixiemes}. Le demi-bloc de decalage garde les 10 blocs de large.
+            final List<int[]> swept = new ArrayList<>();
+            {
+                int ox = origin.getBlockX(), oz = origin.getBlockZ(), span = STEPS + HALF_WIDTH + 4;
+                for (int dx = -span; dx <= span; dx++) {
+                    for (int dz = -span; dz <= span; dz++) {
+                        double along = dx * axis.getX() + dz * axis.getZ(), lat = Math.abs(dx * side.getX() + dz * side.getZ() - 0.5);
+                        if (along < 0.5 || along > STEPS + 2.5 || lat >= HALF_WIDTH) continue; // jamais sur Corrin
+                        swept.add(new int[]{ox + dx, oz + dz, (int) Math.round(along * 10), (int) (lat * 10)});
+                    }
+                }
+            }
             final World w = p.getWorld();
             final Map<Block, BlockState> placed = new LinkedHashMap<>();
             final List<BlockDisplay> cubes = new ArrayList<>();
@@ -411,18 +423,19 @@ public final class Corrin extends Character {
 
                 /** Pose les blocs de verre de la vague autour du front, colonne par colonne. */
                 void build(int front) {
-                    for (int lateral = -HALF_WIDTH + 1; lateral <= HALF_WIDTH; lateral++) {
-                        int edge = Math.max(0, Math.abs(lateral - (lateral > 0 ? 1 : 0)) - (HALF_WIDTH - 3));
+                    for (int[] cell : swept) {
+                        // A combien de blocs derriere le front se trouve cette colonne.
+                        int back = (int) Math.round(front - cell[2] / 10.0);
+                        if (back < 0) continue;
+                        // Les deux dernieres colonnes de chaque bord sont plus basses, pour arrondir la vague.
+                        int edge = Math.max(0, cell[3] / 10 - (HALF_WIDTH - 3));
+                        int ground = Integer.MIN_VALUE;
                         for (Cell c : PROFILE) {
-                            int along = front - c.back();
-                            if (along < 1) continue; // jamais sur Corrin
-                            // Les deux dernieres colonnes de chaque bord sont plus basses, pour arrondir la vague.
+                            if (c.back() != back) continue;
                             int up = c.up() - edge;
                             if (up < 1) continue;
-                            int x = origin.getBlockX() + axis.getBlockX() * along + side.getBlockX() * lateral;
-                            int z = origin.getBlockZ() + axis.getBlockZ() * along + side.getBlockZ() * lateral;
-                            int ground = groundY(x, z);
-                            Block b = w.getBlockAt(x, ground + up, z);
+                            if (ground == Integer.MIN_VALUE) ground = groundY(cell[0], cell[1]);
+                            Block b = w.getBlockAt(cell[0], ground + up, cell[1]);
                             if (!(b.getType().isAir() || b.isReplaceable()) || placed.containsKey(b)) continue;
                             placed.put(b, b.getState());
                             b.setType(c.material(), false);
