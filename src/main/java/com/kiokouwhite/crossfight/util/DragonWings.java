@@ -137,6 +137,10 @@ public final class DragonWings {
         Vector up = upWorld.clone().multiply(Math.cos(tilt)).add(forward.clone().multiply(-Math.sin(tilt)));
         Vector normal = side.clone().crossProduct(up).normalize();
         Location origin = base.clone().add(0, 1.25, 0).add(forward.clone().multiply(-0.3));
+        // Les morceaux sont orientes en coordonnees du monde : leur entite ne doit pas, en plus, tourner
+        // avec le regard du joueur (sinon toute l'aile part de travers des qu'il tourne la tete).
+        origin.setYaw(0);
+        origin.setPitch(0);
         // Battement : plus ample et plus rapide en vol, lent en plane.
         double period = p.isFlying() ? 16.0 : 36.0, amp = p.isFlying() ? 0.32 : 0.14;
         double flap = amp * Math.sin(t * 2 * Math.PI / period);
@@ -159,7 +163,9 @@ public final class DragonWings {
         double a = part.angle + fr.flap;
         Vector dir = fr.side.clone().multiply(part.right ? Math.cos(a) : -Math.cos(a)).add(fr.up.clone().multiply(Math.sin(a))).normalize();
         Vector n = fr.normal;
-        Vector bin = n.clone().crossProduct(dir).normalize();
+        // Troisieme axe : longueur x epaisseur, dans cet ordre, pour un repere direct (dans l'autre sens la
+        // matrice est un miroir, pas une rotation, et l'orientation obtenue n'a aucun sens).
+        Vector bin = dir.clone().crossProduct(n).normalize();
         Matrix3f m = new Matrix3f(
                 (float) dir.getX(), (float) dir.getY(), (float) dir.getZ(),
                 (float) n.getX(), (float) n.getY(), (float) n.getZ(),
