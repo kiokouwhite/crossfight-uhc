@@ -304,8 +304,9 @@ public final class Byleth extends Character implements Listener {
                 options.add(new ChoiceMenu.Option(ally instanceof Player ? Material.PLAYER_HEAD : Material.ZOMBIE_HEAD,
                         allyName(ally), lore, () -> chooseCategory(p, ally, pr, st)));
             }
+            startReading(p);
             ChoiceMenu.open(p, "<dark_gray>Tutorat : quel allie former ?", options,
-                    pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); });
+                    pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); stopReading(pl, 0); });
             // Le temps de chargement ne part que si une categorie est choisie.
             return true;
         }
@@ -315,6 +316,7 @@ public final class Byleth extends Character implements Listener {
             if (!ally.isValid() || ally.isDead()) {
                 Msg.actionBar(p, "<red>Tutorat : " + allyName(ally) + " n'est plus disponible.");
                 st.clearCooldown();
+                stopReading(p, 0);
                 return;
             }
             List<ChoiceMenu.Option> options = new ArrayList<>();
@@ -328,7 +330,7 @@ public final class Byleth extends Character implements Listener {
                         () -> teach(p, ally, pr, cat, st)));
             }
             ChoiceMenu.open(p, "<dark_gray>Tutorat : " + allyName(ally), options,
-                    pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); });
+                    pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); stopReading(pl, 0); });
         }
 
         private static String allyName(org.bukkit.entity.LivingEntity e) {
@@ -339,6 +341,7 @@ public final class Byleth extends Character implements Listener {
             if (pr.level[cat] >= 4) {
                 Msg.send(byleth, "<red>" + allyName(ally) + " est deja au niveau maximum en " + CATEGORIES[cat] + ".");
                 st.clearCooldown();
+                stopReading(byleth, 0);
                 return;
             }
             int gain = ThreadLocalRandom.current().nextInt(50, 91);
@@ -373,6 +376,54 @@ public final class Byleth extends Character implements Listener {
                         + (bonusText.isEmpty() ? "" : " <gray>- niveau " + pr.level[cat] + " ! " + bonusText));
             }
             ally.getWorld().playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+            // La lecon est donnee : elle lit encore un instant, puis referme son livre.
+            stopReading(byleth, 30);
+        }
+
+        // ------------------------------------------------------------ la lecture
+
+        /** Les pantins de celles qui sont en train de lire. */
+        private static final Map<UUID, com.kiokouwhite.crossfight.util.Puppet> READING = new HashMap<>();
+
+        /** Le livre ouvert du pack (items/book_open.json) ou l'une des trois images de la page qui tourne. */
+        private static ItemStack book(String look) {
+            ItemStack it = new ItemStack(Material.BOOK);
+            var meta = it.getItemMeta();
+            meta.setItemModel(new org.bukkit.NamespacedKey("crossfight", look));
+            it.setItemMeta(meta);
+            return it;
+        }
+
+        /** Byleth ouvre un livre devant elle et le lit, en tournant une page toutes les secondes et demie. */
+        private static void startReading(Player p) {
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "byleth", book("book_open"), "debout");
+            if (puppet == null) return;
+            puppet.pose("byleth_tutorat", 5);
+            READING.put(p.getUniqueId(), puppet);
+            final String[] flip = {"book_turn1", "book_turn2", "book_turn3", "book_open"};
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || READING.get(p.getUniqueId()) != puppet || com.kiokouwhite.crossfight.util.Puppet.of(p) != puppet) {
+                        READING.remove(p.getUniqueId(), puppet);
+                        cancel();
+                        return;
+                    }
+                    int phase = (t - 16) % 30;   // premiere page au bout de 0,8 s, puis une toutes les 1,5 s
+                    if (t >= 16 && phase < 8 && phase % 2 == 0) {
+                        puppet.heldLook(book(flip[phase / 2]));
+                        if (phase == 0) p.getWorld().playSound(p.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 1f, 1f);
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
+
+        /** Elle referme son livre dans {@code delay} ticks. */
+        private static void stopReading(Player p, int delay) {
+            var puppet = READING.remove(p.getUniqueId());
+            if (puppet == null || com.kiokouwhite.crossfight.util.Puppet.of(p) != puppet) return;
+            puppet.endAfter(delay, 4);
         }
 
         @Override

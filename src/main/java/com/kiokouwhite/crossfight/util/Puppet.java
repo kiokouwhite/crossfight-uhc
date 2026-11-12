@@ -78,6 +78,7 @@ public final class Puppet {
     private int age, endAt = -1, removeAt = 20 * 30;
     private String pose, restPose = "debout";
     private Vector3f grip = GRIP;
+    private boolean rawModel;
     private final List<Runnable> restore = new ArrayList<>();
 
     private Puppet(Player player) { this.player = player; }
@@ -152,7 +153,16 @@ public final class Puppet {
         if (item == null || item.getType().isAir()) return;
         held = spawn(at, item.clone());
         String type = item.getType().name();
-        grip = type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
+        // Un objet du pack (un livre ouvert...) est un vrai modele, centre sur la main et deja dans le bon
+        // sens : ni rotation d'objet plat, ni point de prise. Les autres sont des images tenues par un bout.
+        ItemMeta meta = item.getItemMeta();
+        rawModel = meta != null && meta.hasItemModel() && Sounds.NS.equals(meta.getItemModel().getNamespace());
+        grip = rawModel ? new Vector3f() : type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
+    }
+
+    /** Change l'image de l'objet tenu sans le faire disparaitre (pages d'un livre qui tournent). */
+    public void heldLook(ItemStack item) {
+        if (held != null && held.isValid() && item != null) held.setItemStack(item.clone());
     }
 
     /** Change l'objet montre dans la main droite en cours d'animation (null : la main se vide). */
@@ -252,12 +262,17 @@ public final class Puppet {
                 // "item" : oriente par rapport au bras ; "item_world" : par rapport au corps ;
                 // "item_abs" : par rapport au joueur, quels que soient le corps et le bras.
                 Joint world = joints.get("item_world"), abs = joints.get("item_abs");
-                Quaternionf ri = (abs != null ? euler(abs.angles)
+                Quaternionf ri = abs != null ? euler(abs.angles)
                         : world != null ? new Quaternionf(rootR).mul(euler(world.angles))
-                        : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles))).mul(ITEM_BASE);
+                        : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles));
+                if (!rawModel) ri.mul(ITEM_BASE);
+                float size = rawModel ? K : ITEM_SCALE;
                 Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
-                Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(ITEM_SCALE / 16f)));
-                set(held, new Transformation(ti, ri, new Vector3f(ITEM_SCALE, ITEM_SCALE, ITEM_SCALE), new Quaternionf()), ticks);
+                // "item_shift" : decalage de l'objet par rapport a la main, dans le repere du joueur (pixels).
+                Joint shift = joints.get("item_shift");
+                if (shift != null) hand.add(new Vector3f(shift.angles).mul(K / 16f));
+                Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(size / 16f)));
+                set(held, new Transformation(ti, ri, new Vector3f(size, size, size), new Quaternionf()), ticks);
             }
         }
     }

@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Dessine une pose du modele articule sans lancer le jeu.
 
-Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet] [--objet image.png] [--arc]
+Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet] [--objet image.png] [--arc] [--modele nom]
 
 --objet : l'image 16x16 de l'objet tenu (sinon une epee de remplacement). --arc : tenu par le milieu, comme un arc.
+--modele : un modele du pack public tenu en main (ex. book_open), centre sur la main.
 
 Relit les modeles ecrits par add_skin.py et src/main/resources/poses.txt, et applique les memes
 transformations que util/Puppet.java et que le client Minecraft (objet affiche centre sur son
@@ -104,7 +105,27 @@ def quads(name, pose_name, private):
                 pts = [t + r @ (K * (flip @ ((np.array(p) - 8) / 16))) for p in FACES[face](a, b)]
                 u1, v1, u2, v2 = (c * 4 for c in f["uv"])
                 out.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], skin))
-        if part == ("arm_l" if "item_left" in pose else "arm_r") and "--sans-objet" not in sys.argv:
+        if part == ("arm_l" if "item_left" in pose else "arm_r") and "--modele" in sys.argv:
+            # Un vrai modele du pack : memes regles que les parties du corps, plus la rotation propre a chaque element.
+            mname = sys.argv[sys.argv.index("--modele") + 1]
+            pub = ROOT / "resourcepack" / "assets" / "crossfight"
+            mtex = np.array(Image.open(pub / "textures/item/book_open.png").convert("RGBA"))
+            ri = rot(*pose["item_abs"][0]) if "item_abs" in pose else root_r @ rot(*pose["item_world"][0]) if "item_world" in pose else r @ rot(*get("item")[0])
+            hand = t + r @ (np.array(HAND) / 16 * K)
+            if "item_shift" in pose: hand = hand + np.array(pose["item_shift"][0]) / 16 * K
+            for el in json.loads((pub / "models/item" / f"{mname}.json").read_text())["elements"]:
+                a, b = el["from"], el["to"]
+                def placed(pt):
+                    pt = np.array(pt, dtype=float)
+                    if "rotation" in el:
+                        o = np.array(el["rotation"]["origin"], dtype=float); ang = el["rotation"]["angle"]
+                        ax = {"x": (ang, 0, 0), "y": (0, ang, 0), "z": (0, 0, ang)}[el["rotation"]["axis"]]
+                        pt = o + rot(*ax) @ (pt - o)
+                    return hand + ri @ (K * (flip @ ((pt - 8) / 16)))
+                for face, f in el["faces"].items():
+                    u1, v1, u2, v2 = f["uv"]
+                    out.append(([placed(pt) for pt in FACES[face](a, b)], [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], mtex))
+        elif part == ("arm_l" if "item_left" in pose else "arm_r") and "--sans-objet" not in sys.argv:
             ri = (rot(*pose["item_abs"][0]) if "item_abs" in pose else root_r @ rot(*pose["item_world"][0]) if "item_world" in pose
                   else r @ rot(*get("item")[0])) @ ITEM_BASE
             hand = t + r @ (np.array(HAND) / 16 * K)
@@ -157,8 +178,8 @@ def render(qs, view_yaw, size=(420, 460), scale=115):
 
 
 def main() -> int:
-    skip = sys.argv.index("--objet") + 1 if "--objet" in sys.argv else -1
-    args = [a for i, a in enumerate(sys.argv) if i > 0 and i != skip and not a.startswith("--")]
+    skip = {sys.argv.index(o) + 1 for o in ("--objet", "--modele") if o in sys.argv}
+    args = [a for i, a in enumerate(sys.argv) if i > 0 and i not in skip and not a.startswith("--")]
     if len(args) < 2:
         print(__doc__)
         return 1

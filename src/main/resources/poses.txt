@@ -14,6 +14,7 @@
 #   item_abs rx ry rz               a la place de item : orientation par rapport au joueur lui-meme (la ou il regarde),
 #                                   quelles que soient celles du corps et du bras (90 0 0 : un arc droit, ventre vers la cible)
 #   item_left 0 0 0                 l'objet est tenu dans la main gauche au lieu de la droite
+#   item_shift dx dy dz             decale l'objet par rapport a la main, dans le repere du joueur (pixels)
 #   item_world rx ry rz             a la place de item : orientation de l'objet par rapport au corps,
 #                                   quelle que soit celle du bras (0 0 0 : lame vers l'avant, a plat sur la tranche ;
 #                                   90 90 0 : lame droit vers le bas, garde de gauche a droite)
@@ -183,3 +184,11 @@ pose takumi_rayon_tir
   leg_l 0 0 12
   item_left 0 0 0
   item_abs 90 0 0
+
+# Tutorat de Byleth : elle lit un livre ouvert tenu a deux mains devant elle, tete baissee.
+pose byleth_tutorat
+  head  20 0 0
+  arm_r -60 25 0
+  arm_l -60 -25 0
+  item_abs 30 0 0
+  item_shift 1.7 1.8 0.8

@@ -167,6 +167,8 @@ Pour le Rayon Démoniaque, d'après la scène de Fire Emblem Fates : Takumi se m
 
 Le Rayon Démoniaque et les Vagues Bleues de Corrin partent dans la direction exacte du regard (à l'horizontale), et non plus sur l'un des quatre axes de la grille : droit, en diagonale ou entre les deux. Chaque case de la grille dont le centre tombe dans le rectangle du rayon ou de la vague en fait partie.
 
+Animation de Byleth : pendant tout le Tutorat (les deux menus, puis une seconde et demie après la leçon), elle tient un livre ouvert à deux mains devant elle, tête baissée, et tourne une page toutes les secondes et demie. Le livre est un modèle du pack public (`items/book_open.json` et trois images de la page qui tourne, `book_turn1` à `book_turn3`) : un objet du pack tenu en main est centré sur la main, sans la rotation des objets plats (`item_shift` le décale, `Puppet.heldLook` change son image).
+
 Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus ni sa propre armure ni l'objet qu'il tient en vue extérieure : ses quatre cases d'armure lui sont envoyées vides, et la case qu'il tient reçoit un objet sans apparence (`items/hidden.json`), si bien que le clic droit part toujours. Son inventaire réel n'est pas touché et lui est renvoyé à la fin ; l'icône de l'objet tenu disparaît de sa barre le temps de l'animation. Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
 
 ### Items de capacité
