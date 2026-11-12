@@ -118,7 +118,7 @@ public final class Marth extends Character {
 
         Contre() {
             super("marth_contre", "Contre",
-                    "Marth prend la pose : s'il recoit un coup dans la seconde, il ne subit rien, renvoie les degats d'un grand coup d'epee qui projette l'adversaire au loin, puis l'immobilise 1 seconde.",
+                    "Marth prend la pose, immobile : s'il recoit un coup dans la seconde, il ne subit rien, renvoie les degats d'un grand coup d'epee qui projette l'adversaire au loin, puis l'immobilise 1 seconde.",
                     Material.NAUTILUS_SHELL, 5);
         }
 
@@ -126,6 +126,8 @@ public final class Marth extends Character {
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             long until = System.currentTimeMillis() + 1000L;
             st.set("counterUntil", until);
+            // Marth tient la pose sans bouger pendant toute la seconde (il peut encore tourner la tete).
+            Effects.root(p, 20);
             p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.6f);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.2f, 1.4f);
             // La pose du Contre : le joueur est remplace une seconde par son modele articule (si le pack l'a).
@@ -156,6 +158,7 @@ public final class Marth extends Character {
             double dmg = e.getFinalDamage();
             e.setCancelled(true);
             st.set("counterUntil", 0L);
+            Effects.unroot(victim);
             // Marth se tourne vers l'adversaire et riposte d'un grand coup d'epee.
             Vector toward = attacker.getLocation().toVector().subtract(victim.getLocation().toVector()).setY(0);
             if (toward.lengthSquared() < 0.01) toward = victim.getLocation().getDirection().setY(0);

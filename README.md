@@ -248,7 +248,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - L'Épée du Créateur de Byleth fait 8 dégâts (non précisé dans le doc).
 - Le Soutien et les dégâts des capacités passent par l'armure comme un coup normal.
 - Sang Draconique de Corrin lui fait pousser des ailes de dragon pendant le vol : membrane translucide rose pâle à la racine et blanche vers les bouts, arêtes et griffes argentées, battement rapide en vol puis lent en descente, éclaboussures d'eau ; elles disparaissent à l'atterrissage.
-- Le Contre de Marth reprend celui de Smash Bros Melee : pendant la seconde de pose il scintille en blanc ; au coup reçu il se tourne vers l'attaquant, un grand croissant d'épée balaye devant lui, les dégâts sont renvoyés et l'adversaire est projeté au loin (environ 10 blocs) avant d'être immobilisé 1 s.
+- Le Contre de Marth reprend celui de Smash Bros Melee : pendant la seconde de pose il scintille en blanc et ne peut ni marcher ni sauter (il peut tourner la tête ; un contre réussi le libère aussitôt) ; au coup reçu il se tourne vers l'attaquant, un grand croissant d'épée balaye devant lui, les dégâts sont renvoyés et l'adversaire est projeté au loin (environ 10 blocs) avant d'être immobilisé 1 s.
 - Le Coup Critique de Marth affiche au-dessus de chaque ennemi touché la barre de vie des combats de Fire Emblem (GBA) : un nombre qui descend de 100 à 0 et 40 traits qui se vident un à un en deux secondes, avec un cliquetis, avant de disparaître. C'est un effet purement visuel, sans rapport avec la vie réelle de la cible (`util/HealthBar.java`, qui sait aussi afficher la vraie perte de vie).
 
 ## Feuille de route
