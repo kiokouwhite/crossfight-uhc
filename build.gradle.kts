@@ -37,6 +37,8 @@ tasks {
     shadowJar {
         archiveClassifier.set("")
         archiveBaseName.set("CrossfightUHC")
+        // Le plugin n'utilise que des noms officiels (Mojang) : Paper n'a pas a le retraduire au demarrage.
+        manifest { attributes["paperweight-mappings-namespace"] = "mojang" }
     }
     build { dependsOn(shadowJar) }
     test { useJUnitPlatform() }

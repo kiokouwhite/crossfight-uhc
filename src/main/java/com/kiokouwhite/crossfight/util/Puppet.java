@@ -217,23 +217,47 @@ public final class Puppet {
             player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 20 * 30, 0, false, false, false));
             addedInvisibility = true;
         }
-        EquipmentSlot[] armor = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
         EquipmentSlot[] all = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET, EquipmentSlot.HAND, EquipmentSlot.OFF_HAND};
         for (Player viewer : player.getWorld().getPlayers()) {
-            boolean self = viewer.equals(player);
-            if (!self && viewer.getLocation().distanceSquared(player.getLocation()) > 96 * 96) continue;
-            // Le joueur lui-meme garde ses mains : vider sa main chez lui ferait disparaitre son objet de la barre.
-            EquipmentSlot[] slots = self ? armor : all;
+            if (viewer.equals(player) || viewer.getLocation().distanceSquared(player.getLocation()) > 96 * 96) continue;
             Map<EquipmentSlot, ItemStack> empty = new EnumMap<>(EquipmentSlot.class);
-            for (EquipmentSlot s : slots) empty.put(s, ItemStack.empty());
+            for (EquipmentSlot s : all) empty.put(s, ItemStack.empty());
             viewer.sendEquipmentChange(player, empty);
             restore.add(() -> {
                 if (!viewer.isOnline() || !player.isOnline()) return;
-                if (self) { player.updateInventory(); return; }
                 Map<EquipmentSlot, ItemStack> real = new EnumMap<>(EquipmentSlot.class);
-                for (EquipmentSlot s : slots) { ItemStack it = player.getInventory().getItem(s); real.put(s, it == null ? ItemStack.empty() : it); }
+                for (EquipmentSlot s : all) { ItemStack it = player.getInventory().getItem(s); real.put(s, it == null ? ItemStack.empty() : it); }
                 viewer.sendEquipmentChange(player, real);
             });
+        }
+        // Le joueur lui-meme (vue exterieure) : son client ne tient pas compte d'un paquet d'equipement
+        // qui le concerne, il affiche l'armure de son propre inventaire. On vide donc chez lui, et chez lui
+        // seulement, ses quatre cases d'armure ; elles sont renvoyees telles quelles a la fin.
+        if (hideOwnArmor(player)) restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
+    }
+
+    private static boolean ownArmorWarned;
+
+    /**
+     * Envoie au joueur quatre cases d'armure vides (cases 5 a 8 de son inventaire), sans toucher a son
+     * vrai inventaire. L'API de Paper n'a pas d'equivalent : on passe par les classes du serveur.
+     */
+    private static boolean hideOwnArmor(Player p) {
+        try {
+            Object handle = p.getClass().getMethod("getHandle").invoke(p);
+            Object menu = handle.getClass().getField("inventoryMenu").get(handle);
+            int state = (int) menu.getClass().getMethod("getStateId").invoke(menu);
+            Object connection = handle.getClass().getField("connection").get(handle);
+            Class<?> stack = Class.forName("net.minecraft.world.item.ItemStack");
+            Object empty = stack.getField("EMPTY").get(null);
+            var packet = Class.forName("net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket")
+                    .getConstructor(int.class, int.class, int.class, stack);
+            var send = connection.getClass().getMethod("send", Class.forName("net.minecraft.network.protocol.Packet"));
+            for (int slot = 5; slot <= 8; slot++) send.invoke(connection, packet.newInstance(0, state, slot, empty));
+            return true;
+        } catch (Throwable t) {
+            if (!ownArmorWarned) { ownArmorWarned = true; CrossfightPlugin.get().getLogger().warning("Armure du joueur non masquee pour lui-meme : " + t); }
+            return false;
         }
     }
 

@@ -145,6 +145,8 @@ Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pos
 
 Première animation : le Contre de Marth (garde, épée tenue haut lame vers le bas, puis fente avant à la riposte).
 
+Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus sa propre armure en vue extérieure (ses quatre cases d'armure lui sont envoyées vides, sans toucher à son inventaire ; elles sont renvoyées à la fin). Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
+
 ### Items de capacité
 Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que personne ne frappe avec : les icônes en épée deviennent des éclats d'améthyste, les haches du fer brut, les arcs des flèches, les tridents des éclats de prismarine, les pioches, pelles et houes des matériaux bruts. Seuls les vrais arcs à bander (Sova) gardent leur apparence. L'arme du personnage reste en premier slot.
 
