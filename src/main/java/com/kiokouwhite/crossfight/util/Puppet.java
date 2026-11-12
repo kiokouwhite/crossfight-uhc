@@ -167,15 +167,22 @@ public final class Puppet {
     public void rest(String restPose) { if (POSES.containsKey(restPose)) this.restPose = restPose; }
 
     /** La main droite du pantin, en coordonnees du monde, dans la pose actuelle. */
-    public Location hand() {
+    public Location hand() { return armPoint(true, 0.9); }
+
+    /**
+     * Un point le long d'un bras du pantin, en coordonnees du monde, dans la pose actuelle :
+     * 0 a l'epaule, 1 au bout du poing.
+     */
+    public Location armPoint(boolean right, double along) {
+        Part part = right ? Part.ARM_R : Part.ARM_L;
         Map<String, Joint> joints = POSES.get(pose == null ? "debout" : pose);
-        Joint root = joints.getOrDefault("root", Joint.REST), arm = joints.getOrDefault(Part.ARM_R.id, Joint.REST);
+        Joint root = joints.getOrDefault("root", Joint.REST), arm = joints.getOrDefault(part.id, Joint.REST);
         Quaternionf rootR = euler(root.angles);
-        Vector3f t = rootR.transform(new Vector3f(Part.ARM_R.pivot).add(arm.offset).mul(K / 16f)).add(new Vector3f(root.offset).mul(K / 16f));
-        Vector3f hand = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(HAND).mul(K / 16f)).add(t);
+        Vector3f t = rootR.transform(new Vector3f(part.pivot).add(arm.offset).mul(K / 16f)).add(new Vector3f(root.offset).mul(K / 16f));
+        Vector3f point = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(0, (float) (-10 * along), 0).mul(K / 16f)).add(t);
         // Du repere du pantin (X gauche, Z devant) vers le monde, selon l'orientation du joueur.
-        new Quaternionf().rotationY((float) Math.toRadians(-player.getLocation().getYaw())).transform(hand);
-        return player.getLocation().add(hand.x, hand.y, hand.z);
+        new Quaternionf().rotationY((float) Math.toRadians(-player.getLocation().getYaw())).transform(point);
+        return player.getLocation().add(point.x, point.y, point.z);
     }
 
     private ItemDisplay spawn(Location at, ItemStack item) {

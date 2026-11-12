@@ -131,20 +131,11 @@ pose takumi_arc_ramasse
   leg_l -120 0 5
   item  0 0 0
 
-# Furie de Takumi : le poing leve bien haut, le corps cambre...
-pose takumi_furie_leve
-  root  -12 0 0
-  head  -16 0 0
-  arm_r -192 0 -10
-  arm_l -28 0 16
-  leg_r 12 0 -6
-  leg_l -14 0 6
-
-# ... puis il frappe le sol : un genou a terre, le poing plante devant lui, tete baissee.
-pose takumi_furie_frappe
-  root  55 0 0   0 -1.9 -8
-  head  -22 0 0
-  arm_r -55 0 10
-  arm_l 28 0 26
-  leg_r 5 0 -6
-  leg_l -125 0 6
+# Furie de Takumi : torse bombe, tete en arriere, les deux bras tendus devant lui, ecartes.
+pose takumi_furie
+  root  -6 0 0
+  head  -14 0 0
+  arm_r -76 -34 0
+  arm_l -76 34 0
+  leg_r 6 0 -7
+  leg_l -8 0 7
