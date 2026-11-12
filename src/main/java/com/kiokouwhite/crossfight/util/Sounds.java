@@ -73,12 +73,18 @@ public final class Sounds {
         at.getWorld().playSound(at, NS + ":" + event, category, volume, 1f);
     }
 
+    /** Un son attache au joueur : il le suit, meme pendant une ruee ou une teleportation courte. */
+    private static void playOn(Player p, String event, SoundCategory category, float volume) {
+        if (!INDEX.contains(event)) return;
+        p.getWorld().playSound(p, NS + ":" + event, category, volume, 1f);
+    }
+
     /** Un bruitage de la bibliotheque, a un endroit. */
     public static void sfx(Location at, String category) { playAt(at, "sfx." + category, SoundCategory.PLAYERS, 1f); }
 
     /** Une capacite vient de reussir : son bruitage et sa replique. */
     public static void ability(Player p, String abilityId) {
-        playAt(p.getLocation(), "ability." + abilityId, SoundCategory.PLAYERS, 1f);
+        playOn(p, "ability." + abilityId, SoundCategory.PLAYERS, 1f);
         voice(p, abilityId);
     }
 
@@ -95,7 +101,7 @@ public final class Sounds {
         if (lastLine != null && now - lastLine < 6000) return false;
         LAST_LINE.put(lineKey, now);
         LAST_VOICE.put(p.getUniqueId(), now);
-        playAt(p.getLocation(), event, SoundCategory.VOICE, 1.5f);
+        playOn(p, event, SoundCategory.VOICE, 1.5f);
         return true;
     }
 
@@ -140,7 +146,7 @@ public final class Sounds {
 
     /** Une Synergie est lancee : le lanceur dit sa replique, son partenaire repond. */
     public static void synergy(Player caster, String idCaster, Player partner, String idPartner) {
-        playAt(caster.getLocation(), "sfx.ultimate", SoundCategory.PLAYERS, 1f);
+        playOn(caster, "sfx.ultimate", SoundCategory.PLAYERS, 1f);
         String[] d = duo(idCaster, idPartner);
         if (d == null) return;
         String base = "syn_" + d[0] + "_" + d[1] + "_";

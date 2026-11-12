@@ -24,7 +24,7 @@ Conventions de nommage, sous sounds/ :
   ability/<id>.ogg            bruitage propre a une capacite (prioritaire sur abilities.txt)
   voice/<cle>.ogg             une replique ; <cle>_1.ogg, <cle>_2.ogg... = variantes tirees au hasard
   music/<piste>.ogg           une musique de combat (stereo)
-Un son prive remplace le son public du meme nom.
+Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
 prives, il faut leur envoyer le pack complet : l'heberger a une adresse privee, puis renseigner
@@ -153,25 +153,12 @@ def main() -> int:
     if unknown:
         print("Categories inconnues dans abilities.txt :", ", ".join(unknown))
 
-    # Pack public.
-    json_public = sounds_json(events, lambda f: PACK)
-    (PACK / "assets" / NS).mkdir(parents=True, exist_ok=True)
-    (PACK / "assets" / NS / "sounds.json").write_text(json_public, encoding="utf-8")
-    members = {"pack.mcmeta": (PACK / "pack.mcmeta").read_bytes(), f"assets/{NS}/sounds.json": json_public.encode("utf-8")}
-    if (PACK / "CREDITS.md").exists():
-        members["CREDITS.md"] = (PACK / "CREDITS.md").read_bytes()
-    for f in {f for files in events.values() for f in files}:
-        members[f.relative_to(PACK).as_posix()] = f.read_bytes()
-    public_zip = ROOT / "dist" / "CrossfightPack.zip"
-    sha1 = write_zip(public_zip, members)
-
     # Sons prives : presents sur cette machine, ou seulement connus par leur nom (prive.txt).
     private_list = PACK / "prive.txt"
-    private_names, private_tracks = set(), {}
-    complete_zip = None
+    private_names, private_tracks, p_events = set(), {}, {}
     if PRIVATE.is_dir():
-        p_events, p_tracks, _ = collect(PRIVATE, False)
-        private_names, private_tracks = set(p_events), p_tracks
+        p_events, private_tracks, _ = collect(PRIVATE, False)
+        private_names = set(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
             if before - private_names:
@@ -179,24 +166,8 @@ def main() -> int:
                       ", ".join(sorted(before - private_names)))
         lines = ["# Sons du pack prive (resourcepack-prive/, non versionne). Genere par tools/build_pack.py.",
                  "# Seuls les noms sont ici : le plugin doit les connaitre pour les jouer."]
-        lines += [name + (f" {p_tracks[name[6:]]}" if name.startswith("music.") else "") for name in sorted(p_events)]
+        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else "") for name in sorted(p_events)]
         private_list.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        if p_events:
-            merged = dict(events)
-            merged.update(p_events)
-            json_complete = sounds_json(merged, lambda f: PRIVATE if PRIVATE in f.parents else PACK)
-            c_members = dict(members)
-            c_members[f"assets/{NS}/sounds.json"] = json_complete.encode("utf-8")
-            used = {f for files in merged.values() for f in files}
-            # Un son public remplace par un son prive n'a plus a etre embarque.
-            for arc in [a for a in c_members if a.endswith(".ogg")]:
-                if not any(f.relative_to(PACK).as_posix() == arc for f in used if PACK in f.parents):
-                    del c_members[arc]
-            for f in used:
-                if PRIVATE in f.parents:
-                    c_members[f.relative_to(PRIVATE).as_posix()] = f.read_bytes()
-            complete_zip = ROOT / "prive" / "CrossfightPackComplet.zip"
-            complete_sha1 = write_zip(complete_zip, c_members)
     elif private_list.exists():
         for line in private_list.read_text(encoding="utf-8").splitlines():
             parts = line.split("#", 1)[0].split()
@@ -205,6 +176,34 @@ def main() -> int:
             private_names.add(parts[0])
             if parts[0].startswith("music.") and len(parts) > 1:
                 private_tracks[parts[0][6:]] = int(parts[1])
+
+    # Pack public. Un son qui a une version privee n'y est pas declare : Minecraft additionne les
+    # declarations d'un meme son venant de deux packs (le pack public envoye par le serveur et le pack
+    # complet installe par le joueur), et tirerait alors au hasard entre le bruitage libre et le vrai.
+    public = {name: files for name, files in events.items() if name not in private_names}
+    json_public = sounds_json(public, lambda f: PACK)
+    (PACK / "assets" / NS).mkdir(parents=True, exist_ok=True)
+    (PACK / "assets" / NS / "sounds.json").write_text(json_public, encoding="utf-8")
+    members = {"pack.mcmeta": (PACK / "pack.mcmeta").read_bytes(), f"assets/{NS}/sounds.json": json_public.encode("utf-8")}
+    if (PACK / "CREDITS.md").exists():
+        members["CREDITS.md"] = (PACK / "CREDITS.md").read_bytes()
+    for f in {f for files in public.values() for f in files}:
+        members[f.relative_to(PACK).as_posix()] = f.read_bytes()
+    public_zip = ROOT / "dist" / "CrossfightPack.zip"
+    sha1 = write_zip(public_zip, members)
+
+    # Pack complet : les sons publics, plus les sons prives qui les completent ou les remplacent.
+    complete_zip = None
+    if p_events:
+        merged = dict(events)
+        merged.update(p_events)
+        json_complete = sounds_json(merged, lambda f: PRIVATE if PRIVATE in f.parents else PACK)
+        c_members = {k: v for k, v in members.items() if not k.endswith(".ogg")}
+        c_members[f"assets/{NS}/sounds.json"] = json_complete.encode("utf-8")
+        for f in {f for files in merged.values() for f in files}:
+            c_members[f.relative_to(PRIVATE if PRIVATE in f.parents else PACK).as_posix()] = f.read_bytes()
+        complete_zip = ROOT / "prive" / "CrossfightPackComplet.zip"
+        complete_sha1 = write_zip(complete_zip, c_members)
 
     # Musiques : les licences qui declenchent chaque piste.
     all_tracks = dict(tracks)
@@ -234,9 +233,9 @@ def main() -> int:
     (res / "music.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     kinds = {}
-    for name in events:
+    for name in public:
         kinds[name.split(".", 1)[0]] = kinds.get(name.split(".", 1)[0], 0) + 1
-    print(f"pack public : {len(events)} sons ({', '.join(f'{v} {k}' for k, v in sorted(kinds.items()))})")
+    print(f"pack public : {len(public)} sons ({', '.join(f'{v} {k}' for k, v in sorted(kinds.items()))})")
     print(f"  {public_zip.relative_to(ROOT)} : {public_zip.stat().st_size // 1024} Ko, sha1 {sha1}")
     if private_names:
         print(f"sons prives : {len(private_names)}" + ("" if PRIVATE.is_dir() else " (connus par leur nom seulement, fichiers absents de cette machine)"))
