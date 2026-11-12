@@ -71,7 +71,8 @@ public final class Puppet {
     private final Map<Part, ItemDisplay> parts = new EnumMap<>(Part.class);
     private ItemDisplay held;
     private BukkitTask task;
-    private boolean addedInvisibility, ownArmorHidden;
+    private boolean addedInvisibility, ownItemsHidden;
+    private int heldSlot;
     private int age, endAt = -1, removeAt = 20 * 30;
     private final List<Runnable> restore = new ArrayList<>();
 
@@ -180,9 +181,14 @@ public final class Puppet {
         age++;
         if (!player.isOnline() || player.isDead() || age >= removeAt || parts.values().stream().anyMatch(d -> !d.isValid())
                 || !player.getWorld().equals(parts.get(Part.BODY).getWorld())) { remove(); return; }
-        // Un clic sur une capacite fait renvoyer tout l'inventaire au joueur juste apres : son armure
-        // reapparaitrait chez lui. On la re-masque donc regulierement tant que dure l'animation.
-        if (ownArmorHidden && age % 4 == 1) hideOwnArmor(player);
+        // Un clic sur une capacite fait renvoyer tout l'inventaire au joueur juste apres : ses objets
+        // reapparaitraient chez lui. On les re-masque donc regulierement tant que dure l'animation, et
+        // tout de suite s'il change de case (l'ancienne retrouve son objet, la nouvelle est masquee).
+        if (ownItemsHidden) {
+            int now = player.getInventory().getHeldItemSlot();
+            if (now != heldSlot) { heldSlot = now; player.updateInventory(); hideOwnItems(player); }
+            else if (age % 4 == 1) hideOwnItems(player);
+        }
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
         if (held != null) held.teleport(at);
@@ -237,21 +243,38 @@ public final class Puppet {
             });
         }
         // Le joueur lui-meme (vue exterieure) : son client ne tient pas compte d'un paquet d'equipement
-        // qui le concerne, il affiche l'armure de son propre inventaire. On vide donc chez lui, et chez lui
-        // seulement, ses quatre cases d'armure ; elles sont renvoyees telles quelles a la fin.
-        if (hideOwnArmor(player)) {
-            ownArmorHidden = true;
+        // qui le concerne, il affiche ce que contient son propre inventaire. On lui envoie donc, a lui seul,
+        // des cases d'armure vides et un objet invisible a la place de ce qu'il tient ; son vrai inventaire
+        // n'est pas touche et lui est renvoye tel quel a la fin.
+        if (hideOwnItems(player)) {
+            ownItemsHidden = true;
+            heldSlot = player.getInventory().getHeldItemSlot();
             restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
         }
     }
 
-    private static boolean ownArmorWarned;
+    private static boolean ownItemsWarned;
+    private static ItemStack invisible;
+
+    /** Un objet sans apparence (items/hidden.json du pack) : la main parait vide, mais le clic droit part toujours. */
+    private static ItemStack invisibleItem() {
+        if (invisible == null) {
+            ItemStack it = new ItemStack(Material.PAPER);
+            ItemMeta meta = it.getItemMeta();
+            meta.setItemModel(new NamespacedKey(Sounds.NS, "hidden"));
+            meta.setHideTooltip(true);
+            it.setItemMeta(meta);
+            invisible = it;
+        }
+        return invisible;
+    }
 
     /**
-     * Envoie au joueur quatre cases d'armure vides (cases 5 a 8 de son inventaire), sans toucher a son
-     * vrai inventaire. L'API de Paper n'a pas d'equivalent : on passe par les classes du serveur.
+     * Envoie au joueur ses quatre cases d'armure vides (cases 5 a 8 de son inventaire) et un objet
+     * invisible dans la case qu'il tient et dans sa main gauche, sans toucher a son vrai inventaire.
+     * L'API de Paper n'a pas d'equivalent : on passe par les classes du serveur.
      */
-    private static boolean hideOwnArmor(Player p) {
+    private static boolean hideOwnItems(Player p) {
         try {
             Object handle = p.getClass().getMethod("getHandle").invoke(p);
             Object menu = handle.getClass().getField("inventoryMenu").get(handle);
@@ -259,13 +282,18 @@ public final class Puppet {
             Object connection = handle.getClass().getField("connection").get(handle);
             Class<?> stack = Class.forName("net.minecraft.world.item.ItemStack");
             Object empty = stack.getField("EMPTY").get(null);
+            Object hidden = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
+                    .getMethod("asNMSCopy", ItemStack.class).invoke(null, invisibleItem());
             var packet = Class.forName("net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket")
                     .getConstructor(int.class, int.class, int.class, stack);
             var send = connection.getClass().getMethod("send", Class.forName("net.minecraft.network.protocol.Packet"));
             for (int slot = 5; slot <= 8; slot++) send.invoke(connection, packet.newInstance(0, state, slot, empty));
+            var inv = p.getInventory();
+            if (!inv.getItemInMainHand().getType().isAir()) send.invoke(connection, packet.newInstance(0, state, 36 + inv.getHeldItemSlot(), hidden));
+            if (!inv.getItemInOffHand().getType().isAir()) send.invoke(connection, packet.newInstance(0, state, 45, hidden));
             return true;
         } catch (Throwable t) {
-            if (!ownArmorWarned) { ownArmorWarned = true; CrossfightPlugin.get().getLogger().warning("Armure du joueur non masquee pour lui-meme : " + t); }
+            if (!ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme : " + t); }
             return false;
         }
     }
