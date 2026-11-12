@@ -268,7 +268,12 @@ public final class Marth extends Character {
                 double perp = rel.clone().subtract(dir.clone().multiply(along)).setY(0).length();
                 if (perp <= 1.6 && Math.abs(rel.getY()) <= 2.5) touched.add(enemy);
             }
-            for (org.bukkit.entity.LivingEntity enemy : touched) Effects.damage(enemy, 10.0, caster);
+            for (org.bukkit.entity.LivingEntity enemy : touched) {
+                double before = enemy.getHealth();
+                Effects.damage(enemy, 10.0, caster);
+                // Comme dans Fire Emblem : la barre de vie de la cible se vide sous les yeux de tous.
+                com.kiokouwhite.crossfight.util.HealthBar.drain(enemy, before);
+            }
             caster.setVelocity(dir.clone().multiply(2.6).setY(0.25));
             for (double d = 0; d <= 10; d += 0.5) {
                 Location l = start.clone().add(dir.clone().multiply(d)).add(0, 1, 0);

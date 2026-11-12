@@ -229,6 +229,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Le Soutien et les dégâts des capacités passent par l'armure comme un coup normal.
 - Sang Draconique de Corrin lui fait pousser des ailes de dragon pendant le vol : membrane translucide rose pâle à la racine et blanche vers les bouts, arêtes et griffes argentées, battement rapide en vol puis lent en descente, éclaboussures d'eau ; elles disparaissent à l'atterrissage.
 - Le Contre de Marth reprend celui de Smash Bros Melee : pendant la seconde de pose il scintille en blanc ; au coup reçu il se tourne vers l'attaquant, un grand croissant d'épée balaye devant lui, les dégâts sont renvoyés et l'adversaire est projeté au loin (environ 10 blocs) avant d'être immobilisé 1 s.
+- Le Coup Critique de Marth affiche au-dessus de chaque ennemi touché la barre de vie des combats de Fire Emblem (GBA) : le nombre de points de vie, puis un trait par point (40 traits au plus), qui se vident un à un avec un cliquetis avant de disparaître (`util/HealthBar.java`, réutilisable par d'autres capacités).
 
 ## Feuille de route
 
