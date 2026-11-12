@@ -155,6 +155,8 @@ Animations de Marth :
 - **Falchion** : l'épée plantée dans le sol devant lui, les deux mains sur le pommeau, tête baissée, pendant les 3 secondes du soin.
 - **Coup Critique**, d'après le Final Smash de Smash Bros : moulinet, épée levée vers le ciel avec un éclat à la pointe (0,8 s, immobile, pendant lesquelles il choisit sa direction en regardant), il se ramasse, fonce à l'horizontale dans une traînée blanche et bleue, puis tient l'estoc bras tendu. Il est invulnérable de la levée d'épée à la fin de la charge. Bruitages d'origine dans le pack privé : `ability.marth_ult_eclat`, `ability.marth_ult_charge`, `ability.marth_ult_hit`.
 
+Animation de Corrin : pendant son Ultime, elle se met à quatre pattes comme son dragon, les deux bras plantés dans le sol, l'eau jaillissant autour de ses mains ; elle ne peut pas bouger pendant cette pose (1,5 s).
+
 Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus ni sa propre armure ni l'objet qu'il tient en vue extérieure : ses quatre cases d'armure lui sont envoyées vides, et la case qu'il tient reçoit un objet sans apparence (`items/hidden.json`), si bien que le clic droit part toujours. Son inventaire réel n'est pas touché et lui est renvoyé à la fin ; l'icône de l'objet tenu disparaît de sa barre le temps de l'animation. Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
 
 ### Items de capacité

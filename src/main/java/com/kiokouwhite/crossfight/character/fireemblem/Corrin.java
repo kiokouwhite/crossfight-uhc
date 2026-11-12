@@ -322,16 +322,40 @@ public final class Corrin extends Character {
         private static final int STEPS = 40;
         private static final int TICKS_PER_STEP = 2; // 10 blocs par seconde
         private static final int HALF_WIDTH = 5;     // 10 blocs de large
+        /** Duree de la pose, bras plantes dans le sol : Corrin ne peut pas bouger (1,5 s). */
+        private static final int PLANT_TICKS = 30;
 
         VaguesBleues() {
             super("corrin_ult", "Les Vagues Bleues de l'Ocean Gris",
-                    "Une vraie vague de 10 blocs de large se dresse et deferle sur 40 blocs (10 blocs/s). Les ennemis touches sont ejectes a 30 blocs de haut et ont Lenteur III pendant 10 secondes.",
+                    "Corrin plante ses bras dans le sol, immobile 1,5 s : une vraie vague de 10 blocs de large se dresse et deferle sur 40 blocs (10 blocs/s). Les ennemis touches sont ejectes a 30 blocs de haut et ont Lenteur III pendant 10 secondes.",
                     Material.HEART_OF_THE_SEA);
         }
 
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             perform(p, Effects.towards(p, null), Effects.enemiesOf(p, null));
+            // Comme son dragon dans Smash Bros : a quatre pattes, les deux bras plantes dans le sol,
+            // immobile pendant que la vague se dresse.
+            Effects.root(p, PLANT_TICKS);
+            var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "corrin", null, "debout");
+            if (puppet != null) { puppet.pose("corrin_ult", 4); puppet.endAfter(PLANT_TICKS, 5); }
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || (t += 2) > PLANT_TICKS) { cancel(); return; }
+                    // L'eau jaillit autour de ses mains.
+                    Location feet = p.getLocation();
+                    Vector fwd = feet.getDirection().setY(0);
+                    if (fwd.lengthSquared() < 1e-4) fwd = new Vector(0, 0, 1);
+                    fwd.normalize();
+                    Vector side = new Vector(-fwd.getZ(), 0, fwd.getX());
+                    for (int k = -1; k <= 1; k += 2) {
+                        Location hand = feet.clone().add(fwd.clone().multiply(0.55)).add(side.clone().multiply(0.32 * k)).add(0, 0.1, 0);
+                        p.getWorld().spawnParticle(Particle.SPLASH, hand, 10, 0.15, 0.1, 0.15, 0.1);
+                        p.getWorld().spawnParticle(Particle.CLOUD, hand, 1, 0.1, 0.05, 0.1, 0.02);
+                    }
+                }
+            }.runTaskTimer(plugin(), 4L, 2L);
             // Apres sa replique, le rugissement du dragon.
             Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.ability(p, "corrin_ult_dragon"); }, 14L);
             return true;

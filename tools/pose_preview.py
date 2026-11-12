@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Dessine une pose du modele articule sans lancer le jeu.
 
-Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive]
+Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet]
 
 Relit les modeles ecrits par add_skin.py et src/main/resources/poses.txt, et applique les memes
 transformations que util/Puppet.java et que le client Minecraft (objet affiche centre sur son
@@ -95,7 +95,7 @@ def quads(name, pose_name, private):
                 pts = [t + r @ (K * (flip @ ((np.array(p) - 8) / 16))) for p in FACES[face](a, b)]
                 u1, v1, u2, v2 = (c * 4 for c in f["uv"])
                 out.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], skin))
-        if part == "arm_r":
+        if part == "arm_r" and "--sans-objet" not in sys.argv:
             ri = (root_r @ rot(*pose["item_world"][0]) if "item_world" in pose else r @ rot(*get("item")[0])) @ ITEM_BASE
             hand = t + r @ (np.array(HAND) / 16 * K)
             ti = hand - ri @ (np.array(GRIP) / 16 * ITEM_SCALE)

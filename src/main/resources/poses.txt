@@ -87,3 +87,12 @@ pose marth_ult_estoc
   leg_r 34 0 -4
   leg_l -62 0 4
   item_world -24 0 0
+
+# Ultime de Corrin : a quatre pattes comme son dragon, les deux bras plantes dans le sol, tete relevee.
+pose corrin_ult
+  root  75 0 0   0 3.8 -9
+  head  -66 0 0
+  arm_r -75 0 -9
+  arm_l -75 0 9
+  leg_r -20 0 -7
+  leg_l -20 0 7
