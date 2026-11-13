@@ -251,3 +251,301 @@ pose byleth_epine_droite
   leg_r -8 0 -12
   leg_l 10 0 12
   item  90 0 0
+
+# Ember Celica (Yang) : garde de boxe, poings leves devant le visage, pied gauche devant...
+pose yang_garde
+  root  6 0 0   0 -1 0
+  head  -6 0 0
+  arm_r -120 25 0
+  arm_l -120 -25 0
+  leg_r 16 0 -5
+  leg_l -18 0 5
+
+# ...direct du droit : buste tourne, l'epaule droite en avant, le bras tendu droit vers la cible, l'autre poing en garde...
+pose yang_direct_droit
+  root  8 25 0   0 -1.5 0
+  head  -8 -25 0
+  arm_r -98 -22 0
+  arm_l -128 -50 0
+  leg_r 22 -25 -5
+  leg_l -22 -25 5
+
+# ...puis direct du gauche.
+pose yang_direct_gauche
+  root  8 -25 0   0 -1.5 0
+  head  -8 25 0
+  arm_l -98 22 0
+  arm_r -128 50 0
+  leg_r 18 25 -5
+  leg_l -22 25 5
+
+# Crescent Rose (Ruby) : tir a genou, comme un tireur d'elite. Buste de trois quarts (epaule gauche vers la cible),
+# genou droit a terre, pied gauche devant, la joue sur la crosse et l'arme a hauteur de l'oeil, droit devant.
+pose ruby_tir
+  root  4 -25 0   0 -4.5 0
+  head  6 25 12
+  arm_r -98 51 0
+  arm_l -88 -5 0
+  leg_r 52 25 -4
+  leg_l -48 25 4
+  item_world 0 25 0
+  item_shift 0 2.5 0
+
+# Explosion de Petales (rapide) : allongee a l'horizontale, la tete la premiere, bras tendus devant elle avec la faux.
+# Le pantin tourne ensuite sur lui-meme autour de l'axe de la ruee (Puppet.spin).
+pose ruby_petales_vol
+  root  90 0 0   0 15 -18
+  head  -55 0 0
+  arm_r -172 0 -8
+  arm_l -172 0 8
+  leg_r 6 0 -3
+  leg_l 6 0 3
+  item_abs 0 0 0
+
+# Yeux d'Argent : recroquevillee, les mains serrees sur la poitrine...
+pose ruby_yeux_serre
+  root  14 0 0   0 -1.5 0
+  head  24 0 0
+  arm_r -42 42 0
+  arm_l -42 -42 0
+  leg_r 10 0 -2
+  leg_l -10 0 2
+
+# ...puis elle se redresse d'un coup, bras grands ouverts, la tete en arriere...
+pose ruby_yeux_cri
+  root  -8 0 0
+  head  -32 0 0
+  arm_r -14 0 -84
+  arm_l -14 0 84
+  leg_r 0 0 -12
+  leg_l 0 0 12
+
+# ...et reste campee, jambes ecartees, bras ecartes vers le bas, pendant que la lumiere sort de ses yeux.
+pose ruby_yeux_lumiere
+  root  -4 0 0
+  head  -18 0 0
+  arm_r -8 0 -40
+  arm_l -8 0 40
+  leg_r 0 0 -14
+  leg_l 0 0 14
+
+# Glyphs Type 1 rouge (Weiss) : l'epee armee au-dessus de l'epaule droite...
+pose weiss_feu_arme
+  root  0 -15 0   0 -0.5 0
+  head  0 15 0
+  arm_r -165 -25 0
+  arm_l -20 0 18
+  leg_r 8 0 -6
+  leg_l -10 0 6
+  item  60 0 0
+
+# ...puis un grand coup en diagonale dans le vide, qui finit en bas a sa gauche (la lame s'embrase).
+pose weiss_feu_tranche
+  root  12 30 0   0 -1.5 0
+  head  -10 -30 0
+  arm_r -50 70 0
+  arm_l 20 0 24
+  leg_r 20 -30 -6
+  leg_l -22 -30 6
+  item  85 0 0
+
+# Glyphs Type 1 bleu : la lame a plat devant elle, pointe vers sa gauche ; la main gauche se pose pres de la garde...
+pose weiss_glace_debut
+  root  0 0 0
+  head  12 0 0
+  arm_r -68 23 0
+  arm_l -76 -30 0
+  item_world 0 90 0
+  item_shift 0 1 0
+
+# ...et glisse le long de la lame jusqu'a la pointe.
+pose weiss_glace_fin
+  root  0 0 0
+  head  10 10 0
+  arm_r -68 23 0
+  arm_l -75 40 0
+  item_world 0 90 0
+  item_shift 0 1 0
+
+# Glyphs Type 1 jaune : l'epee levee a deux mains, pointe en bas...
+pose weiss_plante_leve
+  root  -4 0 0
+  head  -8 0 0
+  arm_r -150 20 0
+  arm_l -150 -20 0
+  item_world 90 90 0
+
+# ...et plantee dans le sol devant elle, un genou a terre.
+pose weiss_plante
+  root  15 0 0   0 -4 0
+  head  0 0 0
+  arm_r -60 30 0
+  arm_l -60 -30 0
+  leg_r 50 0 -4
+  leg_l -45 0 4
+  item_world 75 90 0
+
+# Glyphs Type 1 cyan : comme le jaune (weiss_plante_leve puis weiss_plante), la barriere sort du sol aussitot.
+
+# Glyphs Type 1 blanche : l'epee tenue droite devant elle, pointe en haut, la main gauche prete a la frapper...
+pose weiss_blanc_tenue
+  root  0 0 0
+  head  6 0 0
+  arm_r -74 34 0
+  arm_l -115 -18 0
+  item_world -90 90 0
+
+# ...la main gauche frappe la lame d'une pichenette...
+pose weiss_blanc_tape
+  root  0 -6 0
+  head  6 6 0
+  arm_r -74 40 0
+  arm_l -107 -53 0
+  item_world -90 96 0
+
+# ...et la lame vibre de droite a gauche de moins en moins fort.
+pose weiss_blanc_rebond1
+  head  6 0 0
+  arm_r -74 34 -4
+  arm_l -20 0 12
+  item_world -106 90 0
+pose weiss_blanc_rebond2
+  head  6 0 0
+  arm_r -74 34 3
+  arm_l -20 0 12
+  item_world -79 90 0
+pose weiss_blanc_rebond3
+  head  6 0 0
+  arm_r -74 34 -2
+  arm_l -20 0 12
+  item_world -96 90 0
+pose weiss_blanc_rebond4
+  head  6 0 0
+  arm_r -74 34 1
+  arm_l -20 0 12
+  item_world -87 90 0
+
+# Glyphs Type 1 violette : en garde, la pointe devant elle...
+pose weiss_violet_garde
+  root  0 0 0
+  head  4 0 0
+  arm_r -70 20 0
+  arm_l -10 0 12
+  item_world -15 0 0
+
+# ...la lame tombe vers le sol comme si elle pesait soudain tres lourd...
+pose weiss_violet_bas
+  root  12 0 0   0 -1 0
+  head  24 0 0
+  arm_r -32 14 0
+  arm_l -30 30 0
+  leg_r 8 0 -4
+  leg_l -10 0 4
+  item_world 62 0 0
+
+# ...et elle la remonte peniblement, en tremblant (deux poses legerement decalees a chaque etape).
+pose weiss_violet_monte1a
+  root  9 0 0   0 -0.8 0
+  head  18 0 0
+  arm_r -42 17 0
+  arm_l -38 32 0
+  leg_r 6 0 -4
+  leg_l -8 0 4
+  item_world 44 4 0
+pose weiss_violet_monte1b
+  root  9 0 0   0 -0.8 0
+  head  18 0 0
+  arm_r -45 13 2
+  arm_l -38 32 0
+  leg_r 6 0 -4
+  leg_l -8 0 4
+  item_world 40 -4 3
+pose weiss_violet_monte2a
+  root  6 0 0   0 -0.5 0
+  head  12 0 0
+  arm_r -54 19 0
+  arm_l -30 24 0
+  leg_r 4 0 -4
+  leg_l -6 0 4
+  item_world 24 4 -3
+pose weiss_violet_monte2b
+  root  6 0 0   0 -0.5 0
+  head  12 0 0
+  arm_r -57 15 2
+  arm_l -30 24 0
+  leg_r 4 0 -4
+  leg_l -6 0 4
+  item_world 19 -4 3
+pose weiss_violet_monte3a
+  root  3 0 0
+  head  8 0 0
+  arm_r -64 21 0
+  arm_l -18 14 6
+  item_world 2 3 -2
+pose weiss_violet_monte3b
+  root  3 0 0
+  head  8 0 0
+  arm_r -67 18 1
+  arm_l -18 14 6
+  item_world -5 -3 2
+
+# Glyphs Type 2 (Weiss) -------------------------------------------------------------------------
+# Estoc : en garde d'escrime, de profil (l'epaule droite vers la cible), le bras arme pres de la hanche...
+pose weiss_estoc_arme
+  root  4 45 0   0 -1.5 0
+  head  -4 -45 0
+  arm_r -28 -13 0
+  arm_l 150 0 20
+  leg_r -25 -45 -4
+  leg_l 25 -45 4
+  item_world -4 -45 0
+
+# ...puis la fente : le bras tendu droit devant, la lame dans le prolongement.
+pose weiss_estoc
+  root  10 55 0   0 -3 0
+  head  -10 -55 0
+  arm_r -95 -55 0
+  arm_l 40 0 20
+  leg_r -45 -55 -4
+  leg_l 40 -55 4
+  item_world -5 -55 0
+
+# Bleu : pirouette sur un pied, l'epee pointee vers le ciel (le pantin tourne ensuite sur lui-meme).
+pose weiss_pirouette
+  head  -5 0 0
+  arm_r -175 0 -8
+  arm_l -165 0 30
+  leg_r -50 0 -30
+  leg_l 0 0 4
+  item_world -90 90 0
+
+# Jaune : un genou a terre sur le Glyph, la pointe de l'epee vers le sol.
+pose weiss_genou
+  root  10 0 0   0 -4.5 0
+  head  -6 0 0
+  arm_r -25 0 -18
+  arm_l -55 -25 0
+  leg_r 52 0 -4
+  leg_l -48 0 4
+  item_world 70 0 0
+
+# Blanche : l'epee levee vers le ciel.
+pose weiss_epee_levee
+  root  -4 0 0
+  head  -20 0 0
+  arm_r -178 0 -5
+  arm_l -20 0 20
+  leg_r 0 0 -4
+  leg_l 0 0 4
+  item_world -90 90 0
+
+# Violette : a genoux, penchee en avant, les deux mains a plat sur le sol (l'epee couchee sous la main droite).
+pose weiss_mains_sol
+  root  45 0 0   0 -2.5 -8.5
+  head  -25 0 0
+  arm_r -55 6 0
+  arm_l -55 -6 0
+  leg_r 15 0 -4
+  leg_l 15 0 4
+  item_world -45 0 90
+  item_shift 0 -3 0

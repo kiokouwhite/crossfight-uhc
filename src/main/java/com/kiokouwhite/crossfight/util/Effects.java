@@ -355,7 +355,11 @@ public final class Effects {
 
     /** Tire une fleche quasi instantanee la ou l'on vise, sans tirer a l'arc. */
     public static org.bukkit.entity.Arrow shootInstantArrow(LivingEntity shooter, Vector dir, double speed, double damage) {
-        Location from = shooter.getEyeLocation().add(dir.clone().multiply(0.5));
+        return shootInstantArrow(shooter, shooter.getEyeLocation().add(dir.clone().multiply(0.5)), dir, speed, damage);
+    }
+
+    /** La meme fleche, tiree depuis un point donne (un Glyph devant le tireur...). */
+    public static org.bukkit.entity.Arrow shootInstantArrow(LivingEntity shooter, Location from, Vector dir, double speed, double damage) {
         org.bukkit.entity.Arrow arrow = shooter.getWorld().spawnArrow(from, dir, (float) speed, 0f);
         setShooter(arrow, shooter);
         arrow.setDamage(damage);

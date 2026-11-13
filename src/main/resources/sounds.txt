@@ -249,6 +249,8 @@ ability.yuki_insaisissable
 ability.yuki_insatiable
 ability.yuki_snow
 ability.yuki_ult
+glyph.schnee_cercle
+glyph.schnee_flocon
 select.art.byleth
 select.art.corrin
 select.art.marth

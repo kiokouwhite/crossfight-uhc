@@ -12,6 +12,7 @@ import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Boosts;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Weapons;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -24,6 +25,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Vector;
 
 import java.util.List;
 
@@ -50,7 +52,7 @@ public final class Yang extends Character {
     @Override
     public List<String> summary() {
         return List.of(
-                "<white>Ember Celica (9) : explosion sur l'ennemi proche",
+                "<white>Ember Celica (9) : 2 decharges de feu sur l'ennemi proche",
                 "<white>Brulure : Force selon les degats subis",
                 "<white>Incendie Interne : Force I, perd 0.5 coeur/s",
                 "<white>Colere Flamboyante : Fire Aspect sous 5 coeurs",
@@ -62,7 +64,7 @@ public final class Yang extends Character {
     /** Explosion vers l'adversaire le plus proche (4 blocs), qui est enflamme. Hypothese : 2 coeurs de degats. */
     static final class EmberCelica extends ActiveAbility implements EnemyCastable {
         EmberCelica() {
-            super("yang_ember", "Ember Celica", "Clic droit : Yang declenche une explosion vers l'adversaire le plus proche (4 blocs), 2 coeurs, et le met en feu.", Material.GOLDEN_AXE, 5);
+            super("yang_ember", "Ember Celica", "Clic droit : Yang frappe deux fois dans le vide, chaque coup de gantelet tire une decharge de feu sur l'adversaire le plus proche (4 blocs) : 1 coeur, puis 1 coeur et une explosion qui le met en feu.", Material.GOLDEN_AXE, 5);
         }
 
         @Override
@@ -80,14 +82,79 @@ public final class Yang extends Character {
             return true;
         }
 
+        /** Ticks des deux directs (le poing arrive au bout) et de la fin de l'animation. */
+        static final int PUNCH_1 = 4, PUNCH_2 = 12, END = 20;
+
+        /**
+         * Comme dans la serie : Yang frappe deux fois dans le vide (direct du droit, puis du gauche), chaque
+         * coup de son gantelet tire une decharge de feu sur la cible. La premiere fait 1 coeur, la seconde
+         * explose (1 coeur, feu, recul) : 2 coeurs en tout, comme avant.
+         */
         static void perform(LivingEntity caster, LivingEntity target) {
-            Location at = target.getLocation().add(0, 1, 0);
-            caster.getWorld().spawnParticle(Particle.EXPLOSION, at, 1);
-            caster.getWorld().spawnParticle(Particle.FLAME, at, 40, 0.5, 0.5, 0.5, 0.08);
-            caster.getWorld().playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.3f);
-            Effects.damage(target, 4.0, caster);
-            target.setFireTicks(Math.max(target.getFireTicks(), 100));
-            Effects.knockbackFrom(target, caster.getLocation(), 3);
+            final Puppet puppet = caster instanceof Player pl ? Puppet.show(pl, "yang", null, "debout") : null;
+            if (puppet != null) {
+                puppet.face(RWBY.yawTowards(caster, target));
+                puppet.pose("yang_garde", 2);
+                puppet.endAfter(END, 4);
+            }
+            caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_ARMOR_EQUIP_GOLD, 1f, 1.4f);
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    boolean animated = puppet != null && caster instanceof Player pl && Puppet.of(pl) == puppet;
+                    if (!caster.isValid() || caster.isDead()) { cancel(); return; }
+                    if (animated && (t == PUNCH_1 - 2 || t == PUNCH_2 - 2)) {
+                        puppet.face(RWBY.yawTowards(caster, target));
+                        puppet.pose(t == PUNCH_1 - 2 ? "yang_direct_droit" : "yang_direct_gauche", 2);
+                    }
+                    if (animated && (t == PUNCH_1 + 3 || t == PUNCH_2 + 3)) puppet.pose("yang_garde", 3);
+                    if (t == PUNCH_1 || t == PUNCH_2) {
+                        boolean second = t == PUNCH_2;
+                        Location fist = animated ? puppet.armPoint(!second, 1.0) : caster.getEyeLocation().add(0, -0.3, 0);
+                        blast(caster, fist, target, second);
+                    }
+                    if (t >= PUNCH_2) cancel();
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
+
+        /** Une decharge du gantelet : flamme au poing, douille ejectee, trainee de feu jusqu'a la cible. */
+        static void blast(LivingEntity caster, Location fist, LivingEntity target, boolean explode) {
+            var w = caster.getWorld();
+            boolean reach = target.isValid() && !target.isDead() && target.getWorld().equals(w)
+                    && target.getLocation().distanceSquared(caster.getLocation()) <= 8 * 8;
+            Location aim = reach ? target.getLocation().add(0, target.getHeight() * 0.55, 0)
+                    : fist.clone().add(caster.getLocation().getDirection().setY(0).normalize().multiply(4));
+            Vector line = aim.toVector().subtract(fist.toVector());
+            double len = Math.max(0.1, line.length());
+            line.normalize();
+            w.spawnParticle(Particle.FLAME, fist, 14, 0.12, 0.12, 0.12, 0.06);
+            w.spawnParticle(Particle.LARGE_SMOKE, fist, 4, 0.1, 0.1, 0.1, 0.02);
+            w.spawnParticle(Particle.EXPLOSION, fist, 1);
+            for (double d = 0.3; d < len; d += 0.35) {
+                Location at = fist.clone().add(line.clone().multiply(d));
+                w.spawnParticle(Particle.FLAME, at, 2, 0.08, 0.08, 0.08, 0.01);
+                if (((int) (d / 0.35)) % 2 == 0) w.spawnParticle(Particle.SMALL_FLAME, at, 1, 0.05, 0.05, 0.05, 0);
+            }
+            w.playSound(fist, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.8f);
+            w.playSound(fist, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 0.7f);
+            RWBY.ejectShell(caster, fist);
+            if (!reach) return;
+            if (explode) {
+                w.spawnParticle(Particle.EXPLOSION, aim, 1);
+                w.spawnParticle(Particle.FLAME, aim, 40, 0.5, 0.5, 0.5, 0.08);
+                w.playSound(aim, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.3f);
+            } else {
+                w.spawnParticle(Particle.FLAME, aim, 12, 0.25, 0.3, 0.25, 0.04);
+            }
+            // Le second coup suit le premier de peu : sans cela l'invulnerabilite de la cible l'annulerait.
+            target.setNoDamageTicks(0);
+            Effects.damage(target, 2.0, caster);
+            if (explode) {
+                target.setFireTicks(Math.max(target.getFireTicks(), 100));
+                Effects.knockbackFrom(target, caster.getLocation(), 3);
+            }
         }
     }
 

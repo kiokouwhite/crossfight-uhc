@@ -80,6 +80,9 @@ public final class Puppet {
     private Vector3f grip = GRIP;
     private boolean rawModel;
     private Float fixedYaw;
+    /** Rotation de tout le pantin autour d'un centre (vrille, toupie) : null au repos. */
+    private Quaternionf spin;
+    private final Vector3f spinCenter = new Vector3f();
     private final List<Runnable> restore = new ArrayList<>();
 
     private Puppet(Player player) { this.player = player; }
@@ -218,6 +221,20 @@ public final class Puppet {
         fixedYaw = yaw;
     }
 
+    /** La pose actuelle (celle vers laquelle le pantin va, ou dans laquelle il est). */
+    public String currentPose() { return pose; }
+
+    /**
+     * Fait tourner tout le pantin d'un angle autour d'un axe, dans son repere (X a sa gauche, Y en haut, Z devant),
+     * l'axe passant par {@code centerPx} (pixels de skin, depuis ses pieds). Appele a chaque tick avec un angle
+     * qui augmente, il vrille sur lui-meme ; le retour a la position debout de la fin annule la rotation.
+     */
+    public void spin(Vector3f axis, float degrees, Vector3f centerPx, int ticks) {
+        spin = new Quaternionf().rotationAxis((float) Math.toRadians(degrees), new Vector3f(axis).normalize());
+        spinCenter.set(centerPx).mul(K / 16f);
+        if (task != null && pose != null && age >= 2) apply(pose, ticks);
+    }
+
     /** Passe a une autre pose en quelques ticks (0 : tout de suite). */
     public void pose(String pose, int ticks) {
         if (!POSES.containsKey(pose)) return;
@@ -250,7 +267,7 @@ public final class Puppet {
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
         if (held != null) held.teleport(at);
-        if (age == endAt) apply(restPose, blend);
+        if (age == endAt) { spin = null; apply(restPose, blend); }
     }
 
     private void apply(String pose, int ticks) {
@@ -263,7 +280,7 @@ public final class Puppet {
             Joint j = joints.getOrDefault(part.id, Joint.REST);
             Quaternionf r = new Quaternionf(rootR).mul(euler(j.angles));
             Vector3f t = rootR.transform(new Vector3f(part.pivot).add(j.offset).mul(K / 16f)).add(rootT);
-            set(parts.get(part), new Transformation(t, r, new Vector3f(K, K, K), new Quaternionf()), ticks);
+            set(parts.get(part), spun(t, r, K), ticks);
             boolean leftHand = joints.containsKey("item_left");
             if (part == (leftHand ? Part.ARM_L : Part.ARM_R) && held != null) {
                 // "item" : oriente par rapport au bras ; "item_world" : par rapport au corps ;
@@ -279,9 +296,18 @@ public final class Puppet {
                 Joint shift = joints.get("item_shift");
                 if (shift != null) hand.add(new Vector3f(shift.angles).mul(K / 16f));
                 Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(size / 16f)));
-                set(held, new Transformation(ti, ri, new Vector3f(size, size, size), new Quaternionf()), ticks);
+                set(held, spun(ti, ri, size), ticks);
             }
         }
+    }
+
+    /** La transformation d'une partie, tournee avec tout le pantin si une vrille est en cours. */
+    private Transformation spun(Vector3f t, Quaternionf r, float size) {
+        if (spin != null) {
+            t = spin.transform(new Vector3f(t).sub(spinCenter)).add(spinCenter);
+            r = new Quaternionf(spin).mul(r);
+        }
+        return new Transformation(t, r, new Vector3f(size, size, size), new Quaternionf());
     }
 
     private static void set(ItemDisplay d, Transformation tr, int ticks) {

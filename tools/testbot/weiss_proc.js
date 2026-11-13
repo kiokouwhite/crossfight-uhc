@@ -1,0 +1,30 @@
+const mineflayer = require('mineflayer');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
+bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
+let bars = []; bot._client.on('action_bar', d => bars.push(JSON.stringify(d.text).match(/"value":"([^"]{3,})"/g)?.map(x => x.slice(9, -1)).join(' ') || ''));
+const models = {}; bot._client.on('entity_metadata', d => { for (const m of d.metadata) { const x = JSON.stringify(m.value || '').match(/crossfight:[a-z_\/]+/); if (x) models[d.entityId] = x[0]; } });
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const glyphs = () => Object.values(bot.entities).filter(e => e.name === 'item_display' && /glyph/.test(models[e.id] || '')).map(e => models[e.id].replace('crossfight:', '')).join(',') || '(rien)';
+const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;
+bot.once('spawn', async () => {
+  await sleep(3000);
+  bot.chat('/cf stop'); await sleep(800);
+  bot.chat('/cf test third-person weiss'); await sleep(5000);
+  bot.setQuickBarSlot(slotOf('Myrtenaster')); await sleep(200); bot.activateItem(); await sleep(80); bot.deactivateItem(); await sleep(600);
+  bot.chat('/tp @s 0.5 65 2.5 180 0'); await sleep(900);
+  await bot.lookAt(body().position.offset(0, 1.5, 0), true);
+  bot.setQuickBarSlot(slotOf('Glyphs (Type 1)')); await sleep(200); bars = [];
+  bot.activateItem(); await sleep(80); bot.deactivateItem(); await sleep(1500);
+  console.log('apres le Glyph :', glyphs(), '|', bars.filter(Boolean).join(' / ').slice(0, 90));
+  bot.setQuickBarSlot(slotOf('Myrtenaster')); await sleep(200);
+  bot.setControlState('sneak', true); await sleep(300);
+  await bot.lookAt(bot.entity.position.offset(0, 1.6, 6), true); await sleep(100); bars = [];
+  bot.swingArm('right'); await sleep(150);
+  bot.setControlState('sneak', false); await sleep(800);
+  const p = bot.entity.position;
+  const ice = []; for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = bot.blockAt(p.offset(dx, 0, dz)); ice.push(b && b.name); }
+  console.log('apres le coup :', glyphs(), '| sante', bot.health.toFixed(1), '| blocs autour', ice.join(','), '|', bars.filter(Boolean).join(' / ').slice(0, 120));
+  bot.chat('/cf clear'); await sleep(300);
+  bot.chat('/cf test third-person'); await sleep(800); bot.quit(); process.exit(0);
+});

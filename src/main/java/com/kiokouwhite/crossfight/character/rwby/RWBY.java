@@ -243,4 +243,27 @@ public final class RWBY {
     }
 
     static final DuoUltimate DUO_ITEM = new DuoUltimate();
+
+    /** L'orientation (yaw) qui regarde de {@code from} vers {@code to}. */
+    static float yawTowards(LivingEntity from, LivingEntity to) {
+        org.bukkit.util.Vector d = to.getLocation().toVector().subtract(from.getLocation().toVector());
+        if (d.getX() * d.getX() + d.getZ() * d.getZ() < 1e-4) return from.getLocation().getYaw();
+        return (float) Math.toDegrees(Math.atan2(-d.getX(), d.getZ()));
+    }
+
+    /** Une douille vide qui saute de l'arme apres un tir (Ember Celica, Crescent Rose) : decorative, ramassable par personne. */
+    static void ejectShell(LivingEntity shooter, org.bukkit.Location from) {
+        org.bukkit.Location l = shooter.getLocation();
+        double yaw = Math.toRadians(l.getYaw());
+        org.bukkit.util.Vector right = new org.bukkit.util.Vector(-Math.cos(yaw), 0, -Math.sin(yaw));
+        org.bukkit.util.Vector back = new org.bukkit.util.Vector(Math.sin(yaw), 0, -Math.cos(yaw));
+        org.bukkit.entity.Item shell = shooter.getWorld().dropItem(from, new org.bukkit.inventory.ItemStack(org.bukkit.Material.GOLD_NUGGET), it -> {
+            it.setPickupDelay(Short.MAX_VALUE);
+            it.setCanMobPickup(false);
+            it.setPersistent(false);
+            it.setInvulnerable(true);
+        });
+        shell.setVelocity(right.multiply(0.12).add(back.multiply(0.08)).add(new org.bukkit.util.Vector(0, 0.28, 0)));
+        org.bukkit.Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), shell::remove, 25L);
+    }
 }

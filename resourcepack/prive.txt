@@ -13,6 +13,8 @@ ability.marth_contre_hit
 ability.marth_ult_charge
 ability.marth_ult_eclat
 ability.marth_ult_hit
+glyph.schnee_cercle
+glyph.schnee_flocon
 select.art.byleth
 select.art.corrin
 select.art.marth
