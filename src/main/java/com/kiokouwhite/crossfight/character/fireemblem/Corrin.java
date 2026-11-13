@@ -410,9 +410,11 @@ public final class Corrin extends Character {
                         step++;
                         int front = step + 1; // la vague part deux blocs devant Corrin
                         restoreAll();
+                        // D'abord les ennemis atteints : ils sont ejectes avant que le verre de la vague ne soit pose,
+                        // et le verre evite ensuite leur colonne (sinon la crete, au-dessus d'eux, bloque l'ejection).
+                        strike(front);
                         build(front);
                         splash(front);
-                        strike(front);
                     } catch (Exception ex) {
                         plugin().getLogger().warning("Vagues Bleues interrompues : " + ex);
                         restoreAll();
@@ -421,8 +423,25 @@ public final class Corrin extends Character {
                     }
                 }
 
+                /**
+                 * Les places ou la vague ne pose pas de verre : le corps de chaque etre vivant qu'elle traverse, et
+                 * toute la colonne au-dessus de ceux qu'elle vient d'ejecter (leur envol reste libre).
+                 */
+                List<org.bukkit.util.BoundingBox> keepClear(int front) {
+                    List<org.bukkit.util.BoundingBox> out = new ArrayList<>();
+                    Location c = origin.clone().add(0.5, 2, 0.5).add(axis.clone().multiply(front - 3));
+                    for (org.bukkit.entity.Entity e : w.getNearbyEntities(c, HALF_WIDTH + 9, 12, HALF_WIDTH + 9)) {
+                        if (!(e instanceof org.bukkit.entity.LivingEntity le) || le.isDead()) continue;
+                        org.bukkit.util.BoundingBox box = le.getBoundingBox().clone().expand(0.3, 0.0, 0.3);
+                        if (hit.contains(le.getUniqueId())) box.expand(0, 0, 0, 0, 40, 0);
+                        out.add(box);
+                    }
+                    return out;
+                }
+
                 /** Pose les blocs de verre de la vague autour du front, colonne par colonne. */
                 void build(int front) {
+                    List<org.bukkit.util.BoundingBox> clear = keepClear(front);
                     for (int[] cell : swept) {
                         // A combien de blocs derriere le front se trouve cette colonne.
                         int back = (int) Math.round(front - cell[2] / 10.0);
@@ -437,6 +456,10 @@ public final class Corrin extends Character {
                             if (ground == Integer.MIN_VALUE) ground = groundY(cell[0], cell[1]);
                             Block b = w.getBlockAt(cell[0], ground + up, cell[1]);
                             if (!(b.getType().isAir() || b.isReplaceable()) || placed.containsKey(b)) continue;
+                            org.bukkit.util.BoundingBox bb = org.bukkit.util.BoundingBox.of(b);
+                            boolean free = true;
+                            for (org.bukkit.util.BoundingBox k : clear) if (k.overlaps(bb)) { free = false; break; }
+                            if (!free) continue;
                             placed.put(b, b.getState());
                             b.setType(c.material(), false);
                         }
