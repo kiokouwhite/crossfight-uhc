@@ -109,6 +109,22 @@ public final class CfCommand implements TabExecutor {
                             else plugin.testMode().enterDuo(sp, partner);
                             return true;
                         }
+                        if (args.length > 1 && args[1].equalsIgnoreCase("selection")) {
+                            // Essai de l'ecran de selection en 3D : /cf test selection [licence] ; sans licence, une seconde fois pour revenir.
+                            var sel = plugin.selection();
+                            if (sel.isPreviewing(sp) && args.length == 2) { sel.close(sp, true); return true; }
+                            Licence lic = args.length > 2 ? plugin.characters().licence(args[2].toLowerCase()) : null;
+                            if (args.length > 2 && lic == null) { Msg.send(sp, "<red>Licence inconnue : " + args[2]); return true; }
+                            if (lic == null) {
+                                Character mine = plugin.players().get(sp).character();
+                                if (mine == null) mine = plugin.testMode().thirdPerson().characterOf(sp);
+                                lic = mine != null ? mine.licence() : plugin.characters().licence("fire_emblem");
+                            }
+                            if (!plugin.testMode().isTester(sp) && !plugin.testMode().enter(sp)) return true;
+                            if (plugin.testMode().thirdPerson().isActive(sp)) plugin.testMode().thirdPerson().leave(sp);
+                            sel.openPreview(sp, lic);
+                            return true;
+                        }
                         if (args.length > 1 && isThirdPersonArg(args[1])) {
                             // Troisieme personne : /cf test third-person [perso du mannequin] ; sans personnage, une seconde fois pour en sortir.
                             Character c = args.length > 2 ? plugin.characters().character(args[2].toLowerCase()) : null;
@@ -480,13 +496,15 @@ public final class CfCommand implements TabExecutor {
                 case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
-                case "test" -> out.addAll(List.of("duo", "third-person"));
+                case "test" -> out.addAll(List.of("duo", "third-person", "selection"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("selection")) {
+            for (Licence l : plugin.characters().licences()) out.add(l.id());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && isThirdPersonArg(args[1])) {
             for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("duo")) {

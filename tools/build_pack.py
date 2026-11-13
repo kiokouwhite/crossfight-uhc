@@ -25,7 +25,8 @@ Conventions de nommage, sous sounds/ :
   voice/<cle>.ogg             une replique ; <cle>_1.ogg, <cle>_2.ogg... = variantes tirees au hasard
   music/<piste>.ogg           une musique de combat (stereo)
 Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un personnage qui a un modele
-articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>".
+articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>", une image de l'ecran
+de selection (tools/build_selection.py) sous "select.<type>.<nom>".
 Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
@@ -97,6 +98,17 @@ def skins(base: Path):
     """Les personnages qui ont un modele articule (tools/add_skin.py)."""
     folder = base / "assets" / NS / "textures" / "item" / "pose"
     return {"skin." + f.stem for f in folder.glob("*.png")} if folder.is_dir() else set()
+
+
+def selection(base: Path):
+    """Les images de l'ecran de selection (tools/build_selection.py) : "select.<type>.<nom>"."""
+    folder = base / "assets" / NS / "textures" / "item" / "select"
+    out = set()
+    for kind in ("art", "voie", "logo", "banner"):
+        d = folder / kind
+        if d.is_dir():
+            out |= {f"select.{kind}.{f.stem}" for f in d.glob("*.png")}
+    return out
 
 
 def other_assets(base: Path):
@@ -183,7 +195,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms = set(), {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _ = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
@@ -255,7 +267,7 @@ def main() -> int:
 
     # Ce que le plugin embarque : tous les sons connus (publics et prives), l'empreinte du pack public.
     res = ROOT / "src" / "main" / "resources"
-    index = sorted(set(events) | skins(PACK) | private_names)
+    index = sorted(set(events) | skins(PACK) | selection(PACK) | private_names)
     (res / "sounds.txt").write_text("# Genere par tools/build_pack.py\n" + "\n".join(index) + "\n", encoding="utf-8")
     (res / "pack.sha1").write_text(sha1 + "\n", encoding="utf-8")
     # La duree des repliques : le plugin enchaine un dialogue sans que la seconde replique coupe la premiere.

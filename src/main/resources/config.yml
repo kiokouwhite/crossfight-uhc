@@ -37,6 +37,11 @@ poses:
   # Animations : le joueur est remplace un instant par son modele articule (Contre de Marth...)
   enabled: true
 
+selection:
+  # Choix du personnage dans un ecran en 3D (panneaux des personnages qu'on vise et qu'on clique) ;
+  # false : l'ancien menu d'inventaire
+  scene-3d: true
+
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent
   enabled: true

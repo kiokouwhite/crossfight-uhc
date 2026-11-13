@@ -1,0 +1,7 @@
+# Ecran de selection en 3D : le nom affiche et la couleur du bandeau de chaque personnage.
+# Lu par tools/build_selection.py (bandeaux) et par le plugin (lueur au survol, une copie est embarquee).
+# id         nom            couleur
+marth        Marth          #4a4fc4
+corrin       Corrin         #49c0c4
+takumi       Takumi         #cacaca
+byleth       Byleth         #d8d24a

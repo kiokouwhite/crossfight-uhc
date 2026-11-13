@@ -13,6 +13,15 @@ ability.marth_contre_hit
 ability.marth_ult_charge
 ability.marth_ult_eclat
 ability.marth_ult_hit
+select.art.byleth
+select.art.corrin
+select.art.marth
+select.art.takumi
+select.logo.fire_emblem
+select.voie.chasse
+select.voie.destruction
+select.voie.harmonie
+select.voie.nihilite
 skin.acura
 skin.arlo
 skin.armin

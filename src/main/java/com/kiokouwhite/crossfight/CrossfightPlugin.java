@@ -71,6 +71,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Clones(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Bullets(), this);
         pm.registerEvents(testMode, this);
+        selectionStage = new com.kiokouwhite.crossfight.game.SelectionStage(this);
+        pm.registerEvents(selectionStage, this);
         pm.registerEvents(testMode.thirdPerson(), this);
         legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
         pm.registerEvents(legacyCombat, this);
@@ -94,6 +96,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         try {
             com.kiokouwhite.crossfight.character.fireemblem.Byleth.dimension();
             com.kiokouwhite.crossfight.game.TestMode.world();
+            com.kiokouwhite.crossfight.game.SelectionStage.world();
         } catch (Exception ex) {
             getLogger().warning("Impossible de preparer la dimension de Byleth : " + ex.getMessage());
         }
@@ -108,6 +111,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     public void onDisable() {
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
+        if (selectionStage != null) selectionStage.closeAll(true);
         if (gameManager != null) gameManager.shutdown();
         if (abilityEngine != null) abilityEngine.stop();
         if (scoreboardManager != null) scoreboardManager.stop();
@@ -124,5 +128,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public GameManager game() { return gameManager; }
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
+    private com.kiokouwhite.crossfight.game.SelectionStage selectionStage;
+    /** L'ecran de choix du personnage en 3D. */
+    public com.kiokouwhite.crossfight.game.SelectionStage selection() { return selectionStage; }
     public com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat() { return legacyCombat; }
 }

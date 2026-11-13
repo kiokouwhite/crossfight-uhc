@@ -48,6 +48,12 @@ public final class ConnectionListener implements Listener {
             if (p.isOnline() && cf.character() != null) com.kiokouwhite.crossfight.util.Skins.apply(p, cf.character());
         }, 10L);
         if (plugin.testMode().resumeIfPending(p)) return;
+        // Retour pendant le choix des personnages : il retrouve l'ecran de selection de son equipe.
+        var state = plugin.game().state();
+        if ((state == com.kiokouwhite.crossfight.game.GameState.SELECTING || state == com.kiokouwhite.crossfight.game.GameState.STARTING) && cf.team() != null) {
+            plugin.selection().open(p);
+            return;
+        }
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);
             p.getInventory().clear();

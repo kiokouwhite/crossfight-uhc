@@ -26,7 +26,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class GameManager {
 
-    private static final int SELECTION_SECONDS = 60;
+    static final int SELECTION_SECONDS = 60;
     private static final int COUNTDOWN_SECONDS = 10;
 
     private final CrossfightPlugin plugin;
@@ -44,6 +44,8 @@ public final class GameManager {
     }
 
     public GameState state() { return state; }
+    /** Les secondes restantes de la phase en cours (choix du personnage, compte a rebours). */
+    public int phaseSeconds() { return phaseCountdown; }
     public boolean isRunning() { return state == GameState.RUNNING || state == GameState.TEST; }
     public boolean isTest() { return state == GameState.TEST; }
     public boolean isSelecting() { return state == GameState.SELECTING; }
@@ -103,7 +105,8 @@ public final class GameManager {
             for (Player p : t.onlineMembers()) {
                 Msg.send(p, "Ton equipe : " + t.coloredName() + " <gray>- Licence : <gold>" + lic);
                 if (t.licence() != null) Msg.send(p, "<gray><italic>" + t.licence().particularite());
-                plugin.characters().selectMenu(plugin).open(p);
+                // L'ecran de selection en 3D (ou le menu d'inventaire s'il est desactive).
+                plugin.selection().open(p);
             }
         }
         Msg.broadcast("<yellow>Choisissez votre personnage ! <gray>(" + SELECTION_SECONDS + " secondes)");
@@ -178,6 +181,8 @@ public final class GameManager {
     }
 
     private void launch() {
+        // Fin de l'ecran de selection : les joueurs le quittent, la partie les teleporte juste apres.
+        plugin.selection().closeAll(false);
         state = GameState.RUNNING;
         elapsed = 0;
         int spread = plugin.getConfig().getInt("world.spread-radius", 800);
@@ -272,6 +277,7 @@ public final class GameManager {
 
     /** Arret force par un administrateur : retour au lobby. */
     public void stop() {
+        plugin.selection().closeAll(true);
         if (state == GameState.TEST) {
             plugin.testMode().leaveAll();
             leaveTestState();
