@@ -1,7 +1,7 @@
 {
  "textures": {
-  "0": "crossfight:item/select/banner/corrin",
-  "particle": "crossfight:item/select/banner/corrin"
+  "0": "crossfight:item/select/card_plate",
+  "particle": "crossfight:item/select/card_plate"
  },
  "elements": [
   {
@@ -24,7 +24,8 @@
       16,
       16
      ],
-     "texture": "#0"
+     "texture": "#0",
+     "tintindex": 0
     },
     "north": {
      "uv": [
@@ -33,7 +34,8 @@
       16,
       16
      ],
-     "texture": "#0"
+     "texture": "#0",
+     "tintindex": 0
     }
    }
   }

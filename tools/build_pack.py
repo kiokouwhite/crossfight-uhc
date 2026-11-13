@@ -105,7 +105,7 @@ def selection(base: Path):
     """Les images de l'ecran de selection (tools/build_selection.py) : "select.<type>.<nom>"."""
     folder = base / "assets" / NS / "textures" / "item" / "select"
     out = set()
-    for kind in ("art", "voie", "logo", "banner"):
+    for kind in ("card", "voie", "logo"):
         d = folder / kind
         if d.is_dir():
             out |= {f"select.{kind}.{f.stem}" for f in d.glob("*.png")}

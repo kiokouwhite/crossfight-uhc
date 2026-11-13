@@ -1,7 +1,7 @@
 {
  "textures": {
-  "0": "crossfight:item/select/banner/byleth",
-  "particle": "crossfight:item/select/banner/byleth"
+  "0": "crossfight:item/select/card_glow",
+  "particle": "crossfight:item/select/card_glow"
  },
  "elements": [
   {
@@ -24,7 +24,8 @@
       16,
       16
      ],
-     "texture": "#0"
+     "texture": "#0",
+     "tintindex": 0
     },
     "north": {
      "uv": [
@@ -33,7 +34,8 @@
       16,
       16
      ],
-     "texture": "#0"
+     "texture": "#0",
+     "tintindex": 0
     }
    }
   }

@@ -15,10 +15,10 @@ ability.marth_ult_eclat
 ability.marth_ult_hit
 glyph.schnee_cercle
 glyph.schnee_flocon
-select.art.byleth
-select.art.corrin
-select.art.marth
-select.art.takumi
+select.card.byleth
+select.card.corrin
+select.card.marth
+select.card.takumi
 select.logo.fire_emblem
 select.voie.chasse
 select.voie.destruction

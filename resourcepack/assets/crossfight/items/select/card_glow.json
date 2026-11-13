@@ -1,7 +1,7 @@
 {
  "model": {
   "type": "minecraft:model",
-  "model": "crossfight:select/glow",
+  "model": "crossfight:select/card_glow",
   "tints": [
    {
     "type": "minecraft:custom_model_data",

@@ -1,0 +1,10 @@
+# Cartes de l'ecran de selection (tools/build_selection.py) : la voie du personnage (son icone) et le
+# cadrage de son illustration dans la carte.
+#   visage_x visage_y : ou se trouve le visage dans l'illustration (fraction de sa largeur, de sa hauteur)
+#   zoom              : hauteur de l'illustration affichee, en hauteurs de carte
+# Le visage est place au milieu de la carte, a 20 % de sa hauteur. Sans ligne, cadrage automatique.
+# id      voie         visage_x  visage_y  zoom
+marth     harmonie     0.43      0.075     1.45
+corrin    destruction  0.66      0.235     1.55
+takumi    chasse       0.47      0.135     1.22
+byleth    harmonie     0.45      0.175     1.12

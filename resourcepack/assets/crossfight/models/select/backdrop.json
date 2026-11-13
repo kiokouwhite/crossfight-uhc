@@ -1,7 +1,7 @@
 {
  "textures": {
-  "0": "crossfight:item/select/banner/marth",
-  "particle": "crossfight:item/select/banner/marth"
+  "0": "crossfight:item/select/backdrop",
+  "particle": "crossfight:item/select/backdrop"
  },
  "elements": [
   {

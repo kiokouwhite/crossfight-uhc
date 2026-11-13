@@ -73,14 +73,13 @@ public final class SelectionStage implements Listener {
     public static final String WORLD = "crossfight_selection";
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("crossfight", "selection_item");
 
-    // Geometrie d'un panneau, en blocs : la meme que tools/build_selection.py.
-    private static final double QW = 2.97, PH = 5.0, PW = 2.52, SLANT = 0.45;
-    private static final double BQH = 192.0 / 304.0 * QW;
-    private static final double AW = 3.3, AH = 4.4, ART_UP = 0.3;
-    private static final double GW = 3.8, GH = 4.6;
-    private static final double ICON = 0.72, ICON_UP = 0.42, ICON_X = -0.187;
-    /** Distance des panneaux, ecart entre deux panneaux, hauteur de leur centre au-dessus des pieds. */
-    private static final double DIST = 7.0, STEP = 2.85, CY = 2.75;
+    // Geometrie d'une carte, en blocs : la meme que tools/build_selection.py.
+    private static final double PH = 6.2, QW = PH * 512 / 992, SLANT = 0.96, PW = QW - SLANT;
+    private static final double GW = QW * 1.16, GH = PH * 1.07;
+    /** La bande de couleur (haut), le bandeau sombre (haut), en fractions de la hauteur depuis le haut. */
+    private static final double BAND_TOP = 0.70, STRIP_TOP = 0.885;
+    /** Distance des cartes, ecart entre deux cartes (presque collees), hauteur de leur centre au-dessus des pieds. */
+    private static final double DIST = 5.5, STEP = PW + 0.08, CY = 2.0;
 
     private final CrossfightPlugin plugin;
     private final Map<String, Stage> stages = new HashMap<>();
@@ -197,17 +196,18 @@ public final class SelectionStage implements Listener {
 
     /** Les affichages d'un panneau, pour un joueur. */
     private static final class Panel {
-        ItemDisplay plate, glow, art, banner, icon;
+        /** La carte entiere (pack prive), ou la carte vide teinte (sans illustration). */
+        ItemDisplay card, plate, glow, icon;
         Mannequin body;
         TextDisplay name, voie, info, stamp;
 
         void remove() {
-            for (Entity e : new Entity[]{plate, glow, art, banner, icon, body, name, voie, info, stamp}) if (e != null && e.isValid()) e.remove();
+            for (Entity e : new Entity[]{card, plate, glow, icon, body, name, voie, info, stamp}) if (e != null && e.isValid()) e.remove();
         }
 
         List<Display> displays() {
             List<Display> out = new ArrayList<>();
-            for (Display d : new Display[]{plate, art, banner, icon, name, voie}) if (d != null) out.add(d);
+            for (Display d : new Display[]{card, plate, icon, name, voie}) if (d != null) out.add(d);
             return out;
         }
     }
@@ -370,19 +370,26 @@ public final class SelectionStage implements Listener {
         return new Transformation(new Vector3f(0, (float) up, 0), new Quaternionf(), new Vector3f((float) w, (float) h, 1f), new Quaternionf());
     }
 
+    /** Le milieu de la carte a la hauteur dy (au-dessus de son centre) : elle penche vers la droite en montant. */
+    private static double midX(double dy) { return SLANT * dy / PH; }
+
+    /** La hauteur (au-dessus du centre de la carte) d'un niveau donne en fraction depuis son haut. */
+    private static double level(double fromTop) { return PH / 2 - fromTop * PH; }
+
     private Panel spawnPanel(Viewer v, Slot s) {
         Panel p = new Panel();
         Character c = s.character;
         String id = c.id();
         Color color = colors.getOrDefault(id, voieColor(c));
-        p.plate = item(v, s.at(0, 0, 0), "select/plate", QW, PH, null);
-        p.glow = item(v, s.at(0, ART_UP, 0.03), "select/glow", 0, 0, color);
-        if (Sounds.has("select.art." + id)) {
-            p.art = item(v, s.at(0, ART_UP, 0.06), "select/art/" + id, AW, AH, null);
-            p.art.setGlowColorOverride(color);
+        p.glow = item(v, s.at(0, 0, -0.05), "select/card_glow", 0, 0, color);
+        if (Sounds.has("select.card." + id)) {
+            // Tout est dans l'image : illustration recadree, bande et nom, bandeau et icone de voie.
+            p.card = item(v, s.at(0, 0, 0), "select/card/" + id, QW, PH, null);
         } else {
-            // Sans illustration dans le pack : le personnage en chair et en os, avec son skin.
-            Location feet = s.at(0, -PH / 2 + 0.55, 0.06);
+            // Sans illustration : la carte vide a sa couleur, le personnage en chair et en os, son nom en texte.
+            p.plate = item(v, s.at(0, 0, 0), "select/card_plate", QW, PH, color);
+            double feetY = level(BAND_TOP) + 0.05;
+            Location feet = s.at(midX(feetY), feetY, 0.06);
             feet.setYaw((float) Math.toDegrees(s.theta));
             p.body = feet.getWorld().spawn(feet, Mannequin.class, m -> {
                 m.setPersistent(false);
@@ -396,42 +403,44 @@ public final class SelectionStage implements Listener {
                 var skin = com.kiokouwhite.crossfight.util.Skins.profile(id);
                 if (skin != null) m.setProfile(skin);
                 var scale = m.getAttribute(org.bukkit.attribute.Attribute.SCALE);
-                if (scale != null) scale.setBaseValue(1.55);
+                if (scale != null) scale.setBaseValue(2.0);
                 var eq = m.getEquipment();
                 if (eq != null) eq.setItemInMainHand(c.createWeapon());
             });
             v.player.showEntity(plugin, p.body);
+            double nameY = level((BAND_TOP + STRIP_TOP) / 2) + 0.12;
+            p.name = text(v, s.at(midX(nameY), nameY - 0.3, 0.08), "<bold><italic><white>" + c.name().toUpperCase(), 3.0f, 200, Color.fromARGB(0, 0, 0, 0));
+            String voie = voieId(c);
+            double iconY = level(STRIP_TOP) - 0.05;
+            if (Sounds.has("select.voie." + voie)) {
+                p.icon = item(v, s.at(midX(iconY), iconY, 0.1), "select/voie/" + voie, 0.6, 0.6, null);
+            } else {
+                double vy = level((STRIP_TOP + 1) / 2);
+                p.voie = text(v, s.at(midX(vy), vy - 0.15, 0.1), "<" + c.voie().color() + ">" + c.voie().label(), 0.9f, 200, Color.fromARGB(0, 0, 0, 0));
+            }
         }
-        if (Sounds.has("select.banner." + id)) {
-            p.banner = item(v, s.at(0, -PH / 2 + BQH / 2, 0.10), "select/banner/" + id, QW, BQH, null);
-        } else {
-            p.name = text(v, s.at(0, -PH / 2 + 0.85, 0.10), "<bold><italic><white>" + c.name().toUpperCase(), 3.2f, 200,
-                    Color.fromARGB(200, color.getRed(), color.getGreen(), color.getBlue()));
-        }
-        String voie = voieId(c);
-        if (Sounds.has("select.voie." + voie)) {
-            p.icon = item(v, s.at(ICON_X, -PH / 2 + ICON_UP, 0.13), "select/voie/" + voie, ICON, ICON, null);
-        } else {
-            p.voie = text(v, s.at(0, -PH / 2 + 0.3, 0.13), "<" + c.voie().color() + ">" + c.voie().label(), 0.9f, 200, Color.fromARGB(0, 0, 0, 0));
-        }
-        p.info = text(v, s.at(0, -PH / 2 + BQH + 0.95, 0.65), "", 0.42f, 230, Color.fromARGB(190, 12, 12, 16));
+        double infoY = level(BAND_TOP) + 1.1;
+        p.info = text(v, s.at(midX(infoY), infoY, 0.75), "", 0.42f, 230, Color.fromARGB(190, 12, 12, 16));
         p.info.setTextOpacity((byte) 0);
         p.info.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
-        p.stamp = text(v, s.at(0, 0.6, 0.7), "", 1.2f, 200, Color.fromARGB(0, 0, 0, 0));
+        p.stamp = text(v, s.at(midX(0.6), 0.6, 0.8), "", 1.2f, 200, Color.fromARGB(0, 0, 0, 0));
         return p;
     }
 
-    /** Le logo de la licence au-dessus des panneaux (ou son nom, sans logo dans le pack). */
+    /** Le mur sombre derriere les cartes, le logo de la licence en haut a gauche (ou son nom), la consigne en bas. */
     private void spawnHeader(Viewer v) {
         Stage st = v.stage;
-        Location top = st.origin.clone().add(0, CY + PH / 2 + 1.05, -DIST);
+        v.extra.add(item(v, st.origin.clone().add(0, CY + 0.3, -(DIST + 1.4)), "select/backdrop", 19, 9.5, null));
+        Slot first = st.slots.get(0);
+        double ly = PH / 2 - 0.42;
+        Location logoAt = first.at(midX(ly) - 0.15, ly, 0.14);
         String lic = st.licence.id();
         if (Sounds.has("select.logo." + lic)) {
-            v.extra.add(item(v, top, "select/logo/" + lic, 4.4, 4.4 * 0.22, null));
+            v.extra.add(item(v, logoAt, "select/logo/" + lic, 3.4, 3.4 * 0.22, null));
         } else {
-            v.extra.add(text(v, top, "<gold><bold>" + st.licence.name(), 3.0f, 300, Color.fromARGB(0, 0, 0, 0)));
+            v.extra.add(text(v, logoAt, "<gold><bold>" + st.licence.name(), 2.6f, 300, Color.fromARGB(0, 0, 0, 0)));
         }
-        v.extra.add(text(v, st.origin.clone().add(0, CY + PH / 2 + 0.25, -DIST), "<gray>Vise un personnage, <white>clic</white> pour le choisir", 0.7f, 400, Color.fromARGB(0, 0, 0, 0)));
+        v.extra.add(text(v, st.origin.clone().add(0, CY - PH / 2 - 0.45, -DIST * 0.98), "<gray>Vise un personnage, <white>clic</white> pour le choisir", 0.7f, 400, Color.fromARGB(0, 0, 0, 0)));
     }
 
     private static String voieId(Character c) {
@@ -464,17 +473,18 @@ public final class SelectionStage implements Listener {
             boolean mine = owner != null && owner.equals(v.player.getUniqueId());
             boolean taken = owner != null && !mine;
             boolean hover = id.equals(v.hovered) && owner == null;
-            int light = taken ? 5 : 15;
+            // Les autres cartes s'assombrissent un peu quand le joueur en vise une.
+            int light = taken ? 5 : v.hovered != null && !hover && !mine ? 10 : 15;
             for (Display d : p.displays()) d.setBrightness(new Display.Brightness(light, light));
-            if (p.art != null) {
-                animate(p.art, hover || mine ? AW * 1.08 : AW, hover || mine ? AH * 1.08 : AH, hover || mine ? 0.06 : 0, 4);
-                p.art.setGlowing(hover || mine);
-                p.art.teleport(s.at(0, ART_UP, hover || mine ? 0.45 : 0.06));
+            boolean up = hover || mine;
+            ItemDisplay face = p.card != null ? p.card : p.plate;
+            if (face != null) {
+                animate(face, up ? QW * 1.06 : QW, up ? PH * 1.06 : PH, 0, 4);
+                face.teleport(s.at(0, 0, up ? 0.4 : 0));
             }
-            if (p.body != null) p.body.setGlowing(hover || mine);
-            animate(p.glow, hover || mine ? GW : 0, hover || mine ? GH : 0, 0, 5);
-            p.plate.setGlowing(hover);
-            p.plate.setGlowColorOverride(colors.getOrDefault(id, voieColor(s.character)));
+            if (p.body != null) p.body.setGlowing(up);
+            animate(p.glow, up ? GW * 1.06 : 0, up ? GH * 1.06 : 0, 0, 5);
+            if (p.glow != null) p.glow.teleport(s.at(0, 0, up ? 0.3 : -0.05));
             if (hover) {
                 StringBuilder sb = new StringBuilder("<gold><bold>" + s.character.name() + "</bold>\n<" + s.character.voie().color() + ">" + s.character.voie().label());
                 for (String line : s.character.summary()) sb.append("\n").append(line);
@@ -675,16 +685,19 @@ public final class SelectionStage implements Listener {
         Player pl = v.player;
         pl.playSound(pl.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.3f);
         pl.playSound(pl.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
-        Location c = s.at(0, ART_UP, 0.5);
-        pl.spawnParticle(Particle.END_ROD, c, 40, 0.9, 1.6, 0.1, 0.06);
-        pl.spawnParticle(Particle.FIREWORK, c, 25, 0.8, 1.4, 0.1, 0.08);
-        if (p.art != null) {
-            p.art.setGlowColorOverride(Color.WHITE);
-            animate(p.art, AW * 1.18, AH * 1.18, 0.1, 3);
+        Location c = s.at(0, 0.4, 0.6);
+        pl.spawnParticle(Particle.END_ROD, c, 40, 0.9, 1.8, 0.1, 0.06);
+        pl.spawnParticle(Particle.FIREWORK, c, 25, 0.8, 1.6, 0.1, 0.08);
+        // La carte bondit vers le joueur, entouree d'un eclair blanc, puis revient a sa taille choisie.
+        ItemDisplay face = p.card != null ? p.card : p.plate;
+        if (face != null) {
+            face.setGlowing(true);
+            face.setGlowColorOverride(Color.WHITE);
+            animate(face, QW * 1.14, PH * 1.14, 0, 3);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!p.art.isValid()) return;
-                p.art.setGlowColorOverride(colors.getOrDefault(s.character.id(), voieColor(s.character)));
-                animate(p.art, AW * 1.08, AH * 1.08, 0.06, 6);
+                if (!face.isValid()) return;
+                face.setGlowing(false);
+                animate(face, QW * 1.06, PH * 1.06, 0, 6);
             }, 6L);
         }
     }
