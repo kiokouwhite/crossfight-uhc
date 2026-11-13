@@ -81,6 +81,24 @@ public final class DamageListener implements Listener {
         e.setDamage(d);
     }
 
+    /**
+     * Les degats d'une capacite (Effects.damage) font perdre le nombre de coeurs annonce : l'armure et ses
+     * enchantements de protection ne les reduisent pas. Repris en dernier, au cas ou un autre reglage des
+     * degats les aurait recalcules entre-temps. Les coups d'arme et les fleches passent toujours par l'armure.
+     */
+    @SuppressWarnings("deprecation")
+    private void ignoreArmor(EntityDamageEvent e) {
+        if (!com.kiokouwhite.crossfight.util.Effects.isAbilityDamage() || !plugin.getConfig().getBoolean("abilities.ignore-armor", true)) return;
+        if (e.isApplicable(EntityDamageEvent.DamageModifier.ARMOR)) e.setDamage(EntityDamageEvent.DamageModifier.ARMOR, 0);
+        if (e.isApplicable(EntityDamageEvent.DamageModifier.MAGIC)) e.setDamage(EntityDamageEvent.DamageModifier.MAGIC, 0);
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onAbilityDamageEarly(EntityDamageEvent e) { ignoreArmor(e); }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onAbilityDamageLate(EntityDamageEvent e) { ignoreArmor(e); }
+
     /** Le mannequin pilote ne se blesse pas lui-meme (explosions, zones). */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onPilotSelfHit(EntityDamageByEntityEvent e) {

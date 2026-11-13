@@ -310,11 +310,26 @@ public final class Effects {
         return until != null && System.currentTimeMillis() < until;
     }
 
-    /** Degats "bruts" infliges par un joueur a un autre, en points de vie (2 = 1 coeur). */
+    /** Profondeur des appels a {@link #damage} en cours : leurs degats sont ceux d'une capacite. */
+    private static int abilityDamage;
+
+    /** Vrai pendant les degats d'une capacite (l'evenement de degats est lance pendant l'appel). */
+    public static boolean isAbilityDamage() { return abilityDamage > 0; }
+
+    /**
+     * Degats "bruts" d'une capacite, en points de vie (2 = 1 coeur) : ils ignorent l'armure et ses
+     * enchantements de protection (voir DamageListener, config abilities.ignore-armor), la cible perd
+     * le nombre de coeurs annonce (moins Resistance et coeurs d'absorption).
+     */
     public static void damage(LivingEntity victim, double amount, org.bukkit.entity.Entity source) {
         if (victim.isDead()) return;
-        // Un joueur pilote (mannequin en troisieme personne) n'est pas une entite du serveur : on passe son mannequin.
-        MannequinPlayer.real(victim).damage(amount, source == null ? null : MannequinPlayer.real(source));
+        abilityDamage++;
+        try {
+            // Un joueur pilote (mannequin en troisieme personne) n'est pas une entite du serveur : on passe son mannequin.
+            MannequinPlayer.real(victim).damage(amount, source == null ? null : MannequinPlayer.real(source));
+        } finally {
+            abilityDamage--;
+        }
     }
 
     /** Le tireur d'un projectile, joueur pilote compris (voir MannequinPlayer). */

@@ -37,6 +37,11 @@ poses:
   # Animations : le joueur est remplace un instant par son modele articule (Contre de Marth...)
   enabled: true
 
+abilities:
+  # Les degats d'une capacite ("inflige 5 coeurs") ignorent l'armure et ses enchantements de protection :
+  # la cible perd le nombre de coeurs annonce. false : ils passent par l'armure comme un coup d'epee.
+  ignore-armor: true
+
 selection:
   # Choix du personnage dans un ecran en 3D (panneaux des personnages qu'on vise et qu'on clique) ;
   # false : l'ancien menu d'inventaire
