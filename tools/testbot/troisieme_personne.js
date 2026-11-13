@@ -40,11 +40,10 @@ bot.once('spawn', async () => {
       const all = [...new Set(events.map(e => e.text.trim()).filter(t => t && !/\|/.test(t)))].join(' / ');
       line.push(k + ':' + s.name + (redTxt ? ' REFUS<' + redTxt.slice(0, 90) + '>' : ab || used ? ' ok' : ' ?<' + all.slice(0, 110) + '>') + (bot.health < hp - 0.05 ? ' -' + (hp - bot.health).toFixed(1) : '') + menu);
     }
-    // Clic gauche avec l'arme en visant le mannequin : il frappe (ou tire).
+    // Accroupi + clic gauche dans le vide avec l'arme (dos au mannequin) : il frappe (ou tire).
     bot.chat('/tp @s 0.5 65 3 180 0'); bot.chat('/cf heal'); await sleep(700);
-    const m = body(); if (m) await bot.lookAt(m.position.offset(0, 1.5, 0), true);
-    bot.setQuickBarSlot(0); await sleep(250); const hp = bot.health; events = [];
-    if (m) bot.attack(m); else bot.swingArm(); await sleep(1000);
+    bot.setQuickBarSlot(0); await sleep(250); await bot.look(Math.PI, 0, true); const hp = bot.health; events = [];
+    bot.setControlState('sneak', true); await sleep(300); bot.swingArm(); await sleep(1000); bot.setControlState('sneak', false);
     line.push('frappe:' + (bot.health < hp - 0.05 ? '-' + (hp - bot.health).toFixed(1) : 'rien ' + events.map(e => e.text).join('/').slice(0, 60)));
     results.push(id + ' | ' + line.join(' | '));
     log(results[results.length - 1]);

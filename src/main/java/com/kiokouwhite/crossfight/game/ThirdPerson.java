@@ -57,8 +57,8 @@ import java.util.UUID;
  * dans une equipe a lui, dont le seul ennemi est son testeur.
  * <ul>
  *   <li>clic droit sur un objet de capacite : le mannequin la lance (accroupi : sa variante) ;</li>
- *   <li>clic gauche avec l'arme (meme sur le mannequin) : le mannequin frappe (a portee) ou tire a l'arc ;</li>
- *   <li>frapper le mannequin a mains nues ou avec un objet de capacite : ses capacites qui reagissent aux
+ *   <li>accroupi + clic gauche dans le vide avec l'arme : le mannequin frappe (a portee) ou tire a l'arc ;</li>
+ *   <li>frapper le mannequin (avec n'importe quoi, il ne recule pas) : ses capacites qui reagissent aux
  *       coups (contres...) se declenchent.</li>
  * </ul>
  */
@@ -175,8 +175,8 @@ public final class ThirdPerson implements Listener {
         p.setFallDistance(0);
         test.gear(p);
         Msg.send(p, "<aqua><bold>Troisieme personne.</bold> <gray>Le mannequin du centre incarne le personnage (<white>/cf change</white>) et lance ses capacites sur toi : "
-                + "<white>clic droit</white> sur un objet = il l'utilise (accroupi : sa variante), <white>clic gauche</white> avec l'arme = il te frappe ou te tire dessus, "
-                + "et tu peux le frapper (a mains nues ou avec un objet de capacite) pour voir ses contres. <white>/cf test third-person</white> pour reprendre le personnage toi-meme, <white>/cf test</white> pour quitter.");
+                + "<white>clic droit</white> sur un objet = il l'utilise (accroupi : sa variante), <white>accroupi + clic gauche dans le vide</white> avec l'arme = il te frappe ou te tire dessus, "
+                + "et tu peux le frapper (il ne recule pas) pour voir ses contres. <white>/cf test third-person</white> pour reprendre le personnage toi-meme, <white>/cf test</white> pour quitter.");
         if (chosen != null) setCharacter(p, chosen);
         else Bukkit.getScheduler().runTask(plugin, () -> {
             if (!isActive(p)) return;
@@ -214,6 +214,12 @@ public final class ThirdPerson implements Listener {
         body.setImmovable(false);
         body.setPersistent(false);
         body.setCollidable(false);
+        // Les coups du testeur ne le font pas reculer (on le frappe pour essayer ses contres) ; ses propres
+        // capacites (ruees, bonds) le deplacent toujours.
+        for (Attribute a : new Attribute[]{Attribute.KNOCKBACK_RESISTANCE, Attribute.EXPLOSION_KNOCKBACK_RESISTANCE}) {
+            var inst = body.getAttribute(a);
+            if (inst != null) inst.setBaseValue(1.0);
+        }
         body.setCustomNameVisible(true);
         body.setDescription(Msg.mm("<gray>Troisieme personne"));
         var mh = body.getAttribute(Attribute.MAX_HEALTH);
@@ -328,6 +334,9 @@ public final class ThirdPerson implements Listener {
         // Clic droit sur un coffre, une porte... : on laisse faire sauf accroupi (comme pour un joueur).
         if (right && e.getAction() == Action.RIGHT_CLICK_BLOCK && e.getClickedBlock() != null && AbilityEngine.isInteractable(e.getClickedBlock().getType()) && !p.isSneaking()) return;
         if (left && !weapon) return;
+        // Viser le mannequin, c'est le frapper soi-meme (ses contres se declenchent). L'ordre de frappe se
+        // donne accroupi, dans le vide : un coup rate sur le mannequin ne se retourne pas contre le testeur.
+        if (left && (looksAtBody(p, s) || !p.isSneaking())) return;
         e.setCancelled(true);
         e.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
         command(p, s, item, right);
@@ -345,19 +354,11 @@ public final class ThirdPerson implements Listener {
         if (AbilityEngine.isAbilityItem(item) || AbilityEngine.isWeaponItem(item)) command(p, s, item, true);
     }
 
-    /**
-     * Le testeur frappe son mannequin. A mains nues ou avec un objet de capacite, le coup porte (et declenche
-     * les contres). Avec l'arme du personnage, c'est un ordre : le mannequin frappe (ou tire) a sa place.
-     */
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onHitBody(org.bukkit.event.entity.EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Player p) || !MannequinPlayer.isBody(e.getEntity())) return;
-        Session s = sessions.get(p.getUniqueId());
-        if (s == null || s.body != e.getEntity()) return;
-        ItemStack item = p.getInventory().getItemInMainHand();
-        if (!AbilityEngine.isWeaponItem(item)) return;
-        e.setCancelled(true);
-        command(p, s, item, false);
+    /** Vrai si le testeur vise le corps du mannequin, a portee de coup. */
+    private boolean looksAtBody(Player p, Session s) {
+        if (!p.getWorld().equals(s.body.getWorld())) return false;
+        org.bukkit.util.RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), 4.5, 0.3, en -> en == s.body);
+        return hit != null && hit.getHitEntity() == s.body;
     }
 
     /** Le testeur donne un ordre au mannequin avec un de ses objets. */
@@ -384,7 +385,7 @@ public final class ThirdPerson implements Listener {
             } else if (AbilityEngine.isWeaponItem(item)) {
                 if (isBow(item)) shootBow(s, item);
                 else if (!rightClick) strike(s, p);
-                else Msg.actionBar(p, "<gray>Clic gauche avec l'arme : le mannequin te frappe.");
+                else Msg.actionBar(p, "<gray>Accroupi + clic gauche dans le vide avec l'arme : le mannequin te frappe.");
             }
         } catch (Exception ex) {
             plugin.getLogger().warning("Troisieme personne (" + ch.id() + ", " + (id == null ? "arme" : id) + ") : " + ex);
