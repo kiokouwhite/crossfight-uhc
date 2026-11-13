@@ -66,6 +66,11 @@ public final class Clones implements Listener {
      * dans le camp de {@code owner}, qui court vers {@code target}.
      */
     public static LivingEntity spawn(Player owner, LivingEntity source, LivingEntity target, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit) {
+        return spawn(owner, source, target, lifetimeTicks, onHit, 0);
+    }
+
+    /** Idem, le clone attendant {@code startDelay} ticks sur place avant de courir (le temps d'une animation). */
+    public static LivingEntity spawn(Player owner, LivingEntity source, LivingEntity target, int lifetimeTicks, BiConsumer<LivingEntity, Player> onHit, int startDelay) {
         Location at = source.getLocation().clone().add(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
         at.setDirection(target != null ? target.getLocation().toVector().subtract(at.toVector()) : source.getLocation().getDirection());
         Mannequin m = (Mannequin) source.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
@@ -99,7 +104,8 @@ public final class Clones implements Listener {
         if (onHit != null) ON_HIT.put(m.getUniqueId(), onHit);
         source.getWorld().spawnParticle(Particle.SMOKE, at.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
         source.getWorld().playSound(at, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.5f, 1.8f);
-        if (target != null) run(m, target, lifetimeTicks);
+        if (target != null && startDelay <= 0) run(m, target, lifetimeTicks);
+        else if (target != null) Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { if (m.isValid()) run(m, target, lifetimeTicks - startDelay); }, startDelay);
         return m;
     }
 

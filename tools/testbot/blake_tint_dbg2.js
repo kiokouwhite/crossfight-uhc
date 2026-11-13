@@ -1,0 +1,20 @@
+const mineflayer = require('mineflayer');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
+bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
+const byId = {}; let t0 = 0;
+bot._client.on('entity_metadata', d => { const j = JSON.stringify(d.metadata).replace(/\s/g, ''); (byId[d.entityId] = byId[d.entityId] || []).push((Date.now() - t0) + 'ms ' + j.replace(/"type":"[a-z_0-9]+",/g, '').slice(0, 900)); });
+const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;
+bot.once('spawn', async () => {
+  await sleep(3000); bot.chat('/cf stop'); await sleep(800);
+  bot.chat('/cf test third-person blake'); await sleep(5000);
+  bot.chat('/tp @s 0.5 65 7 180 0'); await sleep(1000);
+  for (const k of Object.keys(byId)) delete byId[k];
+  t0 = Date.now();
+  bot.setQuickBarSlot(slotOf('Ombre')); await sleep(250); bot.activateItem(); await sleep(80); bot.deactivateItem();
+  await sleep(1000);
+  const ids = Object.keys(byId).filter(id => byId[id].some(l => /pose\/blake_head/.test(l)));
+  console.log('tetes :', ids.length);
+  for (const l of byId[ids[0]]) console.log(l);
+  bot.chat('/cf test third-person'); await sleep(800); bot.quit(); process.exit(0);
+});

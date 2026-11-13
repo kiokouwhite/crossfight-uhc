@@ -549,3 +549,79 @@ pose weiss_mains_sol
   leg_l 15 0 4
   item_world -45 0 90
   item_shift 0 -3 0
+
+# Blake (RWBY) --------------------------------------------------------------------------------------
+# Pistolet : tenu a deux mains, bras tendus a hauteur d'epaule, buste legerement tourne, l'arme pointee droit devant.
+pose blake_pistolet
+  root  0 15 0
+  head  0 -15 0
+  arm_r -90 34 0
+  arm_l -90 -34 0
+  leg_r 8 -15 -5
+  leg_l -12 -15 5
+  item_world 0 -15 0
+
+# Mode katana : les deux mains sur la poignee, l'epee dressee devant elle...
+pose blake_katana_tient
+  root  4 0 0   0 -1 0
+  head  8 0 0
+  arm_r -45 30 0
+  arm_l -45 -30 0
+  leg_r 6 0 -4
+  leg_l -6 0 4
+  item_world -90 90 0
+
+# ...les bras jetes vers le ciel : l'epee s'envole (elle n'est plus dans sa main)...
+pose blake_katana_lance
+  root  -6 0 0
+  head  -30 0 0
+  arm_r -170 12 0
+  arm_l -170 -12 0
+  leg_r 0 0 -4
+  leg_l 0 0 4
+
+# ...et elle la rattrape d'une main au-dessus de l'epaule.
+pose blake_katana_attrape
+  head  -20 0 0
+  arm_r -160 0 -10
+  arm_l -20 0 15
+  item_world -90 90 0
+
+# Instinct Animal : le bond du chat, le corps allonge vers l'avant, les bras tendus comme des pattes.
+pose blake_bond_chat
+  root  55 0 0   0 6 -8
+  head  -50 0 0
+  arm_r -125 8 0
+  arm_l -125 -8 0
+  leg_r 10 0 -6
+  leg_l 10 0 6
+
+# Instinct Animal : le rugissement, penchee en avant, la tete jetee en avant, les mains en griffes.
+pose blake_rugit
+  root  20 0 0   0 -2 -1
+  head  -40 0 0
+  arm_r -70 -20 -25
+  arm_l -70 20 25
+  leg_r 14 0 -10
+  leg_l -14 0 10
+
+# Ombre : accroupie, les bras un peu ecartes (la silhouette violette qui se revele).
+pose blake_ombre
+  root  8 0 0   0 -1.5 0
+  head  -6 0 0
+  arm_r -30 0 -20
+  arm_l -30 0 20
+  leg_r 12 0 -6
+  leg_l -12 0 6
+
+# Discretion : elle s'enfonce dans la flaque noire, les bras qui remontent pendant qu'elle disparait.
+pose blake_enfonce
+  root  0 0 0   0 -2 0
+  head  20 0 0
+  arm_r -20 0 -25
+  arm_l -20 0 25
+pose blake_enfonce_fond
+  root  0 0 0   0 -36 0
+  head  20 0 0
+  arm_r -150 0 -15
+  arm_l -150 0 15

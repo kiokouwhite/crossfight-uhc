@@ -69,11 +69,16 @@ public final class Puppet {
     private static final Map<String, Map<String, Joint>> POSES = new LinkedHashMap<>();
     private static final Map<UUID, Puppet> ACTIVE = new HashMap<>();
 
+    /** Le corps que le pantin remplace : un joueur, ou une autre entite (un clone...). */
+    private final org.bukkit.entity.LivingEntity entity;
+    /** Le meme, quand c'est un joueur (null sinon). */
     private final Player player;
     private final Map<Part, ItemDisplay> parts = new EnumMap<>(Part.class);
     private ItemDisplay held;
     private BukkitTask task;
-    private boolean addedInvisibility, ownItemsHidden;
+    private boolean addedInvisibility, madeInvisible, ownItemsHidden;
+    /** Le pantin reste a cet endroit au lieu de suivre son corps (null : il le suit). */
+    private Location pinned;
     private int heldSlot;
     private int age, endAt = -1, removeAt = 20 * 30;
     private String pose, restPose = "debout";
@@ -85,7 +90,10 @@ public final class Puppet {
     private final Vector3f spinCenter = new Vector3f();
     private final List<Runnable> restore = new ArrayList<>();
 
-    private Puppet(Player player) { this.player = player; }
+    private Puppet(org.bukkit.entity.LivingEntity entity) {
+        this.entity = entity;
+        this.player = entity instanceof Player p ? p : null;
+    }
 
     // ------------------------------------------------------------ poses
 
@@ -124,7 +132,7 @@ public final class Puppet {
 
     // ------------------------------------------------------------ vie du pantin
 
-    public static Puppet of(Player p) { return ACTIVE.get(p.getUniqueId()); }
+    public static Puppet of(org.bukkit.entity.Entity e) { return ACTIVE.get(e.getUniqueId()); }
 
     /**
      * Remplace le joueur par son pantin, dans la pose donnee. Rend null si le pack n'a pas le modele du
@@ -132,7 +140,7 @@ public final class Puppet {
      *
      * @param heldItem l'objet montre dans la main droite (null : aucun)
      */
-    public static Puppet show(Player p, String character, ItemStack heldItem, String pose) {
+    public static Puppet show(org.bukkit.entity.LivingEntity p, String character, ItemStack heldItem, String pose) {
         if (!available(character) || !POSES.containsKey(pose)) return null;
         Puppet old = ACTIVE.remove(p.getUniqueId());
         if (old != null) old.remove();
@@ -196,7 +204,7 @@ public final class Puppet {
         Vector3f point = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(0, (float) (-10 * along), 0).mul(K / 16f)).add(t);
         // Du repere du pantin (X gauche, Z devant) vers le monde, selon l'orientation du joueur.
         new Quaternionf().rotationY((float) Math.toRadians(-anchor().getYaw())).transform(point);
-        return player.getLocation().add(point.x, point.y, point.z);
+        return anchor().add(point.x, point.y, point.z);
     }
 
     private ItemDisplay spawn(Location at, ItemStack item) {
@@ -210,7 +218,7 @@ public final class Puppet {
     }
 
     private Location anchor() {
-        Location l = player.getLocation();
+        Location l = pinned != null ? pinned.clone() : entity.getLocation();
         l.setPitch(0);
         if (fixedYaw != null) l.setYaw(fixedYaw);
         return l;
@@ -219,6 +227,41 @@ public final class Puppet {
     /** Le pantin garde cette orientation au lieu de suivre le regard du joueur (coup dont la direction est figee). */
     public void face(float yaw) {
         fixedYaw = yaw;
+    }
+
+    /** Le pantin reste ici (sa pose s'y joue) meme si son corps s'en va : quelqu'un qui s'enfonce dans le sol... */
+    public void pin(Location at) {
+        pinned = at.clone();
+    }
+
+    /**
+     * Teint une partie du pantin ("head", "body", "arm_r", "arm_l", "leg_r", "leg_l" ; null : toutes) d'une
+     * couleur, ou lui rend ses vraies couleurs (color null). Le modele doit l'accepter (tools/add_skin.py).
+     */
+    public void tint(String partId, org.bukkit.Color color) {
+        for (Part part : Part.values()) {
+            if (partId != null && !part.id.equals(partId)) continue;
+            ItemDisplay d = parts.get(part);
+            if (d == null || !d.isValid()) continue;
+            ItemStack it = d.getItemStack();
+            ItemMeta meta = it.getItemMeta();
+            var cmd = meta.getCustomModelDataComponent();
+            cmd.setColors(color == null ? List.of() : List.of(color));
+            meta.setCustomModelDataComponent(cmd);
+            it.setItemMeta(meta);
+            d.setItemStack(it);
+        }
+    }
+
+    /** Un contour lumineux de cette couleur autour d'une partie (null : toutes), ou plus de contour (color null). */
+    public void glow(String partId, org.bukkit.Color color) {
+        for (Part part : Part.values()) {
+            if (partId != null && !part.id.equals(partId)) continue;
+            ItemDisplay d = parts.get(part);
+            if (d == null || !d.isValid()) continue;
+            d.setGlowing(color != null);
+            if (color != null) d.setGlowColorOverride(color);
+        }
     }
 
     /** La pose actuelle (celle vers laquelle le pantin va, ou dans laquelle il est). */
@@ -254,12 +297,12 @@ public final class Puppet {
 
     private void tick() {
         age++;
-        if (!player.isOnline() || player.isDead() || age >= removeAt || parts.values().stream().anyMatch(d -> !d.isValid())
-                || !player.getWorld().equals(parts.get(Part.BODY).getWorld())) { remove(); return; }
+        if (!alive() || age >= removeAt || parts.values().stream().anyMatch(d -> !d.isValid())
+                || !entity.getWorld().equals(parts.get(Part.BODY).getWorld())) { remove(); return; }
         // Un clic sur une capacite fait renvoyer tout l'inventaire au joueur juste apres : ses objets
         // reapparaitraient chez lui. On les re-masque donc regulierement tant que dure l'animation, et
         // tout de suite s'il change de case (l'ancienne retrouve son objet, la nouvelle est masquee).
-        if (ownItemsHidden) {
+        if (ownItemsHidden && player != null) {
             int now = player.getInventory().getHeldItemSlot();
             if (now != heldSlot) { heldSlot = now; player.updateInventory(); hideOwnItems(player); }
             else if (age % 4 == 1) hideOwnItems(player);
@@ -316,24 +359,37 @@ public final class Puppet {
         d.setTransformation(tr);
     }
 
+    private boolean alive() {
+        return entity.isValid() && !entity.isDead() && (player == null || player.isOnline());
+    }
+
     /** Le joueur disparait : invisible, et son equipement n'est plus montre (il flotterait dans le vide). */
     private void hidePlayer() {
-        if (!player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
-            player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 20 * 30, 0, false, false, false));
-            addedInvisibility = true;
+        if (player != null) {
+            if (!player.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 20 * 30, 0, false, false, false));
+                addedInvisibility = true;
+            }
+        } else if (!entity.isInvisible()) {
+            entity.setInvisible(true);
+            madeInvisible = true;
         }
         EquipmentSlot[] all = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET, EquipmentSlot.HAND, EquipmentSlot.OFF_HAND};
-        for (Player viewer : player.getWorld().getPlayers()) {
-            if (viewer.equals(player) || viewer.getLocation().distanceSquared(player.getLocation()) > 96 * 96) continue;
+        for (Player viewer : entity.getWorld().getPlayers()) {
+            if (viewer.equals(entity) || viewer.getLocation().distanceSquared(entity.getLocation()) > 96 * 96) continue;
             Map<EquipmentSlot, ItemStack> empty = new EnumMap<>(EquipmentSlot.class);
             for (EquipmentSlot s : all) empty.put(s, ItemStack.empty());
             // Le joueur pilote d'un mannequin (troisieme personne) n'est pas une entite du serveur : on passe son mannequin.
-            var shown = MannequinPlayer.real((org.bukkit.entity.LivingEntity) player);
+            var shown = MannequinPlayer.real(entity);
             viewer.sendEquipmentChange(shown, empty);
             restore.add(() -> {
-                if (!viewer.isOnline() || !player.isOnline()) return;
+                if (!viewer.isOnline() || !alive()) return;
                 Map<EquipmentSlot, ItemStack> real = new EnumMap<>(EquipmentSlot.class);
-                for (EquipmentSlot s : all) { ItemStack it = player.getInventory().getItem(s); real.put(s, it == null ? ItemStack.empty() : it); }
+                var eq = player != null ? null : entity.getEquipment();
+                for (EquipmentSlot s : all) {
+                    ItemStack it = player != null ? player.getInventory().getItem(s) : eq == null ? null : eq.getItem(s);
+                    real.put(s, it == null ? ItemStack.empty() : it);
+                }
                 viewer.sendEquipmentChange(shown, real);
             });
         }
@@ -341,7 +397,7 @@ public final class Puppet {
         // qui le concerne, il affiche ce que contient son propre inventaire. On lui envoie donc, a lui seul,
         // des cases d'armure vides et un objet invisible a la place de ce qu'il tient ; son vrai inventaire
         // n'est pas touche et lui est renvoye tel quel a la fin.
-        if (!MannequinPlayer.isProxy(player) && hideOwnItems(player)) {
+        if (player != null && !MannequinPlayer.isProxy(player) && hideOwnItems(player)) {
             ownItemsHidden = true;
             heldSlot = player.getInventory().getHeldItemSlot();
             restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
@@ -396,10 +452,11 @@ public final class Puppet {
     /** Retire le pantin et fait reapparaitre le joueur. */
     public void remove() {
         if (task != null) { task.cancel(); task = null; }
-        ACTIVE.remove(player.getUniqueId(), this);
+        ACTIVE.remove(entity.getUniqueId(), this);
         for (ItemDisplay d : parts.values()) d.remove();
         if (held != null) held.remove();
-        if (addedInvisibility && player.isOnline()) player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        if (addedInvisibility && player != null && player.isOnline()) player.removePotionEffect(PotionEffectType.INVISIBILITY);
+        if (madeInvisible && entity.isValid()) entity.setInvisible(false);
         for (Runnable r : restore) r.run();
         restore.clear();
     }

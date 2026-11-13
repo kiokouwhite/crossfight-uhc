@@ -13,6 +13,9 @@ poses dans src/main/resources/poses.txt). Apercu sans lancer le jeu : tools/pose
 
 --prive range le tout dans resourcepack-prive/ (jamais envoye sur GitHub) : c'est la place des skins
 de personnages sous licence. Ensuite : python3 tools/build_pack.py
+
+Les parties acceptent une teinte (custom_model_data, blanc par defaut) : Puppet.tint en fait une
+silhouette coloree. python3 tools/add_skin.py --teinte l'ajoute aux modeles fabriques avant.
 """
 import json
 import sys
@@ -38,6 +41,27 @@ def parts(slim: bool):
     }
 
 
+# Le pantin peut etre teint (Puppet.tint : une silhouette d'ombre...) ; blanc par defaut = ses vraies couleurs.
+TINT = {"type": "minecraft:custom_model_data", "index": 0, "default": -1}
+
+
+def tintable(base: Path) -> int:
+    """Ajoute la teinte aux modeles deja fabriques (avant qu'add_skin.py ne la mette lui-meme)."""
+    n = 0
+    for f in sorted((base / "models" / "item" / "pose").glob("*.json")):
+        m = json.loads(f.read_text(encoding="utf-8"))
+        for el in m.get("elements", []):
+            for face in el["faces"].values():
+                face["tintindex"] = 0
+        f.write_text(json.dumps(m, indent=1) + "\n", encoding="utf-8")
+        n += 1
+    for f in sorted((base / "items" / "pose").glob("*.json")):
+        it = json.loads(f.read_text(encoding="utf-8"))
+        it["model"]["tints"] = [TINT]
+        f.write_text(json.dumps(it, indent=1) + "\n", encoding="utf-8")
+    return n
+
+
 def element(box, uv, grow):
     x1, y1, z1, x2, y2, z2 = box
     w, h, d = x2 - x1, y2 - y1, z2 - z1
@@ -48,17 +72,22 @@ def element(box, uv, grow):
         "to": [8 + x2 + grow, 8 + y2 + grow, 8 + z2 + grow],
         "faces": {
             # Bandeau du skin : cote droit, avant, cote gauche, arriere ; au-dessus : haut puis bas.
-            "east":  {"uv": q(u, v + d, u + d, v + d + h), "texture": "#skin"},
-            "north": {"uv": q(u + d, v + d, u + d + w, v + d + h), "texture": "#skin"},
-            "west":  {"uv": q(u + d + w, v + d, u + 2 * d + w, v + d + h), "texture": "#skin"},
-            "south": {"uv": q(u + 2 * d + w, v + d, u + 2 * d + 2 * w, v + d + h), "texture": "#skin"},
-            "up":    {"uv": q(u + d + w, v + d, u + d, v), "texture": "#skin"},
-            "down":  {"uv": q(u + d + 2 * w, v, u + d + w, v + d), "texture": "#skin"},
+            "east":  {"uv": q(u, v + d, u + d, v + d + h), "texture": "#skin", "tintindex": 0},
+            "north": {"uv": q(u + d, v + d, u + d + w, v + d + h), "texture": "#skin", "tintindex": 0},
+            "west":  {"uv": q(u + d + w, v + d, u + 2 * d + w, v + d + h), "texture": "#skin", "tintindex": 0},
+            "south": {"uv": q(u + 2 * d + w, v + d, u + 2 * d + 2 * w, v + d + h), "texture": "#skin", "tintindex": 0},
+            "up":    {"uv": q(u + d + w, v + d, u + d, v), "texture": "#skin", "tintindex": 0},
+            "down":  {"uv": q(u + d + 2 * w, v, u + d + w, v + d), "texture": "#skin", "tintindex": 0},
         },
     }
 
 
 def main() -> int:
+    if "--teinte" in sys.argv:
+        for base in (ROOT / "resourcepack" / "assets" / NS, ROOT / "resourcepack-prive" / "assets" / NS):
+            if base.is_dir():
+                print(f"{base.parent.parent.relative_to(ROOT)} : {tintable(base)} modeles rendus teintables")
+        return 0
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if len(args) != 2:
         print(__doc__)
@@ -78,7 +107,7 @@ def main() -> int:
         model = {"textures": {"skin": f"{NS}:item/pose/{name}", "particle": f"{NS}:item/pose/{name}"},
                  "elements": [element(box, uv, 0), element(box, uv2, grow)]}
         for folder, content in (("models/item/pose", model),
-                                ("items/pose", {"model": {"type": "minecraft:model", "model": f"{NS}:item/pose/{name}_{part}"}})):
+                                ("items/pose", {"model": {"type": "minecraft:model", "model": f"{NS}:item/pose/{name}_{part}", "tints": [TINT]}})):
             f = base / folder / f"{name}_{part}.json"
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps(content, indent=1) + "\n", encoding="utf-8")

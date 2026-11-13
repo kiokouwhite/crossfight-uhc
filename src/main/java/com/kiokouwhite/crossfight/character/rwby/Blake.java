@@ -17,6 +17,7 @@ import com.kiokouwhite.crossfight.util.Clones;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Stealth;
 import com.kiokouwhite.crossfight.util.Weapons;
 import org.bukkit.Bukkit;
@@ -106,6 +107,7 @@ public final class Blake extends Character implements Listener {
                 int next = (st.mode() + 1) % MODES.length;
                 st.setMode(next);
                 swapWeapon(p, next);
+                if (next == 1) katanaToss(p);
                 Msg.actionBar(p, "<dark_gray>Gambol Shroud : <white>" + MODES[next]);
                 p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1.4f);
                 return true;
@@ -163,6 +165,7 @@ public final class Blake extends Character implements Listener {
             st.set("bullets", b - 1);
             st.set("lastShot", now);
             com.kiokouwhite.crossfight.util.Bullets.shoot(p, p.getEyeLocation().getDirection(), 4.0, 2.2, Material.BLACK_CONCRETE, Color.fromRGB(40, 0, 60));
+            aimPistol(p);
         }
 
         @Override
@@ -227,6 +230,190 @@ public final class Blake extends Character implements Listener {
         }.runTaskTimer(plugin(), 0L, 1L);
     }
 
+    // ------------------------------------------------------------ animations
+
+    /** La silhouette violette de l'Ombre (teinte des parties du pantin et contour lumineux). */
+    static final Color SHADOW = Color.fromRGB(120, 45, 215);
+    static final Particle.DustOptions SHADOW_DUST = new Particle.DustOptions(Color.fromRGB(125, 50, 220), 1.3f);
+    /** Duree de la revelation de l'Ombre, en ticks. */
+    static final int REVEAL = 18;
+    static final int AIM_TICKS = 16;
+
+    /** Gambol Shroud en pistolet : un petit modele du pack public, tenu par le pantin. */
+    static ItemStack pistolModel() {
+        ItemStack it = new ItemStack(Material.PAPER);
+        var meta = it.getItemMeta();
+        meta.setItemModel(new NamespacedKey("crossfight", "blake_pistolet"));
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    /** Le tir au pistolet : tenu a deux mains, bras tendus devant elle ; des tirs enchaines la gardent en position. */
+    static void aimPistol(Player p) {
+        Puppet current = Puppet.of(p);
+        if (current != null && "blake_pistolet".equals(current.currentPose())) {
+            current.endAfter(AIM_TICKS, 4);
+        } else if (current == null) {
+            Puppet pu = Puppet.show(p, "blake", pistolModel(), "debout");
+            if (pu != null) { pu.pose("blake_pistolet", 2); pu.endAfter(AIM_TICKS, 4); }
+        }
+        Location eye = p.getEyeLocation();
+        Location muzzle = eye.clone().add(eye.getDirection().multiply(1.0)).add(0, -0.22, 0);
+        p.getWorld().spawnParticle(Particle.SMOKE, muzzle, 5, 0.05, 0.05, 0.05, 0.02);
+        p.getWorld().spawnParticle(Particle.DUST, muzzle, 4, 0.05, 0.05, 0.05, 0, SHADOW_DUST);
+    }
+
+    /** Passage en mode katana : elle lance l'epee en l'air des deux mains, l'epee tournoie, elle la rattrape. */
+    static void katanaToss(Player p) {
+        ItemStack katana = new ItemStack(Material.IRON_SWORD);
+        Puppet pu = Puppet.show(p, "blake", katana, "debout");
+        if (pu == null) return;
+        pu.pose("blake_katana_tient", 3);
+        pu.endAfter(30, 4);
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int t = 0;
+            org.bukkit.entity.ItemDisplay flying;
+            @Override public void run() {
+                t++;
+                if (Puppet.of(p) != pu || !p.isOnline() || p.isDead()) { if (flying != null) flying.remove(); cancel(); return; }
+                if (t == 5) pu.pose("blake_katana_lance", 2);
+                if (t == 7) {
+                    pu.held(null);
+                    Location from = p.getLocation().add(0, 2.4, 0);
+                    from.setPitch(0);
+                    flying = p.getWorld().spawn(from, org.bukkit.entity.ItemDisplay.class, d -> {
+                        d.setPersistent(false);
+                        d.setItemStack(katana);
+                        d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
+                        d.setTeleportDuration(1);
+                        d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.Quaternionf(), new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf()));
+                    });
+                    p.getWorld().playSound(from, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.8f);
+                }
+                if (flying != null && t > 7 && t <= 20) {
+                    // Monte de deux blocs puis redescend vers ses mains, en tournant sur elle-meme.
+                    double k = (t - 7) / 13.0;
+                    Location at = p.getLocation().add(0, 2.4 + 2.2 * 4 * k * (1 - k), 0);
+                    at.setPitch(0);
+                    flying.teleport(at);
+                    flying.setInterpolationDelay(0);
+                    flying.setInterpolationDuration(1);
+                    flying.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(),
+                            new org.joml.Quaternionf().rotationZ((float) (k * Math.PI * 4)), new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf()));
+                }
+                if (t == 17) pu.pose("blake_katana_attrape", 3);
+                if (t == 20) {
+                    if (flying != null) { flying.remove(); flying = null; }
+                    pu.held(katana);
+                    p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1.5f);
+                }
+                if (t >= 30) cancel();
+            }
+        }.runTaskTimer(plugin(), 1L, 1L);
+    }
+
+    /**
+     * L'Ombre : Blake et ses clones deviennent des silhouettes violettes (pantins teints, contour violet),
+     * puis leur apparence revient partie par partie, des jambes a la tete, chaque fois dans un eclat de particules.
+     */
+    static void shadowReveal(List<LivingEntity> bodies) {
+        List<Puppet> puppets = new java.util.ArrayList<>();
+        for (LivingEntity e : bodies) {
+            ItemStack held = e instanceof Player pl ? pl.getInventory().getItemInMainHand()
+                    : e.getEquipment() == null ? null : e.getEquipment().getItemInMainHand();
+            Puppet pu = Puppet.show(e, "blake", held, "debout");
+            if (pu != null) {
+                pu.pose("blake_ombre", 3);
+                pu.tint(null, SHADOW);
+                pu.glow(null, SHADOW);
+                pu.endAfter(REVEAL, 4);
+            }
+            puppets.add(pu);
+        }
+        String[][] order = {{"leg_r", "leg_l"}, {"body"}, {"arm_r", "arm_l"}, {"head"}};
+        double[] heights = {0.4, 1.0, 1.25, 1.65};
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                for (int i = 0; i < bodies.size(); i++) {
+                    LivingEntity e = bodies.get(i);
+                    Puppet pu = puppets.get(i);
+                    if (!e.isValid() || e.isDead()) continue;
+                    Location at = e.getLocation();
+                    if (t < 6) e.getWorld().spawnParticle(Particle.DUST, at.clone().add(0, 0.9, 0), 6, 0.25, 0.5, 0.25, 0, SHADOW_DUST);
+                    int step = (t - 6) / 3;
+                    if (t >= 6 && (t - 6) % 3 == 0 && step < order.length) {
+                        if (pu != null && Puppet.of(e) == pu) for (String part : order[step]) { pu.tint(part, null); pu.glow(part, null); }
+                        Location burst = at.clone().add(0, heights[step], 0);
+                        e.getWorld().spawnParticle(Particle.DUST, burst, 14, 0.25, 0.2, 0.25, 0, SHADOW_DUST);
+                        e.getWorld().spawnParticle(Particle.WITCH, burst, 6, 0.2, 0.15, 0.2, 0.02);
+                        e.getWorld().spawnParticle(Particle.REVERSE_PORTAL, burst, 10, 0.1, 0.1, 0.1, 0.15);
+                    }
+                    if (t == 16) {
+                        e.getWorld().spawnParticle(Particle.DUST, at.clone().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0, SHADOW_DUST);
+                        e.getWorld().spawnParticle(Particle.REVERSE_PORTAL, at.clone().add(0, 1, 0), 30, 0.2, 0.4, 0.2, 0.3);
+                    }
+                }
+                if (t == 16 && !bodies.isEmpty() && bodies.get(0).isValid()) {
+                    Location l = bodies.get(0).getLocation();
+                    l.getWorld().playSound(l, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1f, 0.8f);
+                    l.getWorld().playSound(l, Sound.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.3f);
+                }
+                if (t >= REVEAL) cancel();
+            }
+        }.runTaskTimer(plugin(), 1L, 1L);
+    }
+
+    /** Discretion : elle s'enfonce dans une flaque noire et disparait (le pantin reste sur place pendant qu'elle s'en va). */
+    static void sinkIntoShadow(Player p) {
+        Location at = p.getLocation();
+        Glyph puddle = Glyph.spawn(Glyph.ground(at), "flaque_noire", Color.WHITE, 1.9f, Glyph.FLAT, new org.joml.Vector3f());
+        if (puddle != null) {
+            puddle.spin(0.6f);
+            Bukkit.getScheduler().runTaskLater(plugin(), puddle::close, 26L);
+        }
+        p.getWorld().playSound(at, Sound.ITEM_BUCKET_EMPTY, 0.8f, 0.6f);
+        p.getWorld().playSound(at, Sound.BLOCK_HONEY_BLOCK_SLIDE, 1f, 0.5f);
+        p.getWorld().spawnParticle(Particle.SQUID_INK, at.clone().add(0, 0.1, 0), 12, 0.4, 0.05, 0.4, 0.02);
+        Puppet pu = Puppet.show(p, "blake", null, "debout");
+        if (pu == null) return;
+        pu.pin(at);
+        pu.rest("blake_enfonce_fond");
+        pu.pose("blake_enfonce", 3);
+        pu.endAfter(19, 1);
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (Puppet.of(p) == pu) pu.pose("blake_enfonce_fond", 14); }, 4L);
+    }
+
+    /** Instinct Animal : le bond du chat, le corps allonge vers l'avant, les bras tendus comme des pattes. */
+    static void pounce(Player p) {
+        Puppet current = Puppet.of(p);
+        Puppet pu = current != null && "blake_bond_chat".equals(current.currentPose()) ? current
+                : current == null ? Puppet.show(p, "blake", null, "debout") : null;
+        if (pu == null) return;
+        pu.pose("blake_bond_chat", 2);
+        pu.endAfter(11, 3);
+    }
+
+    /** Instinct Animal : son rugissement, penchee en avant, les mains en griffes, et l'onde qui part d'elle. */
+    static void roar(Player p) {
+        Location l = p.getLocation();
+        p.getWorld().playSound(l, Sound.ENTITY_RAVAGER_ROAR, 1f, 1.45f);
+        p.getWorld().playSound(l, Sound.ENTITY_CAT_HISS, 1f, 0.6f);
+        Puppet pu = Puppet.show(p, "blake", null, "debout");
+        if (pu != null) { pu.pose("blake_rugit", 3); pu.endAfter(24, 5); }
+        for (int k = 0; k < 6; k++) {
+            final double r = 0.8 + k * 0.7;
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                if (!p.isOnline()) return;
+                Location c = p.getLocation().add(0, 1.0, 0);
+                for (double a = 0; a < Math.PI * 2; a += 0.35 / r) {
+                    p.getWorld().spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * r, 0, Math.sin(a) * r), 1, 0, 0.05, 0, 0, SHADOW_DUST);
+                }
+            }, 3L + k);
+        }
+    }
+
     // --------------------------------------------------------------- pouvoirs
 
     static final class Ombre extends ActiveAbility {
@@ -238,12 +425,16 @@ public final class Blake extends Character implements Listener {
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             LivingEntity target = Effects.nearestEnemy(p, 30);
             if (target == null) { Msg.actionBar(p, "<red>Ombre : aucun adversaire a moins de 30 blocs."); return false; }
+            // Blake et ses trois clones naissent en silhouettes violettes, puis se revelent (les clones partent ensuite).
+            List<LivingEntity> bodies = new java.util.ArrayList<>();
+            bodies.add(p);
             for (int i = 0; i < 3; i++) {
-                Clones.spawn(p, target, 20 * 15, (clone, attacker) -> {
+                bodies.add(Clones.spawn(p, p, target, 20 * 15, (clone, attacker) -> {
                     Effects.give(attacker, PotionEffectType.BLINDNESS, 0, 80);
                     Msg.actionBar(attacker, "<dark_gray>C'etait un clone de Blake !");
-                });
+                }, REVEAL + 4));
             }
+            shadowReveal(bodies);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 1.2f);
             return true;
         }
@@ -258,8 +449,11 @@ public final class Blake extends Character implements Listener {
 
         @Override
         public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
+            // L'invisibilite d'abord : le pantin qui s'enfonce ne l'enlevera pas en finissant.
+            Effects.refresh(p, PotionEffectType.INVISIBILITY, 0, 45);
             Stealth.hideFromAll(p, "blake_discretion", v -> Effects.isEnemy(p, v));
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.6f, 1.6f);
+            sinkIntoShadow(p);
             return true;
         }
 
@@ -320,6 +514,7 @@ public final class Blake extends Character implements Listener {
             if (dir.lengthSquared() < 0.01) return true;
             p.setVelocity(dir.normalize().multiply(0.75).setY(0.3));
             Ruby.noFallUntil(p, 1500);
+            pounce(p);
             p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation(), 8, 0.2, 0.1, 0.2, 0.02);
             p.playSound(p.getLocation(), Sound.ENTITY_RABBIT_JUMP, 1f, 0.8f);
             return true;
@@ -333,7 +528,7 @@ public final class Blake extends Character implements Listener {
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             st.set("until", System.currentTimeMillis() + 30_000L);
             Effects.give(p, PotionEffectType.SPEED, 1, 20 * 30);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_CAT_PURREOW, 1f, 0.8f);
+            roar(p);
             Msg.send(p, "<light_purple>Instinct Animal : clic droit sur l'item pour bondir pendant 30 s.");
             return true;
         }

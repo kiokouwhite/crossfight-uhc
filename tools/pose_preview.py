@@ -109,11 +109,14 @@ def quads(name, pose_name, private):
             # Un vrai modele du pack : memes regles que les parties du corps, plus la rotation propre a chaque element.
             mname = sys.argv[sys.argv.index("--modele") + 1]
             pub = ROOT / "resourcepack" / "assets" / "crossfight"
-            mtex = np.array(Image.open(pub / "textures/item/book_open.png").convert("RGBA"))
+            mjson = json.loads((pub / "models/item" / f"{mname}.json").read_text())
+            mtexname = next(iter(mjson.get("textures", {}).values()), "crossfight:item/book_open").split(":")[-1]
+            mtex = np.array(Image.open(pub / "textures" / f"{mtexname}.png").convert("RGBA"))
+            k_uv = mtex.shape[1] / 16  # les uv d'un modele vont de 0 a 16, quelle que soit la taille de l'image
             ri = rot(*pose["item_abs"][0]) if "item_abs" in pose else root_r @ rot(*pose["item_world"][0]) if "item_world" in pose else r @ rot(*get("item")[0])
             hand = t + r @ (np.array(HAND) / 16 * K)
             if "item_shift" in pose: hand = hand + np.array(pose["item_shift"][0]) / 16 * K
-            for el in json.loads((pub / "models/item" / f"{mname}.json").read_text())["elements"]:
+            for el in mjson["elements"]:
                 a, b = el["from"], el["to"]
                 def placed(pt):
                     pt = np.array(pt, dtype=float)
@@ -123,7 +126,7 @@ def quads(name, pose_name, private):
                         pt = o + rot(*ax) @ (pt - o)
                     return hand + ri @ (K * (flip @ ((pt - 8) / 16)))
                 for face, f in el["faces"].items():
-                    u1, v1, u2, v2 = f["uv"]
+                    u1, v1, u2, v2 = (c * k_uv for c in f["uv"])
                     out.append(([placed(pt) for pt in FACES[face](a, b)], [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], mtex))
         elif part == ("arm_l" if "item_left" in pose else "arm_r") and "--sans-objet" not in sys.argv:
             ri = (rot(*pose["item_abs"][0]) if "item_abs" in pose else root_r @ rot(*pose["item_world"][0]) if "item_world" in pose

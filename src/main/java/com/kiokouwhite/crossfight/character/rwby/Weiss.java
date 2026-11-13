@@ -171,18 +171,7 @@ public final class Weiss extends Character implements Listener {
 
     /** Le grand signe des Schnee a plat au sol sous ce point, qui tourne. */
     static Glyph groundGlyph(Location at, int mode, float size, float spin) {
-        World w = at.getWorld();
-        Location l = at.clone();
-        int y = Effects.groundAround(w, at.getBlockX(), at.getBlockZ(), at.getBlockY());
-        if (y != Integer.MIN_VALUE) {
-            var box = w.getBlockAt(at.getBlockX(), y, at.getBlockZ()).getBoundingBox();
-            l.setY((box.getVolume() > 0 ? box.getMaxY() : y + 1) + 0.03);
-        } else {
-            l.setY(at.getY() + 0.03);
-        }
-        l.setYaw(0);
-        l.setPitch(0);
-        Glyph g = Glyph.spawn(l, Glyph.CERCLE, dustColor(mode), size, Glyph.FLAT, new Vector3f());
+        Glyph g = Glyph.spawn(Glyph.ground(at), Glyph.CERCLE, dustColor(mode), size, Glyph.FLAT, new Vector3f());
         if (g != null) g.spin(spin);
         return g;
     }

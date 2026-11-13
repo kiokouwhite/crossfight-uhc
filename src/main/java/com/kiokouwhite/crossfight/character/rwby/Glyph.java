@@ -53,6 +53,22 @@ final class Glyph {
 
     static boolean available(String name) { return Sounds.has("glyph." + name); }
 
+    /** Juste au-dessus du sol sous ce point (le haut du bloc, demi-dalle comprise), sans orientation. */
+    static Location ground(Location at) {
+        var w = at.getWorld();
+        Location l = at.clone();
+        int y = com.kiokouwhite.crossfight.util.Effects.groundAround(w, at.getBlockX(), at.getBlockZ(), at.getBlockY());
+        if (y != Integer.MIN_VALUE) {
+            var box = w.getBlockAt(at.getBlockX(), y, at.getBlockZ()).getBoundingBox();
+            l.setY((box.getVolume() > 0 ? box.getMaxY() : y + 1) + 0.03);
+        } else {
+            l.setY(at.getY() + 0.03);
+        }
+        l.setYaw(0);
+        l.setPitch(0);
+        return l;
+    }
+
     /**
      * Fait apparaitre un signe en {@code at} (son orientation donne celle de l'image : yaw et pitch de la
      * position), {@code size} blocs de large, decale de {@code offset} dans son propre repere.

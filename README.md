@@ -184,6 +184,15 @@ Animations de RWBY :
 
 Les signes de Glyph sont deux images du pack privé (le flocon et le grand cercle des Schnee), préparées par `python3 tools/build_glyphs.py` depuis `resourcepack-prive/glyphes/` : blanches, elles sont teintes en jeu à la couleur du Dust et affichées à plat par un `ItemDisplay` (`character/rwby/Glyph.java`) qui grandit en apparaissant, peut tourner, suivre Weiss, puis s'efface. Le plugin les connaît sous les noms `glyph.schnee_flocon` et `glyph.schnee_cercle` ; sans elles, les Glyphs gardent leurs seules particules.
 
+Animations de Blake :
+
+- **Ombre** : Blake et ses trois clones naissent en silhouettes violettes (le pantin peut être teint : `Puppet.tint`, avec un contour lumineux `Puppet.glow`), puis leur apparence revient partie par partie, des jambes à la tête, chaque fois dans un éclat de particules ; les clones ne partent qu'ensuite. Un pantin peut remplacer n'importe quelle entité, pas seulement un joueur (ici les clones).
+- **Discrétion** : elle s'enfonce dans une flaque noire (image dessinée par `tools/build_glyphs.py`, pack public), les bras qui remontent pendant qu'elle disparaît ; le pantin reste sur place (`Puppet.pin`) même si elle s'en va, invisible.
+- **Gambol Shroud** : en pistolet, à chaque tir elle le tient à deux mains, bras tendus (un petit modèle 3D du pack public, `items/blake_pistolet.json`) ; en passant en katana, elle lance l'épée en l'air à deux mains, l'épée tournoie et elle la rattrape.
+- **Instinct Animal** : le bond est un saut de chat, corps allongé, bras tendus comme des pattes ; au lancement elle rugit, penchée en avant, les mains en griffes, et une onde violette part d'elle.
+
+Les modèles articulés acceptent une teinte (`custom_model_data`, blanc par défaut) : `python3 tools/add_skin.py --teinte` l'ajoute aux modèles fabriqués avant.
+
 Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus ni sa propre armure ni l'objet qu'il tient en vue extérieure : ses quatre cases d'armure lui sont envoyées vides, et la case qu'il tient reçoit un objet sans apparence (`items/hidden.json`), si bien que le clic droit part toujours. Son inventaire réel n'est pas touché et lui est renvoyé à la fin ; l'icône de l'objet tenu disparaît de sa barre le temps de l'animation. Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
 
 ### Écran de sélection en 3D
