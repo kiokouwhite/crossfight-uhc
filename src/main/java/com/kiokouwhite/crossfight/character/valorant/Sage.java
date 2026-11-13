@@ -204,7 +204,7 @@ public final class Sage extends Character implements Listener {
             if (team == null) return false;
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (var u : team.members()) {
-                Player o = Bukkit.getPlayer(u);
+                Player o = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(u);
                 if (o == null || o == p) continue;
                 CfPlayer ocf = plugin().players().get(o);
                 if (ocf.isAlive() && !ocf.isWaitingRespawn()) continue;

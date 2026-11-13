@@ -2,6 +2,7 @@ package com.kiokouwhite.crossfight.listener;
 
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.player.CfPlayer;
+import com.kiokouwhite.crossfight.util.MannequinPlayer;
 import com.kiokouwhite.crossfight.util.Msg;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -24,18 +25,67 @@ public final class DamageListener implements Listener {
         this.plugin = plugin;
     }
 
-    /** Remonte au joueur a l'origine des degats (direct ou via projectile). */
+    /**
+     * Remonte au joueur a l'origine des degats (direct ou via projectile). Le mannequin pilote du mode
+     * troisieme personne compte comme son joueur pilote.
+     */
     public static Player attackerOf(Entity damager) {
-        if (damager instanceof Player p) return p;
-        if (damager instanceof Projectile proj && proj.getShooter() instanceof Player p) return p;
+        Player p = meleeAttackerOf(damager);
+        if (p != null) return p;
+        if (damager instanceof Projectile proj) {
+            if (proj.getShooter() instanceof Player shooter) return shooter;
+            if (proj.getShooter() instanceof Entity se) return MannequinPlayer.of(se);
+        }
         return null;
+    }
+
+    /** Le joueur qui frappe directement (pas de projectile), mannequin pilote compris. */
+    public static Player meleeAttackerOf(Entity damager) {
+        if (damager instanceof Player p) return p;
+        return MannequinPlayer.of(damager);
     }
 
     /** Idem mais accepte toute entite vivante (mannequins, boss). */
     public static org.bukkit.entity.LivingEntity livingAttackerOf(Entity damager) {
+        Player pilot = MannequinPlayer.of(damager);
+        if (pilot != null) return pilot;
         if (damager instanceof org.bukkit.entity.LivingEntity le) return le;
-        if (damager instanceof Projectile proj && proj.getShooter() instanceof org.bukkit.entity.LivingEntity le) return le;
+        if (damager instanceof Projectile proj && proj.getShooter() instanceof org.bukkit.entity.LivingEntity le) {
+            Player shooterPilot = MannequinPlayer.of(le);
+            return shooterPilot != null ? shooterPilot : le;
+        }
         return null;
+    }
+
+    /** Le joueur touche : un joueur, ou le joueur pilote d'un mannequin en troisieme personne. */
+    private static Player victimOf(Entity e) {
+        if (e instanceof Player p) return p;
+        return MannequinPlayer.of(e);
+    }
+
+    /**
+     * Le mannequin pilote frappe comme un joueur : la difficulte du serveur, qui reduit (facile) ou
+     * augmente (difficile) les coups des monstres sur les joueurs, ne s'applique pas a lui.
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onPilotDifficulty(EntityDamageEvent e) {
+        if (!(e.getEntity() instanceof Player)) return;
+        var src = e.getDamageSource();
+        if (!src.scalesWithDifficulty() || MannequinPlayer.of(src.getCausingEntity()) == null) return;
+        double d = e.getDamage();
+        switch (e.getEntity().getWorld().getDifficulty()) {
+            case EASY -> d = d <= 2.0 ? d : 2.0 * (d - 1.0);
+            case HARD -> d = d / 1.5;
+            default -> { }
+        }
+        e.setDamage(d);
+    }
+
+    /** Le mannequin pilote ne se blesse pas lui-meme (explosions, zones). */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onPilotSelfHit(EntityDamageByEntityEvent e) {
+        if (!MannequinPlayer.isBody(e.getEntity())) return;
+        if (MannequinPlayer.same(attackerOf(e.getDamager()), e.getEntity())) e.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
@@ -78,7 +128,8 @@ public final class DamageListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamagedHooks(EntityDamageEvent e) {
         if (!plugin.game().isRunning()) return;
-        if (!(e.getEntity() instanceof Player victim)) return;
+        Player victim = victimOf(e.getEntity());
+        if (victim == null) return;
         if (com.kiokouwhite.crossfight.util.Effects.isInvincible(victim)) {
             e.setCancelled(true);
             victim.getWorld().spawnParticle(org.bukkit.Particle.ENCHANTED_HIT, victim.getLocation().add(0, 1, 0), 6, 0.3, 0.4, 0.3);
@@ -138,6 +189,11 @@ public final class DamageListener implements Listener {
     /** Pas de degats avant le lancement ni pour les joueurs en attente. */
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onAnyDamage(EntityDamageEvent e) {
+        Player pilot = MannequinPlayer.isBody(e.getEntity()) ? MannequinPlayer.of(e.getEntity()) : null;
+        if (pilot != null && e.getCause() == EntityDamageEvent.DamageCause.FALL && com.kiokouwhite.crossfight.util.Effects.noFall(pilot)) {
+            e.setCancelled(true);
+            return;
+        }
         if (!(e.getEntity() instanceof Player p)) return;
         if (!plugin.game().isRunning()) {
             e.setCancelled(true);

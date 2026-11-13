@@ -65,9 +65,23 @@ public final class Stealth {
         for (Set<UUID> set : bySource.values()) {
             for (UUID u : set) {
                 Player v = Bukkit.getPlayer(u);
-                if (v != null) v.showPlayer(CrossfightPlugin.get(), target);
+                if (v != null) showFor(v, target);
             }
         }
+    }
+
+    /**
+     * Cache / montre la cible a un spectateur. Le joueur pilote d'un mannequin (troisieme personne)
+     * n'est pas connu du serveur : c'est son mannequin qu'on cache.
+     */
+    private static void hideFor(Player viewer, Player target) {
+        if (MannequinPlayer.isProxy(target)) viewer.hideEntity(CrossfightPlugin.get(), MannequinPlayer.real(target));
+        else viewer.hidePlayer(CrossfightPlugin.get(), target);
+    }
+
+    private static void showFor(Player viewer, Player target) {
+        if (MannequinPlayer.isProxy(target)) viewer.showEntity(CrossfightPlugin.get(), MannequinPlayer.real(target));
+        else viewer.showPlayer(CrossfightPlugin.get(), target);
     }
 
     private static final Set<UUID> ARMOR_HIDDEN = new HashSet<>();
@@ -85,7 +99,7 @@ public final class Stealth {
                     org.bukkit.inventory.EquipmentSlot.HEAD, org.bukkit.inventory.EquipmentSlot.CHEST,
                     org.bukkit.inventory.EquipmentSlot.LEGS, org.bukkit.inventory.EquipmentSlot.FEET,
                     org.bukkit.inventory.EquipmentSlot.HAND, org.bukkit.inventory.EquipmentSlot.OFF_HAND}) {
-                v.sendEquipmentChange(target, slot, air);
+                v.sendEquipmentChange(MannequinPlayer.real((org.bukkit.entity.LivingEntity) target), slot, air);
             }
         }
     }
@@ -96,10 +110,11 @@ public final class Stealth {
         org.bukkit.inventory.ItemStack air = new org.bukkit.inventory.ItemStack(org.bukkit.Material.AIR);
         for (Player v : Bukkit.getOnlinePlayers()) {
             if (v == target) continue;
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HEAD, air);
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.CHEST, air);
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.LEGS, air);
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.FEET, air);
+            var body = MannequinPlayer.real((org.bukkit.entity.LivingEntity) target);
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.HEAD, air);
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.CHEST, air);
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.LEGS, air);
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.FEET, air);
         }
     }
 
@@ -107,14 +122,15 @@ public final class Stealth {
     public static void showArmor(Player target) {
         if (!ARMOR_HIDDEN.remove(target.getUniqueId())) return;
         var eq = target.getEquipment();
+        var body = MannequinPlayer.real((org.bukkit.entity.LivingEntity) target);
         for (Player v : Bukkit.getOnlinePlayers()) {
             if (v == target) continue;
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HEAD, eq.getHelmet());
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.CHEST, eq.getChestplate());
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.LEGS, eq.getLeggings());
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.FEET, eq.getBoots());
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.HAND, eq.getItemInMainHand());
-            v.sendEquipmentChange(target, org.bukkit.inventory.EquipmentSlot.OFF_HAND, eq.getItemInOffHand());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.HEAD, eq.getHelmet());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.CHEST, eq.getChestplate());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.LEGS, eq.getLeggings());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.FEET, eq.getBoots());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.HAND, eq.getItemInMainHand());
+            v.sendEquipmentChange(body, org.bukkit.inventory.EquipmentSlot.OFF_HAND, eq.getItemInOffHand());
         }
     }
 
@@ -130,7 +146,7 @@ public final class Stealth {
     }
 
     private static void refresh(Player target, Player viewer) {
-        if (isHiddenFrom(target, viewer)) viewer.hidePlayer(CrossfightPlugin.get(), target);
-        else viewer.showPlayer(CrossfightPlugin.get(), target);
+        if (isHiddenFrom(target, viewer)) hideFor(viewer, target);
+        else showFor(viewer, target);
     }
 }

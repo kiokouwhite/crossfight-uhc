@@ -183,7 +183,7 @@ public final class Mikasa extends Character {
                 @Override public void run() {
                     t++;
                     if (!p.isOnline() || p.isDead() || t > 30) { Boosts.remove(p, "mikasa_ult"); cancel(); return; }
-                    Player e = erenId == null ? null : Bukkit.getPlayer(erenId);
+                    Player e = erenId == null ? null : com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(erenId);
                     if (e != null && !e.isDead() && e.getWorld() == p.getWorld() && e.getLocation().distance(p.getLocation()) <= 10) {
                         SNK.invincible(e, 1200L);
                         w.spawnParticle(Particle.DUST, e.getLocation().add(0, 1.2, 0), 6, 0.4, 0.6, 0.4, 0, SCARF);

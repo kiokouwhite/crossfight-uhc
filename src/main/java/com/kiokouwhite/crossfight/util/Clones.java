@@ -71,13 +71,14 @@ public final class Clones implements Listener {
         Mannequin m = (Mannequin) source.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
         m.addScoreboardTag(TAG);
         m.getPersistentDataContainer().set(OWNER_KEY, PersistentDataType.STRING, owner.getUniqueId().toString());
-        if (source instanceof Mannequin look) m.setProfile(look.getProfile());
+        // Le mannequin d'un joueur pilote (troisieme personne) ou un mannequin duo : on copie son apparence.
+        if (MannequinPlayer.real(source) instanceof Mannequin look) m.setProfile(look.getProfile());
         else m.setProfile(ResolvableProfile.resolvableProfile(owner.getPlayerProfile()));
         m.setDescription(Component.empty());
         m.setImmovable(false);
         m.setSilent(true);
         m.setPersistent(false);
-        if (source == owner) {
+        if (source == owner && !MannequinPlayer.isProxy(owner)) {
             try {
                 m.setSkinParts(owner.getClientOption(com.destroystokyo.paper.ClientOption.SKIN_PARTS));
                 m.setMainHand(owner.getClientOption(com.destroystokyo.paper.ClientOption.MAIN_HAND));

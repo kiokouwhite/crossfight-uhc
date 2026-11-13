@@ -134,7 +134,10 @@ public final class Effects {
 
     /** Un ennemi : un joueur vivant d'une autre equipe, ou un mannequin d'entrainement. */
     public static boolean isEnemy(Player self, LivingEntity entity) {
-        if (entity == self || entity == null || entity.isDead()) return false;
+        if (entity == self || entity == null || entity.isDead() || MannequinPlayer.same(entity, self)) return false;
+        // Le mannequin pilote (mode test en troisieme personne) ne vise que son testeur.
+        java.util.UUID tester = MannequinPlayer.isProxy(self) ? MannequinPlayer.controllerId(self) : null;
+        if (tester != null && !tester.equals(entity.getUniqueId())) return false;
         if (Mannequins.isMannequin(entity)) return !Mannequins.isAlly(entity);
         if (Clones.isClone(entity)) return !Clones.sameTeam(entity, self);
         if (!(entity instanceof Player other)) return false;
@@ -154,7 +157,9 @@ public final class Effects {
 
     /** Un allie : un joueur vivant de la meme equipe, ou un mannequin allie. */
     public static boolean isAlly(Player self, LivingEntity entity) {
-        if (entity == self || entity == null || entity.isDead()) return false;
+        if (entity == self || entity == null || entity.isDead() || MannequinPlayer.same(entity, self)) return false;
+        // Le mannequin pilote n'a pour allies que les mannequins allies (/cf mannequin allie).
+        if (MannequinPlayer.isProxy(self)) return Mannequins.isMannequin(entity) && Mannequins.isAlly(entity) && !Mannequins.isPilot(entity);
         if (Mannequins.isMannequin(entity)) return Mannequins.isAlly(entity);
         if (!(entity instanceof Player other)) return false;
         var plugin = CrossfightPlugin.get();
@@ -299,7 +304,13 @@ public final class Effects {
     /** Degats "bruts" infliges par un joueur a un autre, en points de vie (2 = 1 coeur). */
     public static void damage(LivingEntity victim, double amount, org.bukkit.entity.Entity source) {
         if (victim.isDead()) return;
-        victim.damage(amount, source);
+        // Un joueur pilote (mannequin en troisieme personne) n'est pas une entite du serveur : on passe son mannequin.
+        MannequinPlayer.real(victim).damage(amount, source == null ? null : MannequinPlayer.real(source));
+    }
+
+    /** Le tireur d'un projectile, joueur pilote compris (voir MannequinPlayer). */
+    public static void setShooter(org.bukkit.entity.Projectile proj, org.bukkit.projectiles.ProjectileSource shooter) {
+        MannequinPlayer.setShooter(proj, shooter);
     }
 
     /**
@@ -322,7 +333,7 @@ public final class Effects {
     public static org.bukkit.entity.Arrow shootInstantArrow(LivingEntity shooter, Vector dir, double speed, double damage) {
         Location from = shooter.getEyeLocation().add(dir.clone().multiply(0.5));
         org.bukkit.entity.Arrow arrow = shooter.getWorld().spawnArrow(from, dir, (float) speed, 0f);
-        arrow.setShooter(shooter);
+        setShooter(arrow, shooter);
         arrow.setDamage(damage);
         arrow.setCritical(true);
         arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);

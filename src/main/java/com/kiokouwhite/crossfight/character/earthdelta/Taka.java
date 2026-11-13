@@ -141,7 +141,7 @@ public final class Taka extends Character implements Listener {
                 if (!stand.isValid() || !SUMMONS.contains(s)) { cancel(); return; }
                 s.age++;
                 if (s.age > 20 * 60) { destroy(s, s.ult ? null : "<gray>L'arme s'est dissipee."); cancel(); return; }
-                Player o = Bukkit.getPlayer(s.owner);
+                Player o = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(s.owner);
                 if (o == null) { destroy(s, null); cancel(); return; }
                 try { tick(s, o); } catch (Exception ex) { destroy(s, null); cancel(); }
             }
@@ -252,7 +252,7 @@ public final class Taka extends Character implements Listener {
             s.stand.getWorld().playSound(s.stand.getLocation(), Sound.ENTITY_ITEM_BREAK, 1f, 0.8f);
             s.stand.remove();
         }
-        Player o = Bukkit.getPlayer(s.owner);
+        Player o = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(s.owner);
         if (o != null && msg != null) Msg.actionBar(o, msg);
     }
 
@@ -369,7 +369,7 @@ public final class Taka extends Character implements Listener {
         e.setCancelled(true);
         Summon s = summonOf(stand);
         if (s == null) return;
-        Player o = Bukkit.getPlayer(s.owner);
+        Player o = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(s.owner);
         LivingEntity attacker = DamageListener.livingAttackerOf(e.getDamager());
         if (o == null || attacker == null || !Effects.isEnemy(o, attacker)) return;
         if (s.ult) { stand.getWorld().playSound(stand.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.6f, 1.5f); return; }

@@ -324,7 +324,7 @@ public final class Hano extends Character implements Listener {
                 for (int k : new int[]{-10, 10}) {
                     Vector d = a.getVelocity().clone().rotateAroundY(Math.toRadians(k));
                     Arrow extra = p.getWorld().spawnArrow(a.getLocation(), d.clone().normalize(), (float) d.length(), 1f);
-                    extra.setShooter(p);
+                    com.kiokouwhite.crossfight.util.Effects.setShooter(extra, p);
                     extra.setDamage(a.getDamage());
                     extra.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
                     extra.getPersistentDataContainer().set(ARROW_ENCH, PersistentDataType.STRING, b.name());

@@ -340,7 +340,8 @@ public final class Drifter extends Character implements Listener, Solo.Burst {
     /** Pendant les 3 secondes qui suivent un coup, le Drifter qui tousse ne peut pas attaquer. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onCoughAttack(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Player a) || !"drifter".equals(Solo.characterIdOf(a))) return;
+        Player a = com.kiokouwhite.crossfight.listener.DamageListener.meleeAttackerOf(e.getDamager());
+        if (a == null || !"drifter".equals(Solo.characterIdOf(a))) return;
         if (Solo.plugin().players().get(a).isSilenced() && santeValue(a) < 40 && !inArena(a)) { e.setCancelled(true); Msg.actionBar(a, "<gray>Tu tousses : impossible d'attaquer."); }
     }
 

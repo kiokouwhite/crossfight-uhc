@@ -93,7 +93,7 @@ public final class Sounds {
     /** Un son attache a une entite : il la suit, meme pendant une ruee ou une teleportation courte. */
     private static void playOn(org.bukkit.entity.Entity e, String event, SoundCategory category, float volume) {
         if (!INDEX.contains(event)) return;
-        e.getWorld().playSound(e, NS + ":" + event, category, volume, 1f);
+        e.getWorld().playSound(MannequinPlayer.real(e), NS + ":" + event, category, volume, 1f);
     }
 
     /** Un son du pack, a un endroit fixe (ex. "ability.corrin_sang_eau"). */

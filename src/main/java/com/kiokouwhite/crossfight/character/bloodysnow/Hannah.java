@@ -126,7 +126,7 @@ public final class Hannah extends Character implements Listener {
             int n = 0;
             for (LivingEntity e : Effects.enemiesWithin(p, 10)) {
                 TAUNTED.put(e.getUniqueId(), new Object[]{p.getUniqueId(), System.currentTimeMillis() + 10000L});
-                if (e instanceof Mob mob) mob.setTarget(p);
+                if (e instanceof Mob mob) mob.setTarget(com.kiokouwhite.crossfight.util.MannequinPlayer.real((LivingEntity) p));
                 if (e instanceof Player ep) Msg.send(ep, "<red>Provoque par " + p.getName() + " : tu ne peux attaquer qu'elle pendant 10 s !");
                 e.getWorld().spawnParticle(Particle.ANGRY_VILLAGER, e.getLocation().add(0, 2, 0), 5, 0.3, 0.2, 0.3);
                 n++;

@@ -134,6 +134,28 @@ public final class Mannequins implements Listener {
         return e != null && e.getScoreboardTags().contains(ALLY_TAG);
     }
 
+    /**
+     * Mannequin pilote (mode test en troisieme personne) : le corps d'un joueur pilote, qui lance les
+     * capacites de son personnage sur son testeur. Il a la vie d'un joueur, ne meurt jamais, et n'est
+     * retire que par la fin de son mode.
+     */
+    public static final String PILOT_TAG = "cf_mannequin_pilote";
+
+    public static boolean isPilot(Entity e) {
+        return e != null && e.getScoreboardTags().contains(PILOT_TAG);
+    }
+
+    /** Vie maximale d'un mannequin (100 pour les cibles, celle d'un joueur pour le mannequin pilote). */
+    public static double maxHealthOf(LivingEntity e) {
+        var mh = e.getAttribute(Attribute.MAX_HEALTH);
+        return mh == null ? MAX_HEALTH : mh.getValue();
+    }
+
+    /** Remet a jour le nom affiche (personnage, vie). */
+    public static void refreshName(LivingEntity e) {
+        updateName(e);
+    }
+
     // ------------------------------------------------------------ mannequin duo
 
     /**
@@ -271,7 +293,7 @@ public final class Mannequins implements Listener {
         int n = 0;
         for (World w : Bukkit.getWorlds()) {
             for (LivingEntity e : w.getLivingEntities()) {
-                if (isMannequin(e)) { e.remove(); n++; }
+                if (isMannequin(e) && !isPilot(e)) { e.remove(); n++; }
             }
         }
         for (BukkitTask t : REGEN.values()) t.cancel();
@@ -299,8 +321,13 @@ public final class Mannequins implements Listener {
         } else if (isPartner(e)) {
             var c = CrossfightPlugin.get().characters().character(partnerCharacterOf(e));
             label = "<green>" + (c == null ? "Partenaire" : c.name()) + " <dark_green>(mannequin duo)";
+        } else if (isPilot(e)) {
+            Player pilot = MannequinPlayer.of(e);
+            var cf = pilot == null ? null : CrossfightPlugin.get().players().get(pilot);
+            var c = cf == null ? null : cf.character();
+            label = "<aqua>" + (c == null ? "Mannequin" : c.name()) + " <dark_aqua>(3e personne)";
         } else label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
-        int pct = (int) Math.round(hp / MAX_HEALTH * 100);
+        int pct = (int) Math.round(hp / maxHealthOf(e) * 100);
         e.customName(Msg.mm(label + " <red>❤ " + pct + "%"));
     }
 
@@ -325,7 +352,7 @@ public final class Mannequins implements Listener {
         if (lethal) {
             // Le mannequin ne meurt jamais : on encaisse puis on le remet a neuf.
             e.setDamage(0);
-            m.setHealth(MAX_HEALTH);
+            m.setHealth(maxHealthOf(m));
             m.getWorld().playSound(m.getLocation(), org.bukkit.Sound.ENTITY_ZOMBIE_DEATH, 1f, 1.2f);
             m.getWorld().spawnParticle(org.bukkit.Particle.EXPLOSION, m.getLocation().add(0, 1, 0), 1);
         }
@@ -338,8 +365,9 @@ public final class Mannequins implements Listener {
         if (old != null) old.cancel();
         REGEN.put(m.getUniqueId(), Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> {
             if (m.isValid()) {
-                m.setHealth(MAX_HEALTH);
-                for (var eff : m.getActivePotionEffects()) m.removePotionEffect(eff.getType());
+                m.setHealth(maxHealthOf(m));
+                // Le mannequin pilote garde ses effets : ce sont ceux de ses capacites.
+                if (!isPilot(m)) for (var eff : m.getActivePotionEffects()) m.removePotionEffect(eff.getType());
                 m.setFireTicks(0);
                 updateName(m);
             }

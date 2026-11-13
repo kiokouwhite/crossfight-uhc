@@ -181,13 +181,13 @@ public final class Armin extends Character {
         static void clear(AbilityState st) {
             String prev = st.get("ally", null);
             if (prev == null) return;
-            Player old = Bukkit.getPlayer(UUID.fromString(prev));
+            Player old = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(prev));
             if (old != null) Boosts.remove(old, "armin_strategie");
             st.remove("ally");
         }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
             String a = st.get("ally", null);
-            Player ally = a == null ? null : Bukkit.getPlayer(UUID.fromString(a));
+            Player ally = a == null ? null : com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(a));
             return ally == null ? "<gray>Strategie <dark_gray>[aucune]" : "<yellow>Strategie <white>[" + EFFECTS[st.mode()] + " : " + ally.getName() + "]";
         }
         @Override public void onUnequip(Player p, CfPlayer cf) { clear(SNK.plugin().abilities().state(p, this)); }

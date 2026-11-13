@@ -120,7 +120,7 @@ public final class Kaze extends Character implements Listener {
     /** Applique le Power Hit a tous ceux qui l'ont (Kaze, et Netsu en Synergie). */
     static void tickPowerHit() {
         for (var en : new HashMap<>(POWER_HIT).entrySet()) {
-            Player p = Bukkit.getPlayer(en.getKey());
+            Player p = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(en.getKey());
             if (p == null || System.currentTimeMillis() > en.getValue()) { POWER_HIT.remove(en.getKey()); if (p != null) Boosts.remove(p, "kaze_powerhit"); continue; }
             boolean alone = Effects.enemiesWithin(p, 10).size() <= 1;
             boolean has = Boosts.get(p, "kaze_powerhit") != null;

@@ -245,7 +245,7 @@ public final class Pinkou extends Character implements Listener {
         if (e.getCause() != EntityDamageEvent.DamageCause.POISON) return;
         UUID pid = VINE_POISON.get(e.getEntity().getUniqueId());
         if (pid == null) return;
-        Player p = Bukkit.getPlayer(pid);
+        Player p = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(pid);
         if (p == null || !"pinkou".equals(Shoja.characterId(p))) { VINE_POISON.remove(e.getEntity().getUniqueId()); return; }
         if (!(e.getEntity() instanceof LivingEntity le) || !le.hasPotionEffect(PotionEffectType.POISON)) { VINE_POISON.remove(e.getEntity().getUniqueId()); return; }
         healDuo(p, e.getFinalDamage());

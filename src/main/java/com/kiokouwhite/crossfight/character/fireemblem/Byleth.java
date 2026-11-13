@@ -855,7 +855,7 @@ public final class Byleth extends Character implements Listener {
 
         private void finish() {
             if (activeByleth != null) {
-                Player b = Bukkit.getPlayer(activeByleth);
+                Player b = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(activeByleth);
                 if (b != null) plugin().players().get(b).setUltimateLocked(false);
             }
             activeByleth = null;

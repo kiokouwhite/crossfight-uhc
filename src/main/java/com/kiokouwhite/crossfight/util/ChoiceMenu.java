@@ -27,6 +27,8 @@ public final class ChoiceMenu implements Listener {
         Inventory inv;
         List<Option> options;
         Consumer<Player> onCancel;
+        /** Celui pour qui le menu est ouvert (un joueur pilote voit le sien s'afficher chez son testeur). */
+        Player owner;
         boolean done;
         @Override public Inventory getInventory() { return inv; }
     }
@@ -35,6 +37,7 @@ public final class ChoiceMenu implements Listener {
         Holder holder = new Holder();
         holder.options = options;
         holder.onCancel = onCancel;
+        holder.owner = p;
         int size = options.size() <= 5 ? 9 : Math.min(54, ((Math.min(options.size(), 54) + 8) / 9) * 9);
         if (options.size() > 54) options = options.subList(0, 54);
         Inventory inv = Bukkit.createInventory(holder, size, Msg.mm(title));
@@ -79,7 +82,8 @@ public final class ChoiceMenu implements Listener {
         if (!(e.getInventory().getHolder() instanceof Holder h)) return;
         if (!h.done && h.onCancel != null && e.getPlayer() instanceof Player p) {
             h.done = true;
-            Bukkit.getScheduler().runTask(CrossfightPlugin.get(), () -> h.onCancel.accept(p));
+            Player owner = h.owner != null ? h.owner : p;
+            Bukkit.getScheduler().runTask(CrossfightPlugin.get(), () -> h.onCancel.accept(owner));
         }
     }
 }

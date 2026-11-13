@@ -71,6 +71,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Clones(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Bullets(), this);
         pm.registerEvents(testMode, this);
+        pm.registerEvents(testMode.thirdPerson(), this);
         legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
         pm.registerEvents(legacyCombat, this);
         for (var p : getServer().getOnlinePlayers()) legacyCombat.apply(p);
@@ -106,7 +107,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
-        if (testMode != null) testMode.save();
+        if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (gameManager != null) gameManager.shutdown();
         if (abilityEngine != null) abilityEngine.stop();
         if (scoreboardManager != null) scoreboardManager.stop();

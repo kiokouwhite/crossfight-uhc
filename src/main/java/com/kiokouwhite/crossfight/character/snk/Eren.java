@@ -686,7 +686,8 @@ public final class Eren extends Character implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMeleeHit(EntityDamageByEntityEvent e) {
-        if (!(e.getDamager() instanceof Player p) || !(e.getEntity() instanceof LivingEntity)) return;
+        Player p = com.kiokouwhite.crossfight.listener.DamageListener.meleeAttackerOf(e.getDamager());
+        if (p == null || !(e.getEntity() instanceof LivingEntity)) return;
         if (e.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
         ItemStack it = p.getInventory().getItemInMainHand();
         String kind = weaponKind(it);

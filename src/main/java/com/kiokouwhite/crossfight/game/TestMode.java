@@ -52,16 +52,22 @@ public final class TestMode implements Listener {
     /** Testeurs connus lors du dernier arret du serveur : uuid -> id de personnage (ou ""). */
     private final Map<UUID, String> pending = new HashMap<>();
 
+    private final ThirdPerson thirdPerson;
+
     public TestMode(CrossfightPlugin plugin) {
         this.plugin = plugin;
+        this.thirdPerson = new ThirdPerson(plugin, this);
     }
+
+    /** Le mode troisieme personne (mannequin qui incarne le personnage et vise le testeur). */
+    public ThirdPerson thirdPerson() { return thirdPerson; }
 
     public static World world() {
         return built(ArenaWorlds.get(WORLD));
     }
 
     /** Construit la plateforme de test dans un monde vide, si ce n'est pas deja fait. */
-    private static World built(World w) {
+    static World built(World w) {
         if (w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).getType() == Material.AIR) {
             ArenaWorlds.buildPlatform(w, 45, Material.GRASS_BLOCK, Material.BARRIER, 12);
             // Une couche de terre sous l'herbe pour pouvoir creuser un peu.
@@ -89,6 +95,8 @@ public final class TestMode implements Listener {
         int changed = resetPlatform(world());
         World duo = Bukkit.getWorld(DUO_WORLD);
         if (duo != null) changed += resetPlatform(duo);
+        World third = Bukkit.getWorld(ThirdPerson.WORLD);
+        if (third != null) changed += resetPlatform(third);
         Mannequins.clearAll();
         for (World w : duo == null ? new World[]{world()} : new World[]{world(), duo}) {
             for (Player p : w.getPlayers()) {
@@ -103,6 +111,17 @@ public final class TestMode implements Listener {
         for (UUID u : new ArrayList<>(duoTesters)) {
             Player p = Bukkit.getPlayer(u);
             if (p != null) setupDuoZone(p, null);
+        }
+        // Troisieme personne : chaque mannequin pilote et son testeur reprennent leur place.
+        if (third != null) {
+            for (Player p : third.getPlayers()) {
+                p.setFireTicks(0);
+                var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                p.setHealth(mh == null ? 20 : mh.getValue());
+                if (isTester(p)) gear(p);
+                if (!thirdPerson.isActive(p)) p.teleport(ArenaWorlds.center(third));
+            }
+            thirdPerson.afterClear();
         }
         return changed;
     }
@@ -130,7 +149,8 @@ public final class TestMode implements Listener {
             for (int z = -HALF + 2; z < HALF; z += 8) w.getBlockAt(x, ArenaWorlds.FLOOR_Y, z).setType(Material.SEA_LANTERN, false);
         }
         for (var e : w.getEntities()) {
-            if (!(e instanceof Player)) e.remove();
+            // Le mannequin pilote (troisieme personne) reste : il est rendu a sa place juste apres.
+            if (!(e instanceof Player) && !Mannequins.isPilot(e)) e.remove();
         }
         return changed;
     }
@@ -151,9 +171,15 @@ public final class TestMode implements Listener {
         for (UUID u : returnPoints.keySet()) {
             CfPlayer cf = plugin.players().get(u);
             String ch = cf != null && cf.character() != null ? cf.character().id() : "";
+            // En troisieme personne, c'est le mannequin qui a le personnage : "3p:<personnage>".
+            String third = thirdPerson.savedState(u);
+            if (third != null) ch = third;
             yml.set("testers." + u, ch);
+            // En texte : un Location relu au demarrage, avant le chargement de son monde, ferait une erreur.
             Location back = returnPoints.get(u);
-            if (back != null) yml.set("return." + u, back);
+            if (back != null && back.getWorld() != null) {
+                yml.set("return." + u, back.getWorld().getName() + ";" + back.getX() + ";" + back.getY() + ";" + back.getZ() + ";" + back.getYaw() + ";" + back.getPitch());
+            }
         }
         for (Map.Entry<UUID, String> e : pending.entrySet()) {
             if (!returnPoints.containsKey(e.getKey())) yml.set("testers." + e.getKey(), e.getValue());
@@ -187,6 +213,14 @@ public final class TestMode implements Listener {
     public boolean resumeIfPending(Player p) {
         String charId = pending.remove(p.getUniqueId());
         if (charId == null) return false;
+        if (charId.startsWith("3p:")) {
+            // Il etait en troisieme personne : on l'y remet, avec le personnage de son mannequin.
+            Character c = plugin.characters().character(charId.substring(3));
+            if (com.kiokouwhite.crossfight.util.Sounds.packPending(p) && c != null) skipMenu.add(p.getUniqueId());
+            if (!thirdPerson.enter(p, c)) return false;
+            Msg.send(p, "<gray>Mode test (troisieme personne) repris apres le redemarrage du serveur.");
+            return true;
+        }
         if (!enter(p)) return false;
         Character c = charId.isEmpty() ? null : plugin.characters().character(charId);
         if (c != null) {
@@ -242,6 +276,7 @@ public final class TestMode implements Listener {
     }
 
     public void leave(Player p) {
+        thirdPerson.close(p);
         if (duoTesters.remove(p.getUniqueId())) clearDuoTargetsIfEmpty();
         Mannequins.removePartners(p);
         Location back = returnPoints.remove(p.getUniqueId());
@@ -256,7 +291,8 @@ public final class TestMode implements Listener {
         com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         p.setGameMode(GameMode.ADVENTURE);
-        p.teleport(back != null && !back.getWorld().getName().equals(WORLD) ? back : plugin.game().world().getSpawnLocation());
+        boolean backInTest = back != null && (back.getWorld().getName().equals(WORLD) || back.getWorld().getName().equals(DUO_WORLD) || back.getWorld().getName().equals(ThirdPerson.WORLD));
+        p.teleport(back != null && !backInTest ? back : plugin.game().world().getSpawnLocation());
         Msg.send(p, "<yellow>Mode test quitte.");
         pending.remove(p.getUniqueId());
         save();
@@ -277,6 +313,8 @@ public final class TestMode implements Listener {
     // ------------------------------------------------------------ personnage
 
     public void change(Player p, Character c) {
+        // En troisieme personne, /cf change (et le menu) changent le personnage du mannequin.
+        if (thirdPerson.isActive(p)) { thirdPerson.setCharacter(p, c); return; }
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
         if (team == null) return;
@@ -308,6 +346,49 @@ public final class TestMode implements Listener {
         save();
     }
 
+    /** Le testeur n'incarne plus personne (troisieme personne : il sert de cible au mannequin). */
+    void clearCharacter(Player p) {
+        CfPlayer cf = plugin.players().get(p);
+        plugin.abilities().unequip(p);
+        plugin.abilities().clearStates(p);
+        com.kiokouwhite.crossfight.ability.Borrowed.clear(p);
+        Boosts.clear(p);
+        Effects.unroot(p);
+        p.setAllowFlight(false);
+        for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
+        com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
+        p.setHealth(20);
+        cf.resetUltimate();
+        cf.setUltimateLocked(false);
+        cf.setCooldownFactor(1.0);
+        cf.setCharacter(null);
+        PlayerInventory inv = p.getInventory();
+        for (int i = 0; i < 36; i++) {
+            ItemStack it = inv.getItem(i);
+            if (it != null && Items.tag(it, GEAR_KEY) == null) inv.setItem(i, null);
+        }
+        gear(p);
+    }
+
+    /**
+     * La cible de la troisieme personne repart a neuf : les effets, la vie maximale (une capacite peut en
+     * retirer pour toujours) et les immobilisations que le mannequin lui a infliges disparaissent.
+     */
+    void resetTarget(Player p) {
+        Effects.unroot(p);
+        Boosts.clear(p);
+        for (PotionEffect e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
+        com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
+        p.setHealth(20);
+        p.setFireTicks(0);
+        p.setFoodLevel(20);
+    }
+
+    /** Le menu de choix ne s'ouvrira pas a la prochaine entree (un autre menu, ou un personnage deja choisi, prend le relais). */
+    void skipNextMenu(Player p) {
+        skipMenu.add(p.getUniqueId());
+    }
+
     // ------------------------------------------------------------ equipement
 
     private static ItemStack armor(Material m, int prot) {
@@ -330,7 +411,7 @@ public final class TestMode implements Listener {
         refillApples(p);
     }
 
-    private static boolean isGear(ItemStack it) {
+    static boolean isGear(ItemStack it) {
         return it != null && Items.tag(it, GEAR_KEY) != null;
     }
 
@@ -373,8 +454,9 @@ public final class TestMode implements Listener {
         cf.setWaitingRespawn(false);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
-            if (!handled) p.teleport(isInDuoZone(p) ? duoCenter() : ArenaWorlds.center(world()));
+            if (!handled) p.teleport(thirdPerson.isActive(p) ? thirdPerson.spotOf(p) : isInDuoZone(p) ? duoCenter() : ArenaWorlds.center(world()));
             p.setGameMode(GameMode.SURVIVAL);
+            if (thirdPerson.isActive(p)) resetTarget(p);
             var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
             p.setHealth(mh == null ? 20 : mh.getValue());
             p.setFoodLevel(20);
@@ -427,6 +509,12 @@ public final class TestMode implements Listener {
      * @param partner le personnage du mannequin duo, ou null pour celui par defaut
      */
     public boolean enterDuo(Player p, Character partner) {
+        if (thirdPerson.isActive(p)) {
+            // On quitte la troisieme personne : le testeur reprend le personnage du mannequin.
+            Character c = thirdPerson.characterOf(p);
+            thirdPerson.close(p);
+            if (c != null) change(p, c);
+        }
         if (!isTester(p)) {
             // Le menu complet de personnages ne s'ouvre pas : la zone duo propose le sien.
             skipMenu.add(p.getUniqueId());
@@ -445,6 +533,13 @@ public final class TestMode implements Listener {
         }
         save();
         return true;
+    }
+
+    /** Sortie de la zone duo sans retour au terrain (on part vers une autre zone de test). */
+    void leaveDuoQuietly(Player p) {
+        duoTesters.remove(p.getUniqueId());
+        Mannequins.removePartners(p);
+        clearDuoTargetsIfEmpty();
     }
 
     /** Retour au terrain de test normal. */
@@ -570,7 +665,8 @@ public final class TestMode implements Listener {
     }
 
     public void openMenu(Player p) {
-        openMenu(p, c -> true, "<dark_gray>Mode test : choisis un personnage");
+        if (thirdPerson.isActive(p)) openMenu(p, c -> true, "<dark_aqua>Troisieme personne : quel personnage pour le mannequin ?");
+        else openMenu(p, c -> true, "<dark_gray>Mode test : choisis un personnage");
     }
 
     public void openMenu(Player p, java.util.function.Predicate<Character> filter, String title) {

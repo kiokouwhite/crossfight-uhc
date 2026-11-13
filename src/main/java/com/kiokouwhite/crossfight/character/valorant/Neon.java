@@ -110,7 +110,7 @@ public final class Neon extends Character implements Listener {
     /** Lance l'eclair (une fleche habillee) avec son nombre de rebonds restants. */
     static void throwBolt(Player p, Location from, Vector dir, double speed, int bounces) {
         Arrow a = p.getWorld().spawnArrow(from, dir, (float) speed, 0f);
-        a.setShooter(p);
+        com.kiokouwhite.crossfight.util.Effects.setShooter(a, p);
         a.setDamage(0.5);
         a.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
         a.setInvisible(true);

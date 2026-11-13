@@ -65,6 +65,13 @@ public final class Skins {
 
     /** Met au joueur le skin de ce personnage ; null, ou un personnage sans skin : son skin d'origine. */
     public static void apply(Player p, Character character) {
+        if (MannequinPlayer.isProxy(p)) {
+            // Un joueur pilote : c'est son mannequin qui change d'apparence.
+            var body = MannequinPlayer.body(p);
+            var look = character == null || !enabled() ? null : profile(character.id());
+            if (body != null) body.setProfile(look != null ? look : org.bukkit.entity.Mannequin.defaultProfile());
+            return;
+        }
         ProfileProperty skin = character == null || !enabled() ? null : SKINS.get(character.id());
         if (skin == null) { restore(p); return; }
         PlayerProfile profile = p.getPlayerProfile();
@@ -77,6 +84,7 @@ public final class Skins {
 
     /** Rend au joueur le skin qu'il avait en arrivant. */
     public static void restore(Player p) {
+        if (MannequinPlayer.isProxy(p)) return;
         Optional<ProfileProperty> original = ORIGINAL.remove(p.getUniqueId());
         if (original == null) return;
         PlayerProfile profile = p.getPlayerProfile();

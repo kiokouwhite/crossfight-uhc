@@ -218,7 +218,7 @@ public final class AbilityEngine implements Listener {
 
     /** Tick des particularites de licence, appele chaque seconde par la partie. */
     public void tickMechanics() {
-        for (Player p : Bukkit.getOnlinePlayers()) {
+        for (Player p : actors()) {
             CfPlayer cf = plugin.players().get(p);
             Character ch = cf.character();
             if (ch == null || ch.licence() == null || ch.licence().mechanic() == null) continue;
@@ -245,16 +245,27 @@ public final class AbilityEngine implements Listener {
 
     // ------------------------------------------------------------------ tick
 
+    /**
+     * Ceux dont les capacites tournent : les joueurs en ligne, et les joueurs pilotes des mannequins du
+     * mode test en troisieme personne.
+     */
+    private List<Player> actors() {
+        List<Player> out = new java.util.ArrayList<>(Bukkit.getOnlinePlayers());
+        out.addAll(com.kiokouwhite.crossfight.util.MannequinPlayer.all());
+        return out;
+    }
+
     private void tickAll() {
         if (!plugin.game().isRunning()) return;
         boolean hideArmor = plugin.getConfig().getBoolean("visuals.hide-armor", true);
-        for (Player p : Bukkit.getOnlinePlayers()) {
+        for (Player p : actors()) {
             CfPlayer cf = plugin.players().get(p);
             Character ch = cf.character();
             if (ch == null || cf.isWaitingRespawn() || !cf.isAlive()) continue;
-            com.kiokouwhite.crossfight.util.Revived.tick(p);
+            boolean pilot = com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p);
+            if (!pilot) com.kiokouwhite.crossfight.util.Revived.tick(p);
             // L'armure n'est jamais visible sur les joueurs : chacun garde l'apparence de son personnage.
-            if (hideArmor && !com.kiokouwhite.crossfight.util.Stealth.isArmorHidden(p)) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
+            if (!pilot && hideArmor && !com.kiokouwhite.crossfight.util.Stealth.isArmorHidden(p)) com.kiokouwhite.crossfight.util.Stealth.hideArmorOnly(p);
             StringBuilder bar = new StringBuilder();
             for (Ability a : ch.allAbilities(p)) {
                 AbilityState st = state(p, a);
@@ -322,6 +333,8 @@ public final class AbilityEngine implements Listener {
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent e) {
         if (e.getHand() != EquipmentSlot.HAND) return;
+        // En troisieme personne, ce sont les capacites du mannequin que le testeur declenche (game.ThirdPerson).
+        if (plugin.testMode() != null && plugin.testMode().thirdPerson().isActive(e.getPlayer())) return;
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
         ItemStack item = e.getItem();
         String id = Items.tag(item, ABILITY_KEY);
@@ -353,7 +366,7 @@ public final class AbilityEngine implements Listener {
     }
 
     /** Blocs dont le clic droit a un usage (coffres, portes, tables...). */
-    private static boolean isInteractable(org.bukkit.Material m) {
+    public static boolean isInteractable(org.bukkit.Material m) {
         String n = m.name();
         return n.contains("CHEST") || n.contains("DOOR") || n.contains("GATE") || n.contains("BUTTON") || n.contains("LEVER")
                 || n.contains("FURNACE") || n.contains("TABLE") || n.contains("ANVIL") || n.contains("BARREL") || n.contains("SHULKER")

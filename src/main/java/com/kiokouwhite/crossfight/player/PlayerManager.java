@@ -22,6 +22,11 @@ public final class PlayerManager {
         return players.get(uuid);
     }
 
+    /** Oublie un joueur (le joueur pilote d'un mannequin, quand il disparait). */
+    public void remove(UUID uuid) {
+        players.remove(uuid);
+    }
+
     public Collection<CfPlayer> all() {
         return players.values();
     }

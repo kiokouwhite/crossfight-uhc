@@ -301,19 +301,21 @@ public final class Puppet {
             if (viewer.equals(player) || viewer.getLocation().distanceSquared(player.getLocation()) > 96 * 96) continue;
             Map<EquipmentSlot, ItemStack> empty = new EnumMap<>(EquipmentSlot.class);
             for (EquipmentSlot s : all) empty.put(s, ItemStack.empty());
-            viewer.sendEquipmentChange(player, empty);
+            // Le joueur pilote d'un mannequin (troisieme personne) n'est pas une entite du serveur : on passe son mannequin.
+            var shown = MannequinPlayer.real((org.bukkit.entity.LivingEntity) player);
+            viewer.sendEquipmentChange(shown, empty);
             restore.add(() -> {
                 if (!viewer.isOnline() || !player.isOnline()) return;
                 Map<EquipmentSlot, ItemStack> real = new EnumMap<>(EquipmentSlot.class);
                 for (EquipmentSlot s : all) { ItemStack it = player.getInventory().getItem(s); real.put(s, it == null ? ItemStack.empty() : it); }
-                viewer.sendEquipmentChange(player, real);
+                viewer.sendEquipmentChange(shown, real);
             });
         }
         // Le joueur lui-meme (vue exterieure) : son client ne tient pas compte d'un paquet d'equipement
         // qui le concerne, il affiche ce que contient son propre inventaire. On lui envoie donc, a lui seul,
         // des cases d'armure vides et un objet invisible a la place de ce qu'il tient ; son vrai inventaire
         // n'est pas touche et lui est renvoye tel quel a la fin.
-        if (hideOwnItems(player)) {
+        if (!MannequinPlayer.isProxy(player) && hideOwnItems(player)) {
             ownItemsHidden = true;
             heldSlot = player.getInventory().getHeldItemSlot();
             restore.add(() -> { if (player.isOnline()) player.updateInventory(); });

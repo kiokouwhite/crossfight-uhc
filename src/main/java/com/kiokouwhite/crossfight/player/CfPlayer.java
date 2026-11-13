@@ -38,7 +38,8 @@ public final class CfPlayer {
 
     public UUID uuid() { return uuid; }
     public String name() { return name; }
-    public Player bukkit() { return Bukkit.getPlayer(uuid); }
+    /** Le joueur en ligne (ou le joueur pilote d'un mannequin en troisieme personne), ou null. */
+    public Player bukkit() { return com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(uuid); }
     public boolean isOnline() { return bukkit() != null; }
 
     public Team team() { return team; }

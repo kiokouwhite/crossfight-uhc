@@ -359,7 +359,7 @@ public final class Sova extends Character implements Listener {
                     if (ticks % 20 == 0 && target != null) {
                         Vector dir = target.getEyeLocation().toVector().subtract(drone.getEyeLocation().toVector()).normalize();
                         Arrow a = drone.getWorld().spawnArrow(drone.getEyeLocation().add(dir), dir, 2.0f, 1f);
-                        a.setShooter(p);
+                        com.kiokouwhite.crossfight.util.Effects.setShooter(a, p);
                         a.setDamage(1.0);
                         a.setBasePotionType(PotionType.WEAKNESS);
                         a.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);

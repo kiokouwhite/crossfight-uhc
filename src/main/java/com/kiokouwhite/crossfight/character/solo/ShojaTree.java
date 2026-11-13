@@ -423,7 +423,7 @@ public final class ShojaTree {
     static void tickMines() {
         long now = System.currentTimeMillis();
         for (Mine m : new ArrayList<>(MINES)) {
-            Player owner = Bukkit.getPlayer(m.owner);
+            Player owner = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(m.owner);
             if (now > m.until || owner == null || !owner.isOnline()) { MINES.remove(m); continue; }
             owner.spawnParticle(Particle.BUBBLE_POP, m.at.clone().add(0, 0.3, 0), 2, 0.3, 0.1, 0.3, 0);
             for (LivingEntity e : Effects.within(m.at, 1.3, le -> Effects.isEnemy(owner, le))) {

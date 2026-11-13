@@ -109,6 +109,16 @@ public final class CfCommand implements TabExecutor {
                             else plugin.testMode().enterDuo(sp, partner);
                             return true;
                         }
+                        if (args.length > 1 && isThirdPersonArg(args[1])) {
+                            // Troisieme personne : /cf test third-person [perso du mannequin] ; sans personnage, une seconde fois pour en sortir.
+                            Character c = args.length > 2 ? plugin.characters().character(args[2].toLowerCase()) : null;
+                            if (args.length > 2 && c == null) { Msg.send(sp, "<red>Personnage inconnu : " + args[2]); return true; }
+                            var tp = plugin.testMode().thirdPerson();
+                            if (tp.isActive(sp) && c == null) tp.leave(sp);
+                            else if (tp.isActive(sp)) tp.setCharacter(sp, c);
+                            else tp.enter(sp, c);
+                            return true;
+                        }
                         if (plugin.testMode().isTester(sp)) plugin.testMode().leave(sp);
                         else plugin.testMode().enter(sp);
                     }
@@ -146,7 +156,7 @@ public final class CfCommand implements TabExecutor {
                         if (args.length > 1) { try { n = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { } }
                         var lic = plugin.characters().licence("valorant");
                         if (lic != null && lic.mechanic() instanceof com.kiokouwhite.crossfight.character.valorant.Valorant.Economy eco) {
-                            eco.set(sp, n);
+                            eco.set(plugin.testMode().thirdPerson().actor(sp), n);
                             Msg.send(sp, "<gold>Credits : " + n);
                         }
                     }
@@ -155,14 +165,14 @@ public final class CfCommand implements TabExecutor {
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         String type = args.length > 1 ? args[1].toLowerCase() : "";
-                        if (!com.kiokouwhite.crossfight.character.unordinary.Unordinary.giveAura(sp, type)) Msg.send(sp, "<red>Usage : /cf aura <soin|immunite|laser|chaleur|glue>");
+                        if (!com.kiokouwhite.crossfight.character.unordinary.Unordinary.giveAura(plugin.testMode().thirdPerson().actor(sp), type)) Msg.send(sp, "<red>Usage : /cf aura <soin|immunite|laser|chaleur|glue>");
                         else Msg.send(sp, "<green>Epee d'Aura - " + type + " donnee.");
                     }
                     case "delta" -> {
                         // Test : une mutation Earth Delta (regen, coeurs, feu, vitesse, explosion, aleatoire).
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
-                        if (!com.kiokouwhite.crossfight.character.earthdelta.EarthDelta.grant(sp, args.length > 1 ? args[1] : null)) Msg.send(sp, "<red>Usage (Earth Delta) : /cf delta <regen|coeurs|feu|vitesse|explosion|aleatoire>");
+                        if (!com.kiokouwhite.crossfight.character.earthdelta.EarthDelta.grant(plugin.testMode().thirdPerson().actor(sp), args.length > 1 ? args[1] : null)) Msg.send(sp, "<red>Usage (Earth Delta) : /cf delta <regen|coeurs|feu|vitesse|explosion|aleatoire>");
                     }
                     case "kills" -> {
                         // Test : regle son nombre de kills (Kura, Valorant...).
@@ -170,7 +180,7 @@ public final class CfCommand implements TabExecutor {
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         int n = 0;
                         if (args.length > 1) { try { n = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { } }
-                        plugin.players().get(sp).setKills(n);
+                        plugin.players().get(plugin.testMode().thirdPerson().actor(sp)).setKills(n);
                         Msg.send(sp, "<green>Kills : " + n);
                     }
                     case "tome" -> {
@@ -178,7 +188,7 @@ public final class CfCommand implements TabExecutor {
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         String[] rest = args.length > 1 ? java.util.Arrays.copyOfRange(args, 1, args.length) : new String[0];
-                        if (!com.kiokouwhite.crossfight.character.earthdelta.Hano.grant(sp, rest)) Msg.send(sp, "<red>Usage (Hano) : /cf tome <id|tous|aleatoire> ou /cf tome arc <flame|multishot|piercing|power|punch|quick_charge>");
+                        if (!com.kiokouwhite.crossfight.character.earthdelta.Hano.grant(plugin.testMode().thirdPerson().actor(sp), rest)) Msg.send(sp, "<red>Usage (Hano) : /cf tome <id|tous|aleatoire> ou /cf tome arc <flame|multishot|piercing|power|punch|quick_charge>");
                         else Msg.send(sp, "<green>Tomes mis a jour.");
                     }
                     case "son", "sons" -> {
@@ -203,14 +213,16 @@ public final class CfCommand implements TabExecutor {
                         if (!(sender instanceof Player sp)) return true;
                         var poses = com.kiokouwhite.crossfight.util.Puppet.poses();
                         if (args.length < 2) { Msg.send(sp, "<gold>Poses : <white>" + String.join(", ", poses) + " <gray>(/cf pose <nom> [secondes], a regarder en F5)."); return true; }
-                        CfPlayer pcf = plugin.players().get(sp);
+                        // En troisieme personne, c'est le mannequin qui prend la pose.
+                        Player actor = plugin.testMode() == null ? sp : plugin.testMode().thirdPerson().actor(sp);
+                        CfPlayer pcf = plugin.players().get(actor);
                         String who = pcf != null && pcf.character() != null ? pcf.character().id() : "";
                         if (!com.kiokouwhite.crossfight.util.Puppet.available(who)) { Msg.send(sp, "<red>Pas de modele articule pour ce personnage dans le pack."); return true; }
                         String pose = args[1].toLowerCase();
                         if (!poses.contains(pose)) { Msg.send(sp, "<red>Pose inconnue : " + pose); return true; }
                         int seconds = 5;
                         if (args.length > 2) { try { seconds = Math.max(1, Math.min(25, Integer.parseInt(args[2]))); } catch (NumberFormatException ignored) { } }
-                        var pu = com.kiokouwhite.crossfight.util.Puppet.show(sp, who, sp.getInventory().getItem(0), "debout");
+                        var pu = com.kiokouwhite.crossfight.util.Puppet.show(actor, who, actor.getInventory().getItem(0), "debout");
                         if (pu == null) return true;
                         pu.pose(pose, 4);
                         pu.endAfter(seconds * 20, 4);
@@ -235,7 +247,7 @@ public final class CfCommand implements TabExecutor {
                         // Test : rend le Burst d'un personnage solitaire pret (ou a un pourcentage).
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
-                        com.kiokouwhite.crossfight.character.solo.Solo.fill(sp);
+                        com.kiokouwhite.crossfight.character.solo.Solo.fill(plugin.testMode().thirdPerson().actor(sp));
                         Msg.send(sp, "<gold>Burst pret.");
                     }
                     case "sante" -> {
@@ -244,7 +256,7 @@ public final class CfCommand implements TabExecutor {
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         double n = 100;
                         if (args.length > 1) { try { n = Double.parseDouble(args[1]); } catch (NumberFormatException ignored) { } }
-                        if (!com.kiokouwhite.crossfight.character.solo.Drifter.setSante(sp, n)) Msg.send(sp, "<red>Tu dois jouer le Drifter.");
+                        if (!com.kiokouwhite.crossfight.character.solo.Drifter.setSante(plugin.testMode().thirdPerson().actor(sp), n)) Msg.send(sp, "<red>Tu dois jouer le Drifter.");
                         else Msg.send(sp, "<green>Sante du Drifter : " + (int) n + "%");
                     }
                     case "shoja" -> {
@@ -252,14 +264,14 @@ public final class CfCommand implements TabExecutor {
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         String[] rest = args.length > 1 ? java.util.Arrays.copyOfRange(args, 1, args.length) : new String[0];
-                        com.kiokouwhite.crossfight.character.solo.ShojaTree.command(sp, rest);
+                        com.kiokouwhite.crossfight.character.solo.ShojaTree.command(plugin.testMode().thirdPerson().actor(sp), rest);
                     }
                     case "titan" -> {
                         // Test : donne a Eren les pouvoirs d'un titan primordial (ou de tous).
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test."); return true; }
                         String which = args.length > 1 ? args[1].toLowerCase() : "tous";
-                        int n = com.kiokouwhite.crossfight.character.snk.Eren.grantTitan(sp, which);
+                        int n = com.kiokouwhite.crossfight.character.snk.Eren.grantTitan(plugin.testMode().thirdPerson().actor(sp), which);
                         if (n < 0) Msg.send(sp, "<red>Tu dois jouer Eren. Titans : " + String.join(", ", com.kiokouwhite.crossfight.character.snk.Eren.TITAN_IDS) + ", tous");
                         else Msg.send(sp, "<green>" + n + " pouvoir(s) de titan obtenu(s).");
                     }
@@ -468,13 +480,15 @@ public final class CfCommand implements TabExecutor {
                 case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
-                case "test" -> out.add("duo");
+                case "test" -> out.addAll(List.of("duo", "third-person"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && isThirdPersonArg(args[1])) {
+            for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("duo")) {
             for (Licence l : plugin.characters().licences()) {
                 if (com.kiokouwhite.crossfight.game.TestMode.DUO_LICENCES.contains(l.id())) for (Character c : l.characters()) out.add(c.id());
@@ -485,5 +499,11 @@ public final class CfCommand implements TabExecutor {
             for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id());
         }
         return out;
+    }
+
+    /** "/cf test third-person" (et ses variantes francaises). */
+    private static boolean isThirdPersonArg(String a) {
+        String x = a.toLowerCase(java.util.Locale.ROOT);
+        return x.equals("third-person") || x.equals("thirdperson") || x.equals("3p") || x.equals("troisieme-personne") || x.equals("3e-personne");
     }
 }

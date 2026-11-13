@@ -275,7 +275,7 @@ public final class Weiss extends Character implements Listener {
                         Bukkit.getScheduler().runTaskLater(plugin(), () -> {
                             Location from = base.clone().add(fwd.clone().multiply(1)).add(0.5, 1.5, 0.5);
                             Arrow a = w.spawnArrow(from, fwd.clone().add(new Vector(Math.random() * 0.2 - 0.1, 0.05, Math.random() * 0.2 - 0.1)), 2.5f, 2f);
-                            a.setShooter(p);
+                            com.kiokouwhite.crossfight.util.Effects.setShooter(a, p);
                             a.setBasePotionType(types[(int) (Math.random() * types.length)]);
                             a.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.DISALLOWED);
                             w.playSound(from, Sound.ENTITY_ARROW_SHOOT, 1f, 1f);

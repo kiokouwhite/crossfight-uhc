@@ -195,13 +195,13 @@ public final class Kishi extends Character implements Listener {
         static void clear(AbilityState st) {
             String prev = st.get("ally", null);
             if (prev == null) return;
-            Player old = Bukkit.getPlayer(UUID.fromString(prev));
+            Player old = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(prev));
             if (old != null) Boosts.remove(old, "kishi_aura");
             st.remove("ally");
         }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             String id = st.get("ally", null);
-            Player ally = id == null ? null : Bukkit.getPlayer(UUID.fromString(id));
+            Player ally = id == null ? null : com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(id));
             if (ally == null || ally.isDead()) return;
             int force = Math.min(4, coneCount(p));
             Boosts.Boost b = Boosts.get(ally, "kishi_aura");
@@ -210,7 +210,7 @@ public final class Kishi extends Character implements Listener {
         }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
             String id = st.get("ally", null);
-            Player ally = id == null ? null : Bukkit.getPlayer(UUID.fromString(id));
+            Player ally = id == null ? null : com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(id));
             return ally == null ? "<gray>Aura <dark_gray>[personne]" : "<yellow>Aura <white>[" + (ally == p ? "moi" : ally.getName()) + " : Force " + Math.min(4, coneCount(p)) + "]";
         }
         @Override public void onUnequip(Player p, CfPlayer cf) { clear(EarthDelta.plugin().abilities().state(p, this)); }
