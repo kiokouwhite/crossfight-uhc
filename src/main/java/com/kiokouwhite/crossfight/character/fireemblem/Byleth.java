@@ -189,6 +189,15 @@ public final class Byleth extends Character implements Listener {
             caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 1.5f);
             // Le lanceur est immobilise tant que le fouet est sorti (au plus 3 secondes de securite).
             Effects.root(caster, 60);
+            // Byleth se fend et tend le bras de l'epee droit devant : la lame-fouet part de sa main.
+            final var puppet = caster instanceof Player pl ? com.kiokouwhite.crossfight.util.Puppet.show(pl, "byleth", DechainementDEpine.heldSword(pl), "debout") : null;
+            if (puppet != null) {
+                Location facing = caster.getLocation().clone();
+                facing.setDirection(lockedDir);
+                puppet.face(facing.getYaw());
+                puppet.pose("byleth_epee_tendue", 3);
+                puppet.endAfter(60, 4);
+            }
             BoneWhip whip = new BoneWhip(false);
             new BukkitRunnable() {
                 double length = 0;
@@ -199,7 +208,7 @@ public final class Byleth extends Character implements Listener {
                     if (retracting) {
                         length -= 1.5;
                         if (length <= 0) { clear(); cancel(); return; }
-                        whip.layout(caster.getEyeLocation(), lockedDir, length);
+                        whip.layout(start(), lockedDir, length);
                         return;
                     }
                     length += SPEED_PER_TICK;
@@ -212,7 +221,7 @@ public final class Byleth extends Character implements Listener {
                             break;
                         }
                     }
-                    whip.layout(eye, lockedDir, length);
+                    whip.layout(start(), lockedDir, length);
                     Location tip = eye.clone().add(lockedDir.clone().multiply(length));
                     for (org.bukkit.entity.LivingEntity enemy : Effects.within(tip, 1.2, isTarget)) {
                         if (enemy == caster) continue;
@@ -230,9 +239,16 @@ public final class Byleth extends Character implements Listener {
                     if (length >= 10) retracting = true;
                 }
 
+                /** Le fouet sort de la main tendue (des yeux, sans modele articule). */
+                Location start() {
+                    if (puppet != null && caster instanceof Player pl && com.kiokouwhite.crossfight.util.Puppet.of(pl) == puppet) return puppet.hand();
+                    return caster.getEyeLocation();
+                }
+
                 void clear() {
                     whip.clear();
                     Effects.unroot(caster);
+                    if (puppet != null && caster instanceof Player pl && com.kiokouwhite.crossfight.util.Puppet.of(pl) == puppet) puppet.endAfter(0, 4);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
         }
@@ -281,6 +297,13 @@ public final class Byleth extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
+            // Mannequin en troisieme personne : pas d'eleve a former, juste la lecture du livre, pour la voir.
+            if (com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p)) {
+                startReading(p);
+                Bukkit.getScheduler().runTaskLater(plugin(), () -> stopReading(p, 0), 100L);
+                Msg.actionBar(p, "<gold>Tutorat <gray>(troisieme personne : l'animation seule)");
+                return true;
+            }
             // Tous les allies vivants, quelle que soit la distance (meme dans un autre monde).
             List<org.bukkit.entity.LivingEntity> allies = new ArrayList<>();
             for (World world : Bukkit.getWorlds()) {
@@ -675,6 +698,19 @@ public final class Byleth extends Character implements Listener {
             final World w = p.getWorld();
             final List<org.bukkit.entity.LivingEntity> caught = new ArrayList<>();
             w.playSound(origin, Sound.ENTITY_WITHER_AMBIENT, 1f, 0.4f);
+            // Les Tenebres la font ployer, un genou a terre, puis la plaquent au sol, sur le dos.
+            final var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "byleth", null, "debout");
+            if (puppet != null) {
+                puppet.face(origin.getYaw());
+                puppet.pose("byleth_ult_ploie", 6);
+                Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+                    if (com.kiokouwhite.crossfight.util.Puppet.of(p) == puppet) {
+                        puppet.pose("byleth_ult_couchee", 8);
+                        w.playSound(p.getLocation(), Sound.ENTITY_WARDEN_SONIC_CHARGE, 0.6f, 0.5f);
+                    }
+                }, 14L);
+                puppet.endAfter(CARRY_TICK + 30, 6);
+            }
             // Une seconde apres sa replique : son cri et le fracas du Final Smash.
             Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline()) com.kiokouwhite.crossfight.util.Sounds.ability(p, "byleth_ult_cri"); }, 20L);
             w.playSound(origin, Sound.BLOCK_PORTAL_TRIGGER, 0.6f, 0.5f);
@@ -698,9 +734,9 @@ public final class Byleth extends Character implements Listener {
                     }
                 }
 
-                /** La masse violette monte le long de Byleth et l'enveloppe entierement. */
+                /** La masse violette monte le long de Byleth et l'enveloppe entierement (au ras du sol une fois couchee). */
                 void envelop(int t) {
-                    double height = Math.min(2.2, 0.2 + t * 0.08);
+                    double height = puppet != null && t >= 14 ? 0.8 : Math.min(2.2, 0.2 + t * 0.08);
                     Location base = p.getLocation();
                     for (int i = 0; i < 14; i++) {
                         double a = Math.random() * Math.PI * 2, r = 0.3 + Math.random() * 0.6, y = Math.random() * height;
@@ -714,7 +750,7 @@ public final class Byleth extends Character implements Listener {
 
                 /** La vague violette s'etend depuis Byleth et piege chaque ennemi qu'elle atteint. */
                 void wave(int t) {
-                    envelopAround(p.getLocation(), 1.0, 2.2, 8);
+                    envelopAround(p.getLocation(), puppet != null ? 1.4 : 1.0, puppet != null ? 0.8 : 2.2, puppet != null ? 12 : 8);
                     double radius = (t - ENVELOP_END) / (double) (WAVE_END - ENVELOP_END) * RANGE;
                     for (double a = 0; a < Math.PI * 2; a += Math.toRadians(12)) {
                         Location l = origin.clone().add(Math.cos(a) * radius, 0.3 + Math.random() * 1.5, Math.sin(a) * radius);
@@ -743,7 +779,7 @@ public final class Byleth extends Character implements Listener {
                     }
                     w.spawnParticle(Particle.DRAGON_BREATH, origin.clone().add(0, 1, 0), 10, RANGE / 2, 1.5, RANGE / 2, 0.02, 1.0f);
                     for (org.bukkit.entity.LivingEntity e : caught) envelopAround(e.getLocation(), 1.0, 2.2, 10);
-                    envelopAround(p.getLocation(), 1.2, 2.4, 12);
+                    envelopAround(p.getLocation(), puppet != null ? 1.5 : 1.2, puppet != null ? 0.9 : 2.4, 14);
                     if (t == WAVE_END) {
                         w.playSound(origin, Sound.ENTITY_WITHER_SPAWN, 1f, 0.5f);
                         Effects.give(p, PotionEffectType.DARKNESS, 0, 60);

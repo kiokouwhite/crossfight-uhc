@@ -194,6 +194,35 @@ pose byleth_tutorat
   item_shift 1.7 1.8 0.8
 
 # Dechainement d'Epine de Byleth. Preparation : penchee en avant, l'epee tenue basse devant elle.
+# Epee du Createur : fente vers l'avant, le bras de l'epee tendu droit devant (la lame-fouet en sort),
+# l'autre bras rejete en arriere, buste penche, jambe droite avancee.
+pose byleth_epee_tendue
+  root  22 0 0   0 -2 0
+  head  -24 0 0
+  arm_r -96 0 0
+  arm_l 150 0 18
+  leg_r -40 0 -6
+  leg_l 44 0 6
+  item_world 0 0 0
+
+# Les Tenebres (ultime) : elle ploie sous la masse violette, un genou a terre, la tete basse...
+pose byleth_ult_ploie
+  root  26 0 0   0 -6 0
+  head  24 0 0
+  arm_r -20 0 -40
+  arm_l -30 0 36
+  leg_r -78 0 -4
+  leg_l 62 0 4
+
+# ...puis les Tenebres la plaquent au sol, sur le dos, bras ecartes, jambes a demi pliees.
+pose byleth_ult_couchee
+  root  -90 0 0   0 2 4
+  head  -8 0 0
+  arm_r 0 0 -78
+  arm_l 0 0 78
+  leg_r -22 0 -10
+  leg_l -8 0 10
+
 pose byleth_epine_garde
   root  14 0 0   0 -1.5 0
   head  -10 0 0
