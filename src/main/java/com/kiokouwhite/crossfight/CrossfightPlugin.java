@@ -60,6 +60,9 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(abilityEngine, this);
         pm.registerEvents(new ConnectionListener(this), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.listener.ArmorHider(this), this);
+        effectHud = new com.kiokouwhite.crossfight.hud.EffectHud(this);
+        pm.registerEvents(effectHud, this);
+        effectHud.start();
         music = new com.kiokouwhite.crossfight.util.Music(this);
         pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);
@@ -129,6 +132,10 @@ public final class CrossfightPlugin extends JavaPlugin {
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
     private com.kiokouwhite.crossfight.game.SelectionStage selectionStage;
+    private com.kiokouwhite.crossfight.hud.EffectHud effectHud;
+
+    /** Les bonus et malus sur les bords de l'ecran. */
+    public com.kiokouwhite.crossfight.hud.EffectHud effectHud() { return effectHud; }
     /** L'ecran de choix du personnage en 3D. */
     public com.kiokouwhite.crossfight.game.SelectionStage selection() { return selectionStage; }
     public com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat() { return legacyCombat; }

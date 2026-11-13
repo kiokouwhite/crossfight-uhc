@@ -426,27 +426,16 @@ public final class Puppet {
      * L'API de Paper n'a pas d'equivalent : on passe par les classes du serveur.
      */
     private static boolean hideOwnItems(Player p) {
-        try {
-            Object handle = p.getClass().getMethod("getHandle").invoke(p);
-            Object menu = handle.getClass().getField("inventoryMenu").get(handle);
-            int state = (int) menu.getClass().getMethod("getStateId").invoke(menu);
-            Object connection = handle.getClass().getField("connection").get(handle);
-            Class<?> stack = Class.forName("net.minecraft.world.item.ItemStack");
-            Object empty = stack.getField("EMPTY").get(null);
-            Object hidden = Class.forName("org.bukkit.craftbukkit.inventory.CraftItemStack")
-                    .getMethod("asNMSCopy", ItemStack.class).invoke(null, invisibleItem());
-            var packet = Class.forName("net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket")
-                    .getConstructor(int.class, int.class, int.class, stack);
-            var send = connection.getClass().getMethod("send", Class.forName("net.minecraft.network.protocol.Packet"));
-            for (int slot = 5; slot <= 8; slot++) send.invoke(connection, packet.newInstance(0, state, slot, empty));
-            var inv = p.getInventory();
-            if (!inv.getItemInMainHand().getType().isAir()) send.invoke(connection, packet.newInstance(0, state, 36 + inv.getHeldItemSlot(), hidden));
-            if (!inv.getItemInOffHand().getType().isAir()) send.invoke(connection, packet.newInstance(0, state, 45, hidden));
-            return true;
-        } catch (Throwable t) {
-            if (!ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme : " + t); }
-            return false;
-        }
+        var inv = p.getInventory();
+        // Les images de bonus/malus (objets invisibles du casque et des jambieres) restent : elles ne se dessinent pas sur le corps.
+        var hud = CrossfightPlugin.get().effectHud();
+        int[] slots = {5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45};
+        ItemStack[] items = {hud == null ? null : hud.shownIn(p, 5), null, hud == null ? null : hud.shownIn(p, 7), null,
+                inv.getItemInMainHand().getType().isAir() ? null : invisibleItem(),
+                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()};
+        boolean ok = ClientSlots.show(p, slots, items);
+        if (!ok && !ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme."); }
+        return ok;
     }
 
     /** Retire le pantin et fait reapparaitre le joueur. */

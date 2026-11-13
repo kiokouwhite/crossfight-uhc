@@ -86,3 +86,7 @@ restrictions:
   max-diamond-pieces: 2
   max-protection-diamond: 2
   max-protection-iron: 3
+
+# Bonus et malus sur les bords de l'ecran (bande et icones, comme dans un jeu de tir) et un son quand on en recoit un.
+hud:
+  effets: true

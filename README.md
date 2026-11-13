@@ -147,6 +147,12 @@ Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py 
 
 L'armure portée n'est plus dessinée sur le corps : on voit le skin du personnage, pour le joueur comme pour les autres. Dès qu'un joueur enfile une pièce, le plugin remplace le modèle à dessiner (composant `equippable`, champ `asset_id`) par un modèle vide du pack (`equipment/hidden.json`) : elle protège autant, garde son icône et ses enchantements, mais ne se voit plus une fois portée. Le changement est inscrit dans l'objet : une pièce déjà portée reste invisible même si on la donne à quelqu'un d'autre. `armor.hidden: false` dans `config.yml` arrête de modifier les nouvelles pièces. Les élytres ne sont pas concernés.
 
+### Bonus et malus à l'écran
+
+Comme dans un jeu de tir, les effets se voient sur les bords de l'écran : à gauche une bande lumineuse et les icônes des bonus (vitesse, force, résistance, régénération, invisibilité, absorption, saut), à droite celles des malus (lenteur, faiblesse, poison, cécité, wither, feu, entrave : enraciné, réduit au silence, gelé, en lévitation), deux icônes au plus de chaque côté, la bande prenant leurs couleurs. Recevoir un nouveau bonus ou malus joue un son (montée ou chute d'énergie). Les effets de potion comptent, comme les bonus des capacités (`Boosts`), le feu, l'enracinement et le silence.
+
+Minecraft dessine en plein écran l'image `camera_overlay` d'un objet porté (comme la vue à travers une citrouille) : chaque joueur, et lui seul, voit un objet invisible dans sa case de casque (l'image des bonus) et de jambières (celle des malus) ; sa vraie armure ne bouge pas et protège toujours (`hud/EffectHud.java`, `util/ClientSlots.java`). Rien en mode créatif ou spectateur. Les 56 images (une ou deux icônes par côté) sont des dessins originaux faits par `python3 tools/build_overlays.py` (`--apercu image.png` pour une vue d'ensemble). `hud.effets: false` dans `config.yml` coupe tout.
+
 ### Animations (modèle articulé)
 
 Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur.
