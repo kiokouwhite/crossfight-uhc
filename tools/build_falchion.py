@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 """La Falchion de Marth en 3D, en pavés (style Blockbench), pour le pack privé.
 
-Usage :  python3 tools/build_falchion.py [--apercu image.png] [--blockbench falchion.bbmodel]
+Usage :  python3 tools/build_falchion.py [--apercu image.png] [--blockbench falchion.bbmodel] [--defaut]
 
---blockbench : écrit aussi un projet Blockbench (format Java Block/Item, les deux textures incluses) pour
-               retoucher le modèle à la main. L'épée y est DROITE (pommeau en bas, pointe en haut, pavés
-               alignés) pour être facile à modifier ; le modèle exporté de Blockbench (.json) se dépose dans
-               resourcepack-prive/modeles/falchion.json : ce script le remet en diagonale pour le jeu (un
-               huitième de tour autour de l'axe z) et il remplace alors son modèle à lui.
+--blockbench : écrit aussi un projet Blockbench (format Java Block/Item, textures incluses) pour retoucher
+               le modèle du script à la main. L'épée y est DROITE (pommeau en bas, pointe en haut) : plus
+               facile à modifier. Le projet retouché (le .bbmodel lui-même, pas besoin d'exporter) se dépose
+               dans resourcepack-prive/modeles/falchion.bbmodel : il remplace alors le modèle de ce script, tel
+               quel (ses pavés, ses rotations, ses textures peintes ; la Sainte-Falchion en est recolorée).
+--defaut     : revient au modèle du script même si le pack contient un modèle retouché dont le projet
+               Blockbench n'est plus là (sans cette option, un modèle retouché n'est jamais écrasé).
+
+Le modèle reste droit dans le pack : c'est à l'affichage qu'il penche d'un huitième de tour (réglages
+d'affichage en main, au sol, dans l'inventaire, et util/Puppet.java pour les animations), comme l'image
+d'une épée de Minecraft. Ainsi toute rotation acceptée par Blockbench (entre -45 et 45 degrés, sur un axe)
+reste valable.
 
 Modélisée à la main d'après des captures d'écran (lame argentée et sa gouttière dorée, garde dorée en
 couronne avec un oeil au centre, poignée rouge, pommeau doré) ; c'est un dessin de Nintendo : elle va dans
 resourcepack-prive/, jamais sur GitHub. Deux versions : la Falchion et la Sainte-Falchion (plus claire,
 gouttière lumineuse).
 
-Elle est posée comme l'image d'une épée de Minecraft (poignée en bas à gauche, pointe en haut à droite, à
-plat, épaisseur centrée sur z = 8) : tenue en main, au sol, dans l'inventaire et par le modèle articulé des
-animations (util/Puppet.java), elle se place exactement comme l'épée qu'elle remplace.
+Une fois penchée, elle est posée comme l'image d'une épée de Minecraft (poignée en bas à gauche, pointe en
+haut à droite, à plat, épaisseur centrée sur z = 8) : tenue en main, au sol, dans l'inventaire et par le
+modèle articulé des animations, elle se place exactement comme l'épée qu'elle remplace.
 
 Le plugin marque l'arme de Marth (custom_model_data "falchion" ou "falchion_sainte") ; le pack privé
 redéfinit l'épée en fer et l'épée en diamant pour montrer ce modèle à cette arme-là seulement. Sans le pack
@@ -131,40 +138,66 @@ def texture(palette):
     return img
 
 
+RETOUCHED = "Crossfight UHC - Falchion (retouchee dans Blockbench)"
+
+
 def write():
     made = []
-    tex_dir = OUT / "crossfight" / "textures" / "item"
+    tex_dir = OUT / "crossfight" / "textures" / "item" / "falchion"
     mod_dir = OUT / "crossfight" / "models" / "item"
+    custom = ROOT / "resourcepack-prive" / "modeles" / "falchion.bbmodel"
+    existing = mod_dir / "falchion.json"
+    # Un modèle retouché dont le projet Blockbench n'est plus sur cette machine (pack privé recréé depuis le
+    # zip) : on le garde tel quel plutôt que de l'écraser par celui du script. --defaut force le retour.
+    if not custom.exists() and existing.exists() and "--defaut" not in sys.argv:
+        try:
+            if json.loads(existing.read_text(encoding="utf-8")).get("credit") == RETOUCHED:
+                print("modele retouche garde tel quel : son projet Blockbench n'est pas dans resourcepack-prive/modeles/ "
+                      "(--defaut pour revenir au modele du script)")
+                return made
+        except ValueError:
+            pass
     tex_dir.mkdir(parents=True, exist_ok=True)
     mod_dir.mkdir(parents=True, exist_ok=True)
-    # Un modèle retouché dans Blockbench (exporté en .json, avec ses textures s'il les a changées) remplace
-    # celui de ce script : resourcepack-prive/modeles/falchion.json, falchion.png, falchion_sainte.png.
-    custom = ROOT / "resourcepack-prive" / "modeles"
-    for name, palette in PALETTES.items():
-        own = custom / f"{name}.png"
-        if own.exists():
-            Image.open(own).save(tex_dir / f"{name}.png")
-        else:
-            texture(palette).save(tex_dir / f"{name}.png")
-        made.append(tex_dir / f"{name}.png")
-    if (custom / "falchion.json").exists():
-        model = to_diagonal(json.loads((custom / "falchion.json").read_text(encoding="utf-8")))
-        model["display"] = DISPLAY
-        model["gui_light"] = "front"
-        # Les textures du modèle exporté : la Falchion sur la clé "0", comme celle du script.
-        model.setdefault("textures", {})
-        model["textures"]["0"] = "crossfight:item/falchion"
-        model["textures"]["particle"] = "crossfight:item/falchion"
-        print("modèle retouché :", (custom / "falchion.json").relative_to(ROOT))
+    for old in tex_dir.glob("*.png"):
+        old.unlink()
+    if custom.exists():
+        els, images = from_bbmodel(custom)
+        print("modele retouche :", custom.relative_to(ROOT))
     else:
-        model = {"credit": "Crossfight UHC - Falchion low-poly", "gui_light": "front",
-                 "textures": {"0": "crossfight:item/falchion", "particle": "crossfight:item/falchion"},
-                 "elements": elements(), "display": DISPLAY}
+        els = straight_elements()
+        for el in els:
+            el["from"][1] = r2(el["from"][1] - STRAIGHT_SHIFT)
+            el["to"][1] = r2(el["to"][1] - STRAIGHT_SHIFT)
+        images = [texture(PALETTES["falchion"])]
+    # Quelles pieces utilisent chaque texture (pour la recolorer en Sainte-Falchion).
+    uses = {}
+    for el in els:
+        for f in el["faces"].values():
+            uses.setdefault(int(f["texture"][1:]), set()).add(el["name"])
+    if not custom.exists():
+        uses = {0: set()}
+    names, holy_names = {}, {}
+    for i, img in enumerate(images):
+        img.save(tex_dir / f"t{i}.png")
+        h = texture(PALETTES["falchion_sainte"]) if not custom.exists() else holy(img, i, uses.get(i, set()))
+        h.save(tex_dir / f"sainte_t{i}.png")
+        names[str(i)] = f"crossfight:item/falchion/t{i}"
+        holy_names[str(i)] = f"crossfight:item/falchion/sainte_t{i}"
+        made += [tex_dir / f"t{i}.png", tex_dir / f"sainte_t{i}.png"]
+    blade = next((i for i, u in uses.items() if "lame" in u), 0)
+    names["particle"] = names[str(blade)]
+    holy_names["particle"] = holy_names[str(blade)]
+    model = {"credit": RETOUCHED if custom.exists() else "Crossfight UHC - Falchion low-poly", "gui_light": "front",
+             "textures": names, "elements": els, "display": tilted(DISPLAY)}
     (mod_dir / "falchion.json").write_text(json.dumps(model, indent=1) + "\n", encoding="utf-8")
     (mod_dir / "falchion_sainte.json").write_text(json.dumps(
-        {"parent": "crossfight:item/falchion",
-         "textures": {"0": "crossfight:item/falchion_sainte", "particle": "crossfight:item/falchion_sainte"}}, indent=1) + "\n", encoding="utf-8")
+        {"parent": "crossfight:item/falchion", "textures": holy_names}, indent=1) + "\n", encoding="utf-8")
     made += [mod_dir / "falchion.json", mod_dir / "falchion_sainte.json"]
+    for stale in ("falchion.png", "falchion_sainte.png"):
+        f = OUT / "crossfight" / "textures" / "item" / stale
+        if f.exists():
+            f.unlink()
     # L'épée en fer (Falchion) et en diamant (Sainte-Falchion) : le modèle seulement pour l'arme de Marth.
     items = OUT / "minecraft" / "items"
     items.mkdir(parents=True, exist_ok=True)
@@ -203,31 +236,87 @@ def straight_elements():
     return out
 
 
-ALLOWED = (-45, -22.5, 0, 22.5, 45)
+def tilted(display):
+    """Les réglages d'affichage d'une épée de Minecraft, pour un modèle droit : un huitième de tour de plus
+    autour de z, appliqué au modèle avant le reste (Minecraft tourne dans l'ordre x, y, z : il suffit
+    d'ajouter à z). En main gauche, le jeu inverse les rotations y et z : on ajoute alors au lieu de retrancher."""
+    out = {}
+    for ctx, t in display.items():
+        t = json.loads(json.dumps(t))
+        rx, ry, rz = t.get("rotation", [0, 0, 0])
+        t["rotation"] = [rx, ry, rz + 45 if ctx.endswith("lefthand") else rz - 45]
+        out[ctx] = t
+    out.setdefault("gui", {"rotation": [0, 0, -45], "translation": [0, 0, 0], "scale": [1, 1, 1]})
+    return out
 
 
-def to_diagonal(model):
-    """Remet en diagonale un modèle droit (exporté de Blockbench) : chaque pavé tourne d'un huitième de tour
-    autour du centre de l'image. Un pavé déjà tourné autour de z garde sa rotation en plus (0, 22.5 ou 45
-    degrés seulement) ; un pavé tourné autour de x ou de y ne peut pas l'être (Minecraft : un seul axe)."""
-    for el in model.get("elements", []):
-        rot = el.get("rotation") or {"angle": 0, "axis": "z", "origin": [(a + b) / 2 for a, b in zip(el["from"], el["to"])]}
-        angle = float(rot.get("angle", 0))
-        if angle != 0 and rot.get("axis") != "z":
-            print(f"attention : '{el.get('name', '?')}' est tourne autour de {rot.get('axis')} ; il garde cette rotation, sans le huitieme de tour")
+def from_bbmodel(path: Path):
+    """Les pavés et les textures d'un projet Blockbench (format Java Block/Item), descendus du décalage de la
+    version droite pour tourner autour du même centre que le modèle d'origine."""
+    import base64
+    import io
+    d = json.loads(path.read_text(encoding="utf-8"))
+    textures, scales = [], []
+    for t in d.get("textures", []):
+        textures.append(Image.open(io.BytesIO(base64.b64decode(t["source"].split(",", 1)[1]))).convert("RGBA"))
+        scales.append((16 / t.get("uv_width", 16), 16 / t.get("uv_height", 16)))
+    out = []
+    shift = lambda v: [r2(v[0]), r2(v[1] - STRAIGHT_SHIFT), r2(v[2])]
+    for el in d.get("elements", []):
+        if el.get("type", "cube") != "cube" or not el.get("export", True) or not el.get("visibility", True):
             continue
-        new = angle - 45
-        if new not in ALLOWED:
-            print(f"attention : '{el.get('name', '?')}' tournerait de {new} degres (impossible) : rotation ramenee a -45")
-            new = -45
-        ox, oy = rot["origin"][0], rot["origin"][1] - STRAIGHT_SHIFT
-        ax, ay = ox - 8, oy - 8
-        dx, dy = 8 + K * (ax + ay), 8 + K * (ay - ax)
-        mx, my = dx - rot["origin"][0], dy - rot["origin"][1]
-        el["from"] = [r2(el["from"][0] + mx), r2(el["from"][1] + my), el["from"][2]]
-        el["to"] = [r2(el["to"][0] + mx), r2(el["to"][1] + my), el["to"][2]]
-        el["rotation"] = {"angle": new, "axis": "z", "origin": [r2(dx), r2(dy), rot["origin"][2]]}
-    return model
+        e = {"name": el.get("name", "cube"), "from": shift(el["from"]), "to": shift(el["to"]), "faces": {}}
+        rot = el.get("rotation", [0, 0, 0])
+        axes = [i for i in range(3) if abs(rot[i]) > 1e-6]
+        if axes:
+            if len(axes) > 1:
+                print(f"attention : '{e['name']}' tourne autour de plusieurs axes : seul le premier est garde")
+            angle = max(-45.0, min(45.0, float(rot[axes[0]])))
+            e["rotation"] = {"angle": angle, "axis": "xyz"[axes[0]], "origin": shift(el.get("origin", [8, 8, 8]))}
+            if el.get("rescale"):
+                e["rotation"]["rescale"] = True
+        if el.get("shade") is False:
+            e["shade"] = False
+        for name, f in el.get("faces", {}).items():
+            ti = f.get("texture")
+            if ti is None or ti is False:
+                continue
+            ku, kv = scales[ti]
+            face = {"uv": [r2(f["uv"][0] * ku), r2(f["uv"][1] * kv), r2(f["uv"][2] * ku), r2(f["uv"][3] * kv)], "texture": f"#{ti}"}
+            if f.get("rotation"):
+                face["rotation"] = f["rotation"]
+            if f.get("cullface"):
+                face["cullface"] = f["cullface"]
+            if isinstance(f.get("tint"), int) and f["tint"] >= 0:
+                face["tintindex"] = f["tint"]
+            e["faces"][name] = face
+        out.append(e)
+    return out, textures
+
+
+def holy(img: Image.Image, index: int, uses: set) -> Image.Image:
+    """La Sainte-Falchion d'après la Falchion : le doré pâlit, la gouttière devient bleu lumineux, la lame
+    bleuit, la poignée passe au bleu nuit."""
+    import colorsys
+    out = img.copy()
+    px = out.load()
+    for y in range(out.height):
+        for x in range(out.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if "gouttiere" in uses:
+                h, s, v = 0.52, min(1, s * 0.9 + 0.15), min(1, v * 1.05 + 0.05)
+            elif "poignee" in uses:
+                h, s, v = 0.61, min(1, s + 0.25), min(1, v * 0.9 + 0.05)
+            elif "lame" in uses:
+                h, s, v = 0.58, min(1, s * 0.5 + 0.12), min(1, v * 1.02 + 0.03)
+            else:
+                s, v = s * 0.55, min(1, v * 1.04 + 0.05)
+            rr, gg, bb = colorsys.hsv_to_rgb(h, s, v)
+            px[x, y] = (round(rr * 255), round(gg * 255), round(bb * 255), a)
+    return out
 
 
 # ---------------------------------------------------------------- Blockbench
@@ -283,27 +372,36 @@ def blockbench(out: Path):
 # ---------------------------------------------------------------- apercu
 
 def preview(out: Path):
-    """Trois vues du modèle (face, trois quarts, profil), sans lancer le jeu."""
+    """Trois vues (face, trois quarts, profil) de la Falchion et de la Sainte-Falchion, penchées comme en
+    main, sans lancer le jeu."""
     import numpy as np
     sys.path.insert(0, str(ROOT / "tools"))
     import pose_preview as pp
     model = json.loads((OUT / "crossfight" / "models" / "item" / "falchion.json").read_text())
+    tdir = OUT / "crossfight" / "textures" / "item" / "falchion"
+    tilt = pp.rot(0, 0, -45)
+    c = np.array([8, 8, 8], dtype=float)
     panels = []
-    for name in ("falchion", "falchion_sainte"):
-        tex = np.array(Image.open(OUT / "crossfight" / "textures" / "item" / f"{name}.png").convert("RGBA").resize((64, 64), Image.NEAREST))
+    for prefix in ("t", "sainte_t"):
+        texs = {k: np.array(Image.open(tdir / f"{prefix}{k}.png").convert("RGBA")) for k in model["textures"] if k != "particle"}
         quads = []
         for el in model["elements"]:
             a, b = el["from"], el["to"]
-            rot = el["rotation"]
-            o = np.array(rot["origin"], dtype=float)
-            R = pp.rot(0, 0, rot["angle"])
+            rot = el.get("rotation")
+            if rot:
+                ang = {"x": (rot["angle"], 0, 0), "y": (0, rot["angle"], 0), "z": (0, 0, rot["angle"])}[rot["axis"]]
+                R, o = pp.rot(*ang), np.array(rot["origin"], dtype=float)
             for face, f in el["faces"].items():
+                tex = texs[f["texture"][1:]]
+                k = tex.shape[1] / 16
                 pts = []
                 for pt in pp.FACES[face](a, b):
-                    q = o + R @ (np.array(pt, dtype=float) - o)
-                    # repere de l'apercu (X gauche, Y haut, Z devant), en blocs, centre sur l'image
+                    q = np.array(pt, dtype=float)
+                    if rot:
+                        q = o + R @ (q - o)
+                    q = c + tilt @ (q - c)
                     pts.append(np.array([-(q[0] - 8), q[1] - 8, q[2] - 8]) / 16 * 2.2 + np.array([0, 1.15, 0]))
-                u1, v1, u2, v2 = (c * 4 for c in f["uv"])
+                u1, v1, u2, v2 = (x * k for x in f["uv"])
                 quads.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], tex))
         for yaw in (0, 35, 90):
             panels.append(Image.fromarray(pp.render(quads, yaw, size=(360, 360), scale=120)))

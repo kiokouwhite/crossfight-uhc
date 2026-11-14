@@ -54,12 +54,15 @@ public final class Marth extends Character {
                 holy ? "<aqua><bold>Sainte-Falchion" : "<gold><bold>Falchion",
                 holy ? List.of("<aqua>L'Embleme de Feu a revele sa vraie forme.") : List.of());
         Items.tag(sword, AbilityEngine.ABILITY_KEY, FALCHION_ID);
-        // Le pack prive montre alors le modele 3D de la Falchion (tools/build_falchion.py) ; sans lui, l'epee normale.
-        var meta = sword.getItemMeta();
-        var cmd = meta.getCustomModelDataComponent();
-        cmd.setStrings(List.of(holy ? "falchion_sainte" : "falchion"));
-        meta.setCustomModelDataComponent(cmd);
-        sword.setItemMeta(meta);
+        // Le pack prive montre alors le modele 3D de la Falchion (tools/build_falchion.py). Sans lui dans le pack,
+        // pas de marque : l'epee normale, tenue comme telle par les animations.
+        if (com.kiokouwhite.crossfight.util.Sounds.has("model.falchion")) {
+            var meta = sword.getItemMeta();
+            var cmd = meta.getCustomModelDataComponent();
+            cmd.setStrings(List.of(holy ? "falchion_sainte" : "falchion"));
+            meta.setCustomModelDataComponent(cmd);
+            sword.setItemMeta(meta);
+        }
         return sword;
     }
 

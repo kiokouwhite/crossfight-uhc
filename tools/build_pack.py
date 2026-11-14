@@ -27,7 +27,8 @@ Conventions de nommage, sous sounds/ :
 Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un personnage qui a un modele
 articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>", une image de l'ecran
 de selection (tools/build_selection.py) sous "select.<type>.<nom>", un signe de Glyph
-(tools/build_glyphs.py) sous "glyph.<nom>".
+(tools/build_glyphs.py) sous "glyph.<nom>", le modele 3D d'une arme (tools/build_falchion.py) sous
+"model.<nom>".
 Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
@@ -118,6 +119,12 @@ def glyphs(base: Path):
     return {"glyph." + f.stem for f in folder.glob("*.png")} if folder.is_dir() else set()
 
 
+def models(base: Path):
+    """Les modeles 3D d'armes (tools/build_falchion.py) : "model.<nom>"."""
+    folder = base / "assets" / NS / "models" / "item"
+    return {"model." + name for name in ("falchion",) if (folder / f"{name}.json").exists()}
+
+
 def other_assets(base: Path):
     """Les fichiers du pack qui ne sont pas des sons : modeles, textures, objets."""
     out = {}
@@ -202,7 +209,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms = set(), {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _ = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}
@@ -274,7 +281,7 @@ def main() -> int:
 
     # Ce que le plugin embarque : tous les sons connus (publics et prives), l'empreinte du pack public.
     res = ROOT / "src" / "main" / "resources"
-    index = sorted(set(events) | skins(PACK) | selection(PACK) | glyphs(PACK) | private_names)
+    index = sorted(set(events) | skins(PACK) | selection(PACK) | glyphs(PACK) | models(PACK) | private_names)
     (res / "sounds.txt").write_text("# Genere par tools/build_pack.py\n" + "\n".join(index) + "\n", encoding="utf-8")
     (res / "pack.sha1").write_text(sha1 + "\n", encoding="utf-8")
     # La duree des repliques : le plugin enchaine un dialogue sans que la seconde replique coupe la premiere.

@@ -252,6 +252,7 @@ ability.yuki_ult
 glyph.flaque_noire
 glyph.schnee_cercle
 glyph.schnee_flocon
+model.falchion
 select.card.byleth
 select.card.corrin
 select.card.marth

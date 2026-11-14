@@ -15,6 +15,7 @@ ability.marth_ult_eclat
 ability.marth_ult_hit
 glyph.schnee_cercle
 glyph.schnee_flocon
+model.falchion
 select.card.byleth
 select.card.corrin
 select.card.marth
