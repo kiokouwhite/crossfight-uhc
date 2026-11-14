@@ -1,7 +1,64 @@
-# Ecran de selection en 3D : le nom affiche et la couleur du bandeau de chaque personnage.
-# Lu par tools/build_selection.py (bandeaux) et par le plugin (lueur au survol, une copie est embarquee).
+# Ecran de selection en 3D : le nom ecrit sur la carte et la couleur de chaque personnage.
+# Lu par tools/build_selection.py (bandeaux des cartes illustrees) et par le plugin, qui en embarque une copie
+# (lueur au survol, nom et couleur des cartes sans illustration). Un personnage absent prend son nom complet
+# et la couleur de sa voie.
 # id         nom            couleur
+
+# Fire Emblem
 marth        Marth          #4a4fc4
 corrin       Corrin         #49c0c4
 takumi       Takumi         #cacaca
 byleth       Byleth         #d8d24a
+
+# RWBY
+ruby         Ruby           #c8102e
+weiss        Weiss          #a9cdf2
+blake        Blake          #7a4fb0
+yang         Yang           #f2b81f
+
+# Shingeki no Kyojin
+eren         Eren           #3f8f5a
+mikasa       Mikasa         #b0303a
+livai        Livai          #5a6f86
+armin        Armin          #e3c24a
+
+# Valorant
+jett         Jett           #9fd8f0
+neon         Neon           #2f6bff
+sage         Sage           #3fbf9f
+sova         Sova           #d9a43c
+
+# unOrdinary
+arlo         Arlo           #e8c040
+john         John           #d08a2a
+remi         Remi           #f070b0
+seraphina    Seraphina      #b040d0
+
+# Armed Blue Gunvolt
+gunvolt      Gunvolt        #3f8cff
+acura        Acura          #e04a5a
+asimov       Asimov         #4f7a3c
+kirin        Kirin          #f0a030
+
+# Bloody Snow
+eirika       Eirika         #b3122a
+hannah       Hannah         #d8b24a
+kaze         Kaze           #e0602a
+netsu        Netsu          #c070e0
+
+# Earth Delta
+hano         Hano           #2f8a4a
+kishi        Kishi          #f0d84a
+kura         Kura           #8a1020
+taka         Taka           #d9a43c
+
+# Shoja's Memories
+aida         Aida           #49b8e8
+crystal      Crystal        #5fe0d8
+hiro         Hiro           #f0641e
+pinkou       Pinkou         #f08ab8
+
+# Personnages solitaires
+drifter      Drifter        #e0406a
+shoja        Shoja          #a02030
+yuki         Yuki           #dfe8f4

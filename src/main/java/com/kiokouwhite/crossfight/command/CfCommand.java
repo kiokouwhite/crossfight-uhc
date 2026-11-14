@@ -122,6 +122,8 @@ public final class CfCommand implements TabExecutor {
                             }
                             if (!plugin.testMode().isTester(sp) && !plugin.testMode().enter(sp)) return true;
                             if (plugin.testMode().thirdPerson().isActive(sp)) plugin.testMode().thirdPerson().leave(sp);
+                            // La config est relue : le cadrage (selection.distance, hauteur, regard) se regle sans redemarrer.
+                            plugin.reloadConfig();
                             sel.openPreview(sp, lic);
                             return true;
                         }

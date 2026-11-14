@@ -38,6 +38,8 @@ public final class ConnectionListener implements Listener {
         Player p = e.getPlayer();
         CfPlayer cf = plugin.players().get(p);
         e.joinMessage(Msg.prefixed("<gray>" + p.getName() + " a rejoint."));
+        // Deconnecte pendant l'ecran de selection (vitesse de marche a zero, gardee avec le joueur) : il la retrouve.
+        if (p.getWalkSpeed() == 0f) p.setWalkSpeed(0.2f);
         // Le pack est propose une fois le joueur installe : envoye pendant le chargement du monde,
         // l'ecran de confirmation est referme aussitot par le jeu. Les menus (choix du personnage,
         // mode test) attendent sa reponse pour ne pas le recouvrir.

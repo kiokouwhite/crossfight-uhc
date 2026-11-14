@@ -46,6 +46,11 @@ selection:
   # Choix du personnage dans un ecran en 3D (panneaux des personnages qu'on vise et qu'on clique) ;
   # false : l'ancien menu d'inventaire
   scene-3d: true
+  # Cadrage de l'ecran en 3D, regle pour un champ de vision normal (70) : distance du mur de cartes (plus pres =
+  # plus grand), hauteur de leur centre au-dessus des pieds, regard de depart (0 = droit devant, negatif = vers le haut).
+  distance: 4.9
+  hauteur: 1.74
+  regard: 0.0
 
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent

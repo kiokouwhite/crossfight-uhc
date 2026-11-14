@@ -95,6 +95,9 @@ public final class Puppet {
     /** Rotation de tout le pantin autour d'un centre (vrille, toupie) : null au repos. */
     private Quaternionf spin;
     private final Vector3f spinCenter = new Vector3f();
+    /** Une statue (ecran de selection) : agrandie, et aplatie vers l'avant pour se poser sur une carte (1 : non). */
+    private float zoom = 1f, flat = 1f;
+    private java.util.function.Consumer<ItemDisplay> setup;
     private final List<Runnable> restore = new ArrayList<>();
 
     private Puppet(org.bukkit.entity.LivingEntity entity) {
@@ -153,19 +156,53 @@ public final class Puppet {
         if (old != null) old.remove();
         Puppet pu = new Puppet(p);
         Location at = pu.anchor();
-        for (Part part : Part.values()) {
-            ItemStack model = new ItemStack(Material.PAPER);
-            ItemMeta meta = model.getItemMeta();
-            meta.setItemModel(new NamespacedKey(Sounds.NS, "pose/" + character + "_" + part.id));
-            model.setItemMeta(meta);
-            pu.parts.put(part, pu.spawn(at, model));
-        }
+        for (Part part : Part.values()) pu.parts.put(part, pu.spawn(at, partModel(character, part, null)));
         pu.spawnHeld(at, heldItem);
         pu.apply(pose, 0);
         pu.hidePlayer();
         ACTIVE.put(p.getUniqueId(), pu);
         pu.task = Bukkit.getScheduler().runTaskTimer(CrossfightPlugin.get(), pu::tick, 1L, 1L);
         return pu;
+    }
+
+    private static ItemStack partModel(String character, Part part, org.bukkit.Color tint) {
+        ItemStack model = new ItemStack(Material.PAPER);
+        ItemMeta meta = model.getItemMeta();
+        meta.setItemModel(new NamespacedKey(Sounds.NS, "pose/" + character + "_" + part.id));
+        if (tint != null) {
+            var cmd = meta.getCustomModelDataComponent();
+            cmd.setColors(List.of(tint));
+            meta.setCustomModelDataComponent(cmd);
+        }
+        model.setItemMeta(meta);
+        return model;
+    }
+
+    /**
+     * Une statue : le modele articule d'un personnage fige dans une pose, sans corps a remplacer (l'ecran de
+     * selection). Elle regarde vers le sud quand {@code at} a une orientation nulle. Rend ses affichages (liste
+     * vide si le pack n'a pas ce modele) ; a l'appelant de les deplacer et de les retirer.
+     *
+     * @param tint  une couleur qui remplace celles du skin (une silhouette), ou null
+     * @param zoom  taille (1 : celle d'un joueur)
+     * @param flat  epaisseur vers l'avant (1 : normale ; 0.1 : presque a plat, comme imprimee sur un mur)
+     * @param setup reglages de chaque affichage a son apparition (visibilite, lumiere...)
+     */
+    public static List<ItemDisplay> statue(Location at, String character, org.bukkit.Color tint, ItemStack heldItem, String pose,
+                                           float zoom, float flat, java.util.function.Consumer<ItemDisplay> setup) {
+        List<ItemDisplay> out = new ArrayList<>();
+        if (!available(character) || !POSES.containsKey(pose)) return out;
+        Puppet pu = new Puppet(null);
+        pu.pinned = at.clone();
+        pu.zoom = zoom;
+        pu.flat = flat;
+        pu.setup = setup;
+        for (Part part : Part.values()) pu.parts.put(part, pu.spawn(at, partModel(character, part, tint)));
+        pu.spawnHeld(at, heldItem);
+        pu.apply(pose, 0);
+        out.addAll(pu.parts.values());
+        if (pu.held != null) out.add(pu.held);
+        return out;
     }
 
     private void spawnHeld(Location at, ItemStack item) {
@@ -223,6 +260,7 @@ public final class Puppet {
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTeleportDuration(1);
             d.setViewRange(1.5f);
+            if (setup != null) setup.accept(d);
         });
     }
 
@@ -363,10 +401,13 @@ public final class Puppet {
         return new Transformation(t, r, new Vector3f(size, size, size), new Quaternionf());
     }
 
-    private static void set(ItemDisplay d, Transformation tr, int ticks) {
+    private void set(ItemDisplay d, Transformation tr, int ticks) {
         d.setInterpolationDelay(0);
         d.setInterpolationDuration(ticks);
-        d.setTransformation(tr);
+        if (zoom == 1f && flat == 1f) { d.setTransformation(tr); return; }
+        // Une statue : la meme pose, agrandie, puis ecrasee le long de son axe avant-arriere.
+        Vector3f t = new Vector3f(tr.getTranslation()).mul(zoom);
+        d.setTransformationMatrix(new org.joml.Matrix4f().scale(1f, 1f, flat).translate(t).rotate(tr.getLeftRotation()).scale(new Vector3f(tr.getScale()).mul(zoom)));
     }
 
     private boolean alive() {

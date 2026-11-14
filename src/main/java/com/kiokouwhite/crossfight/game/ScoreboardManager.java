@@ -45,6 +45,11 @@ public final class ScoreboardManager {
         boards.remove(p.getUniqueId());
     }
 
+    /** Met a jour le tableau d'un joueur tout de suite (il vient d'entrer dans l'ecran de selection, ou d'en sortir). */
+    public void refresh(Player p) {
+        if (task != null && p.isOnline()) update(p);
+    }
+
     private void updateAll() {
         for (Player p : Bukkit.getOnlinePlayers()) update(p);
     }
@@ -54,7 +59,8 @@ public final class ScoreboardManager {
         Objective old = board.getObjective("cf");
         if (old != null) old.unregister();
         Objective obj = board.registerNewObjective("cf", Criteria.DUMMY, Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC"));
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        // Pendant le choix du personnage, le tableau laisse l'ecran aux cartes (la barre du haut donne le temps).
+        if (plugin.selection() == null || !plugin.selection().isViewing(p)) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         List<String> lines = buildLines(p);
         int score = lines.size();

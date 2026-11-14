@@ -280,7 +280,8 @@ public final class AbilityEngine implements Listener {
                 }
                 appendBar(bar, a, st, cf);
             }
-            if (!bar.isEmpty() && !Msg.actionBarBusy(p)) p.sendActionBar(Msg.mm(bar.toString()));
+            // Pas de barre de capacites sur l'ecran de selection (un testeur qui l'essaie a deja un personnage).
+            if (!bar.isEmpty() && !Msg.actionBarBusy(p) && !plugin.selection().isViewing(p)) p.sendActionBar(Msg.mm(bar.toString()));
         }
     }
 

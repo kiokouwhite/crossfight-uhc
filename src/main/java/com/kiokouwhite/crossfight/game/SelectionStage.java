@@ -9,6 +9,8 @@ import com.kiokouwhite.crossfight.util.ArenaWorlds;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
+import com.kiokouwhite.crossfight.util.Skins;
 import com.kiokouwhite.crossfight.util.Sounds;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
@@ -66,7 +68,7 @@ import java.util.UUID;
  *
  * Chaque joueur a ses propres affichages (invisibles pour les autres) : l'effet de survol ne suit que
  * son regard. Les images viennent du pack (tools/build_selection.py) ; un personnage sans illustration
- * est montre avec son skin.
+ * est montre avec son skin : son modele articule du pack, pose a plat sur une carte a sa couleur.
  */
 public final class SelectionStage implements Listener {
 
@@ -78,13 +80,17 @@ public final class SelectionStage implements Listener {
     private static final double GW = QW * 1.16, GH = PH * 1.07;
     /** La bande de couleur (haut), le bandeau sombre (haut), en fractions de la hauteur depuis le haut. */
     private static final double BAND_TOP = 0.70, STRIP_TOP = 0.885;
-    /** Distance des cartes, ecart entre deux cartes (presque collees), hauteur de leur centre au-dessus des pieds. */
-    private static final double DIST = 5.5, STEP = PW + 0.08, CY = 2.0;
+    /** Ecart entre deux cartes (presque collees). */
+    private static final double STEP = PW + 0.08;
+    /** Hauteur des yeux d'un joueur debout. */
+    private static final double EYE = 1.62;
 
     private final CrossfightPlugin plugin;
     private final Map<String, Stage> stages = new HashMap<>();
     private final Map<UUID, Viewer> viewers = new HashMap<>();
     private final Map<String, Color> colors = new HashMap<>();
+    /** Le nom court ecrit sur la carte (selection.txt) ; a defaut, le nom complet du personnage. */
+    private final Map<String, String> names = new HashMap<>();
     private BukkitTask task;
     private int nextIndex;
 
@@ -97,6 +103,7 @@ public final class SelectionStage implements Listener {
                     String[] t = line.trim().split("\\s+");
                     if (t.length >= 3 && !t[0].startsWith("#") && t[t.length - 1].startsWith("#")) {
                         colors.put(t[0], Color.fromRGB(Integer.parseInt(t[t.length - 1].substring(1), 16)));
+                        names.put(t[0], String.join(" ", java.util.Arrays.copyOfRange(t, 1, t.length - 1)));
                     }
                 }
             }
@@ -105,7 +112,17 @@ public final class SelectionStage implements Listener {
         }
     }
 
-    /** Un panneau de personnage sur le mur d'une scene. */
+    // Cadrage (config "selection.") : les cartes sont un mur plat, face au joueur, comme une affiche. Les valeurs
+    // par defaut remplissent l'ecran d'un champ de vision normal (70) : le haut des cartes sous la barre du haut,
+    // les noms et les icones de voie au-dessus de la barre de vie.
+    /** Distance du mur de cartes. */
+    private double dist() { return plugin.getConfig().getDouble("selection.distance", 4.9); }
+    /** Hauteur du centre des cartes au-dessus des pieds du joueur. */
+    private double height() { return plugin.getConfig().getDouble("selection.hauteur", 1.74); }
+    /** Regard de depart (0 : droit devant ; negatif : vers le haut). */
+    private float gaze() { return (float) plugin.getConfig().getDouble("selection.regard", 0.0); }
+
+    /** Une carte de personnage sur le mur d'un joueur. */
     private record Slot(Character character, Location center, double theta) {
         Vector normal() { return new Vector(-Math.sin(theta), 0, Math.cos(theta)); }
         Vector right() { return new Vector(Math.cos(theta), 0, Math.sin(theta)); }
@@ -121,7 +138,9 @@ public final class SelectionStage implements Listener {
         final Team team;
         final Licence licence;
         final Location origin;
-        final List<Slot> slots = new ArrayList<>();
+        final List<Character> characters;
+        /** Distance du mur et hauteur du centre des cartes, fixees a l'ouverture de la scene. */
+        final double dist, cy;
         /** personnage -> joueur qui l'a pris. */
         final Map<String, UUID> picks = new HashMap<>();
         final boolean preview;
@@ -132,14 +151,9 @@ public final class SelectionStage implements Listener {
             this.licence = licence;
             this.origin = origin;
             this.preview = preview;
-            List<Character> chars = licence.characters();
-            int n = chars.size();
-            double step = STEP / DIST;
-            for (int i = 0; i < n; i++) {
-                double theta = (i - (n - 1) / 2.0) * step;
-                Location c = origin.clone().add(DIST * Math.sin(theta), CY, -DIST * Math.cos(theta));
-                slots.add(new Slot(chars.get(i), c, theta));
-            }
+            this.characters = List.copyOf(licence.characters());
+            this.dist = dist();
+            this.cy = height();
             build();
         }
 
@@ -154,11 +168,10 @@ public final class SelectionStage implements Listener {
                     for (int y = 1; y <= 3; y++) w.getBlockAt(ox + x, oy + y, oz + z).setType(edge ? Material.BARRIER : Material.AIR, false);
                 }
             }
-        }
-
-        Slot slot(String id) {
-            for (Slot s : slots) if (s.character.id().equals(id)) return s;
-            return null;
+            // Des lumieres invisibles le long du mur de cartes : sans elles, un mannequin (personnage sans modele
+            // dans le pack) serait dans le noir. Les affichages, eux, ont leur propre lumiere.
+            int wz = (int) Math.floor(origin.getZ() - dist + 0.3);
+            for (int x = -7; x <= 7; x++) for (int y = 1; y <= 5; y += 2) w.getBlockAt(ox + x, oy + y, wz).setType(Material.LIGHT, false);
         }
 
         List<Viewer> viewers() {
@@ -173,16 +186,42 @@ public final class SelectionStage implements Listener {
         final Player player;
         final Stage stage;
         final Location spot;
+        /** Ses cartes : un mur plat a lui, centre sur sa place (chaque joueur voit l'affiche bien en face). */
+        final List<Slot> slots = new ArrayList<>();
         final Map<String, Panel> panels = new LinkedHashMap<>();
         final List<Entity> extra = new ArrayList<>();
         BossBar bar;
         String hovered;
+        /** Le survol ne commence qu'a ce tick : a l'ouverture, on voit d'abord l'affiche entiere. */
+        int hoverFrom;
         long lastPick;
+        /** Ce que le joueur avait dans sa premiere case (un testeur a deja son arme) : rendu a la fermeture. */
+        ItemStack replaced;
 
         Viewer(Player player, Stage stage, Location spot) {
             this.player = player;
             this.stage = stage;
             this.spot = spot;
+            int n = stage.characters.size();
+            for (int i = 0; i < n; i++) {
+                Location c = spot.clone().add((i - (n - 1) / 2.0) * STEP, stage.cy, -stage.dist);
+                c.setYaw(0);
+                c.setPitch(0);
+                slots.add(new Slot(stage.characters.get(i), c, 0));
+            }
+        }
+
+        Slot slot(String id) {
+            for (Slot s : slots) if (s.character.id().equals(id)) return s;
+            return null;
+        }
+
+        /** Un point devant le joueur : dx vers sa droite, dy au-dessus de ses pieds, a `depth` blocs devant lui. */
+        Location front(double dx, double dy, double depth) {
+            Location l = spot.clone().add(dx, dy, -depth);
+            l.setYaw(0);
+            l.setPitch(0);
+            return l;
         }
 
         void remove() {
@@ -194,19 +233,27 @@ public final class SelectionStage implements Listener {
         }
     }
 
+    /** Ce qui est pose sur une carte sans illustration (personnage, nom, icone) : sa place par rapport au centre de la carte. */
+    private record Layer(Entity entity, double dx, double dy, double dz) {}
+
     /** Les affichages d'un panneau, pour un joueur. */
     private static final class Panel {
         /** La carte entiere (pack prive), ou la carte vide teinte (sans illustration). */
         ItemDisplay card, plate, glow, icon;
+        /** Sans illustration : le personnage en statue (son skin du pack), ou a defaut en mannequin. */
+        List<ItemDisplay> statue = List.of();
         Mannequin body;
         TextDisplay name, voie, info, stamp;
+        /** Ce qui suit la carte quand elle avance et grandit. */
+        final List<Layer> layers = new ArrayList<>();
 
         void remove() {
             for (Entity e : new Entity[]{card, plate, glow, icon, body, name, voie, info, stamp}) if (e != null && e.isValid()) e.remove();
+            for (ItemDisplay d : statue) if (d.isValid()) d.remove();
         }
 
         List<Display> displays() {
-            List<Display> out = new ArrayList<>();
+            List<Display> out = new ArrayList<>(statue);
             for (Display d : new Display[]{card, plate, icon, name, voie}) if (d != null) out.add(d);
             return out;
         }
@@ -273,7 +320,7 @@ public final class SelectionStage implements Listener {
         int i = line.indexOf(p.getUniqueId()), n = line.size();
         Location s = stage.origin.clone().add((i - (n - 1) / 2.0) * 1.3, 0, 0);
         s.setYaw(180f);
-        s.setPitch(-8f);
+        s.setPitch(gaze());
         return s;
     }
 
@@ -285,7 +332,11 @@ public final class SelectionStage implements Listener {
         p.teleport(v.spot);
         p.setFallDistance(0);
         if (p.getGameMode() != GameMode.SPECTATOR) p.setGameMode(GameMode.ADVENTURE);
-        Effects.freeze(p);
+        // Immobile, mais sans resserrer sa vue : les cartes sont cadrees pour le champ de vision normal.
+        Effects.hold(p);
+        plugin.scoreboard().refresh(p);
+        ItemStack first = p.getInventory().getItem(0);
+        v.replaced = old != null ? old.replaced : first == null || Items.tag(first, ITEM_KEY) != null ? null : first.clone();
         giveItem(p);
         v.bar = BossBar.bossBar(Msg.mm("<gold>Choisis ton personnage"), 1f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
         p.showBossBar(v.bar);
@@ -295,8 +346,9 @@ public final class SelectionStage implements Listener {
         // serveur n'envoie pas au joueur les entites creees dans le meme instant (sa vue du monde n'est pas prete).
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (viewers.get(p.getUniqueId()) != v || !p.isOnline()) return;
-            for (Slot s : stage.slots) v.panels.put(s.character.id(), spawnPanel(v, s));
+            for (Slot s : v.slots) v.panels.put(s.character.id(), spawnPanel(v, s));
             spawnHeader(v);
+            v.hoverFrom = age + 44;    // le temps que le titre s'efface
             v.hovered = null;
             refresh(v);
         }, 6L);
@@ -334,6 +386,7 @@ public final class SelectionStage implements Listener {
         it.setItemMeta(meta);
         ItemDisplay out = at.getWorld().spawn(at, ItemDisplay.class, d -> {
             prepare(d);
+            d.setBillboard(Display.Billboard.FIXED);
             d.setItemStack(it);
             d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
             d.setTransformation(scaled(w, h, 0));
@@ -356,7 +409,7 @@ public final class SelectionStage implements Listener {
         return out;
     }
 
-    /** Commun a tous les affichages : visibles du seul joueur (montres apres leur apparition), toujours tournes vers lui, pleine lumiere. */
+    /** Commun a tous les affichages : visibles du seul joueur (montres apres leur apparition), pleine lumiere. Les textes se tournent vers lui ; les images restent a plat sur le mur. */
     private void prepare(Display d) {
         d.setPersistent(false);
         d.setVisibleByDefault(false);
@@ -386,61 +439,126 @@ public final class SelectionStage implements Listener {
             // Tout est dans l'image : illustration recadree, bande et nom, bandeau et icone de voie.
             p.card = item(v, s.at(0, 0, 0), "select/card/" + id, QW, PH, null);
         } else {
-            // Sans illustration : la carte vide a sa couleur, le personnage en chair et en os, son nom en texte.
+            // Sans illustration : la carte vide a sa couleur, le personnage pose dessus, son nom en texte.
             p.plate = item(v, s.at(0, 0, 0), "select/card_plate", QW, PH, color);
-            double feetY = level(BAND_TOP) + 0.05;
-            Location feet = s.at(midX(feetY), feetY, 0.06);
-            feet.setYaw((float) Math.toDegrees(s.theta));
-            p.body = feet.getWorld().spawn(feet, Mannequin.class, m -> {
-                m.setPersistent(false);
-                m.setVisibleByDefault(false);
-                m.setImmovable(true);
-                m.setSilent(true);
-                m.setInvulnerable(true);
-                m.setGravity(false);
-                m.setCollidable(false);
-                m.setDescription(net.kyori.adventure.text.Component.empty());
-                var skin = com.kiokouwhite.crossfight.util.Skins.profile(id);
-                if (skin != null) m.setProfile(skin);
-                var scale = m.getAttribute(org.bukkit.attribute.Attribute.SCALE);
-                if (scale != null) scale.setBaseValue(2.0);
-                var eq = m.getEquipment();
-                if (eq != null) eq.setItemInMainHand(c.createWeapon());
-            });
-            v.player.showEntity(plugin, p.body);
-            double nameY = level((BAND_TOP + STRIP_TOP) / 2) + 0.12;
-            p.name = text(v, s.at(midX(nameY), nameY - 0.3, 0.08), "<bold><italic><white>" + c.name().toUpperCase(), 3.0f, 200, Color.fromARGB(0, 0, 0, 0));
+            spawnFigure(v, s, p, color);
+            String label = names.getOrDefault(id, c.name()).toUpperCase();
+            // Le nom tient dans la largeur de la carte ; il penche un peu, comme sur les cartes illustrees.
+            float scale = (float) Math.min(2.2, 0.88 * PW * 40 / textWidth(label));
+            double nameY = level(BAND_TOP + 0.42 * (STRIP_TOP - BAND_TOP));
+            boolean light = luminance(color) > 0.6;
+            double nx = midX(nameY), ny = nameY - 0.1625 * scale;    // un texte s'accroche par le bas ; ses capitales sont a 0.1625 au-dessus
+            p.name = text(v, s.at(nx, ny, 0.14), "<bold><italic>" + (light ? "<#141418>" : "<white>") + label, scale, 400, Color.fromARGB(0, 0, 0, 0));
+            p.name.setBillboard(Display.Billboard.FIXED);
+            p.name.setShadowed(!light);
+            p.name.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotationZ((float) Math.toRadians(7)), new Vector3f(scale, scale, scale), new Quaternionf()));
+            p.layers.add(new Layer(p.name, nx, ny, 0.14));
             String voie = voieId(c);
-            double iconY = level(STRIP_TOP) - 0.05;
+            double iconY = level(STRIP_TOP + 0.012);
             if (Sounds.has("select.voie." + voie)) {
-                p.icon = item(v, s.at(midX(iconY), iconY, 0.1), "select/voie/" + voie, 0.6, 0.6, null);
+                p.icon = item(v, s.at(midX(iconY), iconY, 0.16), "select/voie/" + voie, 0.48, 0.48, null);
+                p.layers.add(new Layer(p.icon, midX(iconY), iconY, 0.16));
             } else {
-                double vy = level((STRIP_TOP + 1) / 2);
-                p.voie = text(v, s.at(midX(vy), vy - 0.15, 0.1), "<" + c.voie().color() + ">" + c.voie().label(), 0.9f, 200, Color.fromARGB(0, 0, 0, 0));
+                double vy = level((STRIP_TOP + 1) / 2 + 0.02) - 0.1625 * 0.9;
+                p.voie = text(v, s.at(midX(vy), vy, 0.16), "<" + c.voie().color() + ">" + c.voie().label(), 0.9f, 200, Color.fromARGB(0, 0, 0, 0));
+                p.voie.setBillboard(Display.Billboard.FIXED);
+                p.layers.add(new Layer(p.voie, midX(vy), vy, 0.16));
             }
         }
-        double infoY = level(BAND_TOP) + 1.1;
-        p.info = text(v, s.at(midX(infoY), infoY, 0.75), "", 0.42f, 230, Color.fromARGB(190, 12, 12, 16));
+        // La fiche du personnage s'affiche a cote de sa carte, par-dessus la voisine (vers le milieu de l'ecran) :
+        // elle ne cache pas le personnage qu'on regarde.
+        int index = v.slots.indexOf(s);
+        double side = index < v.slots.size() / 2.0 ? 1 : -1;
+        double infoY = level(0.62);    // le bas de la fiche : elle monte de la, entre le visage de la voisine et son bandeau
+        p.info = text(v, s.at(side * STEP + midX(infoY), infoY, 0.75), "", 0.40f, 210, Color.fromARGB(190, 12, 12, 16));
         p.info.setTextOpacity((byte) 0);
         p.info.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
         p.stamp = text(v, s.at(midX(0.6), 0.6, 0.8), "", 1.2f, 200, Color.fromARGB(0, 0, 0, 0));
         return p;
     }
 
-    /** Le mur sombre derriere les cartes, le logo de la licence en haut a gauche (ou son nom), la consigne en bas. */
+    /** Taille du personnage pose sur une carte sans illustration (1 : un joueur), et son epaisseur une fois aplati. */
+    private static final float FIGURE_ZOOM = 2.1f, FIGURE_FLAT = 0.1f;
+
+    /**
+     * Le personnage d'une carte sans illustration, debout sur la bande de couleur : son modele articule du pack
+     * (son vrai skin, presque a plat sur la carte comme une image) ; a defaut un mannequin a son skin signe ;
+     * a defaut une silhouette a sa couleur.
+     */
+    private void spawnFigure(Viewer v, Slot s, Panel p, Color color) {
+        Character c = s.character;
+        String id = c.id();
+        double feetY = level(BAND_TOP);
+        double x = midX(feetY + 0.9375 * FIGURE_ZOOM);    // le milieu de la carte a mi-hauteur du personnage
+        java.util.function.Consumer<ItemDisplay> setup = d -> { prepare(d); d.setBillboard(Display.Billboard.FIXED); };
+        if (Puppet.available(id)) {
+            p.statue = Puppet.statue(s.at(x, feetY, 0.12), id, null, null, "debout", FIGURE_ZOOM, FIGURE_FLAT, setup);
+        } else if (Skins.profile(id) == null && Puppet.available("silhouette")) {
+            Color shade = Color.fromRGB(color.getRed() / 2 + 34, color.getGreen() / 2 + 34, color.getBlue() / 2 + 38);
+            p.statue = Puppet.statue(s.at(x, feetY, 0.12), "silhouette", shade, null, "debout", FIGURE_ZOOM, FIGURE_FLAT, setup);
+        }
+        if (!p.statue.isEmpty()) {
+            for (ItemDisplay d : p.statue) {
+                d.setGlowColorOverride(color);
+                v.player.showEntity(plugin, d);
+                p.layers.add(new Layer(d, x, feetY, 0.12));
+            }
+            return;
+        }
+        Location feet = s.at(x, feetY, 0.3);
+        feet.setYaw(0);
+        p.body = feet.getWorld().spawn(feet, Mannequin.class, m -> {
+            m.setPersistent(false);
+            m.setVisibleByDefault(false);
+            m.setImmovable(true);
+            m.setSilent(true);
+            m.setInvulnerable(true);
+            m.setGravity(false);
+            m.setCollidable(false);
+            m.setDescription(net.kyori.adventure.text.Component.empty());
+            var skin = Skins.profile(id);
+            if (skin != null) m.setProfile(skin);
+            var scale = m.getAttribute(org.bukkit.attribute.Attribute.SCALE);
+            if (scale != null) scale.setBaseValue(2.0);
+            var eq = m.getEquipment();
+            if (eq != null) eq.setItemInMainHand(c.createWeapon());
+        });
+        v.player.showEntity(plugin, p.body);
+        p.layers.add(new Layer(p.body, x, feetY, 0.3));
+    }
+
+    /** Largeur d'un texte en gras dans la police du jeu, en pixels (40 pixels par bloc a l'echelle 1). */
+    private static int textWidth(String text) {
+        int w = 0;
+        for (char ch : text.toCharArray()) w += ch == 'I' || ch == ' ' ? 5 : ch == '\'' || ch == '.' ? 3 : 7;
+        return Math.max(7, w);
+    }
+
+    /** Luminosite d'une couleur, de 0 (noir) a 1 (blanc). */
+    private static double luminance(Color c) {
+        return (0.299 * c.getRed() + 0.587 * c.getGreen() + 0.114 * c.getBlue()) / 255.0;
+    }
+
+    /** Le mur sombre derriere les cartes, et le logo de la licence (ou son nom) en haut a gauche de l'ecran. */
     private void spawnHeader(Viewer v) {
         Stage st = v.stage;
-        v.extra.add(item(v, st.origin.clone().add(0, CY + 0.3, -(DIST + 1.4)), "select/backdrop", 19, 9.5, null));
-        Slot first = st.slots.get(0);
-        double ly = PH / 2 - 0.42;
-        Location logoAt = first.at(midX(ly) - 0.15, ly, 0.14);
+        v.extra.add(item(v, v.front(0, st.cy + 0.3, st.dist + 1.4), "select/backdrop", 21, 10.5, null));
+        // Le logo flotte devant les cartes (meme devant celle qu'on vise) : place et taille en parts d'ecran.
+        double depth = st.dist - 0.9;
+        double halfH = depth * Math.tan(Math.toRadians(35)), halfW = halfH * 16 / 9;
+        Location logoAt = v.front(-0.66 * halfW, EYE + 0.80 * halfH, depth);
         String lic = st.licence.id();
         if (Sounds.has("select.logo." + lic)) {
-            v.extra.add(item(v, logoAt, "select/logo/" + lic, 3.4, 3.4 * 0.22, null));
+            double w = 0.50 * halfW;
+            v.extra.add(item(v, logoAt, "select/logo/" + lic, w, w * 0.22, null));
         } else {
-            v.extra.add(text(v, logoAt, "<gold><bold>" + st.licence.name(), 2.6f, 300, Color.fromARGB(0, 0, 0, 0)));
+            // Sans logo : le nom de la licence, a la taille qui tient dans le coin, son bord gauche pres de celui de l'ecran.
+            String name = st.licence.name();
+            float scale = (float) Math.min(1.6, 0.62 * halfW * 40 / textWidth(name));
+            double width = textWidth(name) * scale / 40.0;
+            Location at = v.front(-0.95 * halfW + width / 2, EYE + 0.80 * halfH, depth);
+            v.extra.add(text(v, at, "<gold><bold>" + name, scale, 600, Color.fromARGB(0, 0, 0, 0)));
         }
-        v.extra.add(text(v, st.origin.clone().add(0, CY - PH / 2 - 0.45, -DIST * 0.98), "<gray>Vise un personnage, <white>clic</white> pour le choisir", 0.7f, 400, Color.fromARGB(0, 0, 0, 0)));
     }
 
     private static String voieId(Character c) {
@@ -465,7 +583,7 @@ public final class SelectionStage implements Listener {
 
     /** Remet chaque panneau d'un joueur dans son etat : libre, vise, pris par lui, pris par un autre. */
     private void refresh(Viewer v) {
-        for (Slot s : v.stage.slots) {
+        for (Slot s : v.slots) {
             String id = s.character.id();
             Panel p = v.panels.get(id);
             if (p == null) continue;
@@ -474,7 +592,7 @@ public final class SelectionStage implements Listener {
             boolean taken = owner != null && !mine;
             boolean hover = id.equals(v.hovered) && owner == null;
             // Les autres cartes s'assombrissent un peu quand le joueur en vise une.
-            int light = taken ? 5 : v.hovered != null && !hover && !mine ? 10 : 15;
+            int light = taken ? 5 : v.hovered != null && !hover && !mine ? 12 : 15;
             for (Display d : p.displays()) d.setBrightness(new Display.Brightness(light, light));
             boolean up = hover || mine;
             ItemDisplay face = p.card != null ? p.card : p.plate;
@@ -482,7 +600,11 @@ public final class SelectionStage implements Listener {
                 animate(face, up ? QW * 1.06 : QW, up ? PH * 1.06 : PH, 0, 4);
                 face.teleport(s.at(0, 0, up ? 0.4 : 0));
             }
+            // Ce qui est pose sur la carte avance et s'ecarte avec elle.
+            double k = up ? 1.06 : 1, lift = up ? 0.4 : 0;
+            for (Layer l : p.layers) l.entity().teleport(s.at(k * l.dx(), k * l.dy(), l.dz() + lift));
             if (p.body != null) p.body.setGlowing(up);
+            for (ItemDisplay d : p.statue) d.setGlowing(up);
             animate(p.glow, up ? GW * 1.06 : 0, up ? GH * 1.06 : 0, 0, 5);
             if (p.glow != null) p.glow.teleport(s.at(0, 0, up ? 0.3 : -0.05));
             if (hover) {
@@ -532,7 +654,7 @@ public final class SelectionStage implements Listener {
                 back.setPitch(p.getLocation().getPitch());
                 p.teleport(back);
             }
-            String now = aimed(v);
+            String now = age < v.hoverFrom ? null : aimed(v);
             if (!java.util.Objects.equals(now, v.hovered)) {
                 v.hovered = now;
                 refresh(v);
@@ -549,7 +671,7 @@ public final class SelectionStage implements Listener {
         Vector o = eye.toVector(), dir = eye.getDirection();
         String best = null;
         double bestT = Double.MAX_VALUE;
-        for (Slot s : v.stage.slots) {
+        for (Slot s : v.slots) {
             Vector n = s.normal();
             double denom = dir.dot(n);
             if (denom > -1e-4) continue;
@@ -570,13 +692,13 @@ public final class SelectionStage implements Listener {
         if (v.bar == null) return;
         GameManager g = plugin.game();
         if (v.stage.preview) {
-            v.bar.name(Msg.mm("<aqua>Essai de l'ecran de selection <gray>(" + v.stage.licence.name() + ")"));
+            v.bar.name(Msg.mm("<aqua>Essai de l'ecran de selection <gray>(" + v.stage.licence.name() + ") - vise une carte, clic pour choisir"));
             return;
         }
         CfPlayer cf = plugin.players().get(v.player);
         int left = g.phaseSeconds();
         if (g.isSelecting()) {
-            v.bar.name(Msg.mm(cf.character() == null ? "<gold>Choisis ton personnage <gray>- " + left + " s" : "<green>" + cf.character().name() + " <gray>- en attente de l'equipe (" + left + " s)"));
+            v.bar.name(Msg.mm(cf.character() == null ? "<gold>Choisis ton personnage <gray>: vise une carte et clique - " + left + " s" : "<green>" + cf.character().name() + " <gray>- en attente de l'equipe (" + left + " s)"));
             v.bar.progress(Math.max(0f, Math.min(1f, left / (float) GameManager.SELECTION_SECONDS)));
         } else {
             v.bar.name(Msg.mm("<yellow>Teleportation imminente"));
@@ -623,7 +745,7 @@ public final class SelectionStage implements Listener {
         long now = System.currentTimeMillis();
         if (now - v.lastPick < 400) return;
         v.lastPick = now;
-        Slot s = v.stage.slot(v.hovered);
+        Slot s = v.slot(v.hovered);
         if (s == null) return;
         Character c = s.character;
         if (v.stage.preview) {
@@ -631,7 +753,10 @@ public final class SelectionStage implements Listener {
             v.stage.picks.put(c.id(), p.getUniqueId());
             celebrate(v, s);
             refresh(v);
-            if (plugin.testMode().isTester(p)) plugin.testMode().change(p, c);
+            if (plugin.testMode().isTester(p)) {
+                plugin.testMode().change(p, c);
+                v.replaced = null;    // son equipement vient d'etre remplace par celui du personnage choisi
+            }
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (!p.isOnline() || viewers.get(p.getUniqueId()) != v) return;
                 close(p, true);
@@ -669,7 +794,7 @@ public final class SelectionStage implements Listener {
         for (Viewer v : stage.viewers()) {
             refresh(v);
             if (v == pv) {
-                Slot s = stage.slot(c.id());
+                Slot s = v.slot(c.id());
                 if (s != null) celebrate(v, s);
             } else {
                 v.player.playSound(v.player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.7f, 1.4f);
@@ -715,6 +840,8 @@ public final class SelectionStage implements Listener {
         if (p.isOnline()) {
             Effects.unroot(p);
             takeItem(p);
+            if (v.replaced != null && p.getInventory().getItem(0) == null) p.getInventory().setItem(0, v.replaced);
+            plugin.scoreboard().refresh(p);
             if (back) {
                 if (v.stage.preview && plugin.testMode().isTester(p)) p.teleport(ArenaWorlds.center(TestMode.world()));
                 else p.teleport(plugin.game().world().getSpawnLocation());

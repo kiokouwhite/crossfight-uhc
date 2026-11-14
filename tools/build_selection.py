@@ -188,20 +188,22 @@ def card(art, name, color, voie_img, framing, plate_only=False):
     # Liseres : un trait clair sur le bord gauche (comme les separations de l'affiche), un contour sombre.
     d.line(poly + [poly[0]], fill=(0, 0, 0, 200), width=3)
     d.line([poly[0], poly[3]], fill=(225, 225, 232, 230), width=4)
-    if plate_only:
-        return out
-    label = name_label(name, PW / QW * w * 1.02)
-    ly = (BAND_TOP + 0.42 * (STRIP_TOP - BAND_TOP)) * h
-    out.alpha_composite(label, (round(center_x(ly, w, h) - label.width / 2), round(ly - label.height / 2)))
-    if voie_img is not None:
+    if not plate_only:
+        label = name_label(name, PW / QW * w * 1.02)
+        ly = (BAND_TOP + 0.42 * (STRIP_TOP - BAND_TOP)) * h
+        out.alpha_composite(label, (round(center_x(ly, w, h) - label.width / 2), round(ly - label.height / 2)))
+    # Le medaillon de la voie, a cheval sur la bande et le bandeau (vide sur la carte sans illustration : le
+    # plugin y pose l'icone). Sur la carte vide il est gris neutre : la teinte du personnage le colore peu.
+    if voie_img is not None or plate_only:
         r = round(0.052 * h)
         cy = round(STRIP_TOP * h + 0.012 * h)
         cx = round(center_x(cy, w, h))
         disc = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         ImageDraw.Draw(disc).ellipse((cx - r, cy - r, cx + r, cy + r), fill=(24, 24, 28, 255), outline=(70, 70, 78, 255), width=3)
         out.alpha_composite(disc)
-        ic = voie_img.resize((round(r * 1.5), round(r * 1.5)), Image.LANCZOS)
-        out.alpha_composite(ic, (cx - ic.width // 2, cy - ic.height // 2))
+        if voie_img is not None:
+            ic = voie_img.resize((round(r * 1.5), round(r * 1.5)), Image.LANCZOS)
+            out.alpha_composite(ic, (cx - ic.width // 2, cy - ic.height // 2))
     return out
 
 

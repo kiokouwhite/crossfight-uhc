@@ -73,7 +73,8 @@ public final class EffectHud implements Listener {
         tick++;
         for (Player p : Bukkit.getOnlinePlayers()) {
             State st = states.computeIfAbsent(p.getUniqueId(), k -> new State());
-            boolean active = enabled() && plugin.game().isRunning() && !p.isDead()
+            // Rien pendant le choix du personnage : l'ecran est aux cartes.
+            boolean active = enabled() && plugin.game().isRunning() && !p.isDead() && !plugin.selection().isViewing(p)
                     && (p.getGameMode() == GameMode.SURVIVAL || p.getGameMode() == GameMode.ADVENTURE);
             Set<String> bonus = active ? bonuses(p) : Set.of();
             Set<String> malus = active ? maluses(p) : Set.of();

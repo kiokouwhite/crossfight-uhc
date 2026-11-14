@@ -96,11 +96,24 @@ public final class Effects {
         Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> unroot(p), ticks);
     }
 
-    /** Immobilise sans limite de duree, jusqu'a {@link #unroot} (ecran de selection : on peut tourner la tete). */
+    /** Immobilise sans limite de duree, jusqu'a {@link #unroot} (la vue se resserre, comme sous Lenteur). */
     public static void freeze(LivingEntity p) {
         AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
         AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
         if (speed != null && speed.getModifier(ROOT_SPEED) == null) speed.addTransientModifier(new AttributeModifier(ROOT_SPEED, -1.0, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+        if (jump != null && jump.getModifier(ROOT_JUMP) == null) jump.addTransientModifier(new AttributeModifier(ROOT_JUMP, -1.0, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+        p.setVelocity(new Vector(0, 0, 0));
+    }
+
+    /**
+     * Immobilise un joueur sans changer son champ de vision (ecran de selection), jusqu'a {@link #unroot} : sa
+     * vitesse de marche passe a zero. Un ralentissement par l'attribut de vitesse resserre la vue du joueur
+     * (comme la Lenteur) et grossirait tout l'ecran de moitie ; avec une vitesse de marche nulle, le jeu
+     * laisse le champ de vision tel quel. Il peut toujours tourner la tete.
+     */
+    public static void hold(Player p) {
+        p.setWalkSpeed(0f);
+        AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
         if (jump != null && jump.getModifier(ROOT_JUMP) == null) jump.addTransientModifier(new AttributeModifier(ROOT_JUMP, -1.0, AttributeModifier.Operation.MULTIPLY_SCALAR_1));
         p.setVelocity(new Vector(0, 0, 0));
     }
@@ -110,6 +123,8 @@ public final class Effects {
         AttributeInstance jump = p.getAttribute(Attribute.JUMP_STRENGTH);
         if (speed != null) speed.removeModifier(ROOT_SPEED);
         if (jump != null) jump.removeModifier(ROOT_JUMP);
+        // Un joueur retenu par hold() retrouve sa vitesse de marche normale.
+        if (p instanceof Player pl && pl.getWalkSpeed() == 0f) pl.setWalkSpeed(0.2f);
     }
 
     public static boolean isRooted(LivingEntity p) {

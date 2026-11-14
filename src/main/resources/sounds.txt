@@ -311,6 +311,7 @@ skin.remi
 skin.ruby
 skin.sage
 skin.seraphina
+skin.silhouette
 skin.sova
 skin.takumi
 skin.weiss
