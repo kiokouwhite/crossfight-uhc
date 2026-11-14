@@ -10,3 +10,4 @@ run/
 # Sons sous droits (voix officielles, musiques) : jamais sur le depot public
 resourcepack-prive/
 prive/
+__pycache__/
