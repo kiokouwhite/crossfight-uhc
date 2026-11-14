@@ -165,6 +165,8 @@ Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pos
 
 Animations de Marth :
 
+- **La Falchion en 3D** : un modèle low-poly en pavés (style Blockbench), lame argentée à gouttière dorée, garde dorée en couronne avec un oeil au centre, poignée rouge, pommeau doré ; la Sainte-Falchion est plus claire, gouttière bleue lumineuse. Fait par `python3 tools/build_falchion.py` (`--apercu image.png` pour trois vues) dans le pack privé. Le plugin marque l'arme de Marth (`custom_model_data` « falchion » ou « falchion_sainte ») et le pack privé redéfinit l'épée en fer et l'épée en diamant pour cette arme-là seulement : sans le pack privé, on voit l'épée normale. Elle est posée comme l'image d'une épée de Minecraft, donc tenue en main, au sol et dans les animations elle se place comme l'épée qu'elle remplace.
+
 - **Contre** : garde, épée tenue haut lame vers le bas, puis fente avant à la riposte.
 - **Falchion** : l'épée plantée dans le sol devant lui, les deux mains sur le pommeau, tête baissée, pendant les 3 secondes du soin.
 - **Coup Critique**, d'après le Final Smash de Smash Bros : moulinet, épée levée vers le ciel avec un éclat à la pointe (0,8 s, immobile, pendant lesquelles il choisit sa direction en regardant), il se ramasse, fonce à l'horizontale dans une traînée blanche et bleue, puis tient l'estoc bras tendu. Il est invulnérable de la levée d'épée à la fin de la charge. Bruitages d'origine dans le pack privé : `ability.marth_ult_eclat`, `ability.marth_ult_charge`, `ability.marth_ult_hit`.
