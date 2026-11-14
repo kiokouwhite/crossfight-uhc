@@ -4,8 +4,10 @@
 Usage :  python3 tools/build_falchion.py [--apercu image.png] [--blockbench falchion.bbmodel]
 
 --blockbench : écrit aussi un projet Blockbench (format Java Block/Item, les deux textures incluses) pour
-               retoucher le modèle à la main ; le modèle exporté de Blockbench (.json) se dépose ensuite dans
-               resourcepack-prive/modeles/falchion.json, qui remplace alors celui de ce script.
+               retoucher le modèle à la main. L'épée y est DROITE (pommeau en bas, pointe en haut, pavés
+               alignés) pour être facile à modifier ; le modèle exporté de Blockbench (.json) se dépose dans
+               resourcepack-prive/modeles/falchion.json : ce script le remet en diagonale pour le jeu (un
+               huitième de tour autour de l'axe z) et il remplace alors son modèle à lui.
 
 Modélisée à la main d'après des captures d'écran (lame argentée et sa gouttière dorée, garde dorée en
 couronne avec un oeil au centre, poignée rouge, pommeau doré) ; c'est un dessin de Nintendo : elle va dans
@@ -146,7 +148,9 @@ def write():
             texture(palette).save(tex_dir / f"{name}.png")
         made.append(tex_dir / f"{name}.png")
     if (custom / "falchion.json").exists():
-        model = json.loads((custom / "falchion.json").read_text(encoding="utf-8"))
+        model = to_diagonal(json.loads((custom / "falchion.json").read_text(encoding="utf-8")))
+        model["display"] = DISPLAY
+        model["gui_light"] = "front"
         # Les textures du modèle exporté : la Falchion sur la clé "0", comme celle du script.
         model.setdefault("textures", {})
         model["textures"]["0"] = "crossfight:item/falchion"
@@ -174,6 +178,58 @@ def write():
     return made
 
 
+# ---------------------------------------------------------------- version droite (Blockbench)
+
+K = math.sqrt(0.5)
+# La version droite se déduit de la diagonale par un huitième de tour autour du centre de l'image (8, 8) ;
+# décalée vers le haut pour que le bout du pommeau soit à y = 0.
+STRAIGHT_SHIFT = -((ORIGIN - 8) / K + 8) - 0.3
+
+
+def straight_elements():
+    """Les mêmes pavés, l'épée droite : la lame le long de y, les pavés alignés sur les axes."""
+    out = []
+    for name, s, p, length, width, thick, tint in PARTS:
+        vx, vy = 8 - p, 8 + (ORIGIN - 8) / K + s + STRAIGHT_SHIFT
+        u, v = SWATCH[tint]
+        face = lambda shade: {"uv": [u + (2 if shade else 0.5), v + 0.5, u + (3.5 if shade else 2), v + 3.5], "texture": "#0"}
+        out.append({
+            "name": name,
+            "from": [r2(vx - width / 2), r2(vy - length / 2), r2(8 - thick / 2)],
+            "to": [r2(vx + width / 2), r2(vy + length / 2), r2(8 + thick / 2)],
+            "faces": {"north": face(False), "south": face(False), "east": face(True), "west": face(True),
+                      "up": face(False), "down": face(True)},
+        })
+    return out
+
+
+ALLOWED = (-45, -22.5, 0, 22.5, 45)
+
+
+def to_diagonal(model):
+    """Remet en diagonale un modèle droit (exporté de Blockbench) : chaque pavé tourne d'un huitième de tour
+    autour du centre de l'image. Un pavé déjà tourné autour de z garde sa rotation en plus (0, 22.5 ou 45
+    degrés seulement) ; un pavé tourné autour de x ou de y ne peut pas l'être (Minecraft : un seul axe)."""
+    for el in model.get("elements", []):
+        rot = el.get("rotation") or {"angle": 0, "axis": "z", "origin": [(a + b) / 2 for a, b in zip(el["from"], el["to"])]}
+        angle = float(rot.get("angle", 0))
+        if angle != 0 and rot.get("axis") != "z":
+            print(f"attention : '{el.get('name', '?')}' est tourne autour de {rot.get('axis')} ; il garde cette rotation, sans le huitieme de tour")
+            continue
+        new = angle - 45
+        if new not in ALLOWED:
+            print(f"attention : '{el.get('name', '?')}' tournerait de {new} degres (impossible) : rotation ramenee a -45")
+            new = -45
+        ox, oy = rot["origin"][0], rot["origin"][1] - STRAIGHT_SHIFT
+        ax, ay = ox - 8, oy - 8
+        dx, dy = 8 + K * (ax + ay), 8 + K * (ay - ax)
+        mx, my = dx - rot["origin"][0], dy - rot["origin"][1]
+        el["from"] = [r2(el["from"][0] + mx), r2(el["from"][1] + my), el["from"][2]]
+        el["to"] = [r2(el["to"][0] + mx), r2(el["to"][1] + my), el["to"][2]]
+        el["rotation"] = {"angle": new, "axis": "z", "origin": [r2(dx), r2(dy), rot["origin"][2]]}
+    return model
+
+
 # ---------------------------------------------------------------- Blockbench
 
 GROUPS = {"poignee": ("pommeau_bout", "pommeau", "poignee", "bague"),
@@ -188,18 +244,19 @@ def blockbench(out: Path):
     import io
     import uuid
     els, ids = [], {}
-    for el in elements():
+    for el in straight_elements():
         u = str(uuid.uuid4())
         ids[el["name"]] = u
+        center = [r2((a + b) / 2) for a, b in zip(el["from"], el["to"])]
         els.append({
             "name": el["name"], "box_uv": False, "rescale": False, "locked": False, "light_emission": 0,
             "render_order": "default", "allow_mirror_modeling": True,
             "from": el["from"], "to": el["to"], "autouv": 0, "color": 0,
-            "rotation": [0, 0, el["rotation"]["angle"]], "origin": el["rotation"]["origin"],
+            "rotation": [0, 0, 0], "origin": center,
             "faces": {k: {"uv": f["uv"], "texture": 0} for k, f in el["faces"].items()},
             "type": "cube", "uuid": u,
         })
-    outliner = [{"name": g, "origin": [8, 8, 8], "color": 0, "uuid": str(uuid.uuid4()), "export": True,
+    outliner = [{"name": g, "origin": [8, 11, 8], "color": 0, "uuid": str(uuid.uuid4()), "export": True,
                  "mirror_uv": False, "isOpen": True, "locked": False, "visibility": True, "autouv": 0,
                  "children": [ids[n] for n in names]} for g, names in GROUPS.items()]
     textures = []
@@ -216,7 +273,9 @@ def blockbench(out: Path):
         "meta": {"format_version": "4.10", "model_format": "java_block", "box_uv": False},
         "name": "falchion", "parent": "", "ambientocclusion": True, "front_gui_light": True,
         "visible_box": [1, 1, 0], "resolution": {"width": 16, "height": 16},
-        "elements": els, "outliner": outliner, "textures": textures, "display": DISPLAY,
+        # Pas de reglages d'affichage : ceux de la version droite ne seraient pas ceux du jeu (le script remet
+        # ses propres reglages, ceux d'une epee de Minecraft, en remettant le modele en diagonale).
+        "elements": els, "outliner": outliner, "textures": textures,
     }
     out.write_text(json.dumps(project, indent=1) + "\n", encoding="utf-8")
 
