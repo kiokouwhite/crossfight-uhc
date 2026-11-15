@@ -420,10 +420,28 @@ public final class TestMode implements Listener {
         if (!isGear(inv.getLeggings())) inv.setLeggings(armor(Material.DIAMOND_LEGGINGS, 2));
         if (!isGear(inv.getBoots())) inv.setBoots(armor(Material.IRON_BOOTS, 3));
         refillApples(p);
+        refillWater(p);
     }
 
     static boolean isGear(ItemStack it) {
         return it != null && Items.tag(it, GEAR_KEY) != null;
+    }
+
+    /** Deux seaux d'eau, toujours pleins : un seau vide redevient un seau d'eau. */
+    private void refillWater(Player p) {
+        PlayerInventory inv = p.getInventory();
+        int full = 0;
+        for (int i = 0; i < 36; i++) {
+            ItemStack it = inv.getItem(i);
+            if (it == null) continue;
+            if (it.getType() == Material.BUCKET) { inv.setItem(i, new ItemStack(Material.WATER_BUCKET)); full++; }
+            else if (it.getType() == Material.WATER_BUCKET) full++;
+        }
+        for (; full < 2; full++) {
+            // La barre d'abord (cases libres a cote des pommes), sinon l'inventaire.
+            int slot = inv.getItem(6) == null ? 6 : inv.getItem(5) == null ? 5 : -1;
+            if (slot >= 0) inv.setItem(slot, new ItemStack(Material.WATER_BUCKET)); else inv.addItem(new ItemStack(Material.WATER_BUCKET));
+        }
     }
 
     private void refillApples(Player p) {
@@ -451,6 +469,7 @@ public final class TestMode implements Listener {
             if (p == null) continue;
             if (p.getGameMode() == GameMode.SURVIVAL) {
                 refillApples(p);
+                refillWater(p);
                 p.setFoodLevel(20);
                 CfPlayer cf = plugin.players().get(p);
                 if (!cf.isUltimateLocked()) cf.setUltimateCharge(100);

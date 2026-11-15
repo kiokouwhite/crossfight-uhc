@@ -14,7 +14,7 @@ Techniquement, le mannequin est piloté par un objet qui se fait passer pour un 
 Pour que la partenaire puisse être un mannequin, les 24 ultimes en duo prennent une entité vivante pour partenaire : ce qui n'a de sens que pour un joueur (vol, furtivité, dashs donnés par l'item de Synergie, portée, chute amortie) ne s'applique qu'aux joueurs, et un mannequin duo compte pour 0 là où l'effet dépend de son historique (barre de résistance d'Hannah, dégâts récents de Kaze). Un mannequin duo est dans le camp de son testeur (`Effects.sideOf`).
 
 
-En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé.
+En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé. Le testeur a aussi deux seaux d'eau dans sa barre, qui se remplissent tout seuls (un seau vidé redevient un seau d'eau à la seconde suivante) ; `/cf clear` retire l'eau versée.
 Les chargeurs, munitions et jauges fonctionnent normalement.
 
 `/cf test arbre` envoie dans une forêt de test : le même terrain (90 blocs de côté), planté d'environ 80 épicéas de taïga, hauts et géants (troncs jusqu'à 28 blocs), avec une clairière au centre où l'on arrive. Elle sert à essayer l'équipement tridimensionnel de Shingeki no Kyojin : accrocher le grappin aux troncs, se balancer d'arbre en arbre. `/cf test arbre` une seconde fois ramène au terrain de test, `/cf clear` replante la forêt, `/cf mannequin` y pose des cibles comme ailleurs.
