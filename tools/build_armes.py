@@ -53,8 +53,8 @@ ARMES = {
 # Les modèles 3D faits par d'autres scripts (tools/build_falchion.py), que le pantin tient aussi : le modèle est
 # droit, il penche d'un huitième de tour pour se poser comme l'image d'une épée, sa poignée est sur son axe.
 AUTRES = {
-    "falchion": {"prise": (0, -7.78, 0), "inclinaison": (0, 0, 45), "taille": 0.85},
-    "falchion_sainte": {"prise": (0, -7.78, 0), "inclinaison": (0, 0, 45), "taille": 0.85},
+    "falchion": {"prise": (0, -7.78, 0), "inclinaison": (0, 0, 45), "taille": 1.275},
+    "falchion_sainte": {"prise": (0, -7.78, 0), "inclinaison": (0, 0, 45), "taille": 1.275},
 }
 
 # L'arc de Minecraft : sa définition (les trois images de l'arc bandé), ses réglages en main, et où sont

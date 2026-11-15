@@ -247,7 +247,26 @@ def tilted(display):
         t["rotation"] = [rx, ry, rz + 45 if ctx.endswith("lefthand") else rz - 45]
         out[ctx] = t
     out.setdefault("gui", {"rotation": [0, 0, -45], "translation": [0, 0, 0], "scale": [1, 1, 1]})
+    # En main, l'épée est HELD fois plus grande qu'une épée de Minecraft. Elle grandit autour de sa poignée :
+    # le réglage grossit le modèle autour de son milieu, on le redécale pour que la poignée ne bouge pas.
+    for side in ("thirdperson", "firstperson"):
+        t = out[f"{side}_righthand"]
+        rx, ry, rz = (math.radians(a) for a in t["rotation"])
+        x, y, z = 0.0, -GRIP_BELOW, 0.0
+        x, y = x * math.cos(rz) - y * math.sin(rz), x * math.sin(rz) + y * math.cos(rz)
+        x, z = x * math.cos(ry) + z * math.sin(ry), -x * math.sin(ry) + z * math.cos(ry)
+        y, z = y * math.cos(rx) - z * math.sin(rx), y * math.sin(rx) + z * math.cos(rx)
+        k = t["scale"][0] * (1 - HELD)
+        move = [r2(a + k * b) for a, b in zip(t["translation"], (x, y, z))]
+        for hand in ("righthand", "lefthand"):
+            h = out[f"{side}_{hand}"]
+            h["translation"] = move
+            h["scale"] = [r2(v * HELD) for v in h["scale"]]
     return out
+
+
+HELD = 1.5          # taille de l'épée en main, par rapport à une épée de Minecraft
+GRIP_BELOW = 7.78   # la poignée, en pixels sous le milieu du modèle droit
 
 
 def from_bbmodel(path: Path):
