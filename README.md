@@ -26,6 +26,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 |---|---|
 | `/cf start` / `/cf stop` | Lancer ou arrêter la partie (admin) |
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
+| `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
+| `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
 | `/cf setsize SOLO|DUO|TRIO` | Taille des équipes (admin) |
 | `/cf setborder <rayon>` | Taille de la map (admin) |
 | `/cf setpvp <minute>` | Minute d'activation du PvP (admin) |
@@ -74,6 +76,29 @@ Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plat
 3. **Lancement** : téléportation par équipe, armes et items de capacités donnés.
 4. **Partie** : PvP à 30 min, événements à 20 / 30 / 40 / 50 / 60 min, 3 vies par joueur.
 5. **Fin** : dernière équipe en vie.
+
+### Administrateurs de partie et règles
+
+`/cf admin <pseudo>` (réservé aux opérateurs du serveur) confie à un joueur les droits d'administrateur de partie : sans être opérateur, il peut lancer et arrêter la partie (`/cf start`, `/cf stop`), rappeler tout le monde au lobby (`/cf lobby`), régler la taille des équipes (`/cf setsize`) et changer les règles (`/cf regle`). La même commande les lui retire ; `/cf admin` seul donne la liste. Le mode test et les commandes de triche restent aux opérateurs. Dans ce README, « (admin) » veut dire opérateur ou administrateur de partie pour ces commandes-là.
+
+`/cf regle` liste les règles et leur valeur ; `/cf regle <nom> <valeur>` en change une, l'annonce à tous et l'enregistre dans `config.yml` :
+
+| Règle | Par défaut | Ce qu'elle règle |
+|---|---|---|
+| `bordure` | 1000 blocs | Rayon de la bordure au départ |
+| `bordure-finale` | 100 blocs | Rayon de la bordure une fois réduite |
+| `bordure-debut` | 60 min | Minute où la bordure commence à se réduire (0 : jamais) |
+| `bordure-duree` | 20 min | Temps que met la bordure à se réduire |
+| `pvp` | 30 min | Minute où le PvP s'active (0 : dès le départ) |
+| `invincibilite` | 30 s | Invincibilité au départ |
+| `vies` | 3 | Vies par joueur |
+| `dispersion` | 800 blocs | Rayon dans lequel les équipes sont dispersées au départ |
+| `reapparition` | 500 blocs | Rayon dans lequel on réapparaît après une mort |
+| `regeneration` | non | Régénération naturelle de la vie |
+| `jour-permanent` | non | Il fait toujours jour |
+| `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
+
+La bordure se réduit maintenant d'elle-même : à sa minute, elle passe en `bordure-duree` minutes de son rayon de départ à son rayon final, avec une annonce cinq minutes avant.
 
 ## Architecture
 

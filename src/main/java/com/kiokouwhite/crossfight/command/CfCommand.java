@@ -52,11 +52,53 @@ public final class CfCommand implements TabExecutor {
                 Msg.send(sp, "<gray>Pack de sons propose a nouveau. S'il ne s'affiche pas, regle \"Packs de ressources du serveur\" sur Demander dans la liste des serveurs.");
             }
             default -> {
-                if (!sender.hasPermission("crossfight.admin")) {
-                    Msg.send(sender, "<red>Tu n'as pas la permission.");
+                // Un administrateur de partie (/cf admin) a les commandes qui reglent, lancent et arretent la partie ;
+                // le reste (mode test, triche de test) demande d'etre operateur.
+                boolean op = sender.hasPermission("crossfight.admin");
+                if (!op && !(isHost(sender) && HOST_COMMANDS.contains(sub))) {
+                    Msg.send(sender, isHost(sender) ? "<red>Cette commande est reservee aux operateurs du serveur." : "<red>Tu n'as pas la permission.");
                     return true;
                 }
                 switch (sub) {
+                    case "admin", "admins" -> {
+                        // /cf admin <pseudo> : confie (ou retire) a un joueur le droit de regler et de lancer la partie.
+                        if (!op) { Msg.send(sender, "<red>Seul un operateur du serveur nomme les administrateurs de partie."); return true; }
+                        var rules = plugin.game().rules();
+                        if (args.length < 2) {
+                            var hosts = rules.hosts();
+                            Msg.send(sender, hosts.isEmpty() ? "<gray>Aucun administrateur de partie. <white>/cf admin <pseudo></white> pour en nommer un."
+                                    : "<gold>Administrateurs de partie : <white>" + String.join(", ", hosts.values()) + " <gray>(/cf admin <pseudo> pour ajouter ou retirer)");
+                            return true;
+                        }
+                        Player target = Bukkit.getPlayerExact(args[1]);
+                        java.util.UUID id = target != null ? target.getUniqueId() : null;
+                        String name = target != null ? target.getName() : args[1];
+                        // Un administrateur deconnecte se retire par son nom.
+                        if (id == null) for (var en : rules.hosts().entrySet()) if (en.getValue().equalsIgnoreCase(args[1])) { id = en.getKey(); name = en.getValue(); }
+                        if (id == null) { Msg.send(sender, "<red>" + args[1] + " n'est pas connecte."); return true; }
+                        boolean now = !rules.isHost(id);
+                        rules.setHost(id, name, now);
+                        Msg.send(sender, now ? "<green>" + name + " est administrateur de partie : il peut regler la partie (<white>/cf regle</white>), la lancer et l'arreter."
+                                : "<yellow>" + name + " n'est plus administrateur de partie.");
+                        if (target != null && target != sender) Msg.send(target, now ? "<green>Tu es administrateur de partie. <gray><white>/cf regle</white> pour voir et changer les regles, <white>/cf start</white>, <white>/cf stop</white>, <white>/cf lobby</white>, <white>/cf setsize</white>."
+                                : "<yellow>Tu n'es plus administrateur de partie.");
+                    }
+                    case "regle", "regles", "rule", "rules", "config" -> {
+                        // /cf regle : toutes les regles et leur valeur ; /cf regle <nom> <valeur> : en changer une.
+                        var rules = plugin.game().rules();
+                        if (args.length < 2) {
+                            Msg.raw(sender, "<gold><bold>Regles de la partie</bold> <gray>(/cf regle <nom> <valeur>)");
+                            Msg.raw(sender, "<yellow>equipes <white>" + plugin.teams().teamSize().label() + " <dark_gray>- <gray>Taille des equipes (/cf setsize)");
+                            for (var r : com.kiokouwhite.crossfight.game.Rules.all()) Msg.raw(sender, "<yellow>" + r.name() + " <white>" + rules.shown(r) + " <dark_gray>- <gray>" + r.help());
+                            return true;
+                        }
+                        var r = com.kiokouwhite.crossfight.game.Rules.rule(args[1]);
+                        if (r == null) { Msg.send(sender, "<red>Regle inconnue : " + args[1] + ". <gray>/cf regle pour la liste."); return true; }
+                        if (args.length < 3) { Msg.send(sender, "<yellow>" + r.name() + " : <white>" + rules.shown(r) + " <gray>- " + r.help()); return true; }
+                        String wrong = rules.set(r, args[2]);
+                        if (wrong != null) { Msg.send(sender, "<red>" + r.name() + " attend " + wrong + "."); return true; }
+                        Msg.broadcast("<yellow>Regle : <gold>" + r.help().toLowerCase(java.util.Locale.ROOT) + " <white>" + rules.shown(r) + " <gray>(" + sender.getName() + ")");
+                    }
                     case "start" -> {
                         if (plugin.game().start()) Msg.send(sender, "<green>Lancement de la partie.");
                         else Msg.send(sender, "<red>Impossible de lancer (deja en cours ou aucun joueur).");
@@ -94,10 +136,8 @@ public final class CfCommand implements TabExecutor {
                     case "setborder" -> {
                         int radius;
                         try { radius = Integer.parseInt(args[1]); } catch (Exception ex) { Msg.send(sender, "<red>Usage : /cf setborder <rayon>"); return true; }
-                        plugin.getConfig().set("world.border-radius", radius);
-                        plugin.saveConfig();
-                        plugin.game().world().getWorldBorder().setSize(radius * 2.0);
-                        Msg.send(sender, "<green>Bordure : rayon " + radius + " blocs.");
+                        String wrong = plugin.game().rules().set(com.kiokouwhite.crossfight.game.Rules.rule("bordure"), String.valueOf(radius));
+                        Msg.send(sender, wrong == null ? "<green>Bordure : rayon " + radius + " blocs." : "<red>Le rayon doit etre " + wrong + ".");
                     }
                     case "setpvp" -> {
                         int minute;
@@ -413,6 +453,14 @@ public final class CfCommand implements TabExecutor {
         return loc;
     }
 
+    /** Ce qu'un administrateur de partie (/cf admin) peut faire sans etre operateur. */
+    private static final java.util.Set<String> HOST_COMMANDS = java.util.Set.of("start", "stop", "lobby", "setsize", "setborder", "setpvp",
+            "regle", "regles", "rule", "rules", "config");
+
+    private boolean isHost(CommandSender s) {
+        return s instanceof Player p && plugin.game().rules().isHost(p.getUniqueId());
+    }
+
     private void help(CommandSender s) {
         Msg.raw(s, "<gold><bold>Crossfight UHC</bold> <gray>- commandes");
         Msg.raw(s, "<yellow>/cf status <gray>- etat de la partie");
@@ -420,7 +468,14 @@ public final class CfCommand implements TabExecutor {
         Msg.raw(s, "<yellow>/cf perso [id] <gray>- ouvrir le menu ou choisir un personnage");
         Msg.raw(s, "<yellow>/cf team list|create|join <id>|leave <gray>- gestion des equipes");
         Msg.raw(s, "<yellow>/vivre <gray>- reapparaitre quand tu attends");
+        if (isHost(s) && !s.hasPermission("crossfight.admin")) {
+            Msg.raw(s, "<red>/cf start|stop|lobby <gray>- lancer, arreter, rappeler tout le monde au lobby");
+            Msg.raw(s, "<red>/cf regle [nom] [valeur] <gray>- voir et changer les regles (bordure, PvP, vies...)");
+            Msg.raw(s, "<red>/cf setsize <SOLO|DUO|TRIO> <gray>- taille des equipes");
+        }
         if (s.hasPermission("crossfight.admin")) {
+            Msg.raw(s, "<red>/cf admin [pseudo] <gray>- nommer (ou retirer) un administrateur de partie");
+            Msg.raw(s, "<red>/cf regle [nom] [valeur] <gray>- voir et changer les regles (bordure, PvP, vies...)");
             Msg.raw(s, "<red>/cf start|stop <gray>- lancer ou arreter");
             Msg.raw(s, "<red>/cf setsize <SOLO|DUO|TRIO> <gray>- taille des equipes");
             Msg.raw(s, "<red>/cf setborder <rayon> <gray>- taille de la map");
@@ -505,7 +560,7 @@ public final class CfCommand implements TabExecutor {
                 Msg.send(p, "<yellow>Tu as quitte ton equipe.");
             }
             case "add" -> {
-                if (!s.hasPermission("crossfight.admin")) { Msg.send(s, "<red>Permission refusee."); return; }
+                if (!s.hasPermission("crossfight.admin") && !isHost(s)) { Msg.send(s, "<red>Permission refusee."); return; }
                 if (args.length < 4) { Msg.send(s, "<red>Usage : /cf team add <joueur> <id>"); return; }
                 Player target = Bukkit.getPlayerExact(args[2]);
                 Team t = null;
@@ -523,7 +578,8 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "lobby", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "setsize", "regle"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "regle", "start", "stop", "lobby", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -540,6 +596,8 @@ public final class CfCommand implements TabExecutor {
                 case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "effet", "fx" -> out.add("resurrection");
+                case "regle", "regles", "rule", "rules", "config" -> { for (var r : com.kiokouwhite.crossfight.game.Rules.all()) out.add(r.name()); }
+                case "admin", "admins" -> { for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName()); }
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }

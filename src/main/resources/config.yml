@@ -4,8 +4,18 @@ game:
   team-size: TRIO
   # Vies par joueur
   lives: 3
-  # Minute a laquelle le PvP s'active
+  # Minute a laquelle le PvP s'active (0 : des le depart)
   pvp-minute: 30
+  # Invincibilite au depart, en secondes
+  invincibility-seconds: 30
+  # La bordure : a quelle minute elle commence a se reduire (0 : jamais), en combien de minutes, jusqu'a quel rayon
+  border-shrink-minute: 60
+  border-shrink-minutes: 20
+  border-final-radius: 100
+  # Regeneration naturelle de la vie ; jour permanent
+  natural-regeneration: false
+  eternal-day: false
+  # Toutes ces regles se changent en jeu : /cf regle <nom> <valeur> (operateurs et administrateurs de partie, /cf admin)
   # Minutes des evenements
   events:
     lootbox: 20

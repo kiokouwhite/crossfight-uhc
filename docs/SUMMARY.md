@@ -5,6 +5,7 @@
 * [Compiler](compiler.md)
 * [Commandes](commandes.md)
 * [Déroulement d'une partie](deroulement-d-une-partie.md)
+  * [Administrateurs de partie et règles](deroulement-d-une-partie/administrateurs-de-partie-et-regles.md)
 * [Architecture](architecture.md)
   * [Charge de l'Ultime](architecture/charge-de-l-ultime.md)
   * [Bonus fractionnaires](architecture/bonus-fractionnaires.md)

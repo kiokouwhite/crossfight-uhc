@@ -56,6 +56,19 @@ public final class GameManager {
     public boolean isPvpEnabled() { return pvpEnabled || state == GameState.TEST; }
     public GameEvents events() { return events; }
 
+    private Rules rules;
+
+    /** Les regles de la partie (/cf regle) et ses administrateurs (/cf admin). */
+    public Rules rules() {
+        if (rules == null) rules = new Rules(plugin);
+        return rules;
+    }
+
+    private boolean borderShrinking;
+
+    /** Vrai une fois que la bordure a commence a se reduire. */
+    public boolean borderShrinking() { return borderShrinking; }
+
     public World world() {
         World w = Bukkit.getWorld(plugin.getConfig().getString("world.name", "world"));
         return w != null ? w : Bukkit.getWorlds().get(0);
@@ -166,7 +179,6 @@ public final class GameManager {
 
     private void prepareWorld() {
         World w = world();
-        w.setGameRule(GameRule.NATURAL_REGENERATION, false);
         w.setGameRule(GameRule.DO_IMMEDIATE_RESPAWN, true);
         w.setGameRule(GameRule.ANNOUNCE_ADVANCEMENTS, false);
         w.setTime(0);
@@ -174,8 +186,10 @@ public final class GameManager {
         w.setThundering(false);
         WorldBorder border = w.getWorldBorder();
         border.setCenter(0, 0);
-        border.setSize(plugin.getConfig().getInt("world.border-radius", 1000) * 2.0);
+        borderShrinking = false;
+        border.setSize(rules().value("bordure") * 2.0);
         border.setWarningDistance(20);
+        rules().apply(w);
     }
 
     private void startClock() {
@@ -241,7 +255,8 @@ public final class GameManager {
             for (Player p : t.onlineMembers()) {
                 p.teleport(loc.clone().add(ThreadLocalRandom.current().nextInt(3) - 1, 0, ThreadLocalRandom.current().nextInt(3) - 1));
                 p.setGameMode(GameMode.SURVIVAL);
-                p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * 30, 4, false, false));
+                int safe = rules().value("invincibilite");
+                if (safe > 0) p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * safe, 4, false, false));
                 plugin.abilities().equip(p);
                 p.showTitle(Title.title(Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT"), Msg.mm("<gray>Bonne chance !"),
                         Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofSeconds(1))));
@@ -249,7 +264,8 @@ public final class GameManager {
             }
         }
         int pvpMin = plugin.getConfig().getInt("game.pvp-minute", 30);
-        Msg.broadcast("<green>La partie commence ! <gray>PvP dans " + pvpMin + " minutes.");
+        if (pvpMin <= 0) pvpEnabled = true;
+        Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
     }
 
     private void tickRunning() {
@@ -264,6 +280,17 @@ public final class GameManager {
                 for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.ENTITY_WITHER_SPAWN, 0.7f, 1.2f);
             } else if (!pvpEnabled && (pvpMin - minute) <= 5 && (pvpMin - minute) > 0) {
                 Msg.broadcast("<yellow>PvP dans " + (pvpMin - minute) + " minute(s).");
+            }
+            // La bordure : elle se reduit a partir de sa minute, en un temps donne, jusqu'a son rayon final.
+            int shrinkAt = rules().value("bordure-debut");
+            if (shrinkAt > 0 && minute == shrinkAt && !borderShrinking) {
+                borderShrinking = true;
+                int last = Math.min(rules().value("bordure-finale"), rules().value("bordure")), minutes = rules().value("bordure-duree");
+                world().getWorldBorder().setSize(last * 2.0, minutes * 60L);
+                Msg.broadcast("<red><bold>La bordure se reduit !</bold> <gray>Rayon de " + last + " blocs dans " + minutes + " minute(s).");
+                for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 0.6f);
+            } else if (shrinkAt > 0 && !borderShrinking && (shrinkAt - minute) <= 5 && (shrinkAt - minute) > 0) {
+                Msg.broadcast("<yellow>La bordure commence a se reduire dans " + (shrinkAt - minute) + " minute(s).");
             }
             events.onMinute(minute);
         }
