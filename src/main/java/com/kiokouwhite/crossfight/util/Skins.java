@@ -61,6 +61,17 @@ public final class Skins {
                 .build();
     }
 
+    /**
+     * L'objet qui represente un personnage dans un menu : la tete de son skin si la table en a un, sinon
+     * l'objet {@code fallback} (les personnages originaux, pour l'instant).
+     */
+    public static org.bukkit.inventory.ItemStack icon(Character character, org.bukkit.Material fallback, String miniName, java.util.List<String> lore) {
+        var look = enabled() ? profile(character.id()) : null;
+        org.bukkit.inventory.ItemStack it = Items.of(look == null ? fallback : org.bukkit.Material.PLAYER_HEAD, miniName, lore);
+        if (look != null) it.setData(io.papermc.paper.datacomponent.DataComponentTypes.PROFILE, look);
+        return it;
+    }
+
     private static boolean enabled() { return CrossfightPlugin.get().getConfig().getBoolean("skins.enabled", true); }
 
     /** Met au joueur le skin de ce personnage ; null, ou un personnage sans skin : son skin d'origine. */

@@ -68,7 +68,8 @@ public final class CharacterSelectMenu implements Listener {
             lore.addAll(c.summary());
             lore.add("");
             lore.add(isTaken ? "<red>Deja choisi par un allie" : "<green>Clique pour choisir");
-            ItemStack item = Items.of(isTaken ? Material.BARRIER : c.icon(), "<gold><bold>" + c.name(), lore);
+            ItemStack item = isTaken ? Items.of(Material.BARRIER, "<gold><bold>" + c.name(), lore)
+                    : com.kiokouwhite.crossfight.util.Skins.icon(c, c.icon(), "<gold><bold>" + c.name(), lore);
             if (!isTaken) Items.tag(item, CHAR_KEY, c.id());
             inv.setItem(slot++, item);
         }

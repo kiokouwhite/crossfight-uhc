@@ -799,7 +799,7 @@ public final class TestMode implements Listener {
             lore.addAll(c.summary());
             lore.add("");
             lore.add("<green>Clique pour incarner");
-            ItemStack it = Items.of(c.icon(), "<gold><bold>" + c.name(), lore);
+            ItemStack it = com.kiokouwhite.crossfight.util.Skins.icon(c, c.icon(), "<gold><bold>" + c.name(), lore);
             Items.tag(it, CHAR_KEY, c.id());
             inv.setItem(slot++, it);
         }
