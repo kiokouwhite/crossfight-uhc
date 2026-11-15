@@ -18,11 +18,12 @@ bot.once('spawn', async () => {
   console.log('PRET');
   while (!fs.existsSync(go)) await sleep(100);
   for (const o of objet.split(';')) {
-    const [nom, attente = '900'] = o.split('@');
+    // nom@attente@tenue : l'objet, le temps d'attente ensuite, et combien de temps le clic droit reste enfonce (un arc qu'on bande).
+    const [nom, attente = '900', tenue = '80'] = o.split('@');
     const s = slotOf(nom); if (s < 0) { console.log('objet introuvable', nom); continue; }
     bot.setQuickBarSlot(s); await sleep(200);
     if (accroupi === 'oui') { bot.setControlState('sneak', true); await sleep(200); }
-    bot.activateItem(); await sleep(80); bot.deactivateItem();
+    if (Number(tenue) > 0) { bot.activateItem(); await sleep(Number(tenue)); bot.deactivateItem(); }
     if (accroupi === 'oui') { await sleep(150); bot.setControlState('sneak', false); }
     await sleep(Number(attente));
   }

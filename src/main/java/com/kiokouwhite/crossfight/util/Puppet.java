@@ -47,13 +47,6 @@ public final class Puppet {
     private static final Vector3f HAND = new Vector3f(0, -9, 0), GRIP = new Vector3f(5.5f, -5.5f, 0);
     /** Un arc se tient par le milieu de son bois. */
     private static final Vector3f GRIP_BOW = new Vector3f(2, 2, 0);
-    /**
-     * Un modele 3D tenu droit dans son fichier (la Falchion de Marth, retouchee dans Blockbench) : il penche
-     * d'un huitieme de tour pour se poser comme l'image d'une epee, et sa poignee est sur son axe.
-     */
-    private static final java.util.Set<String> STRAIGHT_MODELS = java.util.Set.of("falchion", "falchion_sainte");
-    private static final Quaternionf STRAIGHT_TILT = new Quaternionf().rotationZ((float) Math.toRadians(45));
-    private static final Vector3f GRIP_STRAIGHT = new Vector3f(0, -7.78f, 0);
     /** Amene la lame d'un objet tenu (dessinee en diagonale) perpendiculaire au bras, tranchant vertical. */
     private static final Quaternionf ITEM_BASE = euler(90, 0, 0).mul(euler(0, 90, 0)).mul(euler(0, 0, -45));
 
@@ -92,7 +85,12 @@ public final class Puppet {
     private int age, endAt = -1, removeAt = 20 * 30;
     private String pose, restPose = "debout";
     private Vector3f grip = GRIP, secondGrip = GRIP;
-    private boolean rawModel, straight;
+    private boolean rawModel;
+    /**
+     * Le modele 3D d'arme que montre l'objet tenu (la Falchion, le Yumi Fujin... : util/Models), ou null pour une
+     * image d'objet. Droit dans son fichier, il penche pour se poser comme l'image, et se tient par sa poignee.
+     */
+    private Models.Model model;
     private Float fixedYaw;
     /** Rotation de tout le pantin autour d'un centre (vrille, toupie) : null au repos. */
     private Quaternionf spin;
@@ -221,9 +219,8 @@ public final class Puppet {
         // sens : ni rotation d'objet plat, ni point de prise. Les autres sont des images tenues par un bout.
         ItemMeta meta = item.getItemMeta();
         rawModel = meta != null && meta.hasItemModel() && Sounds.NS.equals(meta.getItemModel().getNamespace());
-        straight = !rawModel && meta != null && meta.hasCustomModelDataComponent()
-                && meta.getCustomModelDataComponent().getStrings().stream().anyMatch(STRAIGHT_MODELS::contains);
-        grip = rawModel ? new Vector3f() : straight ? GRIP_STRAIGHT : type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
+        model = rawModel ? null : Models.of(item);
+        grip = rawModel ? new Vector3f() : model != null ? model.grip() : type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
     }
 
     /** Change l'image de l'objet tenu sans le faire disparaitre (pages d'un livre qui tournent). */
@@ -431,8 +428,8 @@ public final class Puppet {
                         : world != null ? new Quaternionf(rootR).mul(euler(world.angles))
                         : new Quaternionf(r).mul(euler(joints.getOrDefault("item", Joint.REST).angles));
                 if (!rawModel) ri.mul(ITEM_BASE);
-                if (straight) ri.mul(STRAIGHT_TILT);
-                float size = rawModel ? K : ITEM_SCALE;
+                if (model != null) ri.mul(model.tilt());
+                float size = rawModel ? K : model != null ? model.scale() : ITEM_SCALE;
                 Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
                 // "item_shift" : decalage de l'objet par rapport a la main, dans le repere du joueur (pixels).
                 Joint shift = joints.get("item_shift");

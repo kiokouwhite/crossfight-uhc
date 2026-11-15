@@ -27,8 +27,8 @@ Conventions de nommage, sous sounds/ :
 Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un personnage qui a un modele
 articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>", une image de l'ecran
 de selection (tools/build_selection.py) sous "select.<type>.<nom>", un signe de Glyph
-(tools/build_glyphs.py) sous "glyph.<nom>", le modele 3D d'une arme (tools/build_falchion.py) sous
-"model.<nom>".
+(tools/build_glyphs.py) sous "glyph.<nom>", le modele 3D d'une arme (tools/build_falchion.py,
+tools/build_armes.py) sous "model.<nom>".
 Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
@@ -120,9 +120,13 @@ def glyphs(base: Path):
 
 
 def models(base: Path):
-    """Les modeles 3D d'armes (tools/build_falchion.py) : "model.<nom>"."""
+    """Les modeles 3D d'armes (tools/build_falchion.py, tools/build_armes.py) : "model.<nom>"."""
     folder = base / "assets" / NS / "models" / "item"
-    return {"model." + name for name in ("falchion",) if (folder / f"{name}.json").exists()}
+    out = {"model." + name for name in ("falchion",) if (folder / f"{name}.json").exists()}
+    # Les armes retouchees : un modele par arme, plus ses etats (un arc bande : "<nom>_tire_<n>"), qui ne comptent pas.
+    if (folder / "arme").is_dir():
+        out |= {"model." + f.stem for f in (folder / "arme").glob("*.json") if "_tire_" not in f.stem}
+    return out
 
 
 def other_assets(base: Path):

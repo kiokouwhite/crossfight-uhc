@@ -60,7 +60,8 @@ public final class Takumi extends Character implements Listener {
 
     @Override
     public ItemStack createWeapon() {
-        return Weapons.bow(BASE_POWER, true, "<gold><bold>Yumi Fujin", List.of());
+        // Le pack prive montre alors le modele 3D du Yumi Fujin, corde lumineuse (tools/build_armes.py).
+        return com.kiokouwhite.crossfight.util.Models.mark(Weapons.bow(BASE_POWER, true, "<gold><bold>Yumi Fujin", List.of()), "yumi_fujin");
     }
 
     @Override
@@ -179,10 +180,14 @@ public final class Takumi extends Character implements Listener {
             if (d != null) d.remove();
         }
 
-        /** L'image de l'arc, couchee sur le sol et tournee de {@code yaw} degres, a {@code y} blocs de haut. */
-        private static org.bukkit.util.Transformation lying(float yaw, float tilt, float y) {
+        /** L'arc, couche sur le sol et tourne de {@code yaw} degres, a {@code y} blocs de haut. */
+        private static org.bukkit.util.Transformation lying(ItemStack look, float yaw, float tilt, float y) {
             var rot = new org.joml.Quaternionf().rotationY((float) Math.toRadians(yaw)).rotateX((float) Math.toRadians(90 - tilt));
-            return new org.bukkit.util.Transformation(new org.joml.Vector3f(0, y, 0), rot, new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf());
+            float size = 0.85f;
+            // Le modele 3D du Yumi Fujin, droit dans son fichier : il penche pour se coucher comme l'image de l'arc.
+            var model = com.kiokouwhite.crossfight.util.Models.of(look);
+            if (model != null) { rot.mul(model.tilt()); size = model.scale(); }
+            return new org.bukkit.util.Transformation(new org.joml.Vector3f(0, y, 0), rot, new org.joml.Vector3f(size, size, size), new org.joml.Quaternionf());
         }
 
         /** Le dessus du premier bloc plein sous ce point (au plus 8 blocs plus bas). */
@@ -228,7 +233,7 @@ public final class Takumi extends Character implements Listener {
                     d.setPersistent(false);
                     d.setItemStack(bowLook.clone());
                     d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
-                    d.setTransformation(lying(yaw - 60, 70, drop));
+                    d.setTransformation(lying(bowLook, yaw - 60, 70, drop));
                     d.setViewRange(1.5f);
                 });
                 GROUND_BOWS.put(p.getUniqueId(), bow);
@@ -241,7 +246,7 @@ public final class Takumi extends Character implements Listener {
                         if (!bow.isValid()) return;
                         bow.setInterpolationDelay(0);
                         bow.setInterpolationDuration(k == 0 ? 2 : 3);
-                        bow.setTransformation(lying(step[k][0], step[k][1], step[k][2]));
+                        bow.setTransformation(lying(bowLook, step[k][0], step[k][1], step[k][2]));
                     }, when[i]);
                 }
                 for (int hit : new int[]{4, 10}) {
@@ -282,7 +287,7 @@ public final class Takumi extends Character implements Listener {
                     d.setPersistent(false);
                     d.setItemStack(bowLook.clone());
                     d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
-                    d.setTransformation(lying((float) (Math.random() * 360), 0, 0.03f));
+                    d.setTransformation(lying(bowLook, (float) (Math.random() * 360), 0, 0.03f));
                     d.setViewRange(1.5f);
                 });
                 GROUND_BOWS.put(p.getUniqueId(), bow);
@@ -570,7 +575,9 @@ public final class Takumi extends Character implements Listener {
             Effects.say(p, "<light_purple>Rayon Demoniaque en charge...");
             final World w = p.getWorld();
             final Player player = p instanceof Player pl ? pl : null;
-            final var puppet = player == null ? null : com.kiokouwhite.crossfight.util.Puppet.show(player, "takumi", shownBow(player), "takumi_arc");
+            final ItemStack bow = player == null ? null : shownBow(player).clone();
+            final var drawn = bow == null ? null : com.kiokouwhite.crossfight.util.Models.of(bow);
+            final var puppet = player == null ? null : com.kiokouwhite.crossfight.util.Puppet.show(player, "takumi", bow, "takumi_arc");
             if (puppet != null) {
                 puppet.rest("takumi_arc");
                 puppet.pose("takumi_rayon", 6);
@@ -621,10 +628,17 @@ public final class Takumi extends Character implements Listener {
                         w.spawnParticle(Particle.DUST, feet.clone().add(0, 1.63, 0).add(dir.clone().multiply(0.27)).add(side.clone().multiply(0.1 * k)), 1, 0, 0, 0, 0, RED_EYE);
                     }
                     if (ticks % 10 == 0) w.playSound(p.getLocation(), Sound.BLOCK_BEACON_AMBIENT, 1f, 0.5f + ticks / 80f);
+                    // Le modele 3D du Yumi Fujin : la corde se tend en trois temps pendant qu'il bande son arc.
+                    if (drawn != null && (ticks == 6 || ticks == 11 || ticks == 16) && com.kiokouwhite.crossfight.util.Puppet.of(player) == puppet) {
+                        puppet.heldLook(com.kiokouwhite.crossfight.util.Models.look(bow.clone(), drawn.name() + "_tire_" + (ticks / 5 - 1)));
+                    }
                     if (ticks >= CHARGE_TICKS) {
                         cancel();
                         // Il lache la corde.
-                        if (puppet != null && com.kiokouwhite.crossfight.util.Puppet.of(player) == puppet) puppet.pose("takumi_rayon_tir", 2);
+                        if (puppet != null && com.kiokouwhite.crossfight.util.Puppet.of(player) == puppet) {
+                            puppet.pose("takumi_rayon_tir", 2);
+                            if (drawn != null) puppet.heldLook(bow);
+                        }
                         w.spawnParticle(Particle.FLASH, tip, 1, 0, 0, 0, 0, org.bukkit.Color.fromRGB(255, 240, 255));
                         fire(p, w, Effects.towards(p, target), isTarget);
                     }
