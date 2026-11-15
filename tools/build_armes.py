@@ -46,7 +46,7 @@ NS = "crossfight"
 # nom -> objet de Minecraft remplacé, genre, taille en main (troisième personne, première personne),
 # dans l'inventaire, au sol ; pour un arc : le nom du pavé de la corde dans le projet.
 ARMES = {
-    "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee",
+    "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee", "epaisseur": 2,
                    "tailles": {"tiers": 0.74, "premiere": 0.38, "inventaire": 0.62, "sol": 0.36, "cadre": 0.62}},
 }
 
@@ -232,7 +232,9 @@ def lire(path: Path):
     textures, scales = [], []
     for t in d.get("textures", []):
         textures.append(Image.open(io.BytesIO(base64.b64decode(t["source"].split(",", 1)[1]))).convert("RGBA"))
-        scales.append((16 / t.get("uv_width", 16), 16 / t.get("uv_height", 16)))
+        # Les coordonnées de texture d'un projet sont à l'échelle de sa résolution (pas de la taille de chaque image).
+        res = d.get("resolution", {})
+        scales.append((16 / res.get("width", t.get("uv_width", 16)), 16 / res.get("height", t.get("uv_height", 16))))
     els = [pave(el, scales) for el in d.get("elements", [])
            if el.get("type", "cube") == "cube" and el.get("export", True) and el.get("visibility", True)]
     return els, textures
@@ -364,6 +366,13 @@ def construire(name, cfg):
         grip = np.mean([coins(el).mean(axis=0) for el in grips], axis=0)
         used -= {int(f["texture"][1:]) for f in string["faces"].values()}
         body = [el for el in els if el is not string]
+        # Le bois de l'arc, épaissi (la corde reste fine) : chaque pavé s'élargit autour du plan de l'arc.
+        wide = cfg.get("epaisseur", 1)
+        for el in body:
+            for key in ("from", "to"):
+                el[key][0] = r3(8 + (el[key][0] - 8) * wide)
+            if "rotation" in el:
+                el["rotation"]["origin"][0] = r3(8 + (el["rotation"]["origin"][0] - 8) * wide)
         core, halo, meta = corde_images()
         core.save(tex_dir / "corde.png")
         halo.save(tex_dir / "halo.png")
