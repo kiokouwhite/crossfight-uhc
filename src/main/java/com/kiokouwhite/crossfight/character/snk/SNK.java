@@ -206,7 +206,7 @@ public final class SNK {
         void pull(Player p, AbilityState st, Supplier<Location> anchor) {
             st.set("stop", false);
             st.setEnabled(true);
-            Effects.noFallUntil(p, 5000);
+            Effects.softFallUntil(p, 5000);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.6f);
             new BukkitRunnable() {
@@ -232,7 +232,7 @@ public final class SNK {
                     if (p.isOnline()) {
                         Vector v = p.getVelocity();
                         p.setVelocity(v.multiply(0.4));
-                        Effects.noFallUntil(p, 5000);
+                        Effects.softFallUntil(p, 5000);
                     }
                     cancel();
                 }

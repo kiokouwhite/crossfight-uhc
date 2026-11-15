@@ -71,7 +71,7 @@ public final class Armin extends Character {
     static void soutienDash(Player p, AbilityState gearSt, LivingEntity ally) {
         Eren.startCd(p, gearSt, "soutienAt", 10);
         gearSt.setEnabled(true);
-        Effects.noFallUntil(p, 5000);
+        Effects.softFallUntil(p, 5000);
         World w = p.getWorld();
         w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.4f);
         new BukkitRunnable() {
@@ -87,7 +87,7 @@ public final class Armin extends Character {
                     w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.8, 0), 3, 0.3, 0.2, 0.3, 0, SNK.GAS);
                 } catch (Exception ex) { stop(); }
             }
-            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.noFallUntil(p, 5000); cancel(); }
+            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
         }.runTaskTimer(SNK.plugin(), 0L, 1L);
     }
 

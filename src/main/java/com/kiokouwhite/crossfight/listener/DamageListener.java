@@ -212,6 +212,9 @@ public final class DamageListener implements Listener {
             e.setCancelled(true);
             return;
         }
+        if (pilot != null && e.getCause() == EntityDamageEvent.DamageCause.FALL && com.kiokouwhite.crossfight.util.Effects.softFall(pilot)) {
+            e.setDamage(e.getDamage() * com.kiokouwhite.crossfight.util.Effects.SOFT_FALL_KEPT);
+        }
         if (!(e.getEntity() instanceof Player p)) return;
         if (!plugin.game().isRunning()) {
             e.setCancelled(true);
@@ -220,5 +223,9 @@ public final class DamageListener implements Listener {
         CfPlayer cf = plugin.players().get(p);
         if (cf.isWaitingRespawn() || !cf.isAlive()) e.setCancelled(true);
         if (e.getCause() == EntityDamageEvent.DamageCause.FALL && com.kiokouwhite.crossfight.util.Effects.noFall(p)) e.setCancelled(true);
+        // Une chute amortie (equipement tridimensionnel) : les degats restent, reduits de 75 %.
+        else if (e.getCause() == EntityDamageEvent.DamageCause.FALL && com.kiokouwhite.crossfight.util.Effects.softFall(p)) {
+            e.setDamage(e.getDamage() * com.kiokouwhite.crossfight.util.Effects.SOFT_FALL_KEPT);
+        }
     }
 }

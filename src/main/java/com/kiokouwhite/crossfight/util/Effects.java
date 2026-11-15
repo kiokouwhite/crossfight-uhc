@@ -77,6 +77,20 @@ public final class Effects {
         return t != null && System.currentTimeMillis() < t;
     }
 
+    private static final java.util.Map<java.util.UUID, Long> SOFT_FALL = new java.util.HashMap<>();
+    /** Part des degats de chute qui reste pendant une chute amortie (l'equipement tridimensionnel : -75 %). */
+    public static final double SOFT_FALL_KEPT = 0.25;
+
+    /** Amortit les chutes d'un joueur pendant un moment : il se fait mal en tombant, mais quatre fois moins. */
+    public static void softFallUntil(Player p, long millis) {
+        SOFT_FALL.put(p.getUniqueId(), System.currentTimeMillis() + millis);
+    }
+
+    public static boolean softFall(Player p) {
+        Long t = SOFT_FALL.get(p.getUniqueId());
+        return t != null && System.currentTimeMillis() < t;
+    }
+
     public static void say(LivingEntity e, String actionBar) {
         if (e instanceof Player p) Msg.actionBar(p, actionBar);
     }

@@ -170,7 +170,7 @@ public final class Eren extends Character implements Listener {
     static void haineDash(Player p, AbilityState gearSt, LivingEntity target) {
         startCd(p, gearSt, "haineAt", 10);
         gearSt.setEnabled(true);
-        Effects.noFallUntil(p, 5000);
+        Effects.softFallUntil(p, 5000);
         World w = p.getWorld();
         w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.2f);
         w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
@@ -195,7 +195,7 @@ public final class Eren extends Character implements Listener {
                     w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.8, 0), 3, 0.3, 0.2, 0.3, 0, SNK.GAS);
                 } catch (Exception ex) { stop(); }
             }
-            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.noFallUntil(p, 5000); cancel(); }
+            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
         }.runTaskTimer(SNK.plugin(), 0L, 1L);
     }
 
