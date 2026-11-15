@@ -46,8 +46,8 @@ NS = "crossfight"
 # nom -> objet de Minecraft remplacé, genre, taille en main (troisième personne, première personne),
 # dans l'inventaire, au sol ; pour un arc : le nom du pavé de la corde dans le projet.
 ARMES = {
-    "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee", "epaisseur": 2,
-                   "tailles": {"tiers": 0.74, "premiere": 0.38, "inventaire": 0.62, "sol": 0.36, "cadre": 0.62}},
+    "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee", "epaisseur": 2.5,
+                   "tailles": {"tiers": 1.11, "premiere": 0.57, "inventaire": 0.62, "sol": 0.36, "cadre": 0.62}},
 }
 
 # Les modèles 3D faits par d'autres scripts (tools/build_falchion.py), que le pantin tient aussi : le modèle est
@@ -319,11 +319,13 @@ def corde(string, grip_y, pull=0.0):
 
 # --------------------------------------------------------------------------- affichage
 
-def pose(vanilla, size, grip_model, grip_image):
+def pose(vanilla, size, grip_model, grip_image, droit=False):
     """Le réglage d'affichage qui pose le modèle droit comme l'image de l'arc l'est par `vanilla`, la poignée du
     modèle là où est celle de l'image."""
     rv = minecraft(vanilla["rotation"])
-    rm = rv @ EN_IMAGE
+    # droit : le modèle garde son aplomb (corde verticale à l'écran) au lieu de pencher comme l'image de l'arc ;
+    # sa poignée reste au même endroit.
+    rm = np.eye(3) if droit else rv @ EN_IMAGE
     t = (np.array(vanilla["translation"]) + vanilla["scale"] * (rv @ (np.array(grip_image) - CENTRE))
          - size * (rm @ (np.array(grip_model) - CENTRE)))
     return {"rotation": angles(rm), "translation": [round(float(v), 2) for v in t], "scale": [size] * 3}
@@ -333,7 +335,7 @@ def affichage_arc(sizes, grip, middle):
     centre = tuple(CENTRE)
     d = {
         "thirdperson_righthand": pose(ARC_AFFICHAGE["thirdperson_righthand"], sizes["tiers"], grip, ARC_POIGNEE_IMAGE),
-        "firstperson_righthand": pose(ARC_AFFICHAGE["firstperson_righthand"], sizes["premiere"], grip, ARC_POIGNEE_IMAGE),
+        "firstperson_righthand": pose(ARC_AFFICHAGE["firstperson_righthand"], sizes["premiere"], grip, ARC_POIGNEE_IMAGE, droit=True),
         # Dans l'inventaire, au sol, dans un cadre : comme une image d'objet, le milieu de l'arc au milieu.
         "gui": pose({"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": 1}, sizes["inventaire"], middle, centre),
         "ground": pose({"rotation": [0, 0, 0], "translation": [0, 2, 0], "scale": 0.5}, sizes["sol"], middle, centre),

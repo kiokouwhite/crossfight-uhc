@@ -2,4 +2,4 @@
 # <nom> <prise x y z, en pixels depuis le milieu du modele> <inclinaison : quaternion x y z w> <taille>
 falchion 0 -7.78 0 0.0 0.0 0.38268 0.92388 1.275
 falchion_sainte 0 -7.78 0 0.0 0.0 0.38268 0.92388 1.275
-yumi_fujin 0.01 -1.0 1.44 -0.2706 0.65328 0.2706 0.65328 0.7
+yumi_fujin 0.01 -1.0 1.44 -0.2706 0.65328 0.2706 0.65328 1.05
