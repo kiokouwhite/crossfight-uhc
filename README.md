@@ -48,6 +48,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY) et de Synergie (groupes duo) (test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
+| `/cf test duo-third-person [perso]` | Troisième personne en duo : le mannequin du centre, ses coéquipières en mannequins duo, et ses ultimes en duo lancés sur le testeur (une seconde fois pour revenir) |
 | `/cf test arbre` | Forêt de test : des épicéas de taïga pour essayer l'équipement tridimensionnel (une seconde fois pour revenir) |
 | `/cf effet resurrection` | Aperçu d'un effet qu'on ne peut pas déclencher seul (test) |
 | `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
@@ -247,6 +248,8 @@ Un item de capacité ne ressemble jamais à une arme ni à un outil, pour que pe
 ### Mode test
 
 **Zone duo** (`/cf test duo`) : une plateforme à part pour essayer seul les ultimes en duo (l'Ultime en Duo de RWBY et les Synergies de Bloody Snow, Shoja's Memories et Armed Blue Gunvolt). Le testeur y a un **mannequin duo** : un allié à l'apparence de joueur, avec le skin du personnage qu'il incarne quand il en a un, qui tient le rôle de la partenaire. Un clic droit dessus ouvre le choix de son personnage (les autres personnes de la licence du testeur) et joue l'échange des deux personnages s'il existe. Trois cibles attendent devant le testeur, et ses ultimes en duo sont toujours prêts (les jauges avec un second testeur restent aussi à 100 %). `/cf test duo <perso>` choisit directement le personnage du mannequin. En arrivant sans personnage à ultime en duo, un menu ne propose que ceux-là. La mort fait réapparaître dans la zone ; `/cf test duo` ramène au terrain de test, `/cf test` quitte le mode test, `/cf clear` remet aussi la zone duo à neuf. Le testeur y a désormais un mannequin duo par autre personnage de sa licence, en rang à sa droite : tous ses ultimes en duo sont prêts en même temps (les trois de chaque membre de l'équipe RWBY, par exemple), et ils se refont quand il change de personnage.
+
+**Troisième personne en duo** (`/cf test duo-third-person [perso]`) : la troisième personne, où le mannequin du centre a en plus un mannequin duo par autre personnage de sa licence, en rang à côté de lui. L'objet d'ultime en duo du testeur ouvre le menu du mannequin, dont tous les ultimes en duo sont prêts : il les lance avec sa coéquipière et c'est le testeur qui les reçoit, pour les voir de l'extérieur. `/cf change` change le personnage du centre et refait ses coéquipières ; `/cf clear` les remet en place ; la commande une seconde fois ramène au terrain de test.
 
 **Troisième personne** (`/cf test third-person [perso]`) : une plateforme à part où un **mannequin pilote**, au centre, incarne le personnage (son skin, son arme) pendant que le testeur sert de cible, sept blocs devant lui. `/cf change` (et le menu) changent le personnage du mannequin, pas celui du testeur. Le testeur reçoit les objets de ce personnage, mais c'est le mannequin qui s'en sert, tourné vers lui en permanence :
 - clic droit sur un objet de capacité : le mannequin la lance (accroupi : la variante accroupie, et le mannequin s'accroupit aussi) ; les menus de choix s'ouvrent chez le testeur ;

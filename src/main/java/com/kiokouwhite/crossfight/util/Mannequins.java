@@ -180,7 +180,8 @@ public final class Mannequins implements Listener {
     public static Player partnerOwner(Entity e) {
         if (!isPartner(e)) return null;
         String s = e.getPersistentDataContainer().get(PARTNER_OWNER_KEY, org.bukkit.persistence.PersistentDataType.STRING);
-        return s == null ? null : Bukkit.getPlayer(UUID.fromString(s));
+        // Un vrai joueur, ou le pilote d'un mannequin (troisieme personne en duo).
+        return s == null ? null : MannequinPlayer.getPlayer(UUID.fromString(s));
     }
 
     /** Les mannequins duo d'un joueur, dans tous les mondes. */

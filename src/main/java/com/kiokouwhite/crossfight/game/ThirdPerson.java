@@ -87,6 +87,8 @@ public final class ThirdPerson implements Listener {
         boolean sneaking;
         long lastUse, lastAttack;
         int lastUseSlot = -1;
+        /** Troisieme personne en duo : le mannequin du centre a ses coequipieres en mannequins duo a cote de lui. */
+        boolean duo;
 
         Session(UUID tester) { this.tester = tester; }
     }
@@ -186,6 +188,44 @@ public final class ThirdPerson implements Listener {
         return true;
     }
 
+    /**
+     * Troisieme personne en duo (/cf test duo-third-person) : la meme chose, et le mannequin du centre a un
+     * mannequin duo par autre personnage de sa licence. On voit ses ultimes en duo de l'exterieur, et on les encaisse.
+     */
+    public boolean enterDuo(Player p, Character wanted) {
+        Session before = sessions.get(p.getUniqueId());
+        if (before != null) before.duo = true;
+        else pendingDuo.add(p.getUniqueId());
+        boolean ok = before != null ? true : enter(p, wanted);
+        pendingDuo.remove(p.getUniqueId());
+        Session s = sessions.get(p.getUniqueId());
+        if (!ok || s == null) return false;
+        s.duo = true;
+        if (before != null && wanted != null) setCharacter(p, wanted);
+        else partners(s, p);
+        Msg.send(p, "<light_purple><bold>Troisieme personne en duo.</bold> <gray>Le mannequin du centre a ses coequipieres a cote de lui : ses ultimes en duo sont toujours prets "
+                + "et te visent. <white>/cf test duo-third-person</white> pour revenir au terrain de test.");
+        return true;
+    }
+
+    private final java.util.Set<UUID> pendingDuo = new java.util.HashSet<>();
+
+    public boolean isDuo(Player p) {
+        Session s = sessions.get(p.getUniqueId());
+        return s != null && s.duo;
+    }
+
+    /** Les mannequins duo du pilote (aucun hors du mode duo, ou si son personnage n'a pas d'ultime en duo). */
+    private void partners(Session s, Player tester) {
+        Mannequins.removePartners(s.pilot);
+        if (!s.duo) return;
+        Character c = plugin.players().get(s.pilot).character();
+        if (c == null) return;
+        if (!TestMode.hasDuo(c)) { Msg.send(tester, "<yellow>" + c.name() + " n'a pas d'ultime en duo : choisis un personnage de RWBY, Bloody Snow, Shoja's Memories ou Armed Blue Gunvolt."); return; }
+        test.spawnPartners(s.pilot, c);
+        test.fillDuoOf(s.pilot);
+    }
+
     /** Retour au terrain de test : le testeur reprend lui-meme le personnage du mannequin. */
     public void leave(Player p) {
         Character c = characterOf(p);
@@ -245,6 +285,7 @@ public final class ThirdPerson implements Listener {
         Session s = sessions.remove(testerId);
         if (s == null) return;
         Player pilot = s.pilot;
+        Mannequins.removePartners(pilot);
         CfPlayer cf = plugin.players().get(pilot);
         try {
             if (cf.character() != null) plugin.abilities().unequip(pilot);
@@ -311,6 +352,8 @@ public final class ThirdPerson implements Listener {
         plugin.abilities().equip(pilot);
         syncItems(s, tester);
         Mannequins.refreshName(s.body);
+        if (pendingDuo.contains(tester.getUniqueId())) s.duo = true;
+        partners(s, tester);
         test.gear(tester);
         Msg.send(tester, "<green>Le mannequin incarne <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.licence().name() + ")");
         com.kiokouwhite.crossfight.util.Sounds.selection(tester, c.id());
@@ -533,7 +576,7 @@ public final class ThirdPerson implements Listener {
             s.body.setVelocity(new Vector());
             s.body.setHealth(Mannequins.maxHealthOf(s.body));
             Player tester = Bukkit.getPlayer(s.tester);
-            if (tester != null) tester.teleport(spot(s.home));
+            if (tester != null) { tester.teleport(spot(s.home)); partners(s, tester); }
         }
     }
 

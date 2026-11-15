@@ -133,6 +133,15 @@ public final class CfCommand implements TabExecutor {
                             sel.openPreview(sp, lic);
                             return true;
                         }
+                        if (args.length > 1 && (args[1].equalsIgnoreCase("duo-third-person") || args[1].equalsIgnoreCase("duo-3p") || args[1].equalsIgnoreCase("duo-troisieme-personne"))) {
+                            // Troisieme personne en duo : le mannequin du centre et ses coequipieres ; sans personnage, une seconde fois pour en sortir.
+                            Character c = args.length > 2 ? plugin.characters().character(args[2].toLowerCase()) : null;
+                            if (args.length > 2 && c == null) { Msg.send(sp, "<red>Personnage inconnu : " + args[2]); return true; }
+                            var tp = plugin.testMode().thirdPerson();
+                            if (tp.isActive(sp) && tp.isDuo(sp) && c == null) tp.leave(sp);
+                            else tp.enterDuo(sp, c);
+                            return true;
+                        }
                         if (args.length > 1 && isThirdPersonArg(args[1])) {
                             // Troisieme personne : /cf test third-person [perso du mannequin] ; sans personnage, une seconde fois pour en sortir.
                             Character c = args.length > 2 ? plugin.characters().character(args[2].toLowerCase()) : null;
@@ -514,7 +523,7 @@ public final class CfCommand implements TabExecutor {
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "effet", "fx" -> out.add("resurrection");
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
-                case "test" -> out.addAll(List.of("duo", "third-person", "selection", "arbre"));
+                case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
@@ -525,7 +534,7 @@ public final class CfCommand implements TabExecutor {
             for (Licence l : plugin.characters().licences()) out.add(l.id());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && isThirdPersonArg(args[1])) {
             for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id());
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("duo")) {
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && (args[1].equalsIgnoreCase("duo") || args[1].equalsIgnoreCase("duo-third-person"))) {
             for (Licence l : plugin.characters().licences()) {
                 if (com.kiokouwhite.crossfight.game.TestMode.DUO_LICENCES.contains(l.id())) for (Character c : l.characters()) out.add(c.id());
             }

@@ -677,7 +677,7 @@ public final class TestMode implements Listener {
      * Les mannequins duo du testeur : un par autre personnage de sa licence, en rang a sa droite, pour avoir
      * tous ses ultimes en duo sous la main.
      */
-    private void spawnPartners(Player p, Character mine) {
+    void spawnPartners(Player p, Character mine) {
         Mannequins.removePartners(p);
         if (!hasDuo(mine)) return;
         Location at = p.getLocation().clone();
@@ -714,6 +714,8 @@ public final class TestMode implements Listener {
     }
 
     /** Les jauges de duo du testeur avec ses vrais partenaires (un second testeur) a 100 %. */
+    void fillDuoOf(Player p) { fillDuo(p); }
+
     private void fillDuo(Player p) {
         var rwby = plugin.characters().licence("rwby");
         if (rwby != null && rwby.mechanic() instanceof com.kiokouwhite.crossfight.character.rwby.RWBY.Duo duo) duo.fill(p, 100);
@@ -735,6 +737,7 @@ public final class TestMode implements Listener {
         e.setCancelled(true);
         Player p = e.getPlayer();
         if (!(e.getRightClicked() instanceof LivingEntity m)) return;
+        if (thirdPerson.isActive(p)) { Msg.actionBar(p, "<gray>En troisieme personne, les mannequins duo sont ceux du personnage du centre."); return; }
         if (!p.equals(Mannequins.partnerOwner(m))) { Msg.actionBar(p, "<red>Ce mannequin duo est celui d'un autre testeur."); return; }
         Character mine = plugin.players().get(p).character();
         List<com.kiokouwhite.crossfight.util.ChoiceMenu.Option> options = new ArrayList<>();
