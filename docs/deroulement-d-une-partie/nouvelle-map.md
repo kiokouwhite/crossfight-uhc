@@ -1,0 +1,3 @@
+# Nouvelle map
+
+`/cf regenere` (hors partie) crée un nouveau monde de jeu, avec une graine au hasard ou celle donnée (`/cf regenere 12345`), y amène tous les joueurs sur son lobby et l'inscrit dans `config.yml` (`world.name`, un nom en `crossfight_map_…`). Le serveur se fige une dizaine de secondes pendant la création. L'ancienne map est effacée du disque si c'était déjà une map créée par cette commande ; le monde principal du serveur (`world`) n'est jamais effacé, il n'est simplement plus utilisé. Le Nether et l'End restent ceux du serveur (ils ne sont pas recréés) et leurs portails ramènent vers la map de jeu.

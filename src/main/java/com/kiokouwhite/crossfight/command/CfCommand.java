@@ -107,6 +107,25 @@ public final class CfCommand implements TabExecutor {
                         plugin.game().stop();
                         Msg.broadcast("<yellow>La partie a ete arretee, retour au lobby.");
                     }
+                    case "regenere", "regenerer", "regen", "newmap" -> {
+                        // Une map toute neuve (graine au hasard, ou celle donnee), hors partie.
+                        var game = plugin.game();
+                        if (!game.isLobby() && game.state() != com.kiokouwhite.crossfight.game.GameState.TEST) {
+                            Msg.send(sender, "<red>Une partie est en cours : <white>/cf stop</white> d'abord.");
+                            return true;
+                        }
+                        Long seed = null;
+                        if (args.length >= 2) {
+                            try { seed = Long.parseLong(args[1]); } catch (NumberFormatException ex) { seed = (long) args[1].hashCode(); }
+                        }
+                        Msg.broadcast("<yellow>Creation d'une nouvelle map... <gray>(le serveur se fige quelques secondes)");
+                        Long chosen = seed;
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                            var w = game.regenerate(chosen);
+                            if (w == null) Msg.send(sender, "<red>La nouvelle map n'a pas pu etre creee (voir la console).");
+                            else Msg.broadcast("<green>Nouvelle map prete <gray>(graine " + w.getSeed() + ")<green> : tout le monde est au lobby.");
+                        }, 2L);
+                    }
                     case "lobby" -> {
                         // Tout le monde sur la plateforme du lobby (hors partie ; les testeurs restent dans leur mode test).
                         var game = plugin.game();
@@ -455,7 +474,7 @@ public final class CfCommand implements TabExecutor {
 
     /** Ce qu'un administrateur de partie (/cf admin) peut faire sans etre operateur. */
     private static final java.util.Set<String> HOST_COMMANDS = java.util.Set.of("start", "stop", "lobby", "setsize", "setborder", "setpvp",
-            "regle", "regles", "rule", "rules", "config");
+            "regenere", "regenerer", "regen", "newmap", "regle", "regles", "rule", "rules", "config");
 
     private boolean isHost(CommandSender s) {
         return s instanceof Player p && plugin.game().rules().isHost(p.getUniqueId());
@@ -470,6 +489,7 @@ public final class CfCommand implements TabExecutor {
         Msg.raw(s, "<yellow>/vivre <gray>- reapparaitre quand tu attends");
         if (isHost(s) && !s.hasPermission("crossfight.admin")) {
             Msg.raw(s, "<red>/cf start|stop|lobby <gray>- lancer, arreter, rappeler tout le monde au lobby");
+            Msg.raw(s, "<red>/cf regenere [graine] <gray>- une map toute neuve (hors partie)");
             Msg.raw(s, "<red>/cf regle [nom] [valeur] <gray>- voir et changer les regles (bordure, PvP, vies...)");
             Msg.raw(s, "<red>/cf setsize <SOLO|DUO|TRIO> <gray>- taille des equipes");
         }
@@ -578,8 +598,8 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "setsize", "regle"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "regle", "start", "stop", "lobby", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {

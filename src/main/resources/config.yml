@@ -12,6 +12,8 @@ game:
   border-shrink-minute: 60
   border-shrink-minutes: 20
   border-final-radius: 100
+  # Points d'attaque par niveau de Force, potion comprise (Minecraft : 3)
+  strength-damage: 1
   # Regeneration naturelle de la vie ; jour permanent
   natural-regeneration: false
   eternal-day: false
@@ -76,15 +78,18 @@ lobby:
   # Avant le lancement, les joueurs attendent sur une plateforme de verre dans les airs, au-dessus du point
   # d'apparition du monde (false : ils restent au point d'apparition)
   plateforme: true
-  # Hauteur de la plateforme, et sa demi-largeur en blocs
+  # Hauteur de la plateforme, et sa demi-largeur en blocs (21 : 43 blocs de cote). Le verre change de couleur
+  # sous les pas des joueurs, pour patienter.
   hauteur: 250
-  rayon: 10
+  rayon: 21
 
 world:
-  # Nom du monde de jeu
+  # Nom du monde de jeu (/cf regenere cree une nouvelle map, crossfight_map_..., et l'inscrit ici)
   name: world
   # Demi-taille de la bordure au depart (modifiable en jeu avec /cf setborder)
   border-radius: 1000
+  # Minerais multiplies sous terre : chaque zone du monde est enrichie une fois, a son premier chargement (1 : rien)
+  ore-multiplier: 5
   # Rayon de dispersion des joueurs au lancement
   spread-radius: 800
 

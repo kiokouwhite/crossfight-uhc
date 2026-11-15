@@ -26,6 +26,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 |---|---|
 | `/cf start` / `/cf stop` | Lancer ou arrêter la partie (admin) |
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
+| `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
 | `/cf setsize SOLO|DUO|TRIO` | Taille des équipes (admin) |
@@ -69,7 +70,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 
 ## Déroulement d'une partie
 
-Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plateforme de verre de 21 blocs de côté, à 250 blocs de haut, au-dessus du point d'apparition du monde. Des murs et un plafond invisibles empêchent d'en tomber. On y arrive en se connectant, en quittant le mode test, après `/cf stop`, et avec `/cf lobby`, qui y envoie tous les joueurs ; elle disparaît du ciel quand la partie démarre et revient au retour au lobby. Réglages dans `config.yml` : `lobby.plateforme` (false : on reste au point d'apparition), `lobby.hauteur`, `lobby.rayon`.
+Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plateforme de verre de 43 blocs de côté, à 250 blocs de haut, au-dessus du point d'apparition du monde. Pour patienter, chaque bloc de verre change de couleur (avec une petite note) quand un joueur marche dessus. Des murs et un plafond invisibles empêchent d'en tomber. On y arrive en se connectant, en quittant le mode test, après `/cf stop`, et avec `/cf lobby`, qui y envoie tous les joueurs ; elle disparaît du ciel quand la partie démarre et revient au retour au lobby. Réglages dans `config.yml` : `lobby.plateforme` (false : on reste au point d'apparition), `lobby.hauteur`, `lobby.rayon`.
 
 1. **Lobby** : les joueurs forment leurs équipes (ou sont répartis automatiquement au lancement).
 2. **Sélection** : une licence est tirée au sort par équipe, chacun choisit un personnage (60 s, puis attribution automatique).
@@ -79,7 +80,7 @@ Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plat
 
 ### Administrateurs de partie et règles
 
-`/cf admin <pseudo>` (réservé aux opérateurs du serveur) confie à un joueur les droits d'administrateur de partie : sans être opérateur, il peut lancer et arrêter la partie (`/cf start`, `/cf stop`), rappeler tout le monde au lobby (`/cf lobby`), régler la taille des équipes (`/cf setsize`) et changer les règles (`/cf regle`). La même commande les lui retire ; `/cf admin` seul donne la liste. Le mode test et les commandes de triche restent aux opérateurs. Dans ce README, « (admin) » veut dire opérateur ou administrateur de partie pour ces commandes-là.
+`/cf admin <pseudo>` (réservé aux opérateurs du serveur) confie à un joueur les droits d'administrateur de partie : sans être opérateur, il peut lancer et arrêter la partie (`/cf start`, `/cf stop`), rappeler tout le monde au lobby (`/cf lobby`), créer une nouvelle map (`/cf regenere`), régler la taille des équipes (`/cf setsize`) et changer les règles (`/cf regle`). La même commande les lui retire ; `/cf admin` seul donne la liste. Le mode test et les commandes de triche restent aux opérateurs. Dans ce README, « (admin) » veut dire opérateur ou administrateur de partie pour ces commandes-là.
 
 `/cf regle` liste les règles et leur valeur ; `/cf regle <nom> <valeur>` en change une, l'annonce à tous et l'enregistre dans `config.yml` :
 
@@ -94,11 +95,25 @@ Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plat
 | `vies` | 3 | Vies par joueur |
 | `dispersion` | 800 blocs | Rayon dans lequel les équipes sont dispersées au départ |
 | `reapparition` | 500 blocs | Rayon dans lequel on réapparaît après une mort |
+| `force` | 1 pt | Points d'attaque par niveau de Force, potion comprise (3 : comme dans Minecraft) |
+| `minerais` | 5 x | Minerais multipliés sous terre (1 : comme dans Minecraft) |
 | `regeneration` | non | Régénération naturelle de la vie |
 | `jour-permanent` | non | Il fait toujours jour |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 
 La bordure se réduit maintenant d'elle-même : à sa minute, elle passe en `bordure-duree` minutes de son rayon de départ à son rayon final, avec une annonce cinq minutes avant.
+
+### Force
+
+La Force est réduite : chaque niveau donne +1 point d'attaque (un demi-cœur) au lieu des +3 de Minecraft, donc +1 en Force I, +2 en Force II, etc. Cela vaut pour la potion et l'effet de Force comme pour les bonus de Force des personnages (« Force 0.5 » donne +0,5). La règle `force` remet une autre valeur (3 : celle de Minecraft) ; elle s'applique tout de suite, même à ceux qui ont déjà l'effet.
+
+### Minerais multipliés
+
+Sous terre, il y a 5 fois plus de minerais (charbon, fer, cuivre, or, redstone, lapis, diamant, émeraude) : la première fois qu'une zone du monde de jeu est chargée, chacun de ses filons est recopié quatre fois ailleurs dans la même zone, à peu près à la même profondeur, dans la roche. Chaque zone n'est enrichie qu'une fois (elle en garde la marque), y compris dans un monde déjà exploré. La règle `minerais` change le multiplicateur (1 : rien) pour les zones pas encore enrichies ; pour l'appliquer partout, créer une nouvelle map.
+
+### Nouvelle map
+
+`/cf regenere` (hors partie) crée un nouveau monde de jeu, avec une graine au hasard ou celle donnée (`/cf regenere 12345`), y amène tous les joueurs sur son lobby et l'inscrit dans `config.yml` (`world.name`, un nom en `crossfight_map_…`). Le serveur se fige une dizaine de secondes pendant la création. L'ancienne map est effacée du disque si c'était déjà une map créée par cette commande ; le monde principal du serveur (`world`) n'est jamais effacé, il n'est simplement plus utilisé. Le Nether et l'End restent ceux du serveur (ils ne sont pas recréés) et leurs portails ramènent vers la map de jeu.
 
 ## Architecture
 
@@ -134,7 +149,7 @@ charge l'Ultime de 0,25 % (`ultimate.charge-per-percent-damage` dans `config.yml
 ### Bonus fractionnaires
 
 Le doc parle de « Force 0.5 » ou « +0.2 Vitesse ». Les potions ne le permettent pas, donc
-le plugin applique des modificateurs d'attributs : Force 1 = +3 dégâts de mêlée,
+le plugin applique des modificateurs d'attributs : Force 1 = +1 point d'attaque (règle `force` ; 3 dans Minecraft),
 Vitesse 1 = +20 % de vitesse, Résistance 1 = -20 % de dégâts reçus (plafond 80 %).
 
 ### Sons, voix et musiques

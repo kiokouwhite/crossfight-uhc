@@ -15,7 +15,7 @@ import java.util.UUID;
  * que les potions ne permettent pas. Chaque source a sa cle pour pouvoir etre
  * ajoutee ou retiree independamment.
  *
- *  - Force 1 = +3 degats de melee
+ *  - Force 1 = +1 point d'attaque (regle "force" ; 3 dans Minecraft), la potion de Force comprise
  *  - Vitesse 1 = +20 % de vitesse
  *  - Resistance 1 = -20 % de degats recus (plafond 80 %)
  *  - Arme = degats plats ajoutes a toutes les attaques
@@ -33,7 +33,15 @@ public final class Boosts {
     private static final NamespacedKey SPEED_KEY = new NamespacedKey("crossfight", "boost_speed");
     private static final Map<UUID, Map<String, Boost>> BOOSTS = new HashMap<>();
 
+    /** Ce que donne un niveau de l'effet de Force dans Minecraft. */
+    private static final double VANILLA_FORCE = 3.0;
+
     private Boosts() {}
+
+    /** Points d'attaque par niveau de Force (regle "force", 1 par defaut). */
+    public static double forcePoints() {
+        return com.kiokouwhite.crossfight.CrossfightPlugin.get().getConfig().getInt("game.strength-damage", 1);
+    }
 
     public static void set(LivingEntity p, String source, Boost boost) {
         BOOSTS.computeIfAbsent(p.getUniqueId(), u -> new HashMap<>()).put(source, boost);
@@ -81,7 +89,11 @@ public final class Boosts {
     public static void apply(LivingEntity p) {
         AttributeInstance dmg = p.getAttribute(Attribute.ATTACK_DAMAGE);
         AttributeInstance spd = p.getAttribute(Attribute.MOVEMENT_SPEED);
-        double addDamage = totalForce(p) * 3.0 + totalWeapon(p);
+        double perLevel = forcePoints();
+        double addDamage = totalForce(p) * perLevel + totalWeapon(p);
+        // L'effet de Force de Minecraft donne 3 points par niveau : on en retire ce qu'il a de trop.
+        var potion = p.getPotionEffect(org.bukkit.potion.PotionEffectType.STRENGTH);
+        if (potion != null) addDamage += (perLevel - VANILLA_FORCE) * (potion.getAmplifier() + 1);
         double speedMul = totalSpeed(p) * 0.2;
         if (dmg != null) {
             dmg.removeModifier(FORCE_KEY);

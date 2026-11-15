@@ -74,6 +74,59 @@ public final class GameManager {
         return w != null ? w : Bukkit.getWorlds().get(0);
     }
 
+    // ----------------------------------------------------------------- nouvelle map
+
+    /** Les mondes de jeu crees par /cf regenere : les seuls que le plugin s'autorise a effacer. */
+    public static final String MAP_PREFIX = "crossfight_map_";
+
+    /** Au demarrage du serveur : la map creee par /cf regenere n'est pas chargee par le serveur lui-meme. */
+    public void loadWorld() {
+        String name = plugin.getConfig().getString("world.name", "world");
+        if (Bukkit.getWorld(name) != null || !name.startsWith(MAP_PREFIX)) return;
+        if (new java.io.File(Bukkit.getWorldContainer(), name).isDirectory()) new org.bukkit.WorldCreator(name).createWorld();
+        else plugin.getLogger().warning("La map " + name + " n'existe plus : la partie se jouera dans le monde principal.");
+    }
+
+    /**
+     * Une map toute neuve : un nouveau monde (graine au hasard, ou celle donnee) devient le monde de jeu, tous les
+     * joueurs y sont amenes sur son lobby, et l'ancienne map est effacee si c'etait deja une map du plugin (le
+     * monde principal du serveur, lui, est seulement delaisse). Hors partie uniquement. Rend null en cas d'echec.
+     */
+    public World regenerate(Long seed) {
+        World old = world();
+        String name = MAP_PREFIX + Long.toString(System.currentTimeMillis() / 1000, 36);
+        var creator = new org.bukkit.WorldCreator(name).environment(World.Environment.NORMAL);
+        if (seed != null) creator.seed(seed);
+        World w = creator.createWorld();
+        if (w == null) return null;
+        w.setDifficulty(old.getDifficulty());
+        removeLobby(old);
+        plugin.getConfig().set("world.name", name);
+        plugin.saveConfig();
+        prepareWorld();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.isDead() || (plugin.testMode().isTester(p) && !p.getWorld().equals(old))) continue;
+            p.teleport(lobbySpot());
+            p.setFallDistance(0);
+        }
+        if (old.getName().startsWith(MAP_PREFIX)) {
+            java.io.File folder = old.getWorldFolder();
+            if (Bukkit.unloadWorld(old, false)) Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> erase(folder));
+            else plugin.getLogger().warning("L'ancienne map " + old.getName() + " n'a pas pu etre dechargee : son dossier reste sur le disque.");
+        }
+        return w;
+    }
+
+    /** Efface le dossier d'une ancienne map du plugin (et rien d'autre). */
+    private void erase(java.io.File folder) {
+        if (!folder.getName().startsWith(MAP_PREFIX) || !folder.isDirectory()) return;
+        try (var files = java.nio.file.Files.walk(folder.toPath())) {
+            files.sorted(java.util.Comparator.reverseOrder()).forEach(f -> f.toFile().delete());
+        } catch (java.io.IOException ex) {
+            plugin.getLogger().warning("L'ancienne map " + folder.getName() + " n'a pas pu etre effacee : " + ex.getMessage());
+        }
+    }
+
     // ----------------------------------------------------------------- lobby
 
     /** Hauteur des murs invisibles autour de la plateforme du lobby. */
@@ -90,7 +143,10 @@ public final class GameManager {
         if (!plugin.getConfig().getBoolean("lobby.plateforme", true)) return spawn;
         int y = lobbyY(w), r = lobbyRadius();
         int cx = spawn.getBlockX(), cz = spawn.getBlockZ();
-        if (w.getBlockAt(cx, y, cz).getType() != Material.GLASS) {
+        // Deja la, a la bonne taille : son plafond au centre et son mur au bord (le sol, lui, change de couleur).
+        boolean built = w.getBlockAt(cx, y + LOBBY_WALL + 1, cz).getType() == Material.BARRIER && w.getBlockAt(cx + r + 1, y + 1, cz).getType() == Material.BARRIER;
+        if (!built) {
+            clearLobby(w, cx, y, cz);
             for (int x = -r - 1; x <= r + 1; x++) {
                 for (int z = -r - 1; z <= r + 1; z++) {
                     boolean edge = Math.abs(x) == r + 1 || Math.abs(z) == r + 1;
@@ -103,23 +159,61 @@ public final class GameManager {
         return new Location(w, cx + 0.5, y + 1, cz + 0.5, spawn.getYaw(), 0);
     }
 
+    private static final int LOBBY_MAX = 64;
+
     private int lobbyY(World w) {
         return Math.max(w.getMinHeight() + 8, Math.min(w.getMaxHeight() - LOBBY_WALL - 3, plugin.getConfig().getInt("lobby.hauteur", 250)));
     }
 
     private int lobbyRadius() {
-        return Math.max(2, Math.min(30, plugin.getConfig().getInt("lobby.rayon", 10)));
+        return Math.max(2, Math.min(LOBBY_MAX, plugin.getConfig().getInt("lobby.rayon", 21)));
+    }
+
+    /**
+     * Retire la plateforme du lobby, quelle que soit sa taille (une plus petite, d'un reglage precedent) : son
+     * plafond de barrieres, suivi depuis le centre, dit jusqu'ou elle va. Sans plateforme, rien n'est touche.
+     */
+    private void clearLobby(World w, int cx, int y, int cz) {
+        int reach = 0;
+        while (reach <= LOBBY_MAX + 1 && w.getBlockAt(cx + reach, y + LOBBY_WALL + 1, cz).getType() == Material.BARRIER) reach++;
+        if (reach == 0) return;
+        for (int x = -reach; x <= reach; x++) for (int z = -reach; z <= reach; z++) for (int h = 0; h <= LOBBY_WALL + 1; h++) {
+            var b = w.getBlockAt(cx + x, y + h, cz + z);
+            if (!b.getType().isAir()) b.setType(Material.AIR, false);
+        }
     }
 
     /** La partie commence : la plateforme du lobby disparait du ciel (elle revient au prochain retour au lobby). */
-    private void removeLobby() {
-        World w = world();
+    private void removeLobby() { removeLobby(world()); }
+
+    private void removeLobby(World w) {
         Location spawn = w.getSpawnLocation();
-        int y = lobbyY(w), r = lobbyRadius(), cx = spawn.getBlockX(), cz = spawn.getBlockZ();
-        if (w.getBlockAt(cx, y, cz).getType() != Material.GLASS) return;
-        for (int x = -r - 1; x <= r + 1; x++) for (int z = -r - 1; z <= r + 1; z++) for (int h = 0; h <= LOBBY_WALL + 1; h++) {
-            w.getBlockAt(cx + x, y + h, cz + z).setType(Material.AIR, false);
-        }
+        int y = lobbyY(w), cx = spawn.getBlockX(), cz = spawn.getBlockZ();
+        clearLobby(w, cx, y, cz);
+    }
+
+    /** Les couleurs que prend le sol du lobby sous les pas des joueurs. */
+    private static final Material[] LOBBY_COLORS = {
+            Material.RED_STAINED_GLASS, Material.ORANGE_STAINED_GLASS, Material.YELLOW_STAINED_GLASS, Material.LIME_STAINED_GLASS,
+            Material.LIGHT_BLUE_STAINED_GLASS, Material.CYAN_STAINED_GLASS, Material.BLUE_STAINED_GLASS, Material.PURPLE_STAINED_GLASS,
+            Material.MAGENTA_STAINED_GLASS, Material.PINK_STAINED_GLASS};
+
+    /**
+     * Pour patienter : le bloc de verre du lobby sur lequel un joueur vient de poser le pied change de couleur
+     * (jamais deux fois la meme de suite), avec une petite note.
+     */
+    public void stepOnLobby(Player p, org.bukkit.block.Block under) {
+        if (state == GameState.RUNNING || !plugin.getConfig().getBoolean("lobby.plateforme", true)) return;
+        World w = world();
+        if (!under.getWorld().equals(w) || under.getY() != lobbyY(w) || !under.getType().name().endsWith("GLASS")) return;
+        Location spawn = w.getSpawnLocation();
+        int r = lobbyRadius();
+        // Le lisere blanc du bord reste blanc.
+        if (Math.abs(under.getX() - spawn.getBlockX()) >= r || Math.abs(under.getZ() - spawn.getBlockZ()) >= r) return;
+        int pick = ThreadLocalRandom.current().nextInt(LOBBY_COLORS.length);
+        if (LOBBY_COLORS[pick] == under.getType()) pick = (pick + 1) % LOBBY_COLORS.length;
+        under.setType(LOBBY_COLORS[pick], false);
+        p.playSound(under.getLocation().add(0.5, 1, 0.5), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.35f, 0.6f + pick * 0.14f);
     }
 
     // ----------------------------------------------------------------- start

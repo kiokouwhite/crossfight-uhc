@@ -51,6 +51,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         abilityEngine = new AbilityEngine(this);
         livesManager = new LivesManager(this);
         gameManager = new GameManager(this);
+        gameManager.loadWorld();
         scoreboardManager = new ScoreboardManager(this);
         testMode = new com.kiokouwhite.crossfight.game.TestMode(this);
         testMode.load();
@@ -67,6 +68,9 @@ public final class CrossfightPlugin extends JavaPlugin {
         music = new com.kiokouwhite.crossfight.util.Music(this);
         pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);
+        ores = new com.kiokouwhite.crossfight.game.Ores(this);
+        pm.registerEvents(ores, this);
+        ores.boostLoaded();
         pm.registerEvents(new DeathListener(this), this);
         pm.registerEvents(new RestrictionListener(this), this);
         pm.registerEvents(characterRegistry.selectMenu(this), this);
@@ -132,6 +136,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public GameManager game() { return gameManager; }
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
+    private com.kiokouwhite.crossfight.game.Ores ores;
+    public com.kiokouwhite.crossfight.game.Ores ores() { return ores; }
     private com.kiokouwhite.crossfight.game.SelectionStage selectionStage;
     private com.kiokouwhite.crossfight.hud.EffectHud effectHud;
 

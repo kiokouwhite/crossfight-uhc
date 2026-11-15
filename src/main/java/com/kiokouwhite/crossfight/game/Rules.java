@@ -40,6 +40,8 @@ public final class Rules {
         add("vies", "game.lives", 3, 1, 10, "", "Vies par joueur");
         add("dispersion", "world.spread-radius", 800, 20, 10000, "blocs", "Rayon dans lequel les equipes sont dispersees au depart");
         add("reapparition", "lives.respawn-radius", 500, 20, 10000, "blocs", "Rayon dans lequel on reapparait apres une mort");
+        add("force", "game.strength-damage", 1, 0, 3, "pt", "Points d'attaque par niveau de Force (3 : comme dans Minecraft)");
+        add("minerais", "world.ore-multiplier", 5, 1, 10, "x", "Minerais multiplies sous terre (zones pas encore enrichies ; 1 : comme dans Minecraft)");
         toggle("regeneration", "game.natural-regeneration", false, "Regeneration naturelle de la vie");
         toggle("jour-permanent", "game.eternal-day", false, "Il fait toujours jour");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");
@@ -100,6 +102,9 @@ public final class Rules {
         if (on("jour-permanent")) w.setTime(6000);
         // La bordure suit son rayon de depart tant qu'elle n'a pas commence a se reduire.
         if (!plugin.game().isRunning() || !plugin.game().borderShrinking()) w.getWorldBorder().setSize(value("bordure") * 2.0);
+        // La Force suit sa regle tout de suite, pour ceux qui en ont deja.
+        for (var p : org.bukkit.Bukkit.getOnlinePlayers()) com.kiokouwhite.crossfight.util.Boosts.apply(p);
+        if (plugin.ores() != null) plugin.ores().boostLoaded();
     }
 
     // ------------------------------------------------------------ administrateurs de partie

@@ -67,6 +67,13 @@ public final class DamageListener implements Listener {
      * Le mannequin pilote frappe comme un joueur : la difficulte du serveur, qui reduit (facile) ou
      * augmente (difficile) les coups des monstres sur les joueurs, ne s'applique pas a lui.
      */
+    /** La Force ne vaut que la regle "force" par niveau : son correctif suit l'effet des qu'il arrive, change ou part. */
+    @EventHandler
+    public void onStrength(org.bukkit.event.entity.EntityPotionEffectEvent e) {
+        if (!org.bukkit.potion.PotionEffectType.STRENGTH.equals(e.getModifiedType()) || !(e.getEntity() instanceof org.bukkit.entity.LivingEntity le)) return;
+        org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> { if (le.isValid()) com.kiokouwhite.crossfight.util.Boosts.apply(le); });
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onPilotDifficulty(EntityDamageEvent e) {
         if (!(e.getEntity() instanceof Player)) return;

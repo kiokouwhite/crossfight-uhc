@@ -40,6 +40,7 @@ public final class ConnectionListener implements Listener {
         e.joinMessage(Msg.prefixed("<gray>" + p.getName() + " a rejoint."));
         // Deconnecte pendant l'ecran de selection (vitesse de marche a zero, gardee avec le joueur) : il la retrouve.
         if (p.getWalkSpeed() == 0f) p.setWalkSpeed(0.2f);
+        com.kiokouwhite.crossfight.util.Boosts.apply(p);
         // Le pack est propose une fois le joueur installe : envoye pendant le chargement du monde,
         // l'ecran de confirmation est referme aussitot par le jeu. Les menus (choix du personnage,
         // mode test) attendent sa reponse pour ne pas le recouvrir.
@@ -80,6 +81,29 @@ public final class ConnectionListener implements Listener {
             }
             if (!hasItems) plugin.abilities().equip(p);
         }
+    }
+
+    /**
+     * Quand la map de jeu n'est pas le monde principal du serveur (/cf regenere), le Nether et l'End ramenent
+     * quand meme vers elle.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPortal(org.bukkit.event.player.PlayerPortalEvent e) {
+        var main = org.bukkit.Bukkit.getWorlds().get(0);
+        var game = plugin.game().world();
+        var to = e.getTo();
+        if (game.equals(main) || to.getWorld() == null || !to.getWorld().equals(main) || e.getFrom().getWorld().equals(game)) return;
+        if (e.getFrom().getWorld().getEnvironment() == org.bukkit.World.Environment.THE_END) e.setTo(game.getSpawnLocation().add(0.5, 0, 0.5));
+        else { to.setWorld(game); e.setTo(to); }
+    }
+
+    /** Dans le lobby, le verre change de couleur sous les pas. */
+    @EventHandler(ignoreCancelled = true)
+    public void onLobbyStep(org.bukkit.event.player.PlayerMoveEvent e) {
+        var from = e.getFrom();
+        var to = e.getTo();
+        if (from.getBlockX() == to.getBlockX() && from.getBlockZ() == to.getBlockZ() && from.getBlockY() == to.getBlockY()) return;
+        plugin.game().stepOnLobby(e.getPlayer(), to.clone().subtract(0, 0.2, 0).getBlock());
     }
 
     @EventHandler
