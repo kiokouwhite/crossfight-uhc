@@ -303,7 +303,7 @@ public final class TestMode implements Listener {
         p.setHealth(20);
         p.setGameMode(GameMode.ADVENTURE);
         boolean backInTest = back != null && (back.getWorld().getName().equals(WORLD) || back.getWorld().getName().equals(DUO_WORLD) || back.getWorld().getName().equals(ThirdPerson.WORLD) || back.getWorld().getName().equals(TREE_WORLD));
-        p.teleport(back != null && !backInTest ? back : plugin.game().world().getSpawnLocation());
+        p.teleport(back != null && !backInTest ? back : plugin.game().lobbySpot());
         Msg.send(p, "<yellow>Mode test quitte.");
         pending.remove(p.getUniqueId());
         save();

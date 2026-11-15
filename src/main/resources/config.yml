@@ -62,6 +62,14 @@ music:
   # La boucle repart ce nombre de millisecondes avant la fin de la piste, pour ne laisser aucun blanc
   loop-overlap-ms: 50
 
+lobby:
+  # Avant le lancement, les joueurs attendent sur une plateforme de verre dans les airs, au-dessus du point
+  # d'apparition du monde (false : ils restent au point d'apparition)
+  plateforme: true
+  # Hauteur de la plateforme, et sa demi-largeur en blocs
+  hauteur: 250
+  rayon: 10
+
 world:
   # Nom du monde de jeu
   name: world

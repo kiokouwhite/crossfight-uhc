@@ -844,7 +844,7 @@ public final class SelectionStage implements Listener {
             plugin.scoreboard().refresh(p);
             if (back) {
                 if (v.stage.preview && plugin.testMode().isTester(p)) p.teleport(ArenaWorlds.center(TestMode.world()));
-                else p.teleport(plugin.game().world().getSpawnLocation());
+                else p.teleport(plugin.game().isLobby() ? plugin.game().lobbySpot() : plugin.game().world().getSpawnLocation());
                 p.setFallDistance(0);
             }
         }

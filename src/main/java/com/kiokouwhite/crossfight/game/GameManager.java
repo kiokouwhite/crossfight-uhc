@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
@@ -60,6 +61,54 @@ public final class GameManager {
         return w != null ? w : Bukkit.getWorlds().get(0);
     }
 
+    // ----------------------------------------------------------------- lobby
+
+    /** Hauteur des murs invisibles autour de la plateforme du lobby. */
+    private static final int LOBBY_WALL = 5;
+
+    /**
+     * Ou attendent les joueurs avant le lancement : au milieu d'une plateforme de verre dans les airs, au-dessus
+     * du point d'apparition du monde (lobby.plateforme: false : le point d'apparition lui-meme). La plateforme
+     * est construite au besoin ; des murs et un plafond invisibles empechent d'en tomber.
+     */
+    public Location lobbySpot() {
+        World w = world();
+        Location spawn = w.getSpawnLocation();
+        if (!plugin.getConfig().getBoolean("lobby.plateforme", true)) return spawn;
+        int y = lobbyY(w), r = lobbyRadius();
+        int cx = spawn.getBlockX(), cz = spawn.getBlockZ();
+        if (w.getBlockAt(cx, y, cz).getType() != Material.GLASS) {
+            for (int x = -r - 1; x <= r + 1; x++) {
+                for (int z = -r - 1; z <= r + 1; z++) {
+                    boolean edge = Math.abs(x) == r + 1 || Math.abs(z) == r + 1;
+                    // Le sol : du verre, borde d'un lisere blanc ; autour et au-dessus, des barrieres invisibles.
+                    if (!edge) w.getBlockAt(cx + x, y, cz + z).setType(Math.abs(x) == r || Math.abs(z) == r ? Material.WHITE_STAINED_GLASS : Material.GLASS, false);
+                    for (int h = edge ? 0 : LOBBY_WALL + 1; h <= LOBBY_WALL + 1; h++) w.getBlockAt(cx + x, y + h, cz + z).setType(Material.BARRIER, false);
+                }
+            }
+        }
+        return new Location(w, cx + 0.5, y + 1, cz + 0.5, spawn.getYaw(), 0);
+    }
+
+    private int lobbyY(World w) {
+        return Math.max(w.getMinHeight() + 8, Math.min(w.getMaxHeight() - LOBBY_WALL - 3, plugin.getConfig().getInt("lobby.hauteur", 250)));
+    }
+
+    private int lobbyRadius() {
+        return Math.max(2, Math.min(30, plugin.getConfig().getInt("lobby.rayon", 10)));
+    }
+
+    /** La partie commence : la plateforme du lobby disparait du ciel (elle revient au prochain retour au lobby). */
+    private void removeLobby() {
+        World w = world();
+        Location spawn = w.getSpawnLocation();
+        int y = lobbyY(w), r = lobbyRadius(), cx = spawn.getBlockX(), cz = spawn.getBlockZ();
+        if (w.getBlockAt(cx, y, cz).getType() != Material.GLASS) return;
+        for (int x = -r - 1; x <= r + 1; x++) for (int z = -r - 1; z <= r + 1; z++) for (int h = 0; h <= LOBBY_WALL + 1; h++) {
+            w.getBlockAt(cx + x, y + h, cz + z).setType(Material.AIR, false);
+        }
+    }
+
     // ----------------------------------------------------------------- start
 
     /** Lance la sequence de depart : equipes, licences, choix de personnage. */
@@ -94,6 +143,7 @@ public final class GameManager {
         }
         plugin.teams().assignLicences();
         prepareWorld();
+        removeLobby();
 
         state = GameState.SELECTING;
         phaseCountdown = SELECTION_SECONDS;
@@ -292,8 +342,9 @@ public final class GameManager {
             p.getInventory().clear();
             p.setHealth(20);
             plugin.players().get(p).setWaitingRespawn(false);
-            // Retour au lobby : chacun retrouve son propre skin.
+            // Retour au lobby : chacun retrouve son propre skin, et la plateforme dans les airs.
             com.kiokouwhite.crossfight.util.Skins.restore(p);
+            if (!p.isDead()) { p.teleport(lobbySpot()); p.setFallDistance(0); }
         }
         plugin.teams().clear();
         com.kiokouwhite.crossfight.util.Mannequins.clearAll();

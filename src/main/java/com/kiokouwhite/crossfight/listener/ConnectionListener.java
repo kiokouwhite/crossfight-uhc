@@ -59,6 +59,9 @@ public final class ConnectionListener implements Listener {
         if (plugin.game().isLobby()) {
             p.setGameMode(GameMode.ADVENTURE);
             p.getInventory().clear();
+            // En attendant le lancement : la plateforme de verre dans les airs.
+            p.teleport(plugin.game().lobbySpot());
+            p.setFallDistance(0);
             Msg.send(p, "<gray>Bienvenue sur <gold>Crossfight UHC</gold>. En attente du lancement.");
             return;
         }
