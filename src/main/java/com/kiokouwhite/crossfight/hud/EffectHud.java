@@ -133,6 +133,14 @@ public final class EffectHud implements Listener {
         return shown.isEmpty() ? null : kind + "_" + String.join("_", shown);
     }
 
+    /**
+     * Le dossier des images : celles aux vraies icones de Minecraft quand le pack complet les contient (un
+     * dossier a part : le pack public envoye par le serveur ne les recouvre pas), sinon les dessins du pack public.
+     */
+    private static String folder() {
+        return com.kiokouwhite.crossfight.util.Sounds.has("overlay.minecraft") ? "overlay_mc/" : "overlay/";
+    }
+
     /** Images par boucle (tools/build_overlays.py : FRAMES). */
     static final int FRAMES = 8;
 
@@ -145,7 +153,7 @@ public final class EffectHud implements Listener {
         return items.computeIfAbsent(slot + ":" + image, k -> {
             ItemStack it = ItemStack.of(Material.PAPER);
             it.setData(DataComponentTypes.ITEM_MODEL, Key.key("crossfight", "hidden"));
-            it.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slot).cameraOverlay(Key.key("crossfight", "overlay/" + image)).build());
+            it.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slot).cameraOverlay(Key.key("crossfight", folder() + image)).build());
             it.setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build());
             return it;
         }).clone();

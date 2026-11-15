@@ -17,6 +17,7 @@ glyph.schnee_cercle
 glyph.schnee_flocon
 model.falchion
 model.yumi_fujin
+overlay.minecraft
 select.card.byleth
 select.card.corrin
 select.card.marth

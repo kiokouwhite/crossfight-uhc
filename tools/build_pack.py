@@ -129,6 +129,12 @@ def models(base: Path):
     return out
 
 
+def overlays(base: Path):
+    """Les icones d'effets de Minecraft pour les bords de l'ecran (tools/build_overlays.py --minecraft)."""
+    folder = base / "assets" / NS / "textures" / "overlay_mc"
+    return {"overlay.minecraft"} if folder.is_dir() and any(folder.glob("*.png")) else set()
+
+
 def other_assets(base: Path):
     """Les fichiers du pack qui ne sont pas des sons : modeles, textures, objets."""
     out = {}
@@ -213,7 +219,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms = set(), {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _ = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}

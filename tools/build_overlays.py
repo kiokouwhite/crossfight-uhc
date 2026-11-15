@@ -4,7 +4,9 @@
 Usage :  python3 tools/build_overlays.py [--apercu image.png] [--minecraft client.jar]
 
 --minecraft : les memes images avec les vraies icones d'effets de Minecraft (lues dans le client.jar), ecrites
-              dans resourcepack-prive/ ou elles remplacent celles du pack public. Jamais versionnees.
+              dans resourcepack-prive/, dossier overlay_mc/ : un dossier a part, pour que le pack public envoye par le
+              serveur (prioritaire sur celui du joueur) ne les recouvre pas. Le plugin les prefere quand le pack
+              complet les contient ("overlay.minecraft"). Jamais versionnees.
 
 Minecraft dessine en plein ecran l'image "camera_overlay" d'un objet porte (comme la vue a travers une
 citrouille). Le plugin glisse a chaque joueur, pour lui seul, un objet invisible dans sa case de casque
@@ -36,7 +38,7 @@ SLOTS_Y = (392, 318)          # premiere icone, puis la seconde au-dessus
 # L'animation : les icones montent le long du bord en file, apparaissent en bas et s'effacent en haut.
 FRAMES = 8                    # images par boucle (le plugin en change tous les 2 ticks)
 COPIES = 3                    # icones de chaque effet a l'ecran en meme temps
-RISE = (452, 176)             # hauteur de depart et d'arrivee
+RISE = (H + 34, 150)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee
 SIZE = (512, 288)             # taille des images ecrites (dessinees en 1024 x 576 puis reduites)
 EDGE_X = 62                   # centre des icones, depuis le bord
 
@@ -235,7 +237,7 @@ def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
             t = ((k + n / len(effects)) / COPIES + frame / (FRAMES * COPIES)) % 1.0
             stream.append((t, e, color))
     for t, e, color in sorted(stream):
-        fade = min(1.0, t / 0.16) * min(1.0, (1 - t) / 0.42)
+        fade = min(1.0, (1 - t) / 0.42)
         size = int(BADGE_R * 2 * (1.08 - 0.3 * t))
         b = badge(e, color, size)
         b.putalpha(b.getchannel("A").point(lambda v: int(v * fade)))
@@ -253,7 +255,7 @@ def main() -> int:
     global OUT
     if "--minecraft" in sys.argv:
         load_minecraft(Path(sys.argv[sys.argv.index("--minecraft") + 1]))
-        OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "overlay"
+        OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "overlay_mc"
     OUT.mkdir(parents=True, exist_ok=True)
     for old in list(OUT.glob("*.png")) + list(OUT.glob("*.mcmeta")):
         old.unlink()
