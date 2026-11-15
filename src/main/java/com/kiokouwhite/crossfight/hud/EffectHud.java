@@ -34,7 +34,8 @@ import java.util.UUID;
 /**
  * Les bonus et malus d'un joueur, sur les bords de son ecran (comme dans un jeu de tir) : a gauche la bande
  * et les icones de ses bonus, a droite celles de ses malus (deux au plus de chaque cote), et un son quand il
- * en recoit un nouveau.
+ * en recoit un nouveau. Les icones montent en file le long du bord et s'effacent en haut : chaque image de
+ * plein ecran est une etape de la boucle, que le plugin fait defiler.
  *
  * L'image est le "camera_overlay" d'un objet porte, que le jeu dessine en plein ecran (comme la vue a travers
  * une citrouille). Le joueur, et lui seul, voit un objet invisible dans sa case de casque (les bonus) et de
@@ -64,7 +65,7 @@ public final class EffectHud implements Listener {
     }
 
     public void start() {
-        Bukkit.getScheduler().runTaskTimer(plugin, this::update, 20L, 5L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::update, 20L, 2L);
     }
 
     private boolean enabled() { return plugin.getConfig().getBoolean("hud.effets", true); }
@@ -101,15 +102,16 @@ public final class EffectHud implements Listener {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
-            // Renvoye regulierement : un clic dans l'inventaire ou une mise a jour du serveur l'efface.
-            if (changed || tick % 2 == 0) send(p, st);
+            // Les icones montent le long du bord : une image de la boucle toutes les 2 ticks (ce qui renvoie aussi
+            // l'objet regulierement : un clic dans l'inventaire ou une mise a jour du serveur l'efface).
+            send(p, st);
         }
     }
 
     private void send(Player p, State st) {
         st.shown = ClientSlots.show(p, new int[]{HEAD, LEGS}, new ItemStack[]{
-                st.bonusImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.bonusImage),
-                st.malusImage == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, st.malusImage)});
+                st.bonusImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.bonusImage + "_" + frame()),
+                st.malusImage == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, st.malusImage + "_" + frame())});
     }
 
     /**
@@ -119,8 +121,8 @@ public final class EffectHud implements Listener {
     public ItemStack shownIn(Player p, int slot) {
         State st = states.get(p.getUniqueId());
         if (st == null) return null;
-        if (slot == HEAD && st.bonusImage != null) return overlayItem(EquipmentSlot.HEAD, st.bonusImage);
-        if (slot == LEGS && st.malusImage != null) return overlayItem(EquipmentSlot.LEGS, st.malusImage);
+        if (slot == HEAD && st.bonusImage != null) return overlayItem(EquipmentSlot.HEAD, st.bonusImage + "_" + frame());
+        if (slot == LEGS && st.malusImage != null) return overlayItem(EquipmentSlot.LEGS, st.malusImage + "_" + frame());
         return null;
     }
 
@@ -130,6 +132,12 @@ public final class EffectHud implements Listener {
         for (String k : order) if (present.contains(k) && shown.size() < 2) shown.add(k);
         return shown.isEmpty() ? null : kind + "_" + String.join("_", shown);
     }
+
+    /** Images par boucle (tools/build_overlays.py : FRAMES). */
+    static final int FRAMES = 8;
+
+    /** L'image de la boucle a montrer maintenant. */
+    private int frame() { return tick % FRAMES; }
 
     private final Map<String, ItemStack> items = new HashMap<>();
 
