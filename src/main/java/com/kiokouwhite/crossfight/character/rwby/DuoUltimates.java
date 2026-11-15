@@ -16,6 +16,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -86,11 +87,23 @@ final class DuoUltimates {
     // ------------------------------------------------------------ Ruby + Weiss
 
     /** Patinoire de 50 blocs de large : les allies dessus ont Vitesse III. 30 secondes. */
+    /** Ice Flower : le temps du geste de Weiss avant que l'epee touche le sol, puis celui que met la glace a s'etendre. */
+    static final int PLANT = 6, SPREAD = 30;
+    static final Particle.DustOptions PETAL = new Particle.DustOptions(Color.fromRGB(205, 24, 44), 1.3f),
+            PETAL_DARK = new Particle.DustOptions(Color.fromRGB(140, 10, 30), 1.0f);
+
+    /**
+     * Weiss leve son epee et la plante dans le sol : la glace part de la lame et s'etend jusqu'a 25 blocs. Ruby
+     * file autour de la patinoire a mesure qu'elle grandit, a toute vitesse, en semant des petales de rose qui
+     * restent en couronne sur son bord. Elle revient ensuite d'ou elle est partie.
+     */
     static boolean patinoire(LivingEntity weiss, LivingEntity ruby) {
         World w = weiss.getWorld();
         Location c = weiss.getLocation();
         TempBlocks rink = new TempBlocks();
         int radius = 25;
+        // Les blocs de la patinoire, du centre vers le bord.
+        List<Block> blocks = new ArrayList<>();
         for (int x = -radius; x <= radius; x++) {
             for (int z = -radius; z <= radius; z++) {
                 if (x * x + z * z > radius * radius) continue;
@@ -98,26 +111,117 @@ final class DuoUltimates {
                 int y = Effects.groundAround(w, bx, bz, c.getBlockY());
                 if (y == Integer.MIN_VALUE) continue;
                 Block top = w.getBlockAt(bx, y, bz);
-                if (top.getType() == Material.WATER || top.getType() == Material.LAVA) { rink.replace(top, Material.PACKED_ICE); continue; }
-                if (top.getType().isSolid()) rink.replace(top, Material.PACKED_ICE);
+                if (top.getType() == Material.WATER || top.getType() == Material.LAVA || top.getType().isSolid()) blocks.add(top);
             }
         }
-        w.playSound(c, Sound.BLOCK_GLASS_PLACE, 1f, 0.6f);
-        w.playSound(c, Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.8f);
-        w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(0, 1, 0), 200, radius / 2.0, 1, radius / 2.0, 0.02);
+        blocks.sort(java.util.Comparator.comparingDouble(bl -> bl.getLocation().add(0.5, 0, 0.5).distanceSquared(new Location(w, c.getX(), bl.getY(), c.getZ()))));
+
+        // Weiss : l'epee levee des deux mains, puis plantee, un genou a terre, tant que la glace s'etend.
+        ItemStack sword = weiss instanceof Player wp ? Weiss.sword(wp) : null;
+        com.kiokouwhite.crossfight.util.Puppet wpu = com.kiokouwhite.crossfight.util.Puppet.show(weiss, "weiss", sword != null ? sword : new ItemStack(Material.IRON_SWORD), "debout");
+        if (wpu != null) { wpu.pose("weiss_plante_leve", 3); wpu.endAfter(PLANT + SPREAD + 6, 5); }
+        Effects.root(weiss, PLANT + SPREAD);
+
+        // Ruby : couchee dans sa course, elle tourne autour de la glace. Elle garde son regard et retrouve sa place a la fin.
+        Location rubyStart = ruby.getLocation();
+        com.kiokouwhite.crossfight.util.Puppet rpu = com.kiokouwhite.crossfight.util.Puppet.show(ruby, "ruby", null, "ruby_petales_vol");
+        if (rpu != null) rpu.endAfter(PLANT + SPREAD + 4, 4);
+        if (ruby instanceof Player rp) Ruby.noFallUntil(rp, (PLANT + SPREAD) * 50L + 4000);
+        double startAngle = Math.atan2(rubyStart.getZ() - c.getZ(), rubyStart.getX() - c.getX());
+        w.playSound(c, Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.7f);
+
         final Player side = Effects.sideOf(weiss);
         new BukkitRunnable() {
-            int seconds = 0;
+            int t = 0, placed = 0;
+            Location last = rubyStart.clone();
             @Override public void run() {
-                if (seconds++ >= 30) { rink.restore(); cancel(); return; }
-                for (Player p : w.getPlayers()) {
-                    if (side == null || !(p == side || Effects.isAlly(side, p))) continue;
-                    Block under = p.getLocation().subtract(0, 0.1, 0).getBlock();
-                    if (rink.contains(under)) Effects.refresh(p, PotionEffectType.SPEED, 2, 45);
+                t++;
+                if (t == 3 && wpu != null && com.kiokouwhite.crossfight.util.Puppet.of(weiss) == wpu) wpu.pose("weiss_plante", 3);
+                if (t == PLANT) {
+                    w.playSound(c, Sound.BLOCK_GLASS_PLACE, 1f, 0.6f);
+                    w.playSound(c, Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.8f);
+                    w.playSound(c, Sound.ITEM_TRIDENT_HIT_GROUND, 1f, 0.6f);
+                    w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(0, 0.3, 0), 60, 0.6, 0.2, 0.6, 0.12);
+                }
+                if (t < PLANT) return;
+                double k = Math.min(1.0, (t - PLANT) / (double) SPREAD), reach = radius * k;
+                // La glace gagne du terrain a partir de la lame.
+                while (placed < blocks.size()) {
+                    Block bl = blocks.get(placed);
+                    double dx = bl.getX() + 0.5 - c.getX(), dz = bl.getZ() + 0.5 - c.getZ();
+                    if (dx * dx + dz * dz > reach * reach) break;
+                    rink.replace(bl, Material.PACKED_ICE);
+                    placed++;
+                }
+                if (t % 3 == 0 && k < 1) {
+                    for (int i = 0; i < 24; i++) {
+                        double a = i * Math.PI / 12 + t * 0.2;
+                        w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(Math.cos(a) * reach, 0.3, Math.sin(a) * reach), 1, 0.2, 0.1, 0.2, 0.01);
+                    }
+                    w.playSound(c, Sound.BLOCK_GLASS_STEP, 0.8f, 0.7f + (float) k * 0.8f);
+                }
+                // Ruby court sur le bord de la glace : pres de trois tours le temps qu'elle s'etende.
+                if (k < 1 && ruby.isValid() && !ruby.isDead()) {
+                    double r = Math.max(2.5, reach + 0.8), a = startAngle + (t - PLANT) * 0.6;
+                    Location at = new Location(w, c.getX() + Math.cos(a) * r, c.getY(), c.getZ() + Math.sin(a) * r);
+                    int gy = Effects.groundAround(w, at.getBlockX(), at.getBlockZ(), c.getBlockY());
+                    at.setY(gy == Integer.MIN_VALUE ? c.getY() : gy + 1);
+                    at.setYaw(ruby.getLocation().getYaw());
+                    at.setPitch(ruby.getLocation().getPitch());
+                    if (at.getBlock().isPassable()) {
+                        ruby.teleport(at);
+                        ruby.setFallDistance(0);
+                        // Le pantin regarde ou elle court (la tangente du cercle).
+                        if (rpu != null && com.kiokouwhite.crossfight.util.Puppet.of(ruby) == rpu) rpu.face((float) Math.toDegrees(Math.atan2(-(-Math.sin(a)), Math.cos(a))));
+                        petals(last, at);
+                        last = at.clone();
+                    }
+                    if (t % 4 == 0) w.playSound(at, Sound.ENTITY_PHANTOM_FLAP, 0.7f, 1.8f);
+                }
+                if (t == PLANT + SPREAD) {
+                    // La patinoire est faite : Ruby revient a sa place dans un dernier tourbillon de petales.
+                    if (ruby.isValid() && !ruby.isDead()) {
+                        w.spawnParticle(Particle.DUST, ruby.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0, PETAL);
+                        ruby.teleport(rubyStart);
+                        ruby.setFallDistance(0);
+                        w.spawnParticle(Particle.DUST, rubyStart.clone().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0, PETAL);
+                        w.spawnParticle(Particle.CHERRY_LEAVES, rubyStart.clone().add(0, 1.6, 0), 20, 0.6, 0.5, 0.6, 0);
+                    }
+                    w.playSound(c, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.7f);
+                }
+                if (t >= PLANT + SPREAD && (t - PLANT - SPREAD) % 20 == 0) {
+                    int seconds = (t - PLANT - SPREAD) / 20;
+                    if (seconds >= 30) { rink.restore(); cancel(); return; }
+                    for (Player p : w.getPlayers()) {
+                        if (side == null || !(p == side || Effects.isAlly(side, p))) continue;
+                        Block under = p.getLocation().subtract(0, 0.1, 0).getBlock();
+                        if (rink.contains(under)) Effects.refresh(p, PotionEffectType.SPEED, 2, 45);
+                    }
+                    // La couronne de petales reste sur le bord de la patinoire.
+                    for (int i = 0; i < 40; i++) {
+                        double a = Math.random() * Math.PI * 2;
+                        Location at = c.clone().add(Math.cos(a) * (radius + 0.5), 0.4 + Math.random() * 1.4, Math.sin(a) * (radius + 0.5));
+                        w.spawnParticle(Particle.DUST, at, 1, 0.2, 0.2, 0.2, 0, i % 3 == 0 ? PETAL_DARK : PETAL);
+                        if (i % 4 == 0) w.spawnParticle(Particle.CHERRY_LEAVES, at.clone().add(0, 0.8, 0), 1, 0.3, 0.2, 0.3, 0);
+                    }
                 }
             }
-        }.runTaskTimer(CrossfightPlugin.get(), 0L, 20L);
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
         return true;
+    }
+
+    /** Les petales de rose que Ruby laisse derriere elle, d'un point de sa course au suivant. */
+    private static void petals(Location from, Location to) {
+        World w = to.getWorld();
+        Vector step = to.toVector().subtract(from.toVector());
+        double length = step.length();
+        if (length < 0.1 || length > 40) return;
+        int n = (int) Math.min(30, Math.ceil(length / 0.7));
+        for (int i = 0; i < n; i++) {
+            Location at = from.clone().add(step.clone().multiply((i + Math.random()) / n)).add(0, 0.3 + Math.random() * 1.3, 0);
+            w.spawnParticle(Particle.DUST, at, 1, 0.15, 0.15, 0.15, 0, i % 3 == 0 ? PETAL_DARK : PETAL);
+            if (i % 3 == 0) w.spawnParticle(Particle.CHERRY_LEAVES, at.clone().add(0, 0.5, 0), 1, 0.2, 0.2, 0.2, 0);
+        }
     }
 
     // ------------------------------------------------------------- Ruby + Yang

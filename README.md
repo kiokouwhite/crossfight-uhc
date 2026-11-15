@@ -204,6 +204,8 @@ Animations de RWBY :
 
 Les signes de Glyph sont deux images du pack privé (le flocon et le grand cercle des Schnee), préparées par `python3 tools/build_glyphs.py` depuis `resourcepack-prive/glyphes/` : blanches, elles sont teintes en jeu à la couleur du Dust et affichées à plat par un `ItemDisplay` (`character/rwby/Glyph.java`) qui grandit en apparaissant, peut tourner, suivre Weiss, puis s'efface. Le plugin les connaît sous les noms `glyph.schnee_flocon` et `glyph.schnee_cercle` ; sans elles, les Glyphs gardent leurs seules particules.
 
+- **Ice Flower** (ultime en duo de Ruby et Weiss) : Weiss lève son épée des deux mains et la plante dans le sol, un genou à terre ; la glace part de la lame et s'étend en une seconde et demie jusqu'à 25 blocs. Ruby, couchée dans sa course, file sur le bord de la glace à mesure qu'elle grandit (près de trois tours), en semant des pétales de rose ; elle revient ensuite d'où elle est partie, et une couronne de pétales reste sur le bord de la patinoire tant qu'elle dure. Weiss ne bouge pas pendant le geste ; Ruby garde son regard pendant sa course.
+
 Animations de Blake :
 
 - **Ombre** : Blake et ses trois clones naissent en silhouettes violettes (le pantin peut être teint : `Puppet.tint`, avec un contour lumineux `Puppet.glow`), puis leur apparence revient partie par partie, des jambes à la tête, chaque fois dans un éclat de particules ; les clones ne partent qu'ensuite. Un pantin peut remplacer n'importe quelle entité, pas seulement un joueur (ici les clones).
