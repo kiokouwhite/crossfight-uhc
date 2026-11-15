@@ -14,6 +14,8 @@
 #   item_abs rx ry rz               a la place de item : orientation par rapport au joueur lui-meme (la ou il regarde),
 #                                   quelles que soient celles du corps et du bras (90 0 0 : un arc droit, ventre vers la cible)
 #   item_left 0 0 0                 l'objet est tenu dans la main gauche au lieu de la droite
+#   item2  rx ry rz                 un second objet, dans l'autre main (Puppet.second), par rapport a son bras ;
+#                                   sans cette ligne il reprend "item" en miroir
 #   item_shift dx dy dz             decale l'objet par rapport a la main, dans le repere du joueur (pixels)
 #   item_world rx ry rz             a la place de item : orientation de l'objet par rapport au corps,
 #                                   quelle que soit celle du bras (0 0 0 : lame vers l'avant, a plat sur la tranche ;
@@ -628,3 +630,14 @@ pose blake_enfonce_fond
   head  20 0 0
   arm_r -150 0 -15
   arm_l -150 0 15
+
+# Eren, Charge tridimensionnelle : il fonce tete la premiere, le corps couche vers l'avant, les deux bras rejetes
+# en arriere, une lame dans chaque main qui traine derriere lui, une jambe repliee sous lui.
+pose eren_charge
+  root  64 0 0   0 -3 2
+  head  -54 0 0
+  arm_r 46 0 -20
+  arm_l 46 0 20
+  leg_r -70 0 -4
+  leg_l 16 0 4
+  item  52 0 0

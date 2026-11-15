@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Dessine une pose du modele articule sans lancer le jeu.
 
-Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet] [--objet image.png] [--arc] [--modele nom]
+Usage :  python3 tools/pose_preview.py <personnage> <pose> [sortie.png] [--prive] [--sans-objet] [--objet image.png] [--arc] [--modele nom] [--deux]
 
 --objet : l'image 16x16 de l'objet tenu (sinon une epee de remplacement). --arc : tenu par le milieu, comme un arc.
 --modele : un modele du pack public tenu en main (ex. book_open), centre sur la main.
+--deux : un second objet dans l'autre main (Puppet.second), oriente par "item2".
 
 Relit les modeles ecrits par add_skin.py et src/main/resources/poses.txt, et applique les memes
 transformations que util/Puppet.java et que le client Minecraft (objet affiche centre sur son
@@ -133,6 +134,14 @@ def quads(name, pose_name, private):
                   else r @ rot(*get("item")[0])) @ ITEM_BASE
             hand = t + r @ (np.array(HAND) / 16 * K)
             ti = hand - ri @ (np.array(GRIP_BOW if "--arc" in sys.argv else GRIP) / 16 * ITEM_SCALE)
+            pts = [ti + ri @ (ITEM_SCALE * (flip @ (np.array(p) / 16))) for p in ((-8, 8, 0), (8, 8, 0), (-8, -8, 0), (8, -8, 0))]
+            out.append((pts, [(0, 0), (16, 0), (0, 16), (16, 16)], held_sprite()))
+        if part == ("arm_r" if "item_left" in pose else "arm_l") and "--deux" in sys.argv:
+            # Le second objet (Puppet.second) : "item2", ou la tenue de "item" en miroir.
+            a2 = pose["item2"][0] if "item2" in pose else [get("item")[0][0], -get("item")[0][1], -get("item")[0][2]]
+            ri = r @ rot(*a2) @ ITEM_BASE
+            hand = t + r @ (np.array(HAND) / 16 * K)
+            ti = hand - ri @ (np.array(GRIP) / 16 * ITEM_SCALE)
             pts = [ti + ri @ (ITEM_SCALE * (flip @ (np.array(p) / 16))) for p in ((-8, 8, 0), (8, 8, 0), (-8, -8, 0), (8, -8, 0))]
             out.append((pts, [(0, 0), (16, 0), (0, 16), (16, 16)], held_sprite()))
     return out

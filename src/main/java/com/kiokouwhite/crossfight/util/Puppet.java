@@ -82,6 +82,8 @@ public final class Puppet {
     private final Player player;
     private final Map<Part, ItemDisplay> parts = new EnumMap<>(Part.class);
     private ItemDisplay held;
+    /** Un second objet, dans l'autre main (deux lames...) : null le plus souvent. */
+    private ItemDisplay second;
     private BukkitTask task;
     private boolean addedInvisibility, madeInvisible, ownItemsHidden;
     /** Le pantin reste a cet endroit au lieu de suivre son corps (null : il le suit). */
@@ -89,7 +91,7 @@ public final class Puppet {
     private int heldSlot;
     private int age, endAt = -1, removeAt = 20 * 30;
     private String pose, restPose = "debout";
-    private Vector3f grip = GRIP;
+    private Vector3f grip = GRIP, secondGrip = GRIP;
     private boolean rawModel, straight;
     private Float fixedYaw;
     /** Rotation de tout le pantin autour d'un centre (vrille, toupie) : null au repos. */
@@ -231,6 +233,19 @@ public final class Puppet {
         if (held != null && pose != null) apply(pose, 0);
     }
 
+    /**
+     * Un second objet, tenu dans l'autre main (la gauche, ou la droite si la pose tient le premier a gauche) :
+     * une image d'objet ordinaire (une epee...), orientee par "item2" dans la pose. null : cette main se vide.
+     */
+    public void second(ItemStack item) {
+        if (second != null) { second.remove(); second = null; }
+        if (task == null || item == null || item.getType().isAir()) return;
+        second = spawn(anchor(), item.clone());
+        String type = item.getType().name();
+        secondGrip = type.equals("BOW") || type.equals("CROSSBOW") ? GRIP_BOW : GRIP;
+        if (pose != null) apply(pose, 0);
+    }
+
     /** La pose de repos vers laquelle l'animation revient avant de finir ("debout" par defaut). */
     public void rest(String restPose) { if (POSES.containsKey(restPose)) this.restPose = restPose; }
 
@@ -357,6 +372,7 @@ public final class Puppet {
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
         if (held != null) held.teleport(at);
+        if (second != null) second.teleport(at);
         if (age == endAt) { spin = null; apply(restPose, blend); }
     }
 
@@ -388,6 +404,15 @@ public final class Puppet {
                 if (shift != null) hand.add(new Vector3f(shift.angles).mul(K / 16f));
                 Vector3f ti = hand.sub(ri.transform(new Vector3f(grip).mul(size / 16f)));
                 set(held, spun(ti, ri, size), ticks);
+            }
+            if (part == (leftHand ? Part.ARM_R : Part.ARM_L) && second != null) {
+                // "item2" : comme "item", pour l'objet de l'autre main ; sans lui, la meme tenue en miroir.
+                Joint own = joints.get("item2");
+                Vector3f a = own != null ? own.angles : new Vector3f(joints.getOrDefault("item", Joint.REST).angles).mul(1, -1, -1);
+                Quaternionf ri = new Quaternionf(r).mul(euler(a)).mul(ITEM_BASE);
+                Vector3f hand = r.transform(new Vector3f(HAND).mul(K / 16f)).add(t);
+                Vector3f ti = hand.sub(ri.transform(new Vector3f(secondGrip).mul(ITEM_SCALE / 16f)));
+                set(second, spun(ti, ri, ITEM_SCALE), ticks);
             }
         }
     }
@@ -495,6 +520,7 @@ public final class Puppet {
         ACTIVE.remove(entity.getUniqueId(), this);
         for (ItemDisplay d : parts.values()) d.remove();
         if (held != null) held.remove();
+        if (second != null) second.remove();
         if (addedInvisibility && player != null && player.isOnline()) player.removePotionEffect(PotionEffectType.INVISIBILITY);
         if (madeInvisible && entity.isValid()) entity.setInvisible(false);
         for (Runnable r : restore) r.run();

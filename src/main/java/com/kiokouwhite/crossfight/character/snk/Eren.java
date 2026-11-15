@@ -14,6 +14,7 @@ import com.kiokouwhite.crossfight.util.Bullets;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Weapons;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -211,9 +212,29 @@ public final class Eren extends Character implements Listener {
             if (back.lengthSquared() < 0.01) back = new Vector(1, 0, 0);
             Location to = target.getLocation().add(back.normalize().multiply(1.2));
             to.setDirection(target.getLocation().add(0, 1, 0).toVector().subtract(to.toVector().add(new Vector(0, 1.6, 0))));
-            SNK.rush(p, to, 4, Particle.CLOUD);
+            // Assez de ticks pour qu'on le voie foncer : deux blocs et demi par tick, entre 4 et 7 ticks.
+            int ticks = (int) Math.max(4, Math.min(7, Math.ceil(to.distance(p.getLocation()) / 2.5)));
+            chargePose(p, to, ticks);
+            SNK.rush(p, to, ticks, Particle.CLOUD);
+            p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 0.9, 0), 14, 0.3, 0.25, 0.3, 0, SNK.GAS);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.3f);
             return true;
+        }
+
+        /**
+         * La charge, vue de l'exterieur : il fonce tete la premiere, le corps couche vers l'avant, les deux bras
+         * rejetes en arriere, une lame dans chaque main. Le pantin regarde dans le sens de la charge et suit sa pente.
+         */
+        static void chargePose(Player p, Location to, int ticks) {
+            ItemStack blade = new ItemStack(Material.IRON_SWORD);
+            Puppet pu = Puppet.show(p, "eren", blade, "eren_charge");
+            if (pu == null) return;
+            Vector path = to.toVector().subtract(p.getLocation().toVector());
+            Location heading = p.getLocation().setDirection(path);
+            pu.face(heading.getYaw());
+            if (Math.abs(heading.getPitch()) > 4) pu.spin(new Vector3f(1, 0, 0), heading.getPitch(), new Vector3f(0, 16, 0), 0);
+            pu.second(blade);
+            pu.endAfter(ticks + 3, 4);
         }
     }
 

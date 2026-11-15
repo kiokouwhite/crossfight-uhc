@@ -202,6 +202,10 @@ Animations de Blake :
 - **Gambol Shroud** : en pistolet, à chaque tir elle le tient à deux mains, bras tendus (un petit modèle 3D du pack public, `items/blake_pistolet.json`) ; en katana, le clic droit joue le lancer : elle arme la lame des deux mains au-dessus de l'épaule, la jette devant elle (la lame part à ce moment-là, quatre ticks après le clic), la lame tournoie au bout de son ruban noir et se plante là où elle tombe ; Blake fonce jusqu'à elle dans l'élan de son lancer et la reprend d'une main. Le changement de mode, lui, ne lance plus rien.
 - **Instinct Animal** : le bond est un saut de chat, corps allongé, bras tendus comme des pattes ; au lancement elle rugit, penchée en avant, les mains en griffes, et une onde violette part d'elle.
 
+Animations d'Eren :
+
+- **Charge tridimensionnelle** : il fonce tête la première, le corps couché vers l'avant, les deux bras rejetés en arrière, une lame dans chaque main (`Puppet.second` : un second objet tenu, dans l'autre main, orienté par `item2` dans la pose). Le pantin regarde dans le sens de la charge et suit sa pente quand la cible est plus haut ou plus bas. La ruée dure de 4 à 7 ticks selon la distance (deux blocs et demi par tick) pour qu'on le voie passer.
+
 Les modèles articulés acceptent une teinte (`custom_model_data`, blanc par défaut) : `python3 tools/add_skin.py --teinte` l'ajoute aux modèles fabriqués avant.
 
 Pendant l'animation, les autres joueurs ne voient plus l'équipement du joueur (paquet d'équipement vide), et le joueur lui-même ne voit plus ni sa propre armure ni l'objet qu'il tient en vue extérieure : ses quatre cases d'armure lui sont envoyées vides, et la case qu'il tient reçoit un objet sans apparence (`items/hidden.json`), si bien que le clic droit part toujours. Son inventaire réel n'est pas touché et lui est renvoyé à la fin ; l'icône de l'objet tenu disparaît de sa barre le temps de l'animation. Les 25 personnages de licences existantes ont leur modèle dans le pack privé ; les personnages originaux attendent leur skin.
