@@ -25,10 +25,18 @@ bot.once('spawn', async () => {
   bot.chat('/cf stop'); await sleep(800);
   bot.chat('/cf test third-person blake'); await sleep(5000);
   bot.chat('/tp @s 0.5 65 7 180 0'); bot.chat('/cf heal'); await sleep(1000); await face();
-  // Katana : accroupi + clic droit sur l'arme (couperet -> katana).
+  // Katana : accroupi + clic droit sur l'arme (couperet -> katana). Plus rien n'est lance en l'air a ce moment.
   await use('Gambol Shroud', true); await sleep(500);
-  console.log('katana : pantin', summary(/pose\/blake/), '| epee volante ?', Object.values(bot.entities).filter(e => e.name === 'item_display' && !models[e.id]).length, '| barre', bars.filter(Boolean).join(' / ').slice(0, 60));
-  await sleep(2500);
+  console.log('katana (changement de mode) : pantin', summary(/pose\/blake/), '| barre', bars.filter(Boolean).join(' / ').slice(0, 60));
+  // Le lancer : elle arme la lame des deux mains, la jette, fonce la ou elle se plante et la reprend.
+  const blades = () => Object.values(bot.entities).filter(e => e.name === 'item_display' && !models[e.id]).length;
+  const before = body() ? body().position.clone() : null;
+  await use('Gambol Shroud'); await sleep(120);
+  console.log('lancer : pantin', summary(/pose\/blake/), '| epee (en main ou en vol)', blades());
+  await sleep(250); console.log('lancer +0.4s : pantin', summary(/pose\/blake/), '| epee', blades());
+  await sleep(1600);
+  console.log('apres le lancer : pantin', summary(/pose\/blake/), '| epee', blades(), '| deplacement', before && body() ? body().position.distanceTo(before).toFixed(1) : '?', 'blocs');
+  await sleep(600); await face();
   // Pistolet : encore un changement de mode, puis deux tirs.
   await use('Gambol Shroud', true); await sleep(1500);
   particles = {};

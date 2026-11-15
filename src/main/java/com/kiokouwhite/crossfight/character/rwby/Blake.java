@@ -27,6 +27,8 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Snowball;
@@ -37,7 +39,10 @@ import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -107,7 +112,6 @@ public final class Blake extends Character implements Listener {
                 int next = (st.mode() + 1) % MODES.length;
                 st.setMode(next);
                 swapWeapon(p, next);
-                if (next == 1) katanaToss(p);
                 Msg.actionBar(p, "<dark_gray>Gambol Shroud : <white>" + MODES[next]);
                 p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1.4f);
                 return true;
@@ -137,10 +141,7 @@ public final class Blake extends Character implements Listener {
         void throwKatana(Player p, AbilityState st) {
             if (st.onCooldown()) { Msg.actionBar(p, "<red>Katana : encore " + st.cooldownLeftSeconds() + "s"); return; }
             st.startCooldown(10);
-            Snowball s = p.launchProjectile(Snowball.class, p.getEyeLocation().getDirection().multiply(1.8));
-            s.getPersistentDataContainer().set(KATANA_THROW, PersistentDataType.BYTE, (byte) 1);
-            s.setItem(new ItemStack(Material.IRON_SWORD));
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+            katanaThrow(p);
         }
 
         int bullets(AbilityState st) {
@@ -195,15 +196,37 @@ public final class Blake extends Character implements Listener {
         if (!(s.getShooter() instanceof Player p)) return;
         Location to = s.getLocation();
         if (e.getHitBlock() != null && e.getHitBlockFace() != null) to = e.getHitBlock().getRelative(e.getHitBlockFace()).getLocation().add(0.5, 0, 0.5);
-        dash(p, to);
+        ItemDisplay blade = THROWN.get(p.getUniqueId());
+        if (blade != null && blade.isValid()) {
+            blade.getPersistentDataContainer().set(KATANA_THROW, PersistentDataType.BYTE, (byte) 1);
+            if (e.getHitBlock() != null && e.getHitBlockFace() != null) plant(blade, s, e.getHitBlock(), e.getHitBlockFace(), p);
+        }
+        // Elle fonce dans l'elan de son lancer (ou le reprend, si la lame a vole longtemps), et rattrape la lame au bout.
+        Puppet current = Puppet.of(p);
+        Puppet pu = current != null && KATANA_POSES.contains(current.currentPose()) ? current
+                : current == null ? Puppet.show(p, "blake", null, "blake_katana_lance") : null;
+        if (pu != null) pu.endAfter(30, 4);
+        dash(p, to, () -> {
+            if (blade != null) { blade.remove(); THROWN.remove(p.getUniqueId(), blade); }
+            if (!p.isOnline() || p.isDead()) return;
+            p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1.5f);
+            if (pu == null || Puppet.of(p) != pu) return;
+            pu.held(new ItemStack(Material.IRON_SWORD));
+            pu.pose("blake_katana_attrape", 2);
+            pu.endAfter(9, 4);
+        });
     }
 
-    /** Ruee quasi instantanee vers un point : Blake traverse la distance en quelques ticks, en ligne droite. */
-    static void dash(Player p, Location to) {
+    /**
+     * Ruee quasi instantanee vers un point : Blake traverse la distance en quelques ticks, en ligne droite.
+     *
+     * @param arrive appele une fois la ruee finie, qu'elle soit allee au bout ou qu'un mur l'ait arretee
+     */
+    static void dash(Player p, Location to, Runnable arrive) {
         Location from = p.getLocation();
         Vector path = to.toVector().subtract(from.toVector());
         double dist = path.length();
-        if (dist < 0.5) return;
+        if (dist < 0.5) { arrive.run(); return; }
         int steps = (int) Math.max(2, Math.min(8, Math.ceil(dist / 4.0)));
         Vector step = path.clone().multiply(1.0 / steps);
         Ruby.noFallUntil(p, 3000);
@@ -213,11 +236,11 @@ public final class Blake extends Character implements Listener {
             Location current = from.clone();
             @Override public void run() {
                 i++;
-                if (!p.isOnline() || p.isDead() || i > steps) { cancel(); return; }
+                if (!p.isOnline() || p.isDead() || i > steps) { cancel(); arrive.run(); return; }
                 Location next = current.clone().add(step);
                 next.setDirection(p.getLocation().getDirection());
                 // Un mur sur le chemin arrete la ruee juste devant.
-                if (!next.getBlock().isPassable() || !next.clone().add(0, 1, 0).getBlock().isPassable()) { cancel(); return; }
+                if (!next.getBlock().isPassable() || !next.clone().add(0, 1, 0).getBlock().isPassable()) { cancel(); arrive.run(); return; }
                 for (double d = 0; d < step.length(); d += 0.5) {
                     Location l = current.clone().add(step.clone().normalize().multiply(d)).add(0, 1, 0);
                     p.getWorld().spawnParticle(Particle.SMOKE, l, 2, 0.1, 0.2, 0.1, 0.01);
@@ -225,7 +248,11 @@ public final class Blake extends Character implements Listener {
                 }
                 p.teleport(next);
                 current = next;
-                if (i == steps) p.getWorld().playSound(next, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.6f);
+                if (i == steps) {
+                    p.getWorld().playSound(next, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.6f);
+                    cancel();
+                    arrive.run();
+                }
             }
         }.runTaskTimer(plugin(), 0L, 1L);
     }
@@ -263,53 +290,117 @@ public final class Blake extends Character implements Listener {
         p.getWorld().spawnParticle(Particle.DUST, muzzle, 4, 0.05, 0.05, 0.05, 0, SHADOW_DUST);
     }
 
-    /** Passage en mode katana : elle lance l'epee en l'air des deux mains, l'epee tournoie, elle la rattrape. */
-    static void katanaToss(Player p) {
-        ItemStack katana = new ItemStack(Material.IRON_SWORD);
-        Puppet pu = Puppet.show(p, "blake", katana, "debout");
-        if (pu == null) return;
-        pu.pose("blake_katana_tient", 3);
-        pu.endAfter(30, 4);
+    /** La lame lancee de chaque Blake : l'affichage qui tournoie a la place de la boule de neige, puis reste plante. */
+    static final java.util.Map<java.util.UUID, ItemDisplay> THROWN = new java.util.HashMap<>();
+    static final java.util.Set<String> KATANA_POSES = java.util.Set.of("blake_katana_arme", "blake_katana_lance", "blake_katana_attrape");
+    static final Particle.DustOptions RIBBON_DUST = new Particle.DustOptions(Color.fromRGB(18, 16, 24), 0.55f);
+    /** Temps d'armement avant que la lame parte, en ticks ; taille de la lame en vol ; sa longueur du milieu a la pointe. */
+    static final int WINDUP = 4;
+    static final float BLADE = 0.85f, BLADE_REACH = BLADE * 0.7f;
+    /** La pointe d'une epee dans son image, vue par un affichage (qui la retourne) ; le plat de l'image. */
+    static final Vector3f TIP = new Vector3f(-1, 1, 0).normalize(), FLAT = new Vector3f(0, 0, 1);
+
+    /**
+     * Le lancer du katana : elle l'arme des deux mains au-dessus de l'epaule, puis le jette devant elle (c'est a
+     * ce moment que la lame part). Elle fonce ensuite dans cet elan et reprend la lame la ou elle est tombee.
+     */
+    static void katanaThrow(Player p) {
+        Puppet pu = Puppet.show(p, "blake", new ItemStack(Material.IRON_SWORD), "debout");
+        if (pu == null) { releaseKatana(p); return; }
+        pu.pose("blake_katana_arme", 2);
+        pu.endAfter(WINDUP + 14, 4);
+        Bukkit.getScheduler().runTaskLater(plugin(), () -> {
+            if (!p.isOnline() || p.isDead()) return;
+            if (Puppet.of(p) == pu) { pu.pose("blake_katana_lance", 2); pu.held(null); }
+            releaseKatana(p);
+        }, WINDUP);
+    }
+
+    /** La lame part : une boule de neige invisible porte le lancer, un affichage qui tournoie la montre, au bout de son ruban. */
+    static void releaseKatana(Player p) {
+        Snowball s = p.launchProjectile(Snowball.class, p.getEyeLocation().getDirection().multiply(1.8));
+        s.getPersistentDataContainer().set(KATANA_THROW, PersistentDataType.BYTE, (byte) 1);
+        s.setItem(new ItemStack(Material.IRON_SWORD));
+        s.setVisibleByDefault(false);
+        ItemDisplay old = THROWN.remove(p.getUniqueId());
+        if (old != null) old.remove();
+        ItemDisplay blade = p.getWorld().spawn(s.getLocation(), ItemDisplay.class, d -> {
+            d.setPersistent(false);
+            d.setItemStack(new ItemStack(Material.IRON_SWORD));
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            // Face a chaque joueur, comme un objet lance : tout le monde la voit tournoyer.
+            d.setBillboard(Display.Billboard.CENTER);
+            d.setTeleportDuration(1);
+            d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(BLADE), new Quaternionf()));
+        });
+        THROWN.put(p.getUniqueId(), blade);
+        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
         new org.bukkit.scheduler.BukkitRunnable() {
-            int t = 0;
-            org.bukkit.entity.ItemDisplay flying;
+            int t = 0, landed = 0;
             @Override public void run() {
                 t++;
-                if (Puppet.of(p) != pu || !p.isOnline() || p.isDead()) { if (flying != null) flying.remove(); cancel(); return; }
-                if (t == 5) pu.pose("blake_katana_lance", 2);
-                if (t == 7) {
-                    pu.held(null);
-                    Location from = p.getLocation().add(0, 2.4, 0);
-                    from.setPitch(0);
-                    flying = p.getWorld().spawn(from, org.bukkit.entity.ItemDisplay.class, d -> {
-                        d.setPersistent(false);
-                        d.setItemStack(katana);
-                        d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.NONE);
-                        d.setTeleportDuration(1);
-                        d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.Quaternionf(), new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf()));
-                    });
-                    p.getWorld().playSound(from, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.8f);
+                boolean planted = blade.isValid() && blade.getPersistentDataContainer().has(KATANA_THROW);
+                // Perdue (le vide, un monde decharge) sans etre tombee nulle part, ou jamais reprise : elle disparait.
+                if (!blade.isValid() || !p.isOnline() || t > 300 || (planted ? ++landed > 16 : !s.isValid())) {
+                    blade.remove();
+                    THROWN.remove(p.getUniqueId(), blade);
+                    cancel();
+                    return;
                 }
-                if (flying != null && t > 7 && t <= 20) {
-                    // Monte de deux blocs puis redescend vers ses mains, en tournant sur elle-meme.
-                    double k = (t - 7) / 13.0;
-                    Location at = p.getLocation().add(0, 2.4 + 2.2 * 4 * k * (1 - k), 0);
-                    at.setPitch(0);
-                    flying.teleport(at);
-                    flying.setInterpolationDelay(0);
-                    flying.setInterpolationDuration(1);
-                    flying.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(),
-                            new org.joml.Quaternionf().rotationZ((float) (k * Math.PI * 4)), new org.joml.Vector3f(0.85f, 0.85f, 0.85f), new org.joml.Quaternionf()));
+                if (!planted) {
+                    blade.teleport(s.getLocation());
+                    blade.setInterpolationDelay(0);
+                    blade.setInterpolationDuration(1);
+                    blade.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotationZ((float) Math.toRadians(-t * 55.0)), new Vector3f(BLADE), new Quaternionf()));
                 }
-                if (t == 17) pu.pose("blake_katana_attrape", 3);
-                if (t == 20) {
-                    if (flying != null) { flying.remove(); flying = null; }
-                    pu.held(katana);
-                    p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 1.5f);
-                }
-                if (t >= 30) cancel();
+                Puppet pu = Puppet.of(p);
+                Location hand = pu != null && KATANA_POSES.contains(pu.currentPose()) ? pu.hand() : p.getLocation().add(0, 1.1, 0);
+                ribbon(hand, blade.getLocation());
             }
         }.runTaskTimer(plugin(), 1L, 1L);
+    }
+
+    /** Le ruban de Gambol Shroud : un trait noir de la main a la lame. */
+    static void ribbon(Location from, Location to) {
+        if (!from.getWorld().equals(to.getWorld())) return;
+        Vector line = to.toVector().subtract(from.toVector());
+        double length = line.length();
+        if (length < 0.6 || length > 96) return;
+        int n = (int) Math.min(48, Math.ceil(length / 0.4));
+        for (int i = 1; i < n; i++) from.getWorld().spawnParticle(Particle.DUST, from.clone().add(line.clone().multiply(i / (double) n)), 1, 0, 0, 0, 0, RIBBON_DUST);
+    }
+
+    /** La lame se plante la ou elle a touche : la pointe dans le bloc, le plat tourne vers Blake qui arrive. */
+    static void plant(ItemDisplay blade, Snowball s, org.bukkit.block.Block block, org.bukkit.block.BlockFace face, Player p) {
+        Vector normal = face.getDirection();
+        // Le point touche : la ou la trajectoire traverse la face du bloc (a defaut, le milieu de cette face).
+        Location at = block.getLocation().add(0.5, 0.5, 0.5).add(normal.clone().multiply(0.5));
+        Vector speed = s.getVelocity();
+        if (speed.lengthSquared() > 1.0e-4) {
+            var hit = s.getWorld().rayTraceBlocks(s.getLocation(), speed.clone().normalize(), 4.0, org.bukkit.FluidCollisionMode.NEVER, true);
+            if (hit != null && block.equals(hit.getHitBlock())) at = hit.getHitPosition().toLocation(s.getWorld());
+        }
+        at.setYaw(0);
+        at.setPitch(0);
+        Vector3f into = new Vector3f((float) -normal.getX(), (float) -normal.getY(), (float) -normal.getZ());
+        // Le plat de la lame fait face a Blake autant que possible (sinon vers le haut : on la voit d'au-dessus).
+        Vector3f view = p.getEyeLocation().toVector().subtract(at.toVector()).toVector3f();
+        Vector3f front = new Vector3f(view).sub(new Vector3f(into).mul(view.dot(into)));
+        if (front.lengthSquared() < 0.04f) front.set(0, 1, 0).sub(new Vector3f(into).mul(into.y));
+        if (front.lengthSquared() < 0.04f) front.set(1, 0, 0);
+        front.normalize();
+        // La rotation qui amene la pointe et le plat de l'image sur ces deux directions.
+        org.joml.Matrix3f image = new org.joml.Matrix3f(TIP, FLAT, new Vector3f(TIP).cross(FLAT));
+        org.joml.Matrix3f world = new org.joml.Matrix3f(into, front, new Vector3f(into).cross(front));
+        Quaternionf turn = new Quaternionf().setFromNormalized(world.mul(image.transpose()));
+        // Seule la pointe s'enfonce : le milieu de l'image reste en retrait le long de la lame.
+        Vector3f back = new Vector3f(into).mul(-(BLADE_REACH - 0.18f));
+        blade.setBillboard(Display.Billboard.FIXED);
+        blade.teleport(at);
+        blade.setInterpolationDelay(0);
+        blade.setInterpolationDuration(0);
+        blade.setTransformation(new Transformation(back, turn, new Vector3f(BLADE), new Quaternionf()));
+        s.getWorld().playSound(at, Sound.ITEM_TRIDENT_HIT_GROUND, 0.9f, 1.5f);
     }
 
     /**

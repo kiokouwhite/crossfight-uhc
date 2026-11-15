@@ -562,30 +562,33 @@ pose blake_pistolet
   item_world 0 -15 0
 
 # Mode katana : les deux mains sur la poignee, l'epee dressee devant elle...
-pose blake_katana_tient
-  root  4 0 0   0 -1 0
-  head  8 0 0
-  arm_r -45 30 0
-  arm_l -45 -30 0
-  leg_r 6 0 -4
-  leg_l -6 0 4
-  item_world -90 90 0
+pose blake_katana_arme
+  root  -10 14 0   0 0 -1
+  head  6 -14 0
+  arm_r -158 26 0
+  arm_l -150 -34 0
+  leg_r 12 0 -4
+  leg_l -16 0 4
+  item_world -140 90 0
 
-# ...les bras jetes vers le ciel : l'epee s'envole (elle n'est plus dans sa main)...
+# ...puis la jette devant elle : les deux bras partent vers l'avant, le corps suit (l'epee n'est plus dans ses mains)...
 pose blake_katana_lance
-  root  -6 0 0
-  head  -30 0 0
-  arm_r -170 12 0
-  arm_l -170 -12 0
-  leg_r 0 0 -4
-  leg_l 0 0 4
+  root  18 -6 0   0 -1 3
+  head  -16 6 0
+  arm_r -78 8 0
+  arm_l -66 -16 0
+  leg_r -24 0 -4
+  leg_l 28 0 4
 
-# ...et elle la rattrape d'une main au-dessus de l'epaule.
+# ...et, arrivee la ou la lame est tombee, elle la reprend d'une main, un genou flechi.
 pose blake_katana_attrape
-  head  -20 0 0
-  arm_r -160 0 -10
-  arm_l -20 0 15
-  item_world -90 90 0
+  root  10 0 0   0 -2 1
+  head  -6 0 0
+  arm_r -60 0 -8
+  arm_l 24 0 14
+  leg_r -18 0 -4
+  leg_l 22 0 4
+  item_world -60 90 0
 
 # Instinct Animal : le bond du chat, le corps allonge vers l'avant, les bras tendus comme des pattes.
 pose blake_bond_chat
