@@ -15,6 +15,7 @@ import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
 import com.kiokouwhite.crossfight.util.Puppet;
+import com.kiokouwhite.crossfight.util.Skins;
 import com.kiokouwhite.crossfight.util.Weapons;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -505,11 +506,148 @@ public final class Eren extends Character implements Listener {
 
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             if (st.get("titan", false)) return false;
-            transform(p, cf, st);
+            if (!metamorphose(p, cf, st)) transform(p, cf, st);
             return true;
         }
 
+        /** La transformation d'un coup (sans le modele articule dans le pack) : l'eclair, et le Titan est la. */
         static void transform(Player p, CfPlayer cf, AbilityState st) {
+            becomeTitan(p, cf, st);
+            lightning(p);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 0.6f);
+            Msg.send(p, TITAN_MESSAGE);
+        }
+
+        static final String TITAN_MESSAGE = "<dark_red><bold>Tu es le Titan Assaillant.</bold> <gray>Plus de Pommes Dorees, d'equipement ni de Charge. Clic droit sur l'ultime : regeneration.";
+
+        /** L'eclair de la transformation : la foudre, son tonnerre, un eclat dore et la vapeur qui jaillit. */
+        static void lightning(Player p) {
+            World w = p.getWorld();
+            Location at = p.getLocation();
+            w.strikeLightningEffect(at);
+            w.playSound(at, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 0.8f);
+            w.spawnParticle(Particle.CLOUD, at.clone().add(0, 1.5, 0), 120, 1.5, 1.5, 1.5, 0.1);
+            w.spawnParticle(Particle.FLASH, at.clone().add(0, 1.5, 0), 1, 0, 0, 0, 0, Color.fromRGB(255, 240, 200));
+        }
+
+        // La transformation, en ticks depuis le lancement : la morsure, l'eclair, puis les os, les muscles et la peau.
+        static final int BITE = 9, BOLT = 14, BONES = 21, FLESH = 39, SKIN = 57, DONE = 74;
+        /** L'ordre dans lequel le Titan se forme : la colonne et les cotes d'abord, puis le crane, les bras, les jambes. */
+        static final String[][] GROWTH = {{"body"}, {"head"}, {"arm_r", "arm_l"}, {"leg_r", "leg_l"}};
+        static final Particle.DustOptions GOLD = new Particle.DustOptions(Color.fromRGB(255, 196, 40), 1.6f),
+                BONE_DUST = new Particle.DustOptions(Color.fromRGB(236, 230, 208), 1.5f),
+                FLESH_DUST = new Particle.DustOptions(Color.fromRGB(170, 36, 32), 1.6f);
+
+        /**
+         * La transformation, comme dans l'anime : Eren se mord la main, l'eclair dore tombe, et le Titan se forme
+         * petit a petit dans la vapeur (le squelette os par os, puis les muscles a vif, puis la peau du Titan
+         * Assaillant) avant de rugir. Eren ne bouge pas et ne craint rien pendant ces trois secondes et demie.
+         * Rend false si le pack n'a pas les modeles articules : la transformation se fait alors d'un coup.
+         */
+        static boolean metamorphose(Player p, CfPlayer cf, AbilityState st) {
+            if (!Puppet.available("eren_squelette")) return false;
+            Puppet bite = Puppet.show(p, "eren", null, "debout");
+            if (bite == null) return false;
+            // Des maintenant il n'est plus question de relancer l'ultime ni de se servir de l'equipement.
+            st.set("titan", true);
+            Bukkit.getScheduler().runTask(SNK.plugin(), () -> cf.setUltimateLocked(true));
+            Effects.root(p, DONE);
+            Effects.invincible(p, DONE * 50L + 300);
+            bite.pose("eren_morsure", 5);
+            World w = p.getWorld();
+            new BukkitRunnable() {
+                int t = 0;
+                Puppet titan;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead() || !st.get("titan", false)) { cancel(); return; }
+                    Location at = p.getLocation();
+                    if (t == BITE) {
+                        // La morsure : le sang gicle de sa main.
+                        Location hand = Puppet.of(p) == bite ? bite.hand() : at.clone().add(0, 1.5, 0);
+                        w.spawnParticle(Particle.BLOCK, hand, 14, 0.08, 0.08, 0.08, 0.05, Material.REDSTONE_BLOCK.createBlockData());
+                        w.spawnParticle(Particle.DUST, hand, 8, 0.1, 0.1, 0.1, 0, new Particle.DustOptions(Color.fromRGB(150, 10, 10), 1.0f));
+                        w.playSound(at, Sound.ENTITY_GENERIC_EAT, 1f, 0.6f);
+                        w.playSound(at, Sound.ENTITY_PLAYER_HURT, 0.8f, 0.8f);
+                    }
+                    if (t > BITE && t < BOLT) {
+                        // L'etincelle doree qui annonce l'eclair, autour de sa main.
+                        Location hand = Puppet.of(p) == bite ? bite.hand() : at.clone().add(0, 1.5, 0);
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 6, 0.25, 0.25, 0.25, 0.12);
+                        w.spawnParticle(Particle.DUST, hand, 4, 0.2, 0.2, 0.2, 0, GOLD);
+                    }
+                    if (t == BOLT) {
+                        // L'eclair : Eren devient le Titan (taille, bonus, objets, skin), encore invisible dans la vapeur.
+                        becomeTitan(p, cf, st);
+                        lightning(p);
+                        for (int i = 0; i < 36; i++) {
+                            Vector d = new Vector(Math.random() - 0.5, Math.random() * 0.9, Math.random() - 0.5).normalize().multiply(1.2 + Math.random() * 2.6);
+                            w.spawnParticle(Particle.DUST, at.clone().add(0, 1.2, 0).add(d), 1, 0, 0, 0, 0, GOLD);
+                        }
+                        w.spawnParticle(Particle.ELECTRIC_SPARK, at.clone().add(0, 1.8, 0), 90, 1.6, 2.0, 1.6, 0.4);
+                        w.spawnParticle(Particle.EXPLOSION, at.clone().add(0, 1.5, 0), 3, 0.8, 0.8, 0.8, 0);
+                        w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, at.clone().add(0, 1.0, 0), 18, 1.6, 1.0, 1.6, 0.04);
+                        w.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.6f);
+                        // Le Titan qui se forme : deux fois la taille d'Eren, aucune partie visible pour l'instant.
+                        titan = Puppet.show(p, "eren_squelette", null, "eren_titan_naissance", 2f);
+                        if (titan != null) { titan.look(null, null); titan.endAfter(DONE - BOLT, 5); }
+                    }
+                    if (t > BOLT && t < DONE && t % 2 == 0) {
+                        // La vapeur qui l'entoure pendant qu'il se forme.
+                        w.spawnParticle(Particle.CLOUD, at.clone().add(0, 2.0, 0), 5, 1.3, 1.9, 1.3, 0.02);
+                        if (t % 6 == 0) w.playSound(at, Sound.BLOCK_FIRE_EXTINGUISH, 0.5f, 0.6f);
+                    }
+                    boolean shown = titan != null && Puppet.of(p) == titan;
+                    for (int i = 0; i < GROWTH.length; i++) {
+                        if (t == BONES + i * 4) {
+                            // Les os sortent de la vapeur, un a un.
+                            for (String part : GROWTH[i]) {
+                                if (shown) titan.look(part, "eren_squelette");
+                                Location c = shown ? titan.center(part) : at.clone().add(0, 2, 0);
+                                w.spawnParticle(Particle.DUST, c, 12, 0.35, 0.5, 0.35, 0, BONE_DUST);
+                                w.spawnParticle(Particle.CLOUD, c, 6, 0.3, 0.4, 0.3, 0.03);
+                            }
+                            w.playSound(at, Sound.BLOCK_BONE_BLOCK_PLACE, 1f, 0.55f + i * 0.08f);
+                            w.playSound(at, Sound.ENTITY_SKELETON_HURT, 0.6f, 0.5f);
+                        }
+                        if (t == FLESH + i * 4) {
+                            // Les muscles poussent sur les os.
+                            for (String part : GROWTH[i]) {
+                                if (shown) titan.look(part, "eren_muscles");
+                                Location c = shown ? titan.center(part) : at.clone().add(0, 2, 0);
+                                w.spawnParticle(Particle.DUST, c, 14, 0.35, 0.5, 0.35, 0, FLESH_DUST);
+                                w.spawnParticle(Particle.BLOCK, c, 8, 0.3, 0.45, 0.3, 0.02, Material.NETHER_WART_BLOCK.createBlockData());
+                            }
+                            w.playSound(at, Sound.BLOCK_HONEY_BLOCK_BREAK, 1f, 0.5f);
+                            w.playSound(at, Sound.ENTITY_SLIME_SQUISH, 0.7f, 0.5f);
+                        }
+                    }
+                    if (t == SKIN) {
+                        // La peau se referme d'un coup, dans un dernier jet de vapeur ; il se redresse et rugit.
+                        if (shown) {
+                            if (Puppet.available("eren_titan")) titan.look(null, "eren_titan");
+                            titan.pose("eren_titan_rugit", 5);
+                        }
+                        w.spawnParticle(Particle.CLOUD, at.clone().add(0, 2.0, 0), 90, 1.4, 1.9, 1.4, 0.12);
+                        w.playSound(at, Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 0.6f);
+                        w.playSound(at, Sound.ENTITY_RAVAGER_ROAR, 1f, 0.6f);
+                    }
+                    if (t > SKIN + 3 && t < DONE - 4 && t % 3 == 0) {
+                        // Le rugissement : des ondes qui partent de sa bouche.
+                        Location mouth = shown ? titan.center("head") : at.clone().add(0, 3.3, 0);
+                        w.spawnParticle(Particle.SONIC_BOOM, mouth, 1, 0, 0, 0, 0);
+                    }
+                    if (t >= DONE) {
+                        Msg.send(p, TITAN_MESSAGE);
+                        cancel();
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), 1L, 1L);
+            return true;
+        }
+
+        /** Eren devient le Titan : la taille, les bonus, les objets des titans voles, et le skin du Titan Assaillant. */
+        static void becomeTitan(Player p, CfPlayer cf, AbilityState st) {
             st.set("titan", true);
             Bukkit.getScheduler().runTask(SNK.plugin(), () -> cf.setUltimateLocked(true));
             Boosts.set(p, "eren_titan", new Boosts.Boost(1, 1, 0, 0));
@@ -519,13 +657,8 @@ public final class Eren extends Character implements Listener {
             if (step != null) step.setBaseValue(1.1);
             if (owns(p, "cuirasse")) applyCuirasse(p, titansState(p));
             giveTitanItems(p);
+            if (Skins.has("eren_titan")) Skins.wear(p, "eren_titan");
             World w = p.getWorld();
-            w.strikeLightningEffect(p.getLocation());
-            w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 0.8f);
-            w.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 0.6f);
-            w.spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1.5, 0), 120, 1.5, 1.5, 1.5, 0.1);
-            w.spawnParticle(Particle.FLASH, p.getLocation().add(0, 1.5, 0), 1, 0, 0, 0, 0, Color.fromRGB(255, 240, 200));
-            Msg.send(p, "<dark_red><bold>Tu es le Titan Assaillant.</bold> <gray>Plus de Pommes Dorees, d'equipement ni de Charge. Clic droit sur l'ultime : regeneration.");
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
@@ -585,6 +718,9 @@ public final class Eren extends Character implements Listener {
 
         static void revert(Player p, CfPlayer cf, AbilityState st) {
             st.set("titan", false);
+            Puppet forming = Puppet.of(p);
+            if (forming != null) forming.remove();
+            if (Skins.has("eren_titan") && p.isOnline()) Skins.apply(p, cf.character() != null && "eren".equals(cf.character().id()) ? cf.character() : null);
             removeTitanItems(p);
             cf.setUltimateLocked(false);
             Boosts.remove(p, "eren_titan");

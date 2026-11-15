@@ -1,0 +1,13 @@
+{
+ "model": {
+  "type": "minecraft:model",
+  "model": "crossfight:item/pose/eren_squelette_arm_l",
+  "tints": [
+   {
+    "type": "minecraft:custom_model_data",
+    "index": 0,
+    "default": -1
+   }
+  ]
+ }
+}

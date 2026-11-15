@@ -299,6 +299,9 @@ skin.byleth
 skin.corrin
 skin.drifter
 skin.eren
+skin.eren_muscles
+skin.eren_squelette
+skin.eren_titan
 skin.gunvolt
 skin.jett
 skin.john

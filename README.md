@@ -139,7 +139,7 @@ python3 tools/add_audio.py --prive voice vc_marth_appeal01.wav marth_ult
 
 ### Skins des personnages
 
-Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. `skins.enabled: false` dans `config.yml` coupe tout.
+Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. Une forme peut avoir son propre skin dans la table (`eren_titan`, porté pendant la forme de Titan d'Eren). `skins.enabled: false` dans `config.yml` coupe tout.
 
 Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py <dossier de <personnage>.png>` fait signer les images par MineSkin (en « non listé ») et inscrit les références dans `src/main/resources/skins.txt`. Ce fichier ne contient pas les images, seulement leur référence signée chez Mojang. Le changement de skin recharge un instant l'affichage du joueur.
 
@@ -205,6 +205,9 @@ Animations de Blake :
 Animations d'Eren :
 
 - **Charge tridimensionnelle** : il fonce tête la première, le corps couché vers l'avant, les deux bras rejetés en arrière, une lame dans chaque main (`Puppet.second` : un second objet tenu, dans l'autre main, orienté par `item2` dans la pose). Le pantin regarde dans le sens de la charge et suit sa pente quand la cible est plus haut ou plus bas. La ruée dure de 4 à 7 ticks selon la distance (deux blocs et demi par tick) pour qu'on le voie passer.
+- **Titan Assaillant**, d'après la scène de l'anime : Eren porte la main à sa bouche et se mord (le sang gicle, une étincelle dorée court sur son poing), l'éclair tombe dans un éclat doré et une explosion de vapeur, puis le Titan se forme petit à petit, deux fois plus grand que lui : le squelette d'abord, os par os (colonne et côtes, crâne, bras, jambes), puis les muscles à vif qui poussent dessus dans le même ordre, enfin la peau du Titan Assaillant qui se referme d'un coup ; il se redresse et rugit. Eren ne bouge pas et ne craint rien pendant ces trois secondes et demie. Le pantin prend ici une taille (`Puppet.show(..., 2f)`) et change d'apparence partie par partie (`Puppet.look`).
+  - Le squelette et les muscles sont deux modèles du pack public, dessinés par `python3 tools/build_titan.py` : de vrais os en pavés pour le premier, un skin de fibres rouges pour le second. La peau est le skin du Titan Assaillant, sous licence : `python3 tools/add_skin.py <skin.png> eren_titan --prive` pour le pantin, et `python3 tools/sign_skins.py <dossier contenant eren_titan.png>` pour que le joueur le porte ensuite (`Skins.wear`) pendant toute sa forme de Titan. Il retrouve le skin d'Eren à la mort du Titan.
+  - Sans le modèle articulé dans le pack, la transformation se fait d'un coup, avec l'éclair, comme avant.
 
 Les modèles articulés acceptent une teinte (`custom_model_data`, blanc par défaut) : `python3 tools/add_skin.py --teinte` l'ajoute aux modèles fabriqués avant.
 

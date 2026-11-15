@@ -104,7 +104,7 @@ def quads(name, pose_name, private):
             a, b = el["from"], el["to"]
             for face, f in el["faces"].items():
                 pts = [t + r @ (K * (flip @ ((np.array(p) - 8) / 16))) for p in FACES[face](a, b)]
-                u1, v1, u2, v2 = (c * 4 for c in f["uv"])
+                u1, v1, u2, v2 = (c * skin.shape[1] / 16 for c in f["uv"])  # uv de 0 a 16, quelle que soit la taille de l'image
                 out.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], skin))
         if part == ("arm_l" if "item_left" in pose else "arm_r") and "--modele" in sys.argv:
             # Un vrai modele du pack : memes regles que les parties du corps, plus la rotation propre a chaque element.

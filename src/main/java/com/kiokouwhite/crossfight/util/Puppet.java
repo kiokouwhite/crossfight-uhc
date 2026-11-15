@@ -153,10 +153,16 @@ public final class Puppet {
      * @param heldItem l'objet montre dans la main droite (null : aucun)
      */
     public static Puppet show(org.bukkit.entity.LivingEntity p, String character, ItemStack heldItem, String pose) {
+        return show(p, character, heldItem, pose, 1f);
+    }
+
+    /** Le meme, a une autre taille (2 : un Titan, deux fois plus grand que son joueur). */
+    public static Puppet show(org.bukkit.entity.LivingEntity p, String character, ItemStack heldItem, String pose, float zoom) {
         if (!available(character) || !POSES.containsKey(pose)) return null;
         Puppet old = ACTIVE.remove(p.getUniqueId());
         if (old != null) old.remove();
         Puppet pu = new Puppet(p);
+        pu.zoom = zoom;
         Location at = pu.anchor();
         for (Part part : Part.values()) pu.parts.put(part, pu.spawn(at, partModel(character, part, null)));
         pu.spawnHeld(at, heldItem);
@@ -264,7 +270,7 @@ public final class Puppet {
         Vector3f t = rootR.transform(new Vector3f(part.pivot).add(arm.offset).mul(K / 16f)).add(new Vector3f(root.offset).mul(K / 16f));
         Vector3f point = new Quaternionf(rootR).mul(euler(arm.angles)).transform(new Vector3f(0, (float) (-10 * along), 0).mul(K / 16f)).add(t);
         // Du repere du pantin (X gauche, Z devant) vers le monde, selon l'orientation du joueur.
-        new Quaternionf().rotationY((float) Math.toRadians(-anchor().getYaw())).transform(point);
+        new Quaternionf().rotationY((float) Math.toRadians(-anchor().getYaw())).transform(point.mul(zoom));
         return anchor().add(point.x, point.y, point.z);
     }
 
@@ -313,6 +319,35 @@ public final class Puppet {
             it.setItemMeta(meta);
             d.setItemStack(it);
         }
+    }
+
+    /**
+     * Donne a une partie (null : toutes) l'apparence d'un autre modele articule : le squelette, les muscles, puis
+     * la peau d'un Titan qui se forme... character null : la partie disparait (elle garde sa place et sa pose).
+     */
+    public void look(String partId, String character) {
+        for (Part part : Part.values()) {
+            if (partId != null && !part.id.equals(partId)) continue;
+            ItemDisplay d = parts.get(part);
+            if (d != null && d.isValid()) d.setItemStack(character == null ? invisibleItem() : partModel(character, part, null));
+        }
+    }
+
+    /** Le milieu d'une partie du pantin ("head", "body", "arm_r"...), en coordonnees du monde, dans la pose actuelle. */
+    public Location center(String partId) {
+        for (Part part : Part.values()) {
+            if (!part.id.equals(partId)) continue;
+            Map<String, Joint> joints = POSES.get(pose == null ? "debout" : pose);
+            Joint root = joints.getOrDefault("root", Joint.REST), j = joints.getOrDefault(part.id, Joint.REST);
+            Quaternionf rootR = euler(root.angles);
+            // Le milieu de la boite, depuis son articulation : la tete est au-dessus, le reste pend dessous.
+            Vector3f middle = new Vector3f(0, part == Part.HEAD ? 4 : part == Part.BODY || part == Part.LEG_R || part == Part.LEG_L ? -6 : -4, 0);
+            Vector3f point = new Quaternionf(rootR).mul(euler(j.angles)).transform(middle)
+                    .add(rootR.transform(new Vector3f(part.pivot).add(j.offset))).add(root.offset).mul(K / 16f * zoom);
+            new Quaternionf().rotationY((float) Math.toRadians(-anchor().getYaw())).transform(point);
+            return anchor().add(point.x, point.y, point.z);
+        }
+        return anchor();
     }
 
     /** Un contour lumineux de cette couleur autour d'une partie (null : toutes), ou plus de contour (color null). */

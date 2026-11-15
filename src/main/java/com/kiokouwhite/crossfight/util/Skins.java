@@ -65,14 +65,22 @@ public final class Skins {
 
     /** Met au joueur le skin de ce personnage ; null, ou un personnage sans skin : son skin d'origine. */
     public static void apply(Player p, Character character) {
+        wear(p, character == null ? null : character.id());
+    }
+
+    /** Vrai si la table a un skin de ce nom (un personnage, ou une de ses formes : "eren_titan"). */
+    public static boolean has(String id) { return enabled() && SKINS.containsKey(id); }
+
+    /** Met au joueur un skin de la table par son nom ; null, ou un nom sans skin : son skin d'origine. */
+    public static void wear(Player p, String id) {
         if (MannequinPlayer.isProxy(p)) {
             // Un joueur pilote : c'est son mannequin qui change d'apparence.
             var body = MannequinPlayer.body(p);
-            var look = character == null || !enabled() ? null : profile(character.id());
+            var look = id == null || !enabled() ? null : profile(id);
             if (body != null) body.setProfile(look != null ? look : org.bukkit.entity.Mannequin.defaultProfile());
             return;
         }
-        ProfileProperty skin = character == null || !enabled() ? null : SKINS.get(character.id());
+        ProfileProperty skin = id == null || !enabled() ? null : SKINS.get(id);
         if (skin == null) { restore(p); return; }
         PlayerProfile profile = p.getPlayerProfile();
         ProfileProperty current = textures(profile);

@@ -1,0 +1,156 @@
+{
+ "textures": {
+  "skin": "crossfight:item/pose/eren_muscles",
+  "particle": "crossfight:item/pose/eren_muscles"
+ },
+ "elements": [
+  {
+   "from": [
+    6,
+    -4,
+    6
+   ],
+   "to": [
+    10,
+    8,
+    10
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0.0,
+      5.0,
+      1.0,
+      8.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "north": {
+     "uv": [
+      1.0,
+      5.0,
+      2.0,
+      8.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "west": {
+     "uv": [
+      2.0,
+      5.0,
+      3.0,
+      8.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "south": {
+     "uv": [
+      3.0,
+      5.0,
+      4.0,
+      8.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "up": {
+     "uv": [
+      2.0,
+      5.0,
+      1.0,
+      4.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "down": {
+     "uv": [
+      3.0,
+      4.0,
+      2.0,
+      5.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    }
+   }
+  },
+  {
+   "from": [
+    5.75,
+    -4.25,
+    5.75
+   ],
+   "to": [
+    10.25,
+    8.25,
+    10.25
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0.0,
+      9.0,
+      1.0,
+      12.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "north": {
+     "uv": [
+      1.0,
+      9.0,
+      2.0,
+      12.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "west": {
+     "uv": [
+      2.0,
+      9.0,
+      3.0,
+      12.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "south": {
+     "uv": [
+      3.0,
+      9.0,
+      4.0,
+      12.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "up": {
+     "uv": [
+      2.0,
+      9.0,
+      1.0,
+      8.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    },
+    "down": {
+     "uv": [
+      3.0,
+      8.0,
+      2.0,
+      9.0
+     ],
+     "texture": "#skin",
+     "tintindex": 0
+    }
+   }
+  }
+ ]
+}

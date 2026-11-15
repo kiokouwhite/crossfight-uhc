@@ -641,3 +641,30 @@ pose eren_charge
   leg_r -70 0 -4
   leg_l 16 0 4
   item  52 0 0
+
+# Eren, Titan Assaillant : il porte la main droite a sa bouche et se mord, la tete baissee sur son poing...
+pose eren_morsure
+  root  5 0 0
+  head  12 0 0
+  arm_r -117.5 42 0   -0.8 -0.7 -0.9
+  arm_l 14 0 9
+  leg_r -6 0 -5
+  leg_l 8 0 5
+
+# ...le Titan se forme dans la vapeur, voute, la tete basse, les bras ballants...
+pose eren_titan_naissance
+  root  14 0 0
+  head  28 0 0
+  arm_r -16 0 -10
+  arm_l -16 0 10
+  leg_r 0 0 -7
+  leg_l 0 0 7
+
+# ...puis il se redresse et rugit, la tete rejetee en arriere, les poings serres de chaque cote.
+pose eren_titan_rugit
+  root  -8 0 0
+  head  -32 0 0
+  arm_r 20 0 -38
+  arm_l 20 0 38
+  leg_r -6 0 -12
+  leg_l 8 0 12
