@@ -468,6 +468,7 @@ public final class GameManager {
             if (!p.isDead()) { p.teleport(lobbySpot()); p.setFallDistance(0); }
         }
         plugin.teams().clear();
+        plugin.hostTools().refreshAll();
         com.kiokouwhite.crossfight.util.Mannequins.clearAll();
         elapsed = 0;
         pvpEnabled = false;

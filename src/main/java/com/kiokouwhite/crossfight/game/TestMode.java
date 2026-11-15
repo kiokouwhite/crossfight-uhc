@@ -307,6 +307,7 @@ public final class TestMode implements Listener {
         p.setFallDistance(0);
         Msg.send(p, "<yellow>Mode test quitte.");
         pending.remove(p.getUniqueId());
+        plugin.hostTools().refresh(p);
         save();
         if (returnPoints.isEmpty() && plugin.game().state() == GameState.TEST) {
             Mannequins.clearAll();

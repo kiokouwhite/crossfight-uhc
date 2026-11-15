@@ -64,6 +64,9 @@ public final class ConnectionListener implements Listener {
             p.teleport(plugin.game().lobbySpot());
             p.setFallDistance(0);
             Msg.send(p, "<gray>Bienvenue sur <gold>Crossfight UHC</gold>. En attente du lancement.");
+            // Operateurs et administrateurs de partie : leurs outils de reglage en main.
+            plugin.hostTools().refresh(p);
+            if (plugin.hostTools().canHost(p)) Msg.send(p, "<gray>Tes outils d'administrateur sont dans ta barre : regles, equipes, nouvelle map, rappel, lancement.");
             return;
         }
         // Partie en cours : les joueurs sans equipe ou sans vie sont spectateurs.

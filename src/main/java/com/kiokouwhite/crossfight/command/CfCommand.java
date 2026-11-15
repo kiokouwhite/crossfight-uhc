@@ -78,10 +78,18 @@ public final class CfCommand implements TabExecutor {
                         if (id == null) { Msg.send(sender, "<red>" + args[1] + " n'est pas connecte."); return true; }
                         boolean now = !rules.isHost(id);
                         rules.setHost(id, name, now);
-                        Msg.send(sender, now ? "<green>" + name + " est administrateur de partie : il peut regler la partie (<white>/cf regle</white>), la lancer et l'arreter."
+                        Msg.send(sender, now ? "<green>" + name + " est administrateur de partie : il a les outils de reglage en main dans le lobby (ou <white>/cf regle</white>), et peut lancer et arreter la partie."
                                 : "<yellow>" + name + " n'est plus administrateur de partie.");
-                        if (target != null && target != sender) Msg.send(target, now ? "<green>Tu es administrateur de partie. <gray><white>/cf regle</white> pour voir et changer les regles, <white>/cf start</white>, <white>/cf stop</white>, <white>/cf lobby</white>, <white>/cf setsize</white>."
+                        if (target != null && target != sender) Msg.send(target, now ? "<green>Tu es administrateur de partie. <gray>Dans le lobby, tes outils sont dans ta barre : regles, equipes, nouvelle map, rappel, lancement. Les commandes marchent aussi (<white>/cf regle</white>, <white>/cf start</white>, <white>/cf stop</white>...)."
                                 : "<yellow>Tu n'es plus administrateur de partie.");
+                        if (target != null) plugin.hostTools().refresh(target);
+                    }
+                    case "outils", "outil", "tools" -> {
+                        // Redonne les outils d'administrateur (apres un /op, un inventaire vide...).
+                        if (!(sender instanceof Player p)) { Msg.send(sender, "<red>En jeu seulement."); return true; }
+                        plugin.hostTools().refresh(p);
+                        Msg.send(p, plugin.game().isLobby() || plugin.game().state() == com.kiokouwhite.crossfight.game.GameState.TEST
+                                ? "<green>Outils d'administrateur remis dans ta barre." : "<red>Les outils ne sont donnes que hors partie.");
                     }
                     case "regle", "regles", "rule", "rules", "config" -> {
                         // /cf regle : toutes les regles et leur valeur ; /cf regle <nom> <valeur> : en changer une.
@@ -474,7 +482,7 @@ public final class CfCommand implements TabExecutor {
 
     /** Ce qu'un administrateur de partie (/cf admin) peut faire sans etre operateur. */
     private static final java.util.Set<String> HOST_COMMANDS = java.util.Set.of("start", "stop", "lobby", "setsize", "setborder", "setpvp",
-            "regenere", "regenerer", "regen", "newmap", "regle", "regles", "rule", "rules", "config");
+            "regenere", "regenerer", "regen", "newmap", "outils", "outil", "tools", "regle", "regles", "rule", "rules", "config");
 
     private boolean isHost(CommandSender s) {
         return s instanceof Player p && plugin.game().rules().isHost(p.getUniqueId());

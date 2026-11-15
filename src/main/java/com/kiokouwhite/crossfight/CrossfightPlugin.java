@@ -68,6 +68,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         music = new com.kiokouwhite.crossfight.util.Music(this);
         pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);
+        hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
+        pm.registerEvents(hostTools, this);
         ores = new com.kiokouwhite.crossfight.game.Ores(this);
         pm.registerEvents(ores, this);
         ores.boostLoaded();
@@ -85,6 +87,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
         pm.registerEvents(legacyCombat, this);
         for (var p : getServer().getOnlinePlayers()) legacyCombat.apply(p);
+        hostTools.refreshAll();
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
         }
@@ -137,6 +140,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public ScoreboardManager scoreboard() { return scoreboardManager; }
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
     private com.kiokouwhite.crossfight.game.Ores ores;
+    private com.kiokouwhite.crossfight.game.HostTools hostTools;
+    public com.kiokouwhite.crossfight.game.HostTools hostTools() { return hostTools; }
     public com.kiokouwhite.crossfight.game.Ores ores() { return ores; }
     private com.kiokouwhite.crossfight.game.SelectionStage selectionStage;
     private com.kiokouwhite.crossfight.hud.EffectHud effectHud;
