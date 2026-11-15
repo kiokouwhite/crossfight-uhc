@@ -11,6 +11,8 @@ Ecrit    resourcepack-prive/assets/crossfight/textures/item/glyph/<nom>.png   51
 Le plugin le connait ensuite sous le nom "glyph.<nom>" (tools/build_pack.py) et l'affiche avec un
 ItemDisplay (character/rwby/Glyph.java). Sans ces fichiers, les Glyphs gardent leurs seules particules.
 Il dessine aussi, dans le pack public, la flaque d'ombre de Blake (glyph.flaque_noire, Discretion).
+Et, pour Valorant : un orbe (glyph.orbe, teint en jeu : les orbes de Sage), un anneau de vent (glyph.vent : les
+bourrasques de Jett) et un couteau de lancer (glyph.kunai : sa Tempete de Lames).
 """
 import json
 from pathlib import Path
@@ -80,6 +82,80 @@ def puddle() -> Image.Image:
     return img
 
 
+def orb() -> Image.Image:
+    """Un orbe (pack public) : un coeur plein, un halo qui s'efface, un reflet. Blanc : il est teint en jeu
+    (les orbes de Sage)."""
+    import math
+    size = 96
+    img = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    px = img.load()
+    c = (size - 1) / 2
+    for y in range(size):
+        for x in range(size):
+            r = math.hypot(x - c, y - c) / (size / 2)
+            if r >= 1:
+                continue
+            core = 1.0 if r < 0.42 else max(0.0, 1 - (r - 0.42) / 0.16)
+            halo = max(0.0, 1 - r) ** 1.6 * 0.55
+            ring = max(0.0, 1 - abs(r - 0.5) / 0.05) * 0.5
+            a = min(1.0, max(core, halo + ring))
+            # Le coeur s'assombrit vers son bord (un volume), le reflet reste blanc en haut a gauche.
+            shade = 1.0 if r >= 0.42 else 0.72 + 0.28 * (1 - r / 0.42)
+            glint = max(0.0, 1 - math.hypot(x - c + size * 0.13, y - c + size * 0.15) / (size * 0.1))
+            v = int(255 * min(1.0, shade + glint))
+            px[x, y] = (v, v, v, int(255 * a))
+    return img
+
+
+def gust() -> Image.Image:
+    """Un anneau de vent (pack public) : trois arcs effiles qui tournent autour d'un centre vide. Blanc, teint
+    en jeu (les bourrasques de Jett)."""
+    import math
+    size = 128
+    img = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+    px = img.load()
+    c = (size - 1) / 2
+    for y in range(size):
+        for x in range(size):
+            dx, dy = x - c, y - c
+            r = math.hypot(dx, dy) / (size / 2)
+            if r >= 1 or r < 0.3:
+                continue
+            ang = math.atan2(dy, dx)
+            best = 0.0
+            for k in range(3):
+                # Chaque arc : une spirale qui s'ecarte du centre en tournant, epaisse au depart, fine au bout.
+                turn = ((ang - k * 2 * math.pi / 3) % (2 * math.pi)) / (2 * math.pi)
+                if turn > 0.78:
+                    continue
+                radius = 0.42 + 0.48 * turn
+                width = 0.085 * (1 - turn / 0.78) + 0.012
+                best = max(best, max(0.0, 1 - abs(r - radius) / width) * (1 - 0.5 * turn))
+            if best > 0:
+                px[x, y] = (255, 255, 255, int(235 * best))
+    return img
+
+
+def kunai() -> Image.Image:
+    """Un couteau de lancer (pack public), dessine debout : la pointe en haut, la lame en feuille, la poignee
+    bandee, l'anneau en bas. Debout et symetrique, il se lit pareil des deux cotes de son image (les deux faces
+    d'une image d'effet sont le miroir l'une de l'autre). Les couteaux de la Tempete de Lames de Jett."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    steel, light, dark, wrap, glow = (196, 208, 224), (240, 246, 255), (120, 132, 152), (40, 120, 132), (150, 240, 250)
+    rows = [  # une ligne par pixel de haut, autour de l'axe (colonnes 7 et 8)
+        "......ll......", ".....lssd.....", ".....lssd.....", "....llssdd....", "....lsssdd....", "....lsssdd....",
+        ".....lssd.....", ".....lssd.....", "......sd......", "......wg......", "......gw......", "......wg......",
+        ".....d..d.....", ".....s..s.....", ".....s..s.....", "......ss......",
+    ]
+    key = {"l": light, "s": steel, "d": dark, "w": wrap, "g": glow}
+    for y, row in enumerate(rows):
+        for x, c in enumerate(row):
+            if c != ".":
+                px[x + 1, y] = key[c] + (255,)
+    return img
+
+
 def write(name: str, img: Image.Image, out: Path = OUT):
     tex = out / "textures" / "item" / "glyph" / f"{name}.png"
     tex.parent.mkdir(parents=True, exist_ok=True)
@@ -101,6 +177,9 @@ def write(name: str, img: Image.Image, out: Path = OUT):
 
 def main() -> int:
     print(write("flaque_noire", puddle(), PUBLIC).relative_to(ROOT))
+    # Valorant : les orbes de Sage, les bourrasques et les couteaux de Jett.
+    for name, img in (("orbe", orb()), ("vent", gust()), ("kunai", kunai())):
+        print(write(name, img, PUBLIC).relative_to(ROOT))
     if not SOURCES.is_dir():
         print(f"pas de {SOURCES} : rien a faire (les Glyphs gardent leurs particules)")
         return 0

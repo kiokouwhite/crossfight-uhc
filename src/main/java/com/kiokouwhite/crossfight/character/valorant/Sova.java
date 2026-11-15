@@ -139,7 +139,23 @@ public final class Sova extends Character implements Listener {
         a.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.8f);
         p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getEyeLocation().add(dir), 15, 0.2, 0.2, 0.2, 0.1);
+        releaseLook(p, 7);
         return a;
+    }
+
+    /** L'arc que montre le pantin de Sova (celui de Minecraft, en attendant son modele). */
+    static ItemStack bowLook() { return new ItemStack(Material.BOW); }
+
+    /**
+     * Comme dans Valorant : au moment du tir il est de profil, l'arc a bout de bras, et la main qui tenait la corde
+     * part en arriere. Le pantin prend le relais du geste de Minecraft (bras leves) juste a la detente.
+     */
+    static void releaseLook(Player p, int hold) {
+        com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "sova", bowLook(), "sova_vise");
+        if (pu == null) return;
+        pu.rest("sova_vise");
+        pu.pose("sova_tir", 2);
+        pu.endAfter(hold, 3);
     }
 
     /** Deux fleches en reserve, une revient toutes les 6 secondes. L'item est un vrai arc a bander. */
@@ -337,7 +353,14 @@ public final class Sova extends Character implements Listener {
             super("sova_drone", "Drone Rapace", "Un drone suit Sova pendant 10 secondes et tire des fleches de Faiblesse sur les adversaires a moins de 20 blocs.", Material.PHANTOM_MEMBRANE, 20);
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Allay drone = (Allay) p.getWorld().spawnEntity(p.getEyeLocation().add(0, 1.5, 0), EntityType.ALLAY);
+            // Comme dans Valorant : il leve le bras gauche et lache le drone, qui s'eleve de sa main jusqu'a son poste.
+            var pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "sova", null, "debout");
+            if (pu != null) { pu.pose("sova_drone", 3); pu.endAfter(10, 4); }
+            Vector left = Effects.towards(p, null);
+            left = new Vector(left.getZ(), 0, -left.getX());
+            Location hand = p.getLocation().add(0, 2.15, 0).add(left.multiply(0.33));
+            p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, hand, 10, 0.1, 0.1, 0.1, 0.05);
+            Allay drone = (Allay) p.getWorld().spawnEntity(hand, EntityType.ALLAY);
             drone.setAI(false);
             drone.setGravity(false);
             drone.setInvulnerable(true);
@@ -405,6 +428,22 @@ public final class Sova extends Character implements Listener {
             w.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.5f);
             w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.5f, 1.8f);
             w.spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 1, 0), 60, 0.6, 0.8, 0.6, 0.2);
+            // Comme dans Valorant : il leve son arc, l'energie converge sur lui avant qu'il se mette a viser.
+            var raised = com.kiokouwhite.crossfight.util.Puppet.show(p, "sova", bowLook(), "debout");
+            if (raised != null) {
+                raised.pose("sova_fureur", 4);
+                raised.endAfter(13, 4);
+                new BukkitRunnable() {
+                    int t = 0;
+                    @Override public void run() {
+                        if (!p.isOnline() || t++ >= 12 || com.kiokouwhite.crossfight.util.Puppet.of(p) != raised) { cancel(); return; }
+                        Location bow = raised.armPoint(false, 1.0);
+                        double a = Math.random() * Math.PI * 2, r = 1.6 + Math.random();
+                        com.kiokouwhite.crossfight.util.Fx.bolt(bow.clone().add(Math.cos(a) * r, 0.4 + Math.random() * 1.4, Math.sin(a) * r), bow, 0.2, BOLT);
+                        w.spawnParticle(Particle.DUST, bow, 3, 0.12, 0.3, 0.12, 0, BEAM);
+                    }
+                }.runTaskTimer(plugin(), 3L, 1L);
+            }
             new BukkitRunnable() {
                 @Override public void run() {
                     if (!p.isOnline() || !active(st)) { end(p, cf, st); cancel(); return; }
@@ -436,6 +475,9 @@ public final class Sova extends Character implements Listener {
         static void windUp(Player p, CfPlayer cf, AbilityState st) {
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
+            // De profil, l'arc bande a bout de bras pendant que l'energie se concentre ; la corde claque au tir.
+            final var aim = com.kiokouwhite.crossfight.util.Puppet.show(p, "sova", bowLook(), "sova_vise");
+            if (aim != null) { aim.rest("sova_vise"); aim.endAfter(8 + 8, 3); }
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
@@ -458,6 +500,7 @@ public final class Sova extends Character implements Listener {
                             st.set("winding", false);
                             st.set("shots", st.get("shots", 0) - 1);
                             blast(p, cf);
+                            if (aim != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == aim) aim.pose("sova_tir", 2);
                             cancel();
                         }
                     } catch (Exception ex) { st.set("winding", false); cancel(); }

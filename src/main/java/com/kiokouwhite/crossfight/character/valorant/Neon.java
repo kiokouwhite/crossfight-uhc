@@ -10,8 +10,10 @@ import com.kiokouwhite.crossfight.character.Voie;
 import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Bullets;
 import com.kiokouwhite.crossfight.util.Effects;
+import com.kiokouwhite.crossfight.util.Fx;
 import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.TempBlocks;
 import com.kiokouwhite.crossfight.util.Weapons;
 import org.bukkit.Bukkit;
@@ -71,10 +73,46 @@ public final class Neon extends Character implements Listener {
         VitesseSuperieure() {
             super("neon_vitesse", "Vitesse Superieure", "Neon gagne Vitesse II mais ne peut pas frapper au corps a corps. Jauge de 100 : -5 par seconde active, +1 par seconde au repos.", Material.SUGAR, 5.0, 1.0);
         }
-        @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) { return true; }
+        @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
+            Effects.refresh(p, PotionEffectType.SPEED, 1, 45);
+            sprintLook(p, st);
+            return true;
+        }
         @Override public void tickActive(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.SPEED, 1, 45);
             p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, p.getLocation().add(0, 0.5, 0), 4, 0.3, 0.3, 0.3, 0.05);
+        }
+
+        /**
+         * Comme dans Valorant : elle se ramasse pour partir, penchee en avant, les bras en arriere ; puis, tant
+         * qu'elle court, un sillage d'electricite jaune et bleue file au sol derriere elle et crepite a ses mains.
+         */
+        static void sprintLook(Player p, AbilityState st) {
+            Puppet pu = Puppet.show(p, "neon", null, "neon_depart");
+            if (pu != null) pu.endAfter(5, 3);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BEE_STING, 0.8f, 1.6f);
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int t = 0;
+                Location last = p.getLocation();
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || !st.isEnabled()) { cancel(); return; }
+                    t++;
+                    Location now = p.getLocation();
+                    if (!now.getWorld().equals(last.getWorld())) { last = now; return; }
+                    if (now.distanceSquared(last) > 0.02 && now.distanceSquared(last) < 36) {
+                        Fx.bolt(last.clone().add(0, 0.12, 0), now.clone().add(0, 0.12, 0), 0.1, t % 2 == 0 ? YELLOW : CYAN);
+                        Vector dir = now.toVector().subtract(last.toVector()).setY(0);
+                        if (dir.lengthSquared() > 1e-4 && t % 2 == 0) {
+                            dir.normalize();
+                            Vector side = new Vector(-dir.getZ(), 0, dir.getX());
+                            for (int k = -1; k <= 1; k += 2) {
+                                p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, now.clone().add(0, 0.85, 0).add(side.clone().multiply(0.38 * k)).subtract(dir.clone().multiply(0.25)), 1, 0.04, 0.08, 0.04, 0.02);
+                            }
+                        }
+                    }
+                    last = now;
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
         @Override public void onDisable(Player p, CfPlayer cf, AbilityState st) { }
 
@@ -101,9 +139,23 @@ public final class Neon extends Character implements Listener {
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            throwBolt(p, p.getEyeLocation().add(p.getEyeLocation().getDirection()), p.getEyeLocation().getDirection(), 2.0, 1);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BEE_STING, 1f, 1.8f);
+            // Comme dans Valorant : elle arme le bras et jette l'eclair ; il part de sa main au milieu du geste.
+            Puppet pu = Puppet.show(p, "neon", null, "neon_eclair_arme");
+            if (pu == null) { release(p); return true; }
+            pu.pose("neon_eclair", 3);
+            pu.endAfter(10, 3);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline() && !p.isDead()) release(p); }, 4L);
             return true;
+        }
+
+        static void release(Player p) {
+            Location eye = p.getEyeLocation();
+            throwBolt(p, eye.clone().add(eye.getDirection()), eye.getDirection(), 2.0, 1);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_BEE_STING, 1f, 1.8f);
+            Puppet pu = Puppet.of(p);
+            Location hand = pu != null && "neon_eclair".equals(pu.currentPose()) ? pu.hand() : eye.clone().add(eye.getDirection().multiply(0.8)).add(0, -0.3, 0);
+            p.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, hand, 14, 0.12, 0.12, 0.12, 0.12);
+            p.getWorld().spawnParticle(Particle.DUST, hand, 5, 0.1, 0.1, 0.1, 0, YELLOW);
         }
     }
 
@@ -232,11 +284,24 @@ public final class Neon extends Character implements Listener {
             World w = p.getWorld();
             w.playSound(base, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 2f);
             w.playSound(base, Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.8f);
+            // Comme dans Valorant : les deux bras tendus devant elle, l'energie part de ses mains vers le pied des deux murs.
+            final Puppet cast = Puppet.show(p, "neon", null, "debout");
+            if (cast != null) { cast.pose("neon_voie", 3); cast.endAfter(14, 4); }
             new org.bukkit.scheduler.BukkitRunnable() {
                 int tick = 0;
                 @Override public void run() {
                     tick++;
                     if (tick > DURATION_TICKS || !p.isOnline()) { walls.restore(); w.playSound(base, Sound.BLOCK_BEACON_DEACTIVATE, 1f, 1.6f); cancel(); return; }
+                    if (tick >= 3 && tick <= 9) {
+                        boolean posed = cast != null && Puppet.of(p) == cast;
+                        for (int sgn : new int[]{-2, 2}) {
+                            // "side" pointe vers sa droite : le mur de droite part de sa main droite.
+                            Location hand = posed ? cast.armPoint(sgn > 0, 1.0) : p.getLocation().add(0, 1.3, 0).add(fwd.clone().multiply(0.7)).add(side.clone().multiply(sgn * 0.15));
+                            Location foot = base.clone().add(side.clone().multiply(sgn)).add(fwd.clone().multiply(Math.min(LENGTH, (tick - 2) * 3.0))).add(0.5, 0.6, 0.5);
+                            Fx.bolt(hand, foot, 0.22, tick % 2 == 0 ? YELLOW : CYAN);
+                            w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 3, 0.08, 0.08, 0.08, 0.06);
+                        }
+                    }
                     // Deploiement : les murs avancent de 10 blocs par tick.
                     int from = (tick - 1) * BLOCKS_PER_TICK, to = Math.min(LENGTH, tick * BLOCKS_PER_TICK);
                     for (int i = from; i < to; i++) {
@@ -284,9 +349,39 @@ public final class Neon extends Character implements Listener {
             var left = p.getInventory().addItem(sword);
             if (!left.isEmpty()) p.getInventory().setItem(0, sword);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.8f, 1.5f);
+            overdriveLook(p);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> removeSword(p), seconds * 20L + 5);
             Msg.send(p, "<aqua>Surmultipliee : " + seconds + " s de puissance.");
             return true;
+        }
+
+        /**
+         * Comme dans Valorant : elle se cambre, les poings serres, la tete rejetee en arriere ; la foudre tombe sur
+         * elle, des eclairs la frappent de tous cotes et deux anneaux d'electricite s'ouvrent a ses pieds.
+         */
+        static void overdriveLook(Player p) {
+            World w = p.getWorld();
+            Puppet pu = Puppet.show(p, "neon", null, "debout");
+            if (pu != null) { pu.pose("neon_ult", 4); pu.endAfter(16, 4); }
+            w.strikeLightningEffect(p.getLocation());
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || t++ >= 14) { cancel(); return; }
+                    Location feet = p.getLocation();
+                    Location chest = feet.clone().add(0, 1.1, 0);
+                    for (int i = 0; i < 2; i++) {
+                        double a = Math.random() * Math.PI * 2, r = 2.2 + Math.random() * 1.6;
+                        Fx.bolt(chest.clone().add(Math.cos(a) * r, 1.2 + Math.random() * 2.4, Math.sin(a) * r), chest, 0.3, i == 0 ? YELLOW : CYAN);
+                    }
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, chest, 12, 0.45, 0.8, 0.45, 0.25);
+                    if (t <= 9) {
+                        ring(w, feet, 0.6 + t * 0.45, 0.12, YELLOW, 0.18);
+                        ring(w, feet, 0.3 + t * 0.3, 0.2, CYAN, 0.28);
+                    }
+                    if (t % 4 == 1) w.playSound(feet, Sound.ENTITY_BEE_STING, 0.8f, 0.8f + t * 0.08f);
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
 
         static void removeSword(Player p) {

@@ -20,6 +20,8 @@ bot.once('spawn', async () => {
   for (const o of objet.split(';')) {
     // nom@attente@tenue : l'objet, le temps d'attente ensuite, et combien de temps le clic droit reste enfonce (un arc qu'on bande).
     const [nom, attente = '900', tenue = '80'] = o.split('@');
+    // Une commande (/cf effet resurrection...) au lieu d'un objet.
+    if (nom.startsWith('/')) { bot.chat(nom); await sleep(Number(attente)); continue; }
     const s = slotOf(nom); if (s < 0) { console.log('objet introuvable', nom); continue; }
     bot.setQuickBarSlot(s); await sleep(200);
     if (accroupi === 'oui') { bot.setControlState('sneak', true); await sleep(200); }

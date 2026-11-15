@@ -246,6 +246,15 @@ public final class CfCommand implements TabExecutor {
                         pu.endAfter(seconds * 20, 4);
                         Msg.send(sp, "<green>Pose <white>" + pose + "<green> pendant " + seconds + " s (vue exterieure : F5).");
                     }
+                    case "effet", "fx" -> {
+                        // Test : joue un effet qu'on ne peut pas declencher seul (/cf effet resurrection : celle de Sage, sur soi).
+                        if (!(sender instanceof Player sp)) return true;
+                        if (args.length < 2 || !args[1].equalsIgnoreCase("resurrection")) { Msg.send(sp, "<gold>Effets : <white>resurrection <gray>(/cf effet <nom>, a regarder en F5)."); return true; }
+                        Player actor = plugin.testMode() == null ? sp : plugin.testMode().thirdPerson().actor(sp);
+                        org.bukkit.util.Vector ahead = actor.getLocation().getDirection().setY(0);
+                        if (ahead.lengthSquared() < 1e-4) ahead = new org.bukkit.util.Vector(0, 0, 1);
+                        com.kiokouwhite.crossfight.character.valorant.Sage.resurrectionLook(actor, actor.getLocation().add(ahead.normalize().multiply(2)));
+                    }
                     case "musique", "music" -> {
                         // Test : liste les musiques de combat, en joue une (/cf musique <piste>) ou l'arrete (/cf musique stop).
                         if (!(sender instanceof Player sp)) return true;
@@ -481,7 +490,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -497,6 +506,7 @@ public final class CfCommand implements TabExecutor {
                 case "sante" -> out.addAll(List.of("100", "75", "50", "25", "10"));
                 case "son", "sons" -> { for (String ev : com.kiokouwhite.crossfight.util.Sounds.events()) if (!ev.startsWith("skin.")) out.add(ev); }
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
+                case "effet", "fx" -> out.add("resurrection");
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "selection"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }

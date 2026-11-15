@@ -668,3 +668,190 @@ pose eren_titan_rugit
   arm_l 20 0 38
   leg_r -6 0 -12
   leg_l 8 0 12
+
+# ------------------------------------------------------------------ Valorant
+
+# Jett, Vent Arriere : elle file, le buste couche dans le sens du dash, les deux bras tires en arriere, une jambe pliee.
+pose jett_vent
+  root  52 0 0   0 -2 3
+  head  -42 0 0
+  arm_r 48 0 -24
+  arm_l 48 0 24
+  leg_r -52 0 -3
+  leg_l 22 0 3
+
+# Courant Ascendant : elle jaillit vers le haut, les bras plaques vers le bas pour pousser l'air, un genou remonte.
+pose jett_courant
+  root  -6 0 0
+  head  -24 0 0
+  arm_r 22 0 -30
+  arm_l 22 0 30
+  leg_r -40 0 -3
+  leg_l 14 0 3
+
+# Flottement : elle plane, penchee en avant, les bras ouverts de chaque cote, les jambes qui trainent.
+pose jett_flotte
+  root  20 0 0
+  head  -16 0 0
+  arm_r 18 0 -68
+  arm_l 18 0 68
+  leg_r 26 0 -5
+  leg_l 12 0 5
+
+# Tempete de Lames : elle invoque ses couteaux, les bras ecartes, paumes ouvertes, la tete haute...
+pose jett_lames
+  root  -4 0 0
+  head  -10 0 0
+  arm_r -38 0 -52
+  arm_l -18 0 44
+  leg_r 0 0 -7
+  leg_l 0 0 7
+
+# ...et en lance un d'un geste sec du bras droit vers l'avant, le corps qui suit.
+pose jett_lames_lance
+  root  10 -16 0
+  head  -6 16 0
+  arm_r -92 -8 0
+  arm_l 34 0 22
+  leg_r 16 0 -5
+  leg_l -14 0 5
+
+# Neon, Eclair Relais : le bras droit arme en arriere, le buste tourne...
+pose neon_eclair_arme
+  root  -6 22 0
+  head  2 -22 0
+  arm_r 62 0 -30
+  arm_l -44 0 16
+  leg_r -12 0 -5
+  leg_l 14 0 5
+
+# ...puis elle jette l'eclair devant elle.
+pose neon_eclair
+  root  8 -18 0
+  head  -4 18 0
+  arm_r -96 -10 0
+  arm_l 40 0 20
+  leg_r 18 0 -5
+  leg_l -16 0 5
+
+# Voie Rapide : les deux bras tendus devant elle, l'energie part de ses mains vers les deux murs.
+pose neon_voie
+  root  8 0 0
+  head  -6 0 0
+  arm_r -90 -8 0
+  arm_l -90 8 0
+  leg_r 14 0 -6
+  leg_l -12 0 6
+
+# Vitesse Superieure : le depart, ramassee, penchee en avant, les bras en arriere.
+pose neon_depart
+  root  34 0 0   0 -1 1
+  head  -26 0 0
+  arm_r 52 0 -16
+  arm_l 52 0 16
+  leg_r -40 0 -3
+  leg_l 26 0 3
+
+# Surmultipliee : elle se cambre, les poings serres de chaque cote, la tete rejetee en arriere, la foudre la traverse.
+pose neon_ult
+  root  -10 0 0
+  head  -30 0 0
+  arm_r 16 0 -34
+  arm_l 16 0 34
+  leg_r -4 0 -10
+  leg_l 6 0 10
+
+# Sage, un orbe dans la main : le bras droit tendu devant elle, paume vers le haut, l'autre main pres de l'orbe.
+pose sage_orbe
+  head  6 0 0
+  arm_r -74 -6 0
+  arm_l -46 26 0
+  leg_r 0 0 -4
+  leg_l 0 0 4
+
+# Orbe Barriere : elle abat la main vers le sol devant elle, le mur se leve.
+pose sage_barriere
+  root  10 0 0
+  head  10 0 0
+  arm_r -48 -4 0
+  arm_l 24 0 16
+  leg_r 12 0 -5
+  leg_l -10 0 5
+
+# Orbe de Lenteur : le bras arme en arriere, par en dessous...
+pose sage_lance_arme
+  root  -4 16 0
+  head  0 -16 0
+  arm_r 46 0 -12
+  arm_l -30 0 14
+  leg_r -10 0 -4
+  leg_l 10 0 4
+
+# ...et elle lance l'orbe devant elle, le bras qui finit haut.
+pose sage_lance
+  root  8 -12 0
+  head  -8 12 0
+  arm_r -118 -6 0
+  arm_l 30 0 18
+  leg_r 14 0 -4
+  leg_l -12 0 4
+
+# Orbe de Soin : elle tend l'orbe vers son allie, a bout de bras, l'autre main sur le coeur.
+pose sage_soin
+  root  4 0 0
+  head  -4 0 0
+  arm_r -88 -4 0
+  arm_l -58 52 0
+  leg_r 6 0 -4
+  leg_l -6 0 4
+
+# Resurrection : penchee sur son allie, les deux mains tendues vers lui, la tete baissee.
+pose sage_resurrection
+  root  26 0 0   0 -2 0
+  head  14 0 0
+  arm_r -70 -10 0
+  arm_l -70 10 0
+  leg_r -30 0 -5
+  leg_l 22 0 5
+
+# Sova, Drone Rapace : il lache le drone au-dessus de lui, le bras gauche leve.
+pose sova_drone
+  root  -4 0 0
+  head  -18 0 0
+  arm_l -158 0 12
+  arm_r 12 0 -10
+  leg_r 0 0 -5
+  leg_l 0 0 5
+
+# Sova a l'arc : de profil, l'arc tenu a bout de bras gauche, la main droite ramenee sous le menton...
+pose sova_vise
+  root  0 -70 0
+  head  0 70 0
+  arm_l -90 70 0
+  arm_r 0 0 90    0 0 3.2
+  leg_r 0 0 -12
+  leg_l 0 0 12
+  item_left 0 0 0
+  item_abs 90 0 0
+
+# ...puis la corde claque : la main droite part en arriere.
+pose sova_tir
+  root  0 -70 -4
+  head  0 70 0
+  arm_l -90 70 0
+  arm_r 0 0 -72
+  leg_r 0 0 -14
+  leg_l 0 0 12
+  item_left 0 0 0
+  item_abs 90 0 0
+
+# Fureur du Chasseur : il leve son arc charge d'energie vers le ciel avant de viser.
+pose sova_fureur
+  root  -6 0 0
+  head  -20 0 0
+  arm_l -150 0 10
+  arm_r -30 0 -14
+  leg_r 0 0 -8
+  leg_l 0 0 8
+  item_left 0 0 0
+  item_abs 90 0 0

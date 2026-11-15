@@ -35,6 +35,34 @@ public final class Bullets implements Listener {
             d.setGlowColorOverride(trail);
             d.setPersistent(false);
         });
+        return fly(arrow, bead, trail);
+    }
+
+    /**
+     * Le meme tir, habille d'un objet au lieu d'une bille : couche le long du tir (un couteau de lancer), ou
+     * toujours face a celui qui regarde (un orbe).
+     */
+    public static Arrow shoot(LivingEntity shooter, Vector dir, double speed, double damage, org.bukkit.inventory.ItemStack look, float size, boolean billboard, Color trail) {
+        return shoot(shooter, dir, speed, damage, look, size, billboard, false, trail);
+    }
+
+    /** @param upright l'objet est une image d'effet dessinee debout (pointe en haut), pas une image d'objet en diagonale */
+    public static Arrow shoot(LivingEntity shooter, Vector dir, double speed, double damage, org.bukkit.inventory.ItemStack look, float size, boolean billboard, boolean upright, Color trail) {
+        Arrow arrow = Effects.shootInstantArrow(shooter, dir, speed, damage);
+        arrow.setInvisible(true);
+        Location at = arrow.getLocation();
+        at.setYaw(0);
+        at.setPitch(0);
+        org.bukkit.entity.ItemDisplay shown = Fx.show(at, look, size, billboard);
+        if (!billboard) {
+            Vector up = new Vector(0, 1, 0);
+            shown.setTransformation(new org.bukkit.util.Transformation(new Vector3f(), upright ? Fx.upright(dir, up) : Fx.along(dir, up), new Vector3f(size, size, size), new Quaternionf()));
+        }
+        return fly(arrow, shown, trail);
+    }
+
+    /** L'habillage suit la fleche, laisse une trainee de sa couleur, et disparait avec elle. */
+    private static Arrow fly(Arrow arrow, Display bead, Color trail) {
         arrow.addPassenger(bead);
         Particle.DustOptions dust = new Particle.DustOptions(trail, 0.9f);
         new BukkitRunnable() {
@@ -65,7 +93,7 @@ public final class Bullets implements Listener {
     @EventHandler
     public void onHit(ProjectileHitEvent e) {
         if (!(e.getEntity() instanceof Arrow a) || !a.isInvisible()) return;
-        for (var passenger : a.getPassengers()) if (passenger instanceof BlockDisplay) passenger.remove();
+        for (var passenger : a.getPassengers()) if (passenger instanceof Display) passenger.remove();
         if (e.getHitEntity() != null) {
             a.getWorld().spawnParticle(Particle.CRIT, a.getLocation(), 8, 0.2, 0.2, 0.2, 0.1);
         }

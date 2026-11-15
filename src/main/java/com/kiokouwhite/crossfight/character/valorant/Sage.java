@@ -10,7 +10,9 @@ import com.kiokouwhite.crossfight.team.Team;
 import com.kiokouwhite.crossfight.util.Bullets;
 import com.kiokouwhite.crossfight.util.ChoiceMenu;
 import com.kiokouwhite.crossfight.util.Effects;
+import com.kiokouwhite.crossfight.util.Fx;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Revived;
 import com.kiokouwhite.crossfight.util.TempBlocks;
 import org.bukkit.Bukkit;
@@ -22,6 +24,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -92,8 +95,73 @@ public final class Sage extends Character implements Listener {
             }.runTaskTimer(plugin(), 0L, 10L);
             p.getWorld().playSound(ally.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.4f);
             Msg.actionBar(p, "<green>Orbe de Soin sur " + (ally instanceof Player ap ? ap.getName() : "l'allie"));
+            healLook(p, ally);
             return true;
         }
+
+        /**
+         * Comme dans Valorant : elle tend l'orbe vert vers son allie, a bout de bras ; l'orbe file jusqu'a lui et
+         * une lueur verte tourne autour de lui tant que dure le soin.
+         */
+        static void healLook(Player p, LivingEntity ally) {
+            World w = p.getWorld();
+            Puppet pu = Puppet.show(p, "sage", null, "debout");
+            if (pu != null) {
+                pu.face(p.getLocation().setDirection(ally.getLocation().toVector().subtract(p.getLocation().toVector())).getYaw());
+                pu.pose("sage_soin", 3);
+                pu.endAfter(16, 4);
+            }
+            ItemDisplay orb = orb(palm(p, pu), HEAL, 0.38f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || !ally.isValid() || ally.isDead() || t > 66) { orb.remove(); cancel(); return; }
+                    Location chest = ally.getLocation().add(0, 1.0, 0);
+                    if (t <= 6) {
+                        orb.teleport(palm(p, pu));
+                    } else if (t <= 12) {
+                        // L'orbe quitte sa main et rejoint son allie.
+                        Location from = palm(p, pu);
+                        orb.teleport(from.add(chest.toVector().subtract(from.toVector()).multiply((t - 6) / 6.0)));
+                        w.spawnParticle(Particle.DUST, orb.getLocation(), 2, 0.08, 0.08, 0.08, 0, HEAL_DUST);
+                    } else {
+                        if (t == 13) {
+                            orb.remove();
+                            w.spawnParticle(Particle.HAPPY_VILLAGER, chest, 14, 0.4, 0.6, 0.4);
+                            w.playSound(chest, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1f, 1.3f);
+                        }
+                        // La lueur qui tourne autour de lui, des pieds a la tete.
+                        if (t % 2 == 0) {
+                            double a = t * 0.35, h = ((t - 13) % 26) / 26.0 * 1.9;
+                            for (int k = 0; k < 2; k++) {
+                                w.spawnParticle(Particle.DUST, ally.getLocation().add(Math.cos(a + k * Math.PI) * 0.6, 0.1 + h, Math.sin(a + k * Math.PI) * 0.6), 1, 0, 0, 0, 0, HEAL_DUST);
+                            }
+                        }
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
+    }
+
+    // ------------------------------------------------------------ les orbes
+
+    static final Color JADE = Color.fromRGB(110, 240, 225), HEAL = Color.fromRGB(120, 255, 160);
+    static final Particle.DustOptions HEAL_DUST = new Particle.DustOptions(HEAL, 1.0f);
+
+    /** Un orbe lumineux : l'image du pack teinte (tools/build_glyphs.py), ou un coeur de la mer a sa place. */
+    static ItemDisplay orb(Location at, Color color, float size) {
+        Location l = at.clone();
+        l.setYaw(0);
+        l.setPitch(0);
+        return Fx.show(l, Fx.imageOr("orbe", color, Material.HEART_OF_THE_SEA), size, true);
+    }
+
+    /** La paume ou repose l'orbe : la main droite du pantin, ou devant le joueur a hauteur de poitrine. */
+    static Location palm(Player p, Puppet pu) {
+        if (pu != null && Puppet.of(p) == pu) return pu.hand().add(0, 0.16, 0);
+        Location eye = p.getEyeLocation();
+        return eye.clone().add(eye.getDirection().setY(0).normalize().multiply(0.7)).add(0, -0.45, 0);
     }
 
     static final class OrbeDeLenteur extends ActiveAbility {
@@ -102,9 +170,24 @@ public final class Sage extends Character implements Listener {
         }
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            Arrow a = Bullets.shoot(p, p.getEyeLocation().getDirection(), 1.8, 0.5, Material.CYAN_CONCRETE, Color.fromRGB(100, 230, 220));
-            a.getPersistentDataContainer().set(SLOW_ORB, PersistentDataType.BYTE, (byte) 1);
+            // Comme dans Valorant : elle arme le bras par en dessous et lance l'orbe, qui part de sa main au milieu du geste.
+            Puppet pu = Puppet.show(p, "sage", null, "sage_lance_arme");
+            if (pu == null) { release(p); return true; }
+            pu.pose("sage_lance", 3);
+            pu.endAfter(10, 3);
+            ItemDisplay held = orb(palm(p, pu), JADE, 0.36f);
+            Fx.removeLater(held, 4);
+            Bukkit.getScheduler().runTaskLater(plugin(), () -> { if (p.isOnline() && !p.isDead()) release(p); }, 4L);
             return true;
+        }
+
+        static void release(Player p) {
+            Vector dir = p.getEyeLocation().getDirection();
+            Color trail = Color.fromRGB(100, 230, 220);
+            Arrow a = Fx.has("orbe") ? Bullets.shoot(p, dir, 1.8, 0.5, Fx.image("orbe", JADE), 0.5f, true, trail)
+                    : Bullets.shoot(p, dir, 1.8, 0.5, Material.CYAN_CONCRETE, trail);
+            a.getPersistentDataContainer().set(SLOW_ORB, PersistentDataType.BYTE, (byte) 1);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_SNOWBALL_THROW, 1f, 0.8f);
         }
     }
 
@@ -184,14 +267,53 @@ public final class Sage extends Character implements Listener {
             Vector side = new Vector(-fwd.getZ(), 0, fwd.getX());
             Location base = p.getLocation().add(fwd.clone().multiply(2));
             TempBlocks wall = new TempBlocks();
-            for (int i = -4; i <= 3; i++) for (int d = 0; d < 3; d++) for (int y = 0; y < 4; y++) {
-                wall.place(base.clone().add(side.clone().multiply(i)).add(fwd.clone().multiply(d)).add(0, y, 0).getBlock(), Material.EMERALD_BLOCK);
-            }
-            wall.restoreAfter(600L);
-            p.getWorld().playSound(base, Sound.BLOCK_AMETHYST_BLOCK_PLACE, 1f, 0.8f);
-            Msg.actionBar(p, "<green>Orbe Barriere : " + wall.size() + " blocs");
+            World w = p.getWorld();
+            // Comme dans Valorant : l'orbe repose dans sa paume, elle l'abat vers le sol devant elle, et le mur se leve
+            // rangee par rangee dans un craquement de cristal.
+            Puppet pu = Puppet.show(p, "sage", null, "sage_orbe");
+            if (pu != null) pu.endAfter(RISE_AT + 10, 4);
+            ItemDisplay orb = orb(palm(p, pu), JADE, 0.4f);
+            Location foot = base.clone().add(fwd.clone().multiply(1)).add(0, 0.3, 0);
+            w.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.9f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (t < RISE_AT - 3) {
+                        orb.teleport(palm(p, pu));
+                    } else if (t < RISE_AT) {
+                        if (t == RISE_AT - 3 && pu != null && Puppet.of(p) == pu) pu.pose("sage_barriere", 3);
+                        // L'orbe tombe au pied du mur.
+                        Location from = orb.getLocation();
+                        orb.teleport(from.add(foot.toVector().subtract(from.toVector()).multiply(1.0 / (RISE_AT - t))));
+                    } else {
+                        int layer = (t - RISE_AT) / 2;
+                        if (t == RISE_AT) {
+                            orb.remove();
+                            w.spawnParticle(Particle.FLASH, foot, 1, 0, 0, 0, 0, Color.fromRGB(170, 255, 235));
+                            w.playSound(foot, Sound.BLOCK_GLASS_BREAK, 0.8f, 1.5f);
+                        }
+                        if ((t - RISE_AT) % 2 == 0 && layer < 4) {
+                            for (int i = -4; i <= 3; i++) for (int d = 0; d < 3; d++) {
+                                Location at = base.clone().add(side.clone().multiply(i)).add(fwd.clone().multiply(d)).add(0, layer, 0);
+                                wall.place(at.getBlock(), Material.EMERALD_BLOCK);
+                                if (d != 1) w.spawnParticle(Particle.DUST, at.getBlock().getLocation().add(0.5, 1.05, 0.5), 1, 0.3, 0.05, 0.3, 0, ICE);
+                            }
+                            w.playSound(base, Sound.BLOCK_AMETHYST_BLOCK_PLACE, 1f, 0.7f + layer * 0.15f);
+                            w.playSound(base, Sound.BLOCK_AMETHYST_CLUSTER_PLACE, 0.8f, 0.6f + layer * 0.1f);
+                        }
+                        if (layer >= 4) {
+                            wall.restoreAfter(600L);
+                            Msg.actionBar(p, "<green>Orbe Barriere : " + wall.size() + " blocs");
+                            cancel();
+                        }
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
             return true;
         }
+        /** Le mur commence a se lever ce nombre de ticks apres le lancer (le temps du geste). */
+        static final int RISE_AT = 8;
     }
 
     static final class Resurrection extends UltimateAbility {
@@ -221,6 +343,81 @@ public final class Sage extends Character implements Listener {
             if (!target.isOnline()) { scf.setUltimateCharge(100); return; }
             Revived.revive(sage, target, scf.team());
             Msg.broadcast("<light_purple>" + sage.getName() + " ressuscite <yellow>" + target.getName() + "</yellow> !");
+            resurrectionLook(sage, target.getLocation());
         }
+    }
+
+    static final Material[] COCOON = {Material.CYAN_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.EMERALD_BLOCK, Material.WHITE_STAINED_GLASS};
+
+    /**
+     * La Resurrection, comme dans Valorant : Sage, penchee, tend les deux mains vers son allie ; un cocon de
+     * cristal de jade se leve autour de lui dans une colonne de lumiere, puis vole en eclats quand il se releve.
+     * Appelee aussi par /cf effet resurrection (apercu en mode test).
+     */
+    public static void resurrectionLook(Player sage, Location at) {
+        World w = at.getWorld();
+        Puppet pu = Puppet.show(sage, "sage", null, "debout");
+        if (pu != null) {
+            pu.face(sage.getLocation().setDirection(at.toVector().subtract(sage.getLocation().toVector())).getYaw());
+            pu.pose("sage_resurrection", 4);
+            pu.endAfter(34, 5);
+        }
+        List<org.bukkit.entity.BlockDisplay> shards = new ArrayList<>();
+        for (int i = 0; i < 7; i++) {
+            double a = i * Math.PI * 2 / 7;
+            Location l = at.clone().add(Math.cos(a) * 0.75, 0, Math.sin(a) * 0.75);
+            l.setYaw((float) Math.toDegrees(a));
+            l.setPitch(0);
+            final int k = i;
+            shards.add(w.spawn(l, org.bukkit.entity.BlockDisplay.class, d -> {
+                d.setBlock(COCOON[k % COCOON.length].createBlockData());
+                d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                d.setPersistent(false);
+                d.setTransformation(shard(0.05f, k));
+            }));
+        }
+        w.playSound(at, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.6f);
+        w.playSound(at, Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.6f);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (t == 2) for (int i = 0; i < shards.size(); i++) {
+                    // Les cristaux poussent du sol et se referment au-dessus de lui.
+                    var d = shards.get(i);
+                    d.setInterpolationDelay(0);
+                    d.setInterpolationDuration(10);
+                    d.setTransformation(shard(1f, i));
+                }
+                if (t <= 26) {
+                    // La colonne de lumiere, et la lueur qui passe des mains de Sage a son allie.
+                    w.spawnParticle(Particle.END_ROD, at.clone().add(0, 0.2 + (t % 13) * 0.22, 0), 2, 0.12, 0.1, 0.12, 0.01);
+                    w.spawnParticle(Particle.DUST, at.clone().add(0, 1.0, 0), 3, 0.35, 0.7, 0.35, 0, ICE);
+                    if (pu != null && Puppet.of(sage) == pu && t % 2 == 0) {
+                        Fx.line(pu.armPoint(t % 4 == 0, 1.0), at.clone().add(0, 1.0, 0), 0.35, HEAL_DUST);
+                    }
+                    if (t % 6 == 0) w.playSound(at, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 0.8f, 0.8f + t * 0.03f);
+                }
+                if (t == 27) {
+                    // Le cocon eclate : il est revenu.
+                    for (var d : shards) {
+                        w.spawnParticle(Particle.BLOCK, d.getLocation().add(0, 1.0, 0), 8, 0.2, 0.6, 0.2, d.getBlock());
+                        d.remove();
+                    }
+                    w.spawnParticle(Particle.FLASH, at.clone().add(0, 1.0, 0), 1, 0, 0, 0, 0, Color.fromRGB(190, 255, 240));
+                    w.spawnParticle(Particle.TOTEM_OF_UNDYING, at.clone().add(0, 1.0, 0), 40, 0.3, 0.6, 0.3, 0.35);
+                    w.playSound(at, Sound.BLOCK_GLASS_BREAK, 1f, 1.3f);
+                    w.playSound(at, Sound.ITEM_TOTEM_USE, 0.6f, 1.4f);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin(), 1L, 1L);
+    }
+
+    /** Un eclat du cocon : une lame de cristal haute et fine, penchee vers l'interieur (grow : de 0 a 1). */
+    private static org.bukkit.util.Transformation shard(float grow, int i) {
+        float w = 0.22f + (i % 3) * 0.05f, h = (2.0f + (i % 2) * 0.35f) * grow;
+        var lean = new org.joml.Quaternionf().rotationZ((float) Math.toRadians(16 + (i % 3) * 5));
+        return new org.bukkit.util.Transformation(new org.joml.Vector3f(-w / 2, 0, -w / 2), lean, new org.joml.Vector3f(w, Math.max(0.05f, h), w), new org.joml.Quaternionf());
     }
 }
