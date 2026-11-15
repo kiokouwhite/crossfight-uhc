@@ -97,6 +97,16 @@ public final class TestMode implements Listener {
         if (duo != null) changed += resetPlatform(duo);
         World third = Bukkit.getWorld(ThirdPerson.WORLD);
         if (third != null) changed += resetPlatform(third);
+        World forest = Bukkit.getWorld(TREE_WORLD);
+        if (forest != null) {
+            changed += resetPlatform(forest);
+            plantForest(forest);
+            for (Player p : forest.getPlayers()) {
+                p.teleport(ArenaWorlds.center(forest));
+                p.setFireTicks(0);
+                if (isTester(p)) gear(p);
+            }
+        }
         Mannequins.clearAll();
         for (World w : duo == null ? new World[]{world()} : new World[]{world(), duo}) {
             for (Player p : w.getPlayers()) {
@@ -278,6 +288,7 @@ public final class TestMode implements Listener {
     public void leave(Player p) {
         thirdPerson.close(p);
         if (duoTesters.remove(p.getUniqueId())) clearDuoTargetsIfEmpty();
+        treeTesters.remove(p.getUniqueId());
         Mannequins.removePartners(p);
         Location back = returnPoints.remove(p.getUniqueId());
         plugin.abilities().unequip(p);
@@ -291,7 +302,7 @@ public final class TestMode implements Listener {
         com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         p.setGameMode(GameMode.ADVENTURE);
-        boolean backInTest = back != null && (back.getWorld().getName().equals(WORLD) || back.getWorld().getName().equals(DUO_WORLD) || back.getWorld().getName().equals(ThirdPerson.WORLD));
+        boolean backInTest = back != null && (back.getWorld().getName().equals(WORLD) || back.getWorld().getName().equals(DUO_WORLD) || back.getWorld().getName().equals(ThirdPerson.WORLD) || back.getWorld().getName().equals(TREE_WORLD));
         p.teleport(back != null && !backInTest ? back : plugin.game().world().getSpawnLocation());
         Msg.send(p, "<yellow>Mode test quitte.");
         pending.remove(p.getUniqueId());
@@ -454,7 +465,7 @@ public final class TestMode implements Listener {
         cf.setWaitingRespawn(false);
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
-            if (!handled) p.teleport(thirdPerson.isActive(p) ? thirdPerson.spotOf(p) : isInDuoZone(p) ? duoCenter() : ArenaWorlds.center(world()));
+            if (!handled) p.teleport(thirdPerson.isActive(p) ? thirdPerson.spotOf(p) : isInDuoZone(p) ? duoCenter() : isInForest(p) ? forestCenter() : ArenaWorlds.center(world()));
             p.setGameMode(GameMode.SURVIVAL);
             if (thirdPerson.isActive(p)) resetTarget(p);
             var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
@@ -473,6 +484,79 @@ public final class TestMode implements Listener {
      * duo a l'image de sa partenaire (clic droit pour en changer), trois cibles devant lui, et ses
      * ultimes en duo toujours prets.
      */
+    // ------------------------------------------------------------ foret de test
+
+    /**
+     * La foret de test (/cf test arbre) : le meme terrain, plante de grands epiceas de taiga, pour essayer
+     * l'equipement tridimensionnel (accrocher le grappin aux troncs, se balancer d'arbre en arbre).
+     */
+    public static final String TREE_WORLD = "crossfight_test_arbres";
+
+    public static World treeWorld() {
+        World w = ArenaWorlds.get(TREE_WORLD);
+        boolean fresh = w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).getType() == Material.AIR;
+        built(w);
+        if (fresh) plantForest(w);
+        return w;
+    }
+
+    /** Des epiceas, hauts et geants, sur une grille irreguliere ; une clairiere au centre, ou l'on arrive. */
+    private static void plantForest(World w) {
+        java.util.Random rnd = new java.util.Random(20240611L);
+        int planted = 0;
+        for (int x = -HALF + 6; x <= HALF - 6; x += 9) {
+            for (int z = -HALF + 6; z <= HALF - 6; z += 9) {
+                int tx = x + rnd.nextInt(5) - 2, tz = z + rnd.nextInt(5) - 2;
+                if (tx * tx + tz * tz < 7 * 7) continue;
+                int kind = rnd.nextInt(10);
+                org.bukkit.TreeType type = kind < 4 ? org.bukkit.TreeType.MEGA_REDWOOD : kind < 8 ? org.bukkit.TreeType.TALL_REDWOOD : org.bukkit.TreeType.REDWOOD;
+                Location at = new Location(w, tx, ArenaWorlds.FLOOR_Y + 1, tz);
+                // Un essai qui ne prend pas (pas la place) est retente avec un arbre plus simple.
+                if (w.generateTree(at, rnd, type) || w.generateTree(at, rnd, org.bukkit.TreeType.TALL_REDWOOD) || w.generateTree(at, rnd, org.bukkit.TreeType.REDWOOD)) planted++;
+            }
+        }
+        // Un peu de sous-bois : fougeres et rochers moussus.
+        for (int i = 0; i < 140; i++) {
+            int x = rnd.nextInt(2 * HALF - 4) - HALF + 2, z = rnd.nextInt(2 * HALF - 4) - HALF + 2;
+            var ground = w.getBlockAt(x, ArenaWorlds.FLOOR_Y, z);
+            var above = ground.getRelative(0, 1, 0);
+            if (x * x + z * z < 16 || !above.getType().isAir() || (ground.getType() != Material.GRASS_BLOCK && ground.getType() != Material.PODZOL)) continue;
+            above.setType(i % 9 == 0 ? Material.MOSSY_COBBLESTONE : Material.FERN, false);
+        }
+        CrossfightPlugin.get().getLogger().info("Foret de test : " + planted + " epiceas plantes.");
+    }
+
+    private final java.util.Set<UUID> treeTesters = new java.util.HashSet<>();
+
+    public boolean isInForest(Player p) { return treeTesters.contains(p.getUniqueId()) && p.getWorld().getName().equals(TREE_WORLD); }
+
+    private static Location forestCenter() { return ArenaWorlds.center(treeWorld()); }
+
+    /** Envoie le testeur dans la foret (en ouvrant le mode test si besoin). */
+    public boolean enterForest(Player p) {
+        if (thirdPerson.isActive(p)) {
+            Character c = thirdPerson.characterOf(p);
+            thirdPerson.close(p);
+            if (c != null) change(p, c);
+        }
+        if (isInDuoZone(p)) leaveDuoQuietly(p);
+        if (!isTester(p) && !enter(p)) return false;
+        treeTesters.add(p.getUniqueId());
+        p.teleport(forestCenter());
+        p.setFallDistance(0);
+        Msg.send(p, "<dark_green><bold>Foret de test.</bold> <gray>Des epiceas de taiga pour l'equipement tridimensionnel. "
+                + "<white>/cf test arbre</white> pour revenir au terrain de test, <white>/cf clear</white> pour replanter, <white>/cf test</white> pour quitter.");
+        return true;
+    }
+
+    /** Retour au terrain de test normal. */
+    public void leaveForest(Player p) {
+        treeTesters.remove(p.getUniqueId());
+        p.teleport(ArenaWorlds.center(world()));
+        p.setFallDistance(0);
+        Msg.send(p, "<gray>Retour au terrain de test.");
+    }
+
     public static final String DUO_WORLD = "crossfight_test_duo";
     /** Les licences qui ont un ultime en duo : l'Ultime en Duo de RWBY et les Synergies des groupes duo. */
     public static final java.util.Set<String> DUO_LICENCES = java.util.Set.of("rwby", "bloody_snow", "shojas_memories", "gunvolt");
@@ -520,6 +604,7 @@ public final class TestMode implements Listener {
             skipMenu.add(p.getUniqueId());
             if (!enter(p)) { skipMenu.remove(p.getUniqueId()); return false; }
         }
+        treeTesters.remove(p.getUniqueId());
         duoTesters.add(p.getUniqueId());
         p.teleport(duoCenter());
         p.setFallDistance(0);

@@ -48,6 +48,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY) et de Synergie (groupes duo) (test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
+| `/cf test arbre` | Forêt de test : des épicéas de taïga pour essayer l'équipement tridimensionnel (une seconde fois pour revenir) |
 | `/cf effet resurrection` | Aperçu d'un effet qu'on ne peut pas déclencher seul (test) |
 | `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
 | `/cf choose` | John : choisir ses pouvoirs absorbés |
@@ -261,6 +262,8 @@ Pour que la partenaire puisse être un mannequin, les 24 ultimes en duo prennent
 
 En mode test, aucune capacité n'a de temps de recharge et l'Ultime est toujours chargé.
 Les chargeurs, munitions et jauges fonctionnent normalement.
+
+`/cf test arbre` envoie dans une forêt de test : le même terrain (90 blocs de côté), planté d'environ 80 épicéas de taïga, hauts et géants (troncs jusqu'à 28 blocs), avec une clairière au centre où l'on arrive. Elle sert à essayer l'équipement tridimensionnel de Shingeki no Kyojin : accrocher le grappin aux troncs, se balancer d'arbre en arbre. `/cf test arbre` une seconde fois ramène au terrain de test, `/cf clear` replante la forêt, `/cf mannequin` y pose des cibles comme ailleurs.
 
 ### Hypothèses prises sur Valorant
 

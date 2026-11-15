@@ -109,6 +109,12 @@ public final class CfCommand implements TabExecutor {
                             else plugin.testMode().enterDuo(sp, partner);
                             return true;
                         }
+                        if (args.length > 1 && (args[1].equalsIgnoreCase("arbre") || args[1].equalsIgnoreCase("arbres") || args[1].equalsIgnoreCase("foret"))) {
+                            // Foret de test (epiceas de taiga, pour l'equipement tridimensionnel) ; une seconde fois pour revenir.
+                            if (plugin.testMode().isInForest(sp)) plugin.testMode().leaveForest(sp);
+                            else plugin.testMode().enterForest(sp);
+                            return true;
+                        }
                         if (args.length > 1 && args[1].equalsIgnoreCase("selection")) {
                             // Essai de l'ecran de selection en 3D : /cf test selection [licence] ; sans licence, une seconde fois pour revenir.
                             var sel = plugin.selection();
@@ -508,7 +514,7 @@ public final class CfCommand implements TabExecutor {
                 case "pose" -> out.addAll(com.kiokouwhite.crossfight.util.Puppet.poses());
                 case "effet", "fx" -> out.add("resurrection");
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
-                case "test" -> out.addAll(List.of("duo", "third-person", "selection"));
+                case "test" -> out.addAll(List.of("duo", "third-person", "selection", "arbre"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }

@@ -26,6 +26,7 @@
 | `/cf duo [pourcent]` | Remplir les jauges d'Ultime en Duo (RWBY) et de Synergie (groupes duo) (test) |
 | `/cf credits [n]` | Régler ses crédits Valorant (test) |
 | `/cf titan [nom\|tous]` | Donner à Eren les pouvoirs d'un titan primordial (test) |
+| `/cf test arbre` | Forêt de test : des épicéas de taïga pour essayer l'équipement tridimensionnel (une seconde fois pour revenir) |
 | `/cf effet resurrection` | Aperçu d'un effet qu'on ne peut pas déclencher seul (test) |
 | `/cf aura <type>` | Recevoir une épée d'Aura sans la crafter (test) |
 | `/cf choose` | John : choisir ses pouvoirs absorbés |
