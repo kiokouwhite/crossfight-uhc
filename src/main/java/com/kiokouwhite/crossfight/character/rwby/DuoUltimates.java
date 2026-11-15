@@ -44,20 +44,23 @@ final class DuoUltimates {
         return null;
     }
 
-    static String name(LivingEntity a, LivingEntity b) {
-        String x = RWBY.characterId(a), y = RWBY.characterId(b);
+    static String name(LivingEntity a, LivingEntity b) { return name(RWBY.characterId(a), RWBY.characterId(b)); }
+
+    /** Le nom de l'attaque d'equipe de la paire, comme dans RWBY (Ruby et Yang n'en ont pas dans la serie : celui de leur duo). */
+    static String name(String x, String y) {
         java.util.Set<String> pair = java.util.Set.of(x, y);
-        if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "la Patinoire";
-        if (pair.equals(java.util.Set.of("ruby", "yang"))) return "le Lancer de Rose";
-        if (pair.equals(java.util.Set.of("ruby", "blake"))) return "l'Ombre Rouge";
-        if (pair.equals(java.util.Set.of("weiss", "yang"))) return "les Piques de Glace";
-        if (pair.equals(java.util.Set.of("weiss", "blake"))) return "le Gel Silencieux";
-        if (pair.equals(java.util.Set.of("blake", "yang"))) return "les Leurres Explosifs";
+        if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "Ice Flower";
+        if (pair.equals(java.util.Set.of("ruby", "yang"))) return "Strawberry Sunrise";
+        if (pair.equals(java.util.Set.of("ruby", "blake"))) return "Ladybug";
+        if (pair.equals(java.util.Set.of("weiss", "yang"))) return "Freezerburn";
+        if (pair.equals(java.util.Set.of("weiss", "blake"))) return "Checkmate";
+        if (pair.equals(java.util.Set.of("blake", "yang"))) return "Bumblebee";
         return "l'Ultime en Duo";
     }
 
-    static String describe(LivingEntity a, LivingEntity b) {
-        String x = RWBY.characterId(a), y = RWBY.characterId(b);
+    static String describe(LivingEntity a, LivingEntity b) { return describe(RWBY.characterId(a), RWBY.characterId(b)); }
+
+    static String describe(String x, String y) {
         java.util.Set<String> pair = java.util.Set.of(x, y);
         if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "Patinoire de 50 blocs, Vitesse III pour les allies";
         if (pair.equals(java.util.Set.of("ruby", "yang"))) return "Yang projette Ruby sur 10 blocs, 5 coeurs autour d'elle";

@@ -104,6 +104,12 @@ public final class RWBY {
             return out;
         }
 
+        /** La jauge commune avec cette alliee, en pourcentage. */
+        int percent(Player p, Player ally) {
+            PairGauge g = gauges.get(key(p.getUniqueId(), ally.getUniqueId()));
+            return g == null ? 0 : (int) Math.min(100, g.progress / DUO_REQUIRED * 100);
+        }
+
         String summary(Player p) {
             StringBuilder sb = new StringBuilder();
             for (Player ally : Bukkit.getOnlinePlayers()) {
@@ -205,22 +211,42 @@ public final class RWBY {
 
         @Override
         public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
+            // Le menu de tous les Ultimes en Duo du personnage : un par coequipiere possible, pret ou non.
+            String mine = characterId(p);
             List<LivingEntity> ready = duo().choices(p);
-            if (ready.isEmpty()) {
-                Msg.actionBar(p, "<red>Aucun Ultime en Duo pret. <gray>" + duo().summary(p));
-                return true;
-            }
-            if (ready.size() == 1) {
-                launch(p, ready.get(0));
-                return true;
-            }
             List<ChoiceMenu.Option> options = new ArrayList<>();
-            for (LivingEntity ally : ready) {
-                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + partnerName(ally), List.of("<gray>" + DuoUltimates.describe(p, ally)), () -> launch(p, ally)));
+            for (String other : TEAM) {
+                if (other.equals(mine)) continue;
+                String title = DuoUltimates.name(mine, other);
+                title = title.substring(0, 1).toUpperCase() + title.substring(1);
+                var c = CrossfightPlugin.get().characters().character(other);
+                List<String> lore = new ArrayList<>(List.of("<gray>Avec <white>" + (c == null ? other : c.name()), "<gray>" + DuoUltimates.describe(mine, other), ""));
+                // Qui joue cette coequipiere : une alliee (sa jauge commune), ou un mannequin duo.
+                LivingEntity partner = null;
+                int best = -1;
+                for (LivingEntity r : ready) if (characterId(r).equals(other)) { partner = r; best = 100; break; }
+                if (partner == null) for (Player ally : Bukkit.getOnlinePlayers()) {
+                    if (ally == p || !Effects.isAlly(p, ally) || !isRwby(ally) || !characterId(ally).equals(other)) continue;
+                    best = Math.max(best, duo().percent(p, ally));
+                }
+                final LivingEntity with = partner;
+                if (with != null) {
+                    lore.add("<green><bold>Pret</bold> <gray>avec " + partnerName(with) + " : clic pour lancer");
+                    options.add(new ChoiceMenu.Option(ICONS.getOrDefault(other, Material.NETHER_STAR), "<light_purple>" + title, lore, () -> launch(p, with)));
+                } else {
+                    lore.add(best >= 0 ? "<yellow>En charge : " + best + " %" : "<red>Aucune " + (c == null ? other : c.name()) + " dans ton equipe");
+                    options.add(new ChoiceMenu.Option(Material.GRAY_DYE, "<gray>" + title, lore,
+                            () -> Msg.actionBar(p, "<red>Cet Ultime en Duo n'est pas pret.")));
+                }
             }
-            ChoiceMenu.open(p, "<dark_gray>Ultime en Duo : avec qui ?", options);
+            ChoiceMenu.open(p, "<dark_gray>Ultimes en Duo", options);
             return true;
         }
+
+        /** Les quatre de l'equipe RWBY, et l'icone de chacune dans le menu. */
+        static final List<String> TEAM = List.of("ruby", "weiss", "blake", "yang");
+        static final java.util.Map<String, Material> ICONS = java.util.Map.of("ruby", Material.ROSE_BUSH, "weiss", Material.SNOWBALL,
+                "blake", Material.BLACK_DYE, "yang", Material.BLAZE_POWDER);
 
         private void launch(Player p, LivingEntity ally) {
             boolean available = ally instanceof Player ap ? ap.isOnline() && Effects.isAlly(p, ap) : ally.isValid();
