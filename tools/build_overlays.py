@@ -14,8 +14,8 @@ citrouille). Le plugin glisse a chaque joueur, pour lui seul, un objet invisible
 tout l'ecran et ne dessine que son bord : a gauche la bande et les icones des bonus, a droite celles des
 malus, une ou deux icones par cote.
 
-Les icones ne sont pas fixes : elles montent en file le long du bord, apparaissent en bas et s'effacent en
-haut. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
+Les icones ne sont pas fixes : nues (sans pastille), elles montent sur deux files le long du bord, sortent
+du bas de l'ecran et s'effacent en haut. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
 FRAMES images que le plugin fait defiler (une toutes les 2 ticks).
 
 Ecrit    resourcepack/assets/crossfight/textures/overlay/bonus_<a>[_<b>]_<image>.png   (et .png.mcmeta : lissage)
@@ -37,7 +37,8 @@ BADGE_R = 25
 SLOTS_Y = (392, 318)          # premiere icone, puis la seconde au-dessus
 # L'animation : les icones montent le long du bord en file, apparaissent en bas et s'effacent en haut.
 FRAMES = 8                    # images par boucle (le plugin en change tous les 2 ticks)
-COPIES = 3                    # icones de chaque effet a l'ecran en meme temps
+COPIES = 6                    # icones de chaque effet a l'ecran en meme temps (pair : elles montent sur deux files)
+STEP = 2                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut
 RISE = (H + 34, 150)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee
 SIZE = (512, 288)             # taille des images ecrites (dessinees en 1024 x 576 puis reduites)
 EDGE_X = 62                   # centre des icones, depuis le bord
@@ -187,6 +188,33 @@ def _badge(name: str, color, size: int) -> Image.Image:
     return out.resize((size, size), Image.LANCZOS)
 
 
+_SPRITES = {}
+
+
+def sprite(name: str, color, size: int) -> Image.Image:
+    """L'icone seule, sans pastille : celle de Minecraft en gros pixels nets, ou le dessin de ce script a la
+    couleur de l'effet ; une ombre douce dessous pour qu'elle se lise sur n'importe quel fond."""
+    key = (name, tuple(color), size, name in MOJANG)
+    if key in _SPRITES:
+        return _SPRITES[key].copy()
+    pad = max(4, size // 6)
+    out = Image.new("RGBA", (size + 2 * pad, size + 2 * pad), (0, 0, 0, 0))
+    if name in MOJANG:
+        ic = MOJANG[name].resize((size, size), Image.NEAREST)
+    else:
+        mask = icon(name).resize((size, size), Image.LANCZOS)
+        ic = Image.new("RGBA", (size, size), tuple(min(255, int(v * 0.45 + 255 * 0.55)) for v in color) + (0,))
+        ic.putalpha(mask)
+    shadow = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    shadow.paste(Image.new("RGBA", ic.size, (6, 8, 16, 255)), (pad, pad + max(1, size // 18)), ic.getchannel("A"))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(max(1.5, size / 14)))
+    shadow.putalpha(shadow.getchannel("A").point(lambda v: int(v * 0.75)))
+    out.alpha_composite(shadow)
+    out.alpha_composite(ic, (pad, pad))
+    _SPRITES[key] = out
+    return out.copy()
+
+
 def arrow(up: bool, color, size: int) -> Image.Image:
     S = size * 4
     im = Image.new("L", (S, S), 0)
@@ -234,20 +262,18 @@ def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
     for n, (e, color) in enumerate(zip(effects, colors)):
         for k in range(COPIES):
             # Avec deux effets, leurs icones alternent dans la file.
-            t = ((k + n / len(effects)) / COPIES + frame / (FRAMES * COPIES)) % 1.0
-            stream.append((t, e, color))
-    for t, e, color in sorted(stream):
+            t = ((k + n / len(effects)) / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
+            stream.append((t, k % STEP, e, color))
+    for t, lane, e, color in sorted(stream):
         fade = min(1.0, (1 - t) / 0.42)
-        size = int(BADGE_R * 2 * (1.08 - 0.3 * t))
-        b = badge(e, color, size)
+        size = int(58 * (1.05 - 0.32 * t))
+        b = sprite(e, color, size)
         b.putalpha(b.getchannel("A").point(lambda v: int(v * fade)))
-        cx = (EDGE_X if left else W - EDGE_X) + int(10 * math.sin(t * math.pi * 2)) * (1 if left else -1)
+        # Deux files qui ondulent, l'une plus pres du bord que l'autre.
+        off = (34 if lane else 84) + int(12 * math.sin(t * math.pi * 2 + lane * 2.1))
+        cx = off if left else W - off
         cy = int(RISE[0] + (RISE[1] - RISE[0]) * t)
-        img.alpha_composite(b, (cx - size // 2, cy - size // 2))
-        if t > 0.2:
-            a = arrow(True, color, 14)
-            a.putalpha(a.getchannel("A").point(lambda v: int(v * fade * 0.8)))
-            img.alpha_composite(a, (cx - 7, cy + size // 2 + 2))
+        img.alpha_composite(b, (cx - b.width // 2, cy - b.height // 2))
     return img
 
 
