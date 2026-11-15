@@ -9,7 +9,7 @@ const lore = i => { const l = (i.components || []).find(c => c.type === 'lore');
 bot.once('spawn', async () => {
   await sleep(1500); bot.chat('/cf test'); await sleep(2500); if (bot.currentWindow) bot.closeWindow(bot.currentWindow);
   bot.chat('/cf change ruby'); await sleep(4000); if (bot.currentWindow) bot.closeWindow(bot.currentWindow);
-  bot.chat('/cf test duo weiss'); await sleep(3000); if (bot.currentWindow) bot.closeWindow(bot.currentWindow); await sleep(500);
+  bot.chat('/cf test duo'); await sleep(3000); if (bot.currentWindow) bot.closeWindow(bot.currentWindow); await sleep(500);
   const s = bot.inventory.slots.slice(36, 45).findIndex(i => i && text(i).includes('Ultime en Duo'));
   bot.setQuickBarSlot(s); await sleep(300); bot.activateItem(); await sleep(80); bot.deactivateItem(); await sleep(800);
   const w = bot.currentWindow;

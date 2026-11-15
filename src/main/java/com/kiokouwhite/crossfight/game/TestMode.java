@@ -669,11 +669,28 @@ public final class TestMode implements Listener {
             at.setYaw(180);
             Mannequins.spawn(at);
         }
-        Mannequins.removePartners(p);
-        Character mine = plugin.players().get(p).character();
-        Character chosen = partner != null ? partner : defaultPartner(mine);
-        if (chosen != null) Mannequins.spawnPartner(partnerSpot(p), chosen, p);
+        spawnPartners(p, plugin.players().get(p).character());
         fillDuo(p);
+    }
+
+    /**
+     * Les mannequins duo du testeur : un par autre personnage de sa licence, en rang a sa droite, pour avoir
+     * tous ses ultimes en duo sous la main.
+     */
+    private void spawnPartners(Player p, Character mine) {
+        Mannequins.removePartners(p);
+        if (!hasDuo(mine)) return;
+        Location at = p.getLocation().clone();
+        at.setPitch(0);
+        org.bukkit.util.Vector dir = at.getDirection().setY(0);
+        if (dir.lengthSquared() < 1e-4) dir = new org.bukkit.util.Vector(0, 0, 1);
+        dir.normalize();
+        org.bukkit.util.Vector right = new org.bukkit.util.Vector(dir.getZ(), 0, -dir.getX());
+        int n = 0;
+        for (Character c : mine.licence().characters()) {
+            if (c == mine) continue;
+            Mannequins.spawnPartner(at.clone().add(right.clone().multiply(2.0 + 1.6 * n++)), c, p);
+        }
     }
 
     /** A gauche du testeur, tourne dans la meme direction que lui. */
@@ -692,19 +709,8 @@ public final class TestMode implements Listener {
             Msg.send(p, "<yellow>" + mine.name() + " n'a pas d'ultime en duo.");
             return;
         }
-        List<LivingEntity> partners = Mannequins.partnersOf(p);
-        if (partners.isEmpty()) {
-            Character d = defaultPartner(mine);
-            if (d != null) Mannequins.spawnPartner(partnerSpot(p), d, p);
-            return;
-        }
-        for (LivingEntity m : partners) {
-            Character theirs = plugin.characters().character(Mannequins.partnerCharacterOf(m));
-            if (theirs == null || theirs == mine || theirs.licence() != mine.licence()) {
-                Character d = defaultPartner(mine);
-                if (d != null) Mannequins.setPartnerCharacter(m, d);
-            }
-        }
+        // Les mannequins duo sont refaits : tous les autres personnages de sa licence.
+        spawnPartners(p, mine);
     }
 
     /** Les jauges de duo du testeur avec ses vrais partenaires (un second testeur) a 100 %. */
