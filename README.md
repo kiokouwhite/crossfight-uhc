@@ -383,6 +383,10 @@ un joueur. C'est le cas des capacités qui visent les ennemis : Coup Critique, �
 Déchaînement d'Épine, Vagues Bleues, Rayon Démoniaque. Les passifs, les soins et les buffs
 personnels n'ont pas d'item adverse.
 
+## Documentation GitBook
+
+`docs/` est la même documentation découpée en pages pour GitBook (une page par partie de ce README), avec son sommaire (`docs/SUMMARY.md`) ; `.gitbook.yaml` dit à GitBook de lire ce dossier. `python3 tools/build_docs.py` la refabrique après chaque changement du README. Pour brancher un espace GitBook dessus : dans l'espace, *Configure* → *Git Sync* → GitHub, dépôt `kiokouwhite/crossfight-uhc`, branche `main`, sens « GitHub → GitBook ». Chaque envoi sur GitHub met alors le GitBook à jour.
+
 ## Télécharger le plugin sans compiler
 
 Le dernier jar compilé est dans le dossier `dist/` :

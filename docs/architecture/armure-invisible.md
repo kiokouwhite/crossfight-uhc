@@ -1,0 +1,3 @@
+# Armure invisible
+
+L'armure portée n'est plus dessinée sur le corps : on voit le skin du personnage, pour le joueur comme pour les autres. Dès qu'un joueur enfile une pièce, le plugin remplace le modèle à dessiner (composant `equippable`, champ `asset_id`) par un modèle vide du pack (`equipment/hidden.json`) : elle protège autant, garde son icône et ses enchantements, mais ne se voit plus une fois portée. Le changement est inscrit dans l'objet : une pièce déjà portée reste invisible même si on la donne à quelqu'un d'autre. `armor.hidden: false` dans `config.yml` arrête de modifier les nouvelles pièces. Les élytres ne sont pas concernés.

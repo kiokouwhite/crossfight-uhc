@@ -1,0 +1,5 @@
+# Skins des personnages
+
+Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. Une forme peut avoir son propre skin dans la table (`eren_titan`, porté pendant la forme de Titan d'Eren). `skins.enabled: false` dans `config.yml` coupe tout.
+
+Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py <dossier de <personnage>.png>` fait signer les images par MineSkin (en « non listé ») et inscrit les références dans `src/main/resources/skins.txt`. Ce fichier ne contient pas les images, seulement leur référence signée chez Mojang. Le changement de skin recharge un instant l'affichage du joueur.
