@@ -3,6 +3,7 @@
 | Commande | Rôle |
 |---|---|
 | `/cf start` / `/cf stop` | Lancer ou arrêter la partie (admin) |
+| `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf setsize SOLO|DUO|TRIO` | Taille des équipes (admin) |
 | `/cf setborder <rayon>` | Taille de la map (admin) |
 | `/cf setpvp <minute>` | Minute d'activation du PvP (admin) |

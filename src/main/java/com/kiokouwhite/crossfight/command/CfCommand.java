@@ -65,6 +65,24 @@ public final class CfCommand implements TabExecutor {
                         plugin.game().stop();
                         Msg.broadcast("<yellow>La partie a ete arretee, retour au lobby.");
                     }
+                    case "lobby" -> {
+                        // Tout le monde sur la plateforme du lobby (hors partie ; les testeurs restent dans leur mode test).
+                        var game = plugin.game();
+                        if (!game.isLobby() && game.state() != com.kiokouwhite.crossfight.game.GameState.TEST) {
+                            Msg.send(sender, "<red>Une partie est en cours : <white>/cf stop</white> pour l'arreter et revenir au lobby.");
+                            return true;
+                        }
+                        int moved = 0, testers = 0;
+                        for (Player o : Bukkit.getOnlinePlayers()) {
+                            if (plugin.testMode().isTester(o)) { testers++; continue; }
+                            if (o.isDead()) continue;
+                            o.teleport(game.lobbySpot());
+                            o.setFallDistance(0);
+                            o.setGameMode(org.bukkit.GameMode.ADVENTURE);
+                            moved++;
+                        }
+                        Msg.send(sender, "<green>" + moved + " joueur(s) envoye(s) au lobby." + (testers > 0 ? " <gray>" + testers + " en mode test, laisse(s) ou ils sont (/cf test pour en sortir)." : ""));
+                    }
                     case "setsize" -> {
                         TeamSize size = args.length > 1 ? TeamSize.parse(args[1]) : null;
                         if (size == null) { Msg.send(sender, "<red>Usage : /cf setsize <SOLO|DUO|TRIO>"); return true; }
@@ -505,7 +523,7 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("start", "stop", "lobby", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {

@@ -302,8 +302,9 @@ public final class TestMode implements Listener {
         com.kiokouwhite.crossfight.util.Effects.resetMaxHealth(p);
         p.setHealth(20);
         p.setGameMode(GameMode.ADVENTURE);
-        boolean backInTest = back != null && (back.getWorld().getName().equals(WORLD) || back.getWorld().getName().equals(DUO_WORLD) || back.getWorld().getName().equals(ThirdPerson.WORLD) || back.getWorld().getName().equals(TREE_WORLD));
-        p.teleport(back != null && !backInTest ? back : plugin.game().lobbySpot());
+        // Le mode test ne s'ouvre que depuis le lobby : on y retourne, sur la plateforme (et non la ou l'on etait avant).
+        p.teleport(plugin.game().lobbySpot());
+        p.setFallDistance(0);
         Msg.send(p, "<yellow>Mode test quitte.");
         pending.remove(p.getUniqueId());
         save();

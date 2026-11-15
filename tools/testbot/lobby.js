@@ -16,5 +16,8 @@ bot.once('spawn', async () => {
   console.log('apres 4,5 s de course vers le bord :', where());
   bot.chat('/cf test'); await sleep(3000); if (bot.currentWindow) bot.closeWindow(bot.currentWindow); console.log('en mode test :', where());
   bot.chat('/cf test'); await sleep(2000); console.log('sortie du mode test :', where());
+  // /cf lobby : tout le monde revient sur la plateforme, d'ou qu'il soit.
+  bot.chat('/tp @s 30.5 120 30.5'); await sleep(1200); console.log('envoye ailleurs :', where());
+  let chat = []; bot.on('messagestr', m => chat.push(m)); bot.chat('/cf lobby'); await sleep(1500); console.log('/cf lobby :', where(), '|', chat.pop());
   bot.quit(); process.exit(0);
 });
