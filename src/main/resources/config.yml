@@ -102,6 +102,16 @@ selection:
   hauteur: 1.74
   regard: 0.0
 
+structures:
+  # Les grandes constructions (plugins/CrossfightUHC/structures/) posees a des endroits tires au sort sur chaque map
+  enabled: true
+  # On ne peut ni les casser, ni y poser de blocs, ni les faire exploser
+  protegees: true
+  # Blocs laisses libres entre deux structures, et entre une structure et la bordure
+  marge: 60
+  # Rayon garde libre autour de l'arene du centre de la map
+  arene: 160
+
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent
   enabled: true

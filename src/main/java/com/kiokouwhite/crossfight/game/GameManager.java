@@ -106,6 +106,9 @@ public final class GameManager {
         plugin.saveConfig();
         prepareWorld();
         plugin.ferox().build();
+        // Les structures de la nouvelle map : la pose en cours sur l'ancienne est abandonnee.
+        plugin.structures().abort();
+        plugin.structures().scatter(w);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.isDead() || (plugin.testMode().isTester(p) && !p.getWorld().equals(old))) continue;
             p.teleport(lobbySpot());
@@ -382,6 +385,10 @@ public final class GameManager {
         if (pvpMin <= 0) pvpEnabled = true;
         Location ferox = plugin.ferox().build();
         Msg.broadcast("<gold>L'arene de Regna Ferox se dresse au centre de la map, en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
+        // Les lieux poses sur la map, avec leurs coordonnees.
+        List<String> places = new ArrayList<>();
+        for (var p : plugin.structures().finished(world())) places.add("<white>" + Structures.title(p.name()) + "</white> en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2));
+        if (!places.isEmpty()) Msg.broadcast("<gold>Sur la map : <gray>" + String.join("<gold>, <gray>", places) + "<gold>.");
         Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
     }
 

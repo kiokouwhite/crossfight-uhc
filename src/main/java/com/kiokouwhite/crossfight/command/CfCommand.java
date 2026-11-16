@@ -129,6 +129,64 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "structure", "structures" -> {
+                        // Les structures posees au hasard sur la map : les lister, en exporter une depuis le monde ou elle est batie, en poser.
+                        var st = plugin.structures();
+                        String what = args.length > 1 ? args[1].toLowerCase() : "liste";
+                        switch (what) {
+                            case "liste" -> {
+                                var sheets = st.sheets();
+                                Msg.send(sender, "<gold>" + sheets.size() + " structure(s) dans plugins/CrossfightUHC/structures/" + (st.working() ? " <yellow>(une pose ou un export est en cours)" : ""));
+                                for (var s : sheets) {
+                                    String where = "<gray>pas encore posee";
+                                    for (var p : st.placed(plugin.game().world())) if (p.name().equals(s.name())) where = "<green>en " + (p.x() + p.sx() / 2) + " " + (p.y() + s.ground()) + " " + (p.z() + p.sz() / 2);
+                                    Msg.send(sender, "<white>" + s.name() + " <gray>" + s.sx() + " x " + s.sy() + " x " + s.sz() + ", " + s.tiles().size() + " tuiles" + (s.author().isEmpty() ? "" : ", par " + s.author()) + " : " + where);
+                                }
+                                Msg.send(sender, "<gray>/cf structure exporter <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse] [auteur], placer <nom> [x z], disperser, monde <dossier>");
+                            }
+                            case "exporter" -> {
+                                if (!(sender instanceof Player sp)) return true;
+                                if (args.length < 10) { Msg.send(sender, "<yellow>/cf structure exporter <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse] [auteur]"); return true; }
+                                try {
+                                    int[] v = new int[7];
+                                    for (int i = 0; i < 7; i++) v[i] = Integer.parseInt(args[3 + i]);
+                                    boolean carve = args.length > 10 && args[10].equalsIgnoreCase("creuse");
+                                    String author = String.join(" ", java.util.Arrays.copyOfRange(args, Math.min(args.length, carve ? 11 : 10), args.length));
+                                    st.export(sender, args[2].toLowerCase(), sp.getWorld(), v[0], v[1], v[2], v[3], v[4], v[5], v[6], carve, author, "");
+                                } catch (NumberFormatException ex) { Msg.send(sender, "<red>Les coordonnees et le niveau du sol sont des nombres entiers."); }
+                            }
+                            case "placer" -> {
+                                var s = args.length > 2 ? st.sheet(args[2].toLowerCase()) : null;
+                                if (s == null) { Msg.send(sender, "<red>Structure inconnue. <gray>/cf structure liste"); return true; }
+                                try {
+                                    org.bukkit.World w = sender instanceof Player sp ? sp.getWorld() : plugin.game().world();
+                                    int x = args.length > 4 ? Integer.parseInt(args[3]) : sender instanceof Player sp ? sp.getLocation().getBlockX() : 0;
+                                    int z = args.length > 4 ? Integer.parseInt(args[4]) : sender instanceof Player sp ? sp.getLocation().getBlockZ() : 0;
+                                    st.place(sender, s, w, x, z, null);
+                                } catch (NumberFormatException ex) { Msg.send(sender, "<red>x et z sont des nombres entiers."); }
+                            }
+                            case "disperser" -> {
+                                if (st.working()) { Msg.send(sender, "<red>Une pose ou un export est deja en cours."); return true; }
+                                st.scatter(plugin.game().world());
+                                Msg.send(sender, "<yellow>Les structures qui manquent a cette map sont posees l'une apres l'autre (suivi dans la console).");
+                            }
+                            case "monde" -> {
+                                // Charge un monde telecharge (son dossier, depose a cote de ceux du serveur) pour y exporter une construction.
+                                if (!(sender instanceof Player sp) || args.length < 3) { Msg.send(sender, "<yellow>/cf structure monde <dossier>"); return true; }
+                                if (!args[2].matches("[A-Za-z0-9_.-]+") || !new java.io.File(Bukkit.getWorldContainer(), args[2] + "/level.dat").isFile()) { Msg.send(sender, "<red>Aucun monde dans le dossier " + args[2] + " du serveur."); return true; }
+                                org.bukkit.World w = Bukkit.getWorld(args[2]);
+                                if (w == null) w = new org.bukkit.WorldCreator(args[2]).generator(new com.kiokouwhite.crossfight.util.ArenaWorlds.VoidGenerator()).createWorld();
+                                if (w == null) { Msg.send(sender, "<red>Ce monde n'a pas pu etre charge."); return true; }
+                                w.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+                                w.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
+                                w.setGameRule(org.bukkit.GameRule.RANDOM_TICK_SPEED, 0);
+                                sp.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                                sp.teleport(w.getSpawnLocation());
+                                Msg.send(sender, "<green>Monde " + args[2] + " charge : tu es a son point d'apparition, en spectateur.");
+                            }
+                            default -> Msg.send(sender, "<yellow>/cf structure liste|exporter|placer|disperser|monde");
+                        }
+                    }
                     case "omori" -> {
                         // /cf omori lancer|fermer|entrer|phase <n>|coups <n> : essayer l'evenement Omori (test).
                         String what = args.length > 1 ? args[1].toLowerCase() : "";
@@ -713,7 +771,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -737,6 +795,7 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
+                case "structure", "structures" -> out.addAll(List.of("liste", "exporter", "placer", "disperser", "monde"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

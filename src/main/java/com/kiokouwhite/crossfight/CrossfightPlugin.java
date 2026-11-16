@@ -79,7 +79,10 @@ public final class CrossfightPlugin extends JavaPlugin {
         omori = new com.kiokouwhite.crossfight.game.Omori(this);
         pm.registerEvents(omori, this);
         // L'arene de Ferox est sur la map avant meme la partie : on la batit (ou on la retrouve) une fois le serveur pret.
-        getServer().getScheduler().runTask(this, () -> ferox.build());
+        structures = new com.kiokouwhite.crossfight.game.Structures(this);
+        pm.registerEvents(structures, this);
+        // Puis les structures (plugins/CrossfightUHC/structures/) qui ne sont pas encore sur cette map, a des endroits tires au sort.
+        getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); });
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
         pm.registerEvents(hostTools, this);
         ores = new com.kiokouwhite.crossfight.game.Ores(this);
@@ -158,6 +161,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     private com.kiokouwhite.crossfight.game.Omori omori;
     public com.kiokouwhite.crossfight.game.Omori omori() { return omori; }
     public com.kiokouwhite.crossfight.game.RegnaFerox ferox() { return ferox; }
+    private com.kiokouwhite.crossfight.game.Structures structures;
+    public com.kiokouwhite.crossfight.game.Structures structures() { return structures; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }
     private com.kiokouwhite.crossfight.game.Roster roster;
     public com.kiokouwhite.crossfight.game.Roster roster() { return roster; }

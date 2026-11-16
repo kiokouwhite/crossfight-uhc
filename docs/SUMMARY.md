@@ -16,6 +16,7 @@
   * [Force](deroulement-d-une-partie/force.md)
   * [Minerais multipliés](deroulement-d-une-partie/minerais-multiplies.md)
   * [Nouvelle map](deroulement-d-une-partie/nouvelle-map.md)
+  * [Structures posées sur la map](deroulement-d-une-partie/structures-posees-sur-la-map.md)
 * [Architecture](architecture.md)
   * [Charge de l'Ultime](architecture/charge-de-l-ultime.md)
   * [Bonus fractionnaires](architecture/bonus-fractionnaires.md)
