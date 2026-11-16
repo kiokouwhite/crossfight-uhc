@@ -54,6 +54,9 @@ import java.util.concurrent.ThreadLocalRandom;
  *   nourriture    12 steaks, toutes les 8 minutes
  *   experience    pas de borne : etre dans le lieu donne de l'experience, 2 points par seconde
  *   lootbox       pas de borne : a l'evenement Lootbox, une lootbox de plus y tombe a coup sur
+ *   chasse        pas de borne : cinq pieces sont cachees dans le lieu. En trouver une (passer dessus ou cliquer) donne
+ *                 2 diamants et de l'experience ; a la troisieme, le contenu d'une lootbox. Une piece trouvee reparait
+ *                 ailleurs six minutes plus tard. Elles scintillent quand on est a moins de douze blocs.
  *
  * Quel lieu rend quel service : structures.utilites dans config.yml (le nom du dossier du lieu, puis le service).
  */
@@ -61,18 +64,18 @@ public final class Places implements Listener {
 
     /** Par defaut : les lieux connus et leur service. */
     private static final Map<String, String> DEFAULTS = Map.of("garreg_mach", "enchantement", "shiganshina", "forge", "pearl", "potions",
-            "central_town", "marchand", "arcadia", "nourriture", "terrace", "experience", "beacon", "lootbox");
+            "central_town", "marchand", "arcadia", "nourriture", "terrace", "experience", "beacon", "lootbox", "forest_of_hope", "chasse");
 
     private record Use(String title, Material icon, String hint) {}
 
-    private static final Map<String, Use> USES = Map.of(
-            "enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "enchante l'objet tenu (5 niveaux)"),
-            "forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)"),
-            "potions", new Use("Potions", Material.BREWING_STAND, "une potion, toutes les 8 minutes"),
-            "marchand", new Use("Marchand", Material.EMERALD, "echanges"),
-            "nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes"),
-            "experience", new Use("Experience", Material.EXPERIENCE_BOTTLE, "de l'experience tant qu'on y reste"),
-            "lootbox", new Use("Lootbox", Material.ENDER_CHEST, "une lootbox garantie a l'evenement"));
+    private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
+            Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "enchante l'objet tenu (5 niveaux)")),
+            Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
+            Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion, toutes les 8 minutes")),
+            Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
+            Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),
+            Map.entry("experience", new Use("Experience", Material.EXPERIENCE_BOTTLE, "de l'experience tant qu'on y reste")),
+            Map.entry("lootbox", new Use("Lootbox", Material.ENDER_CHEST, "une lootbox garantie a l'evenement")));
 
     /** Les echanges du marchand : {ce qu'on donne, combien, ce qu'on recoit, combien}. */
     private static final Object[][] TRADES = {
@@ -130,7 +133,8 @@ public final class Places implements Listener {
             String use = useOf(p.name());
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
-            boolean station = !use.equals("experience") && !use.equals("lootbox");
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse");
+            if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {
                 Location at = pl.getLocation();
@@ -286,6 +290,89 @@ public final class Places implements Listener {
         if (e.getInventory().getHolder() instanceof Shop) e.setCancelled(true);
     }
 
+    // ------------------------------------------------------------------ la chasse aux pieces
+
+    /** Une piece cachee : ou elle est, ce qui la montre quand un joueur est pres, et quand elle reparait une fois trouvee. */
+    private static final class Piece {
+        Location at;
+        Entity shown;
+        long back;
+    }
+
+    private static final Material[] PARTS = {Material.RECOVERY_COMPASS, Material.CLOCK, Material.SPYGLASS, Material.ECHO_SHARD, Material.HEART_OF_THE_SEA};
+    private static final long REAPPEAR = 6 * 60 * 1000L;
+    private final Map<String, Piece[]> pieces = new HashMap<>();
+    /** Combien de pieces chacun a trouvees depuis le debut de la partie. */
+    private final Map<UUID, Integer> found = new HashMap<>();
+
+    /** Un endroit ou cacher une piece : une colonne tiree au sort dans le lieu, a l'ecart de son bord, sur son sol. */
+    private Location hide(World w, Structures.Placed p) {
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        for (int n = 0; n < 40; n++) {
+            int x = p.x() + 12 + r.nextInt(Math.max(1, p.sx() - 24)), z = p.z() + 12 + r.nextInt(Math.max(1, p.sz() - 24));
+            if (!w.isChunkLoaded(x >> 4, z >> 4)) continue;
+            Block b = plugin.worldMap().standAt(w, x, z);
+            if (b != null && !b.isLiquid() && b.getY() < p.y() + p.sy()) return new Location(w, x + 0.5, b.getY() + 1, z + 0.5);
+        }
+        return null;
+    }
+
+    /** Chaque seconde, pour le lieu de la chasse : les pieces se cachent, se montrent a qui s'approche, et se ramassent. */
+    private void hunt(World w, Structures.Placed p, boolean running) {
+        Piece[] all = pieces.computeIfAbsent(w.getName() + "/" + p.name(), k -> { Piece[] a = new Piece[PARTS.length]; for (int i = 0; i < a.length; i++) a[i] = new Piece(); return a; });
+        long now = System.currentTimeMillis();
+        List<Player> here = new ArrayList<>();
+        for (Player pl : w.getPlayers()) {
+            Location at = pl.getLocation();
+            if (at.getX() >= p.x() - 48 && at.getX() < p.x() + p.sx() + 48 && at.getZ() >= p.z() - 48 && at.getZ() < p.z() + p.sz() + 48) here.add(pl);
+        }
+        for (int i = 0; i < all.length; i++) {
+            Piece piece = all[i];
+            if (here.isEmpty()) { if (piece.shown != null) { piece.shown.remove(); piece.shown = null; } continue; }
+            if (piece.at == null && now >= piece.back) piece.at = hide(w, p);
+            if (piece.at == null) continue;
+            boolean near = false;
+            Player taker = null;
+            for (Player pl : here) {
+                double d = pl.getLocation().distanceSquared(piece.at);
+                if (d < 56 * 56) near = true;
+                if (d < 12 * 12) pl.spawnParticle(org.bukkit.Particle.END_ROD, piece.at.clone().add(0, 0.6, 0), 2, 0.25, 0.3, 0.25, 0.01);
+                if (d < 1.6 * 1.6 && taker == null && pl.getGameMode() != org.bukkit.GameMode.SPECTATOR && (running ? plugin.players().get(pl).isAlive() : pl.hasPermission("crossfight.admin"))) taker = pl;
+            }
+            if (piece.shown != null && (!near || !piece.shown.isValid())) { piece.shown.remove(); piece.shown = null; }
+            if (near && piece.shown == null) {
+                final Material part = PARTS[i];
+                piece.shown = w.spawn(piece.at.clone().add(0, 0.45, 0), ItemDisplay.class, d -> {
+                    d.setPersistent(false);
+                    d.setItemStack(new ItemStack(part));
+                    d.setBillboard(Display.Billboard.VERTICAL);
+                    d.setBrightness(new Display.Brightness(15, 15));
+                    d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.55f, 0.55f, 0.55f), new Quaternionf()));
+                });
+            }
+            if (taker != null) take(taker, piece, all, p);
+        }
+    }
+
+    private void take(Player pl, Piece piece, Piece[] all, Structures.Placed p) {
+        if (piece.shown != null) { piece.shown.remove(); piece.shown = null; }
+        pl.getWorld().spawnParticle(org.bukkit.Particle.TOTEM_OF_UNDYING, piece.at.clone().add(0, 0.6, 0), 30, 0.3, 0.4, 0.3, 0.2);
+        piece.at = null;
+        piece.back = System.currentTimeMillis() + REAPPEAR;
+        int left = 0;
+        for (Piece other : all) if (other.at != null) left++;
+        int count = found.merge(pl.getUniqueId(), 1, Integer::sum);
+        pl.getInventory().addItem(new ItemStack(Material.DIAMOND, 2)).values().forEach(i -> pl.getWorld().dropItem(pl.getLocation(), i));
+        pl.giveExp(30);
+        pl.playSound(pl.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
+        Msg.broadcast("<green>" + pl.getName() + " <gray>a trouve une piece dans <white>" + plugin.structures().title(p.name()) + "<gray> (" + left + " encore cachee" + (left > 1 ? "s" : "") + ").");
+        Msg.send(pl, "<green>Piece trouvee : <white>2 diamants<green> et de l'experience. <gray>(" + count + " trouvee" + (count > 1 ? "s" : "") + " ; a la troisieme, une lootbox)");
+        if (count == 3) {
+            plugin.lootbox().reward(pl, 2);
+            Msg.send(pl, "<gold>Troisieme piece : le contenu d'une lootbox est a toi.");
+        }
+    }
+
     /** Ou tombe la lootbox garantie de l'evenement : au milieu du lieu "lootbox", s'il est pose. Sinon null. */
     public Location lootSpot() {
         if (!on()) return null;
@@ -294,11 +381,20 @@ public final class Places implements Listener {
         return null;
     }
 
+    /** Une partie commence : les delais et les comptes de pieces repartent de zero. */
+    public void newGame() {
+        taken.clear();
+        found.clear();
+    }
+
     /** Nouvelle map, nouvelle partie : on oublie les bornes et les delais. */
     public void reset() {
         for (List<Entity> l : shown.values()) l.forEach(Entity::remove);
         shown.clear();
         spots.clear();
         taken.clear();
+        for (Piece[] all : pieces.values()) for (Piece piece : all) if (piece.shown != null) piece.shown.remove();
+        pieces.clear();
+        found.clear();
     }
 }

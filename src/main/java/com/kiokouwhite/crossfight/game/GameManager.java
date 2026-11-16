@@ -247,6 +247,7 @@ public final class GameManager {
     }
 
     public boolean start() {
+        plugin.places().newGame();
         if (startProblem() != null) return false;
         if (plugin.roster().randomTeams()) plugin.teams().shuffle(plugin.roster().randomPlan(plugin.teams().playing().size()));
         int lives = plugin.getConfig().getInt("game.lives", 3);

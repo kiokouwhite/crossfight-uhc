@@ -126,7 +126,7 @@ structures:
   contour: true
   # Les lieux servent a quelque chose pendant la partie (bornes, experience, lootbox garantie)
   services: true
-  # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox
+  # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox, chasse
   utilites:
     garreg_mach: enchantement
     shiganshina: forge
@@ -135,6 +135,7 @@ structures:
     arcadia: nourriture
     terrace: experience
     beacon: lootbox
+    forest_of_hope: chasse
 
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent
