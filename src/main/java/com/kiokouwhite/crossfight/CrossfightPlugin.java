@@ -82,7 +82,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         structures = new com.kiokouwhite.crossfight.game.Structures(this);
         pm.registerEvents(structures, this);
         // Puis les structures (plugins/CrossfightUHC/structures/) qui ne sont pas encore sur cette map, a des endroits tires au sort.
-        getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); });
+        worldMap = new com.kiokouwhite.crossfight.game.WorldMap(this);
+        getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); worldMap.attach(); });
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
         pm.registerEvents(hostTools, this);
         ores = new com.kiokouwhite.crossfight.game.Ores(this);
@@ -163,6 +164,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.RegnaFerox ferox() { return ferox; }
     private com.kiokouwhite.crossfight.game.Structures structures;
     public com.kiokouwhite.crossfight.game.Structures structures() { return structures; }
+    private com.kiokouwhite.crossfight.game.WorldMap worldMap;
+    public com.kiokouwhite.crossfight.game.WorldMap worldMap() { return worldMap; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }
     private com.kiokouwhite.crossfight.game.Roster roster;
     public com.kiokouwhite.crossfight.game.Roster roster() { return roster; }

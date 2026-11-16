@@ -40,6 +40,10 @@ public final class CfCommand implements TabExecutor {
             case "licences", "licenses" -> licences(sender);
             case "perso", "character" -> character(sender, args);
             case "team" -> team(sender, args);
+            case "map", "carte" -> {
+                // La carte de la map, dans la main : les lieux, l'arene, la bordure, soi et son equipe.
+                if (sender instanceof Player sp) plugin.worldMap().give(sp);
+            }
             case "ferox" -> {
                 // /cf ferox oui|non : repondre a la proposition de Regna Ferox ; /cf ferox lancer : l'ouvrir tout de suite (admin).
                 if (!(sender instanceof Player sp)) return true;
@@ -777,7 +781,7 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario", "ferox"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
             if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
