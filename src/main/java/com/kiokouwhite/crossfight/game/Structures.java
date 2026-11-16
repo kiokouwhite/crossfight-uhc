@@ -388,8 +388,8 @@ public final class Structures implements Listener {
             plugin.getConfig().set(key(w, s.name()) + ".boite", List.of(box.x(), box.y(), box.z(), box.sx(), box.sy(), box.sz()));
             plugin.getConfig().set(key(w, s.name()) + ".decoupe", List.of(cut[0], cut[1]));
             plugin.getConfig().set(key(w, s.name()) + ".avancement", 0);
-            // Un lieu recadre a un contour irregulier ; un lieu pose en entier garde sa forme.
-            boolean rag = plugin.getConfig().getBoolean("structures.contour", true) && (cut[2] < s.sx() || cut[3] < s.sz());
+            // Le contour : une tache irreguliere pour un lieu recadre, a peine arrondie pour un lieu pose en entier.
+            int rag = !plugin.getConfig().getBoolean("structures.contour", true) ? 0 : cut[2] < s.sx() || cut[3] < s.sz() ? 2 : 3;
             plugin.getConfig().set(key(w, s.name()) + ".contour", rag);
             ragged.put(w.getName() + "/" + s.name(), rag);
             plugin.getConfig().set(key(w, s.name()) + ".finie", false);
@@ -584,32 +584,56 @@ public final class Structures implements Listener {
         return GLOWS[Math.floorMod(box.name().hashCode(), GLOWS.length)];
     }
 
-    /** Par lieu pose ("monde/nom") : son contour est-il irregulier (structures.contour, lieux recadres) ? */
-    private final Map<String, Boolean> ragged = new HashMap<>();
+    /**
+     * Par lieu pose ("monde/nom"), la forme de son contour, decidee a sa pose (structures.contour) : 0, le rectangle
+     * de sa boite (les lieux d'avant) ; 1, le rectangle aux coins arrondis et au bord ondule (premiere version) ;
+     * 2, une tache arrondie et irreguliere, pour un lieu recadre ; 3, la meme en plus sage, pour un lieu pose en entier.
+     */
+    private final Map<String, Integer> ragged = new HashMap<>();
 
-    private boolean ragged(World w, Placed box) {
-        return ragged.computeIfAbsent(w.getName() + "/" + box.name(), k -> plugin.getConfig().getBoolean(key(w, box.name()) + ".contour", false));
+    private int shape(World w, Placed box) {
+        return ragged.computeIfAbsent(w.getName() + "/" + box.name(), k -> {
+            String path = key(w, box.name()) + ".contour";
+            return plugin.getConfig().isBoolean(path) ? (plugin.getConfig().getBoolean(path) ? 1 : 0) : plugin.getConfig().getInt(path, 0);
+        });
     }
 
     /**
      * Ou est cette colonne par rapport au contour d'un lieu : positif dedans (en blocs depuis le bord), negatif ou nul
-     * dehors. Le contour d'un lieu recadre n'est pas le carre de sa decoupe : ses coins sont arrondis et son bord
-     * ondule, rentrant de 1 a 27 blocs. Le lieu a l'air arrache, pas decoupe a la regle.
+     * dehors. Un lieu n'est pas pose en rectangle : son contour est une tache arrondie inscrite dans sa boite, dont le
+     * rayon change sans cesse le long du tour (de grandes ondulations, et de plus petites par-dessus) : un bout de
+     * monde arrache, pas decoupe a la regle. Un lieu pose en entier garde presque tout : une boite aux coins tres
+     * arrondis, au bord a peine rentre.
      */
     private double edge(World w, Placed box, int x, int z) {
+        int kind = shape(w, box);
         int ax = Math.min(x - box.x(), box.x() + box.sx() - 1 - x), az = Math.min(z - box.z(), box.z() + box.sz() - 1 - z);
         double in = Math.min(ax, az) + 1;
-        if (!ragged(w, box)) return in;
-        final double round = 56;
-        if (ax < round && az < round && ax >= 0 && az >= 0) in = Math.min(in, round - Math.hypot(round - ax, round - az));
         double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
-        double wave = 12 + 7 * Math.sin(x * 0.047 + seed) + 5 * Math.sin(z * 0.039 + seed * 1.7) + 3 * Math.sin((x + z) * 0.11 + seed * 3);
-        return in - Math.max(1, wave);
+        if (kind == 0) return in;
+        if (kind == 1) {
+            final double round = 56;
+            if (ax < round && az < round && ax >= 0 && az >= 0) in = Math.min(in, round - Math.hypot(round - ax, round - az));
+            double wave = 12 + 7 * Math.sin(x * 0.047 + seed) + 5 * Math.sin(z * 0.039 + seed * 1.7) + 3 * Math.sin((x + z) * 0.11 + seed * 3);
+            return in - Math.max(1, wave);
+        }
+        // La tache : la distance au centre, mesuree dans la boite (1 a son bord), comparee au rayon du contour dans
+        // cette direction. La puissance arrondit plus ou moins les coins : 2,4 fait presque une ellipse, 3,2 un rectangle tres arrondi.
+        double a = box.sx() / 2.0, b = box.sz() / 2.0, dx = x + 0.5 - (box.x() + a), dz = z + 0.5 - (box.z() + b);
+        double power = kind == 2 ? 2.4 : 3.2;
+        double rho = Math.pow(Math.pow(Math.abs(dx) / a, power) + Math.pow(Math.abs(dz) / b, power), 1 / power);
+        double angle = Math.atan2(dz, dx);
+        double wave = 0.45 * Math.sin(2 * angle + seed) + 0.3 * Math.sin(3 * angle + seed * 1.7) + 0.2 * Math.sin(5 * angle + seed * 2.9)
+                + 0.12 * Math.sin(9 * angle + seed * 4.3) + 0.08 * Math.sin(17 * angle + seed * 5.1);
+        // Le rayon : de 0,66 a 1 pour un lieu recadre, de 0,88 a 1 pour un lieu entier.
+        double radius = kind == 2 ? 0.83 + 0.17 * Math.max(-1, Math.min(1, wave)) : 0.94 + 0.06 * Math.max(-1, Math.min(1, wave));
+        double length = Math.hypot(dx, dz);
+        return rho < 1e-6 ? Math.min(a, b) : (radius - rho) * length / rho;
     }
 
     /** Vrai si cette colonne de la boite fait partie du lieu (dans son contour). */
     private boolean within(World w, Placed box, int x, int z) {
-        return !ragged(w, box) || edge(w, box, x, z) > 0;
+        return shape(w, box) == 0 || edge(w, box, x, z) > 0;
     }
 
     /**
@@ -680,7 +704,8 @@ public final class Structures implements Listener {
                     Location at = new Location(w, x, s, z);
                     if (s <= w.getMinHeight() + 8 || held(at)) continue;
                     // Ce qui depasse (arbres, herbes) est retire.
-                    for (int y = w.getHighestBlockYAt(x, z); y > s; y--) { at.setY(y); if (held(at)) break; w.getBlockAt(x, y, z).setType(Material.AIR, false); }
+                    // (Jusqu'au dernier bloc qui n'est pas de l'air : la neige posee sur un arbre ne reste pas en l'air.)
+                    for (int y = w.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE); y > s; y--) { at.setY(y); if (held(at)) break; w.getBlockAt(x, y, z).setType(Material.AIR, false); }
                     if (c > 0.8) {
                         // Le bord : une croute d'obsidienne, qui pleure par endroits.
                         w.getBlockAt(x, s, z).setType(CRUST[r.nextInt(CRUST.length)], false);
