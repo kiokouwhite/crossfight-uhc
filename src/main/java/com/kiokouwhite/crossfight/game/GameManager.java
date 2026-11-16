@@ -108,6 +108,7 @@ public final class GameManager {
         plugin.ferox().build();
         // Les structures de la nouvelle map : la pose en cours sur l'ancienne est abandonnee.
         plugin.structures().abort();
+        plugin.places().reset();
         plugin.structures().scatter(w);
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.isDead() || (plugin.testMode().isTester(p) && !p.getWorld().equals(old))) continue;

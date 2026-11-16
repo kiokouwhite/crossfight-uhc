@@ -28,7 +28,17 @@ public final class GameEvents {
             plugin.ferox().ask();
         }
         if (minute == minuteOf("match-found", 40)) {
-            Msg.broadcast("<gold><bold>Evenement :</bold> Match Found ! <dark_gray>(a venir)");
+            // L'evenement aura lieu dans l'un des lieux prevus pour lui (game.events.match-found-lieux), s'il est sur la map.
+            java.util.List<String> wanted = plugin.getConfig().getStringList("game.events.match-found-lieux");
+            if (wanted.isEmpty()) wanted = java.util.List.of("glitch", "lotus");
+            java.util.List<Structures.Placed> here = new java.util.ArrayList<>();
+            for (Structures.Placed p : plugin.structures().finished(plugin.game().world())) if (wanted.contains(p.name())) here.add(p);
+            String where = "";
+            if (!here.isEmpty()) {
+                Structures.Placed p = here.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(here.size()));
+                where = " <white>a " + plugin.structures().title(p.name()) + " <gray>(" + (p.x() + p.sx() / 2) + ", " + (p.z() + p.sz() / 2) + ")";
+            }
+            Msg.broadcast("<gold><bold>Evenement :</bold> Match Found !" + where + " <dark_gray>(a venir)");
         }
         if (minute == minuteOf("judgement", 50)) {
             Msg.broadcast("<dark_red><bold>Evenement :</bold> l'antre de Judgement s'ouvre au centre de la map. <dark_gray>(a venir)");

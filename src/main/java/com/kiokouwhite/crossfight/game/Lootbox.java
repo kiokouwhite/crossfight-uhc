@@ -654,6 +654,12 @@ public final class Lootbox implements Listener {
             int tier = rollTier();
             if (place(at, tier)) where.add("<" + TIER_COLOR[tier - 1] + ">" + at.getBlockX() + " " + at.getBlockY() + " " + at.getBlockZ() + "</" + TIER_COLOR[tier - 1] + ">");
         }
+        // Le lieu des lootbox (game/Places.java) en recoit une de plus, a coup sur.
+        Location sure = plugin.places().lootSpot();
+        if (sure != null) {
+            int tier = rollTier();
+            if (place(sure, tier)) where.add("<" + TIER_COLOR[tier - 1] + ">" + sure.getBlockX() + " " + sure.getBlockY() + " " + sure.getBlockZ() + "</" + TIER_COLOR[tier - 1] + ">");
+        }
         Msg.broadcast("<gold><bold>Evenement :</bold> " + where.size() + " Lootbox sont apparues sur la map ! <gray>" + String.join("<dark_gray>, ", where));
         for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.BLOCK_ENDER_CHEST_OPEN, 1f, 0.8f);
     }

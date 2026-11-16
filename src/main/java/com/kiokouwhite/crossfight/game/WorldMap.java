@@ -153,7 +153,9 @@ public final class WorldMap implements Listener {
         List<String> lines = new ArrayList<>();
         for (int i = 0; i < places.size(); i++) {
             Structures.Placed pl = places.get(i);
-            lines.add(TINT_TAGS[i % TINT_TAGS.length] + "■ <white>" + plugin.structures().title(pl.name()) + " <gray>" + (pl.x() + pl.sx() / 2) + ", " + (pl.z() + pl.sz() / 2));
+            String use = plugin.places().label(pl.name());
+            lines.add(TINT_TAGS[i % TINT_TAGS.length] + "■ <white>" + plugin.structures().title(pl.name()) + " <gray>" + (pl.x() + pl.sx() / 2) + ", " + (pl.z() + pl.sz() / 2)
+                    + (use != null ? " <dark_gray>- <yellow>" + use : ""));
         }
         lines.add("<#96603a>● <white>Arene de Ferox <gray>" + arena.getBlockX() + ", " + arena.getBlockZ());
         lines.add("<gray>Pointeur blanc : toi. Marques bleues : ton equipe.");
@@ -361,6 +363,9 @@ public final class WorldMap implements Listener {
      * haut est souvent un toit, un dome, le haut d'une tour : c'est le premier endroit ou l'on tient debout a partir
      * du niveau du sol du lieu (sa rue, son rez-de-chaussee) ; sur de l'eau, on se pose a sa surface.
      */
+    /** Le bloc qui porte, dans cette colonne (voir {@link #stand}) : pour qui doit poser quelque chose au sol d'un lieu. */
+    public Block standAt(World w, int x, int z) { return stand(w, x, z); }
+
     private Block stand(World w, int x, int z) {
         int top = w.getHighestBlockYAt(x, z);
         if (top < w.getMinHeight()) return null;

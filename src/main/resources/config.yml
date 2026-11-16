@@ -29,6 +29,8 @@ game:
     lootbox: 20
     regna-ferox: 30
     match-found: 40
+    # Les lieux ou Match Found peut se tenir (l'un d'eux, tire au sort parmi ceux qui sont sur la map)
+    match-found-lieux: [glitch, lotus]
     judgement: 50
     omori: 60
 
@@ -122,6 +124,17 @@ structures:
   lueur: true
   # Un lieu recadre (plus grand que sa part de la map) n'est pas pose en carre : coins arrondis, bord qui ondule
   contour: true
+  # Les lieux servent a quelque chose pendant la partie (bornes, experience, lootbox garantie)
+  services: true
+  # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox
+  utilites:
+    garreg_mach: enchantement
+    shiganshina: forge
+    pearl: potions
+    central_town: marchand
+    arcadia: nourriture
+    terrace: experience
+    beacon: lootbox
 
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent
