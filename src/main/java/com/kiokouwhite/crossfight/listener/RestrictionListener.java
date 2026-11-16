@@ -44,9 +44,10 @@ public final class RestrictionListener implements Listener {
                 || n.equals("TRIDENT") || n.equals("MACE");
     }
 
-    /** Une hache qui n'est l'arme d'aucun personnage : fabriquee, trouvee... */
+    /** Une hache qui n'est ni l'arme d'un personnage ni un objet de Lootbox : fabriquee, trouvee... */
     public static boolean isToolAxe(ItemStack it) {
-        return it != null && it.getType().name().endsWith("_AXE") && !com.kiokouwhite.crossfight.ability.AbilityEngine.isWeaponItem(it);
+        return it != null && it.getType().name().endsWith("_AXE") && !com.kiokouwhite.crossfight.ability.AbilityEngine.isWeaponItem(it)
+                && !com.kiokouwhite.crossfight.game.Lootbox.isLoot(it);
     }
 
     @EventHandler

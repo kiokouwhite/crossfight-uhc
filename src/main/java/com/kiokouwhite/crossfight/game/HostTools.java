@@ -84,6 +84,7 @@ public final class HostTools implements Listener {
         dial("jour-permanent", 24, Material.SUNFLOWER, 1);
         dial("doublons", 25, Material.ARMOR_STAND, 1);
         dial("lootbox", 29, Material.CHEST, 5);
+        dial("lootbox-nombre", 28, Material.ENDER_CHEST, 1);
         dial("regna-ferox", 30, Material.GOLDEN_SWORD, 5);
         dial("match-found", 31, Material.BELL, 5);
         dial("judgement", 32, Material.LIGHTNING_ROD, 5);

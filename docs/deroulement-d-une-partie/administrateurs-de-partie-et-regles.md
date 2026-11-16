@@ -35,5 +35,6 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `regeneration` | non | Régénération naturelle de la vie |
 | `jour-permanent` | non | Il fait toujours jour |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
+| `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
 
 La bordure se réduit maintenant d'elle-même : à sa minute, elle passe en `bordure-duree` minutes de son rayon de départ à son rayon final, avec une annonce cinq minutes avant.

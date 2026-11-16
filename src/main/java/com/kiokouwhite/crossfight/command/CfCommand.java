@@ -118,6 +118,25 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "lootbox" -> {
+                        // /cf lootbox [tier] : une lootbox devant soi (test) ; /cf lootbox vague : l'evenement entier.
+                        if (!(sender instanceof Player p)) return true;
+                        if (args.length > 1 && args[1].equalsIgnoreCase("vague")) { plugin.lootbox().wave(); return true; }
+                        int tier = 0;
+                        try { if (args.length > 1) tier = Integer.parseInt(args[1]); } catch (NumberFormatException ignored) { }
+                        var at = p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(2));
+                        Msg.send(p, plugin.lootbox().place(at, tier) ? "<green>Lootbox posee devant toi." : "<red>Impossible de poser une lootbox ici.");
+                    }
+                    case "loot" -> {
+                        // /cf loot <objet|tous> : recevoir un objet de lootbox (test).
+                        if (!(sender instanceof Player p)) return true;
+                        if (args.length < 2) { Msg.send(p, "<yellow>/cf loot <objet|tous> : " + String.join(", ", com.kiokouwhite.crossfight.game.Lootbox.ids())); return true; }
+                        for (String id : args[1].equalsIgnoreCase("tous") ? com.kiokouwhite.crossfight.game.Lootbox.ids() : List.of(args[1])) {
+                            org.bukkit.inventory.ItemStack it = plugin.lootbox().item(id);
+                            if (it == null) { Msg.send(p, "<red>Objet inconnu : " + id); continue; }
+                            for (org.bukkit.inventory.ItemStack rest : p.getInventory().addItem(it).values()) p.getWorld().dropItemNaturally(p.getLocation(), rest);
+                        }
+                    }
                     case "outils", "outil", "tools" -> {
                         // Redonne les outils d'administrateur (apres un /op, un inventaire vide...).
                         if (!(sender instanceof Player p)) { Msg.send(sender, "<red>En jeu seulement."); return true; }
@@ -658,7 +677,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -678,6 +697,8 @@ public final class CfCommand implements TabExecutor {
                 case "regle", "regles", "rule", "rules", "config" -> { for (var r : com.kiokouwhite.crossfight.game.Rules.all()) out.add(r.name()); }
                 case "admin", "admins" -> { for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName()); }
                 case "scenario", "scenarios" -> { for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) out.add(s.id()); }
+                case "loot" -> { out.add("tous"); out.addAll(com.kiokouwhite.crossfight.game.Lootbox.ids()); }
+                case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

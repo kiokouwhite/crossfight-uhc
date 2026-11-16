@@ -47,6 +47,7 @@ public final class Rules {
         toggle("regeneration", "game.natural-regeneration", false, "Regeneration naturelle de la vie");
         toggle("jour-permanent", "game.eternal-day", false, "Il fait toujours jour");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");
+        add("lootbox-nombre", "game.lootbox-count", 6, 1, 50, "", "Nombre de Lootbox qui apparaissent");
         add("regna-ferox", "game.events.regna-ferox", 30, 0, 600, "min", "Minute de l'evenement Regna Ferox");
         add("match-found", "game.events.match-found", 40, 0, 600, "min", "Minute de l'evenement Match Found");
         add("judgement", "game.events.judgement", 50, 0, 600, "min", "Minute de l'evenement Judgement");

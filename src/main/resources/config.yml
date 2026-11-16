@@ -22,6 +22,8 @@ game:
   natural-regeneration: false
   eternal-day: false
   # Toutes ces regles se changent en jeu : /cf regle <nom> <valeur> (operateurs et administrateurs de partie, /cf admin)
+  # Nombre de Lootbox qui apparaissent a la minute de l'evenement
+  lootbox-count: 6
   # Minutes des evenements
   events:
     lootbox: 20

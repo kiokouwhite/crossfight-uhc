@@ -6,6 +6,8 @@
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
+| `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
+| `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
