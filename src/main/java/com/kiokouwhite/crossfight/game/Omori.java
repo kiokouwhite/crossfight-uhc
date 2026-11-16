@@ -468,21 +468,47 @@ public final class Omori implements Listener {
 
     /** Ceux qui regardent la video d'entree : le combat ne commence pour eux qu'apres. */
     private final Set<UUID> watching = new HashSet<>(), welcomed = new HashSet<>();
-    /** Images de la video d'entree (dix par seconde) : tools/build_intro.py. */
-    private static final int WELCOME_FRAMES = 300;
+    /** La video d'entree : quelle image montrer a chaque dixieme de seconde (intro.txt, ecrit par tools/build_intro.py). */
+    private int[] welcomeTable;
+
+    private int[] welcomeTable() {
+        if (welcomeTable != null) return welcomeTable;
+        welcomeTable = new int[0];
+        try (var in = plugin.getResource("intro.txt")) {
+            if (in != null) for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
+                String[] p = line.trim().split("\\s+");
+                if (p.length < 2 || !p[0].equals("espace_blanc")) continue;
+                welcomeTable = new int[p.length - 1];
+                for (int i = 1; i < p.length; i++) welcomeTable[i - 1] = Integer.parseInt(p[i]);
+            }
+        } catch (Exception ex) { plugin.getLogger().warning("intro.txt illisible : " + ex); }
+        return welcomeTable;
+    }
+
+    /** Une image de la video : ses six tuiles sur une ligne (trois, retour en arriere, trois), un pixel repris entre deux tuiles. */
+    private static String welcomeImage(int image) {
+        StringBuilder b = new StringBuilder();
+        for (int t = 0; t < 6; t++) {
+            if (t == 3) b.append('\ue101');
+            else if (t > 0) b.append('\ue100');
+            b.append((char) (0xE200 + image * 6 + t));
+        }
+        return b.toString();
+    }
 
     /**
      * "Welcome to White Space" : la premiere fois qu'un joueur franchit la porte, la video d'entree se joue plein
-     * ecran, avec son son (pack complet : police "espace_blanc", une image par caractere, sur un fond noir). Il ne
+     * ecran, avec son son (pack complet : police "espace_blanc", six tuiles par image, sur un fond noir). Il ne
      * bouge pas, ne craint rien, et Omori ne s'occupe pas de lui pendant ce temps ; s'accroupir la passe. Rend faux
      * si le pack n'a pas la video : on entre alors directement.
      */
     private boolean welcome(Player p) {
-        if (!com.kiokouwhite.crossfight.util.Sounds.has("font.espace_blanc") || !welcomed.add(p.getUniqueId())) return false;
+        final int[] table = welcomeTable();
+        if (table.length == 0 || !com.kiokouwhite.crossfight.util.Sounds.has("font.espace_blanc") || !welcomed.add(p.getUniqueId())) return false;
         final UUID id = p.getUniqueId();
         watching.add(id);
-        Effects.root(p, WELCOME_FRAMES * 2 + 20);
-        Effects.invincible(p, WELCOME_FRAMES * 100L + 2000);
+        Effects.root(p, table.length * 2 + 20);
+        Effects.invincible(p, table.length * 100L + 2000);
         final String sound = com.kiokouwhite.crossfight.util.Sounds.NS + ":ability.espace_blanc";
         p.playSound(p, sound, org.bukkit.SoundCategory.MASTER, 1f, 1f);
         final net.kyori.adventure.key.Key font = net.kyori.adventure.key.Key.key("crossfight", "espace_blanc");
@@ -492,7 +518,7 @@ public final class Omori implements Listener {
             int frame = 0;
             @Override public void run() {
                 boolean skip = frame > 10 && p.isSneaking();
-                if (!p.isOnline() || p.isDead() || !active() || !p.getWorld().getName().equals(WORLD) || frame >= WELCOME_FRAMES || skip) {
+                if (!p.isOnline() || p.isDead() || !active() || !p.getWorld().getName().equals(WORLD) || frame >= table.length || skip) {
                     cancel();
                     watching.remove(id);
                     if (!p.isOnline()) return;
@@ -503,7 +529,7 @@ public final class Omori implements Listener {
                     if (active() && p.getWorld().getName().equals(WORLD)) Msg.send(p, "<white>Tu es dans l'Espace Blanc. <gray>Omori attend.");
                     return;
                 }
-                p.showTitle(net.kyori.adventure.title.Title.title(black, net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE001 + frame))).font(font), times));
+                p.showTitle(net.kyori.adventure.title.Title.title(black, net.kyori.adventure.text.Component.text(welcomeImage(table[frame])).font(font), times));
                 if (frame == 0) Msg.actionBar(p, "<dark_gray>S'accroupir pour passer");
                 frame++;
             }
