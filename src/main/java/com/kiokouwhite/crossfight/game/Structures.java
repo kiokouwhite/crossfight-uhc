@@ -480,10 +480,15 @@ public final class Structures implements Listener {
                 // 2. Les blocs, copies tels quels, sans mise a jour. Ce que le lieu laisse vide ne remplace rien, sauf
                 // dans ses sous-sols quand il les creuse.
                 own.clear();
+                // Par colonne : la hauteur du plus bas bloc pose, si c'est du sol (terre, pierre, sable...) pose au-dessus
+                // du niveau du lieu. Certaines maps sont des coquilles : un sol mince, du vide dessous.
+                final int[][] shell = new int[16][16];
+                for (int[] row : shell) java.util.Arrays.fill(row, Integer.MIN_VALUE);
                 final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
                     if (!within(w, box, x, z)) continue;
                     final int sx = x - dx, sz = z - dz;
+                    boolean first = true;
                     ChunkSnapshot snap = snapshots.computeIfAbsent(Chunk.getChunkKey(sx >> 4, sz >> 4), k -> from.getChunkAt(sx >> 4, sz >> 4).getChunkSnapshot(false, false, false, false));
                     for (int y = minY; y <= maxY; y++) {
                         // Une tranche de seize blocs entierement vide est sautee d'un coup.
@@ -496,6 +501,7 @@ public final class Structures implements Listener {
                             continue;
                         }
                         w.getBlockAt(x, ty, z).setBlockData(data, false);
+                        if (first) { first = false; if (ty >= level && soil(data.getMaterial())) shell[x & 15][z & 15] = ty; }
                         if (ty < level) own.add(pack(x, ty, z));
                     }
                 }
@@ -534,14 +540,16 @@ public final class Structures implements Listener {
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
                     if (!within(w, box, x, z)) continue;
                     int filled = 0;
-                    for (int y = under; y > w.getMinHeight() && filled < 96; y--) {
+                    // Sous un sol pose en hauteur, on comble depuis lui : le lieu ne flotte pas au-dessus du terrain.
+                    int from = shell[x & 15][z & 15] != Integer.MIN_VALUE ? shell[x & 15][z & 15] - 1 : under;
+                    for (int y = from; y > w.getMinHeight() && filled < 96; y--) {
                         Block b = w.getBlockAt(x, y, z);
                         if (own.contains(pack(x, y, z))) continue;
                         if (!fillable(b.getType())) {
                             if (y >= box.y()) continue;
                             break;
                         }
-                        boolean open = filled == 0 && w.getBlockAt(x, y + 1, z).getType().isAir();
+                        boolean open = filled == 0 && from == under && w.getBlockAt(x, y + 1, z).getType().isAir();
                         b.setType(open ? Material.GRASS_BLOCK : filled < 3 ? Material.DIRT : Material.STONE, false);
                         filled++;
                     }
@@ -806,6 +814,13 @@ public final class Structures implements Listener {
 
     private static long pack(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (z & 0x3FFFFFF) << 12) | (y & 0xFFF);
+    }
+
+    /** Du sol : ce sous quoi l'on comble quand un lieu le pose en hauteur (pas un toit, un pont, un feuillage). */
+    private static boolean soil(Material m) {
+        return org.bukkit.Tag.DIRT.isTagged(m) || org.bukkit.Tag.BASE_STONE_OVERWORLD.isTagged(m) || org.bukkit.Tag.SAND.isTagged(m) || org.bukkit.Tag.TERRACOTTA.isTagged(m)
+                || m == Material.GRAVEL || m == Material.CLAY || m == Material.SNOW_BLOCK || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m == Material.COBBLESTONE
+                || m == Material.MOSSY_COBBLESTONE || m == Material.BEDROCK;
     }
 
     /** Ce que le comblement remplace sous un lieu : l'air, l'eau, la lave, les plantes, les feuilles. */
