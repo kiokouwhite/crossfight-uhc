@@ -120,6 +120,8 @@ structures:
   dechirure: true
   # Le fond des failles luit (une lumiere par lieu, celle de son monde d'origine) et des etincelles en montent
   lueur: true
+  # Un lieu recadre (plus grand que sa part de la map) n'est pas pose en carre : coins arrondis, bord qui ondule
+  contour: true
 
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent

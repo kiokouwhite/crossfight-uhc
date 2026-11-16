@@ -388,6 +388,10 @@ public final class Structures implements Listener {
             plugin.getConfig().set(key(w, s.name()) + ".boite", List.of(box.x(), box.y(), box.z(), box.sx(), box.sy(), box.sz()));
             plugin.getConfig().set(key(w, s.name()) + ".decoupe", List.of(cut[0], cut[1]));
             plugin.getConfig().set(key(w, s.name()) + ".avancement", 0);
+            // Un lieu recadre a un contour irregulier ; un lieu pose en entier garde sa forme.
+            boolean rag = plugin.getConfig().getBoolean("structures.contour", true) && (cut[2] < s.sx() || cut[3] < s.sz());
+            plugin.getConfig().set(key(w, s.name()) + ".contour", rag);
+            ragged.put(w.getName() + "/" + s.name(), rag);
             plugin.getConfig().set(key(w, s.name()) + ".finie", false);
             plugin.saveConfig();
             paste(to, s, from, w, box, cut[0], cut[1], 0, done);
@@ -469,6 +473,7 @@ public final class Structures implements Listener {
                 // terrain est degage au-dessus du niveau du sol : buttes, arbres.
                 for (Entity e : w.getNearbyEntities(new BoundingBox(xa, box.y(), za, xb + 1, box.y() + box.sy(), zb + 1))) if (decor(e)) e.remove();
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
+                    if (!within(w, box, x, z)) continue;
                     int top = w.getHighestBlockYAt(x, z);
                     for (int y = level; y <= top; y++) { Block b = w.getBlockAt(x, y, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
                 }
@@ -477,6 +482,7 @@ public final class Structures implements Listener {
                 own.clear();
                 final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
+                    if (!within(w, box, x, z)) continue;
                     final int sx = x - dx, sz = z - dz;
                     ChunkSnapshot snap = snapshots.computeIfAbsent(Chunk.getChunkKey(sx >> 4, sz >> 4), k -> from.getChunkAt(sx >> 4, sz >> 4).getChunkSnapshot(false, false, false, false));
                     for (int y = minY; y <= maxY; y++) {
@@ -499,7 +505,7 @@ public final class Structures implements Listener {
                     if (!seen.add(Chunk.getChunkKey(sx, sz))) continue;
                     Chunk c = from.getChunkAt(sx, sz);
                     for (BlockState st : c.getTileEntities(b -> b.getX() + dx >= xa && b.getX() + dx <= xb && b.getZ() + dz >= za && b.getZ() + dz <= zb
-                            && b.getY() >= minY && b.getY() <= maxY, false)) {
+                            && b.getY() >= minY && b.getY() <= maxY && within(w, box, b.getX() + dx, b.getZ() + dz), false)) {
                         try {
                             BlockState copy = st.copy(new Location(w, st.getX() + dx, st.getY() + dy, st.getZ() + dz));
                             if (copy instanceof Container box2) box2.getSnapshotInventory().clear();
@@ -513,7 +519,7 @@ public final class Structures implements Listener {
                     for (Entity e : c.getEntities()) {
                         Location l = e.getLocation();
                         if (!decor(e) || l.getBlockX() + dx < xa || l.getBlockX() + dx > xb || l.getBlockZ() + dz < za || l.getBlockZ() + dz > zb
-                                || l.getBlockY() < minY || l.getBlockY() > maxY) continue;
+                                || l.getBlockY() < minY || l.getBlockY() > maxY || !within(w, box, l.getBlockX() + dx, l.getBlockZ() + dz)) continue;
                         try {
                             e.copy(new Location(w, l.getX() + dx, l.getY() + dy, l.getZ() + dz, l.getYaw(), l.getPitch()));
                         } catch (RuntimeException ex) {
@@ -526,6 +532,7 @@ public final class Structures implements Listener {
                 // une fois sous le lieu, on s'arrete au premier bloc du terrain.
                 int under = s.carve() ? box.y() - 1 : level - 1;
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
+                    if (!within(w, box, x, z)) continue;
                     int filled = 0;
                     for (int y = under; y > w.getMinHeight() && filled < 96; y--) {
                         Block b = w.getBlockAt(x, y, z);
@@ -577,11 +584,41 @@ public final class Structures implements Listener {
         return GLOWS[Math.floorMod(box.name().hashCode(), GLOWS.length)];
     }
 
+    /** Par lieu pose ("monde/nom") : son contour est-il irregulier (structures.contour, lieux recadres) ? */
+    private final Map<String, Boolean> ragged = new HashMap<>();
+
+    private boolean ragged(World w, Placed box) {
+        return ragged.computeIfAbsent(w.getName() + "/" + box.name(), k -> plugin.getConfig().getBoolean(key(w, box.name()) + ".contour", false));
+    }
+
+    /**
+     * Ou est cette colonne par rapport au contour d'un lieu : positif dedans (en blocs depuis le bord), negatif ou nul
+     * dehors. Le contour d'un lieu recadre n'est pas le carre de sa decoupe : ses coins sont arrondis et son bord
+     * ondule, rentrant de 1 a 27 blocs. Le lieu a l'air arrache, pas decoupe a la regle.
+     */
+    private double edge(World w, Placed box, int x, int z) {
+        int ax = Math.min(x - box.x(), box.x() + box.sx() - 1 - x), az = Math.min(z - box.z(), box.z() + box.sz() - 1 - z);
+        double in = Math.min(ax, az) + 1;
+        if (!ragged(w, box)) return in;
+        final double round = 56;
+        if (ax < round && az < round && ax >= 0 && az >= 0) in = Math.min(in, round - Math.hypot(round - ax, round - az));
+        double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
+        double wave = 12 + 7 * Math.sin(x * 0.047 + seed) + 5 * Math.sin(z * 0.039 + seed * 1.7) + 3 * Math.sin((x + z) * 0.11 + seed * 3);
+        return in - Math.max(1, wave);
+    }
+
+    /** Vrai si cette colonne de la boite fait partie du lieu (dans son contour). */
+    private boolean within(World w, Placed box, int x, int z) {
+        return !ragged(w, box) || edge(w, box, x, z) > 0;
+    }
+
     /** La profondeur de la faille d'un lieu dans cette colonne, ou 0 si elle n'y passe pas. */
     private int rift(World w, Placed box, int x, int z) {
-        int dx = Math.max(box.x() - x, x - (box.x() + box.sx() - 1)), dz = Math.max(box.z() - z, z - (box.z() + box.sz() - 1));
-        int d = Math.max(dx, dz);
-        if (d < 1 || d > 9) return 0;
+        if (x < box.x() - 10 || z < box.z() - 10 || x >= box.x() + box.sx() + 10 || z >= box.z() + box.sz() + 10) return 0;
+        double e = edge(w, box, x, z);
+        if (e > 0) return 0;
+        int d = (int) Math.floor(1 - e);
+        if (d > 9) return 0;
         double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
         double t = x * 0.9 + z * 1.1;
         // Des passages restent : la faille s'efface sur un bon tiers du tour.
@@ -620,7 +657,7 @@ public final class Structures implements Listener {
                     int y = top;
                     if (dig) for (; y > Math.max(w.getMinHeight() + 4, top - c[2]); y--) {
                         at.setY(y);
-                        if (guarded(at)) break;
+                        if (held(at)) break;
                         // Un eclat reste parfois suspendu dans la faille.
                         if (y < top - 3 && r.nextInt(90) == 0) { y -= 2; continue; }
                         Block b = w.getBlockAt(c[0], y, c[1]);
@@ -628,22 +665,22 @@ public final class Structures implements Listener {
                     }
                     // Le fond luit (sauf si rien n'a ete creuse : la colonne touche un lieu).
                     at.setY(y);
-                    if (shine && (!dig || y < top) && y > w.getMinHeight() && !guarded(at)) {
+                    if (shine && (!dig || y < top) && y > w.getMinHeight() && !held(at)) {
                         w.getBlockAt(c[0], y, c[1]).setType(light, false);
-                        // Le fond est trop bas pour eclairer la surface : dans plus d'une colonne sur deux, la lumiere
-                        // affleure, a deux ou quatre blocs sous le bord. Vue d'en haut, la faille est une fissure qui brille.
-                        if (r.nextInt(5) < 3) {
+                        // Le fond est trop bas pour eclairer la surface : presque partout, la lumiere affleure
+                        // juste sous le bord, a un ou deux blocs. Vue d'en haut, la faille est une fissure qui brille.
+                        if (r.nextInt(8) < 7) {
                             int rim = dig ? top : rim(w, box, c[0], c[1]);
-                            int high = rim - 2 - r.nextInt(3);
+                            int high = rim - 1 - r.nextInt(2);
                             Block shard = w.getBlockAt(c[0], high, c[1]);
                             at.setY(high);
-                            if (high > y + 1 && shard.getType().isAir() && !guarded(at)) shard.setType(light, false);
+                            if (high > y + 1 && shard.getType().isAir() && !held(at)) shard.setType(light, false);
                         }
                     }
                 }
                 if (i >= columns.size()) {
                     cancel();
-                    plugin.getConfig().set(key(w, box.name()) + ".lueur", shine ? 3 : 0);
+                    plugin.getConfig().set(key(w, box.name()) + ".lueur", shine ? 4 : 0);
                     plugin.saveConfig();
                 }
             }
@@ -661,7 +698,7 @@ public final class Structures implements Listener {
     /** Les lieux deja poses dont la faille ne luit pas encore (une map d'avant la lueur) : son fond est eclaire. */
     public void shine(World w) {
         if (!enabled() || !plugin.getConfig().getBoolean("structures.lueur", true)) return;
-        for (Placed p : finished(w)) if (plugin.getConfig().getInt(key(w, p.name()) + ".lueur", 0) < 3) tear(w, p, false);
+        for (Placed p : finished(w)) if (plugin.getConfig().getInt(key(w, p.name()) + ".lueur", 0) < 4) tear(w, p, false);
     }
 
     /** Le lieu dont la faille passe par cette colonne, ou null. */
@@ -680,12 +717,14 @@ public final class Structures implements Listener {
             boolean near = false;
             for (Placed p : placed) if (p.world().equals(w.getName()) && at.getX() > p.x() - 50 && at.getX() < p.x() + p.sx() + 50 && at.getZ() > p.z() - 50 && at.getZ() < p.z() + p.sz() + 50) { near = true; break; }
             if (!near) continue;
-            for (int n = 0; n < 60; n++) {
+            for (int n = 0; n < 160; n++) {
                 int x = at.getBlockX() + r.nextInt(-36, 37), z = at.getBlockZ() + r.nextInt(-36, 37);
                 if (!w.isChunkLoaded(x >> 4, z >> 4) || riftOf(w, x, z) == null) continue;
                 int y = w.getHighestBlockYAt(x, z);
                 if (!GLOW_SET.contains(w.getBlockAt(x, y, z).getType())) continue;
-                pl.spawnParticle(org.bukkit.Particle.END_ROD, x + r.nextDouble(), y + 1.1, z + r.nextDouble(), 0, 0, 1, 0, 0.05 + r.nextDouble() * 0.15);
+                pl.spawnParticle(org.bukkit.Particle.END_ROD, x + r.nextDouble(), y + 1.1, z + r.nextDouble(), 0, 0, 1, 0, 0.05 + r.nextDouble() * 0.2);
+                // De temps en temps, un trait de lumiere jaillit de la faille.
+                if (r.nextInt(40) == 0) for (int k = 0; k < 24; k++) pl.spawnParticle(org.bukkit.Particle.END_ROD, x + 0.5, y + 1 + k * 0.7, z + 0.5, 0, 0, 1, 0, 0.3);
             }
         }
     }
@@ -775,6 +814,12 @@ public final class Structures implements Listener {
     }
 
     // ------------------------------------------------------------------ la protection
+
+    /** Vrai si ce bloc est dans un lieu pose, a l'interieur de son contour : la faille n'y creuse pas. */
+    private boolean held(Location l) {
+        for (Placed p : placed) if (p.contains(l) && within(l.getWorld(), p, l.getBlockX(), l.getBlockZ())) return true;
+        return false;
+    }
 
     private boolean guarded(Location l) {
         if (!plugin.getConfig().getBoolean("structures.protegees", true)) return false;
