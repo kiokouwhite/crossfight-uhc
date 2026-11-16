@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/door_top_left_open",
+  "textures": {
+    "bottom": "crossfight:block/porte_noire_bas",
+    "top": "crossfight:block/porte_noire_haut"
+  }
+}

@@ -15,6 +15,10 @@ import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Bisected;
+import org.bukkit.block.data.type.Door;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -32,6 +36,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.LeatherArmorMeta;
 import org.bukkit.potion.PotionEffectType;
@@ -41,8 +46,11 @@ import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -76,6 +84,20 @@ public final class Omori implements Listener {
     /** Vrai pendant une attaque (de son declenchement a sa fin, annonce non comprise) : Omori est alors intouchable. */
     private boolean attacking;
     private final Map<UUID, Long> lastHit = new HashMap<>(), asked = new HashMap<>();
+    /** Vrai du dernier coup a la fermeture : Omori tombe en poussiere, puis la porte noire attend les joueurs. */
+    private boolean over;
+    /** La porte noire, dans l'Espace Blanc : elle apparait la ou Omori est tombe, et fait sortir. */
+    private Location exit;
+    private long exitSince;
+    private boolean exitWarned;
+    private BukkitTask dying;
+    /** Ceux qui etaient la quand il est tombe : la question du pardon les attend a la sortie. */
+    private final Set<UUID> winners = new HashSet<>();
+    /** Le sol du combat est noir (derniere phase) ; la tache qui le noircit de proche en proche. */
+    private boolean dark;
+    private BukkitTask spreading;
+    /** Secondes laissees pour sortir par la porte noire, avant d'etre reconduit dehors. */
+    private static final int EXIT_SECONDS = 120;
 
     public Omori(CrossfightPlugin plugin) { this.plugin = plugin; }
 
@@ -189,19 +211,41 @@ public final class Omori implements Listener {
     private void place(Location spot, Location facing) {
         door = spot.getBlock().getLocation().add(0.5, 0, 0.5);
         // Une vraie porte, blanche, de deux blocs : on l'ouvre d'un clic droit.
-        Vector toward = facing.toVector().subtract(door.toVector());
-        org.bukkit.block.BlockFace face = Math.abs(toward.getX()) > Math.abs(toward.getZ())
-                ? (toward.getX() > 0 ? org.bukkit.block.BlockFace.EAST : org.bukkit.block.BlockFace.WEST)
-                : (toward.getZ() > 0 ? org.bukkit.block.BlockFace.SOUTH : org.bukkit.block.BlockFace.NORTH);
+        build(door, facing, Material.PALE_OAK_DOOR, false);
+        spawnBoss();
+    }
+
+    /**
+     * Pose une vraie porte de deux blocs, tournee vers ce point. "Alimentee" (sans redstone : l'etat seul), une
+     * porte en chene noir prend dans le pack la texture de la porte noire (tools/build_porte.py).
+     */
+    private static void build(Location at, Location facing, Material type, boolean powered) {
+        Vector toward = facing.toVector().subtract(at.toVector());
+        BlockFace face = Math.abs(toward.getX()) > Math.abs(toward.getZ())
+                ? (toward.getX() > 0 ? BlockFace.EAST : BlockFace.WEST)
+                : (toward.getZ() > 0 ? BlockFace.SOUTH : BlockFace.NORTH);
         for (int h = 0; h < 2; h++) {
-            var b = door.getBlock().getRelative(0, h, 0);
-            b.setType(Material.PALE_OAK_DOOR, false);
-            var data = (org.bukkit.block.data.type.Door) b.getBlockData();
-            data.setHalf(h == 0 ? org.bukkit.block.data.Bisected.Half.BOTTOM : org.bukkit.block.data.Bisected.Half.TOP);
+            var b = at.getBlock().getRelative(0, h, 0);
+            b.setType(type, false);
+            Door data = (Door) b.getBlockData();
+            data.setHalf(h == 0 ? Bisected.Half.BOTTOM : Bisected.Half.TOP);
             data.setFacing(face);
+            data.setPowered(powered);
             b.setBlockData(data, false);
         }
-        spawnBoss();
+    }
+
+    /** Retire la porte posee a cet endroit (si elle y est encore). */
+    private static void unbuild(Location at) {
+        if (at == null) return;
+        for (int h = 1; h >= 0; h--) {
+            var b = at.getBlock().getRelative(0, h, 0);
+            if (org.bukkit.Tag.DOORS.isTagged(b.getType())) b.setType(Material.AIR, false);
+        }
+    }
+
+    private static boolean isDoor(org.bukkit.block.Block clicked, Location at) {
+        return at != null && (clicked.equals(at.getBlock()) || clicked.equals(at.getBlock().getRelative(0, 1, 0)));
     }
 
     /** /cf test omori : la porte devant le testeur, dans la zone de test, sans annonce ni arene. */
@@ -217,6 +261,10 @@ public final class Omori implements Listener {
 
     private void spawnBoss() {
         space();
+        over = false;
+        exit = null;
+        winners.clear();
+        floor(Material.WHITE_CONCRETE);
         phase = 0;
         hits = 0;
         turn = 0;
@@ -286,6 +334,7 @@ public final class Omori implements Listener {
     private void tick() {
         if (!active()) return;
         long now = System.currentTimeMillis();
+        if (over) { aftermath(now); return; }
         door.getWorld().spawnParticle(Particle.END_ROD, door.clone().add(0, 1.2, 0), 1, 0.5, 1.0, 0.5, 0.005);
         for (Player p : door.getWorld().getPlayers()) {
             // Tout pres de la porte : un rappel de ce qu'il faut faire.
@@ -336,7 +385,7 @@ public final class Omori implements Listener {
         new BukkitRunnable() {
             int t = 0;
             @Override public void run() {
-                if (boss == null || !boss.isValid() || nameBar == null) { cancel(); rest(); return; }
+                if (boss == null || !boss.isValid() || nameBar == null || over) { cancel(); rest(); return; }
                 t += 2;
                 nameBar.setProgress(Math.max(0, 1 - t / (double) WARNING));
                 if (t < WARNING) return;
@@ -355,6 +404,7 @@ public final class Omori implements Listener {
      * l'entend depuis son debut a son entree ; elle s'arrete des qu'il sort. Sans elle, le combat est sans musique.
      */
     private void music() {
+        if (over) return;
         List<Player> in = fighters();
         for (Player p : in) if (listeners.add(p.getUniqueId())) plugin.music().hold(p, "omori");
         listeners.removeIf(id -> {
@@ -372,27 +422,31 @@ public final class Omori implements Listener {
     public void onDoor(org.bukkit.event.player.PlayerInteractEvent e) {
         if (!active() || e.getClickedBlock() == null || e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
         var clicked = e.getClickedBlock();
-        var base = door.getBlock();
-        if (!clicked.equals(base) && !clicked.equals(base.getRelative(0, 1, 0))) return;
+        // La porte noire, apres le combat : elle s'ouvre, et l'on sort de l'Espace Blanc.
+        final boolean out = isDoor(clicked, exit);
+        if (!out && (over || !isDoor(clicked, door))) return;
         e.setCancelled(true);
         if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         Player p = e.getPlayer();
         if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR) return;
-        swing(true);
-        sfx(door, "porte", Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 0.7f);
+        final Location through = out ? exit : door;
+        swing(through, true);
+        sfx(through, "porte", Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, out ? 0.5f : 0.7f);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!active()) return;
-            if (p.isOnline() && p.getWorld().equals(door.getWorld()) && p.getLocation().distanceSquared(door) < 36) enter(p);
-            swing(false);
+            if (p.isOnline() && p.getWorld().equals(through.getWorld()) && p.getLocation().distanceSquared(through) < 36) {
+                if (out) leave(p); else if (!over) enter(p);
+            }
+            swing(through, false);
         }, 8L);
     }
 
-    /** Ouvre ou referme les deux blocs de la porte. */
-    private void swing(boolean open) {
-        if (door == null) return;
+    /** Ouvre ou referme les deux blocs d'une porte. */
+    private static void swing(Location at, boolean open) {
+        if (at == null) return;
         for (int h = 0; h < 2; h++) {
-            var b = door.getBlock().getRelative(0, h, 0);
-            if (b.getBlockData() instanceof org.bukkit.block.data.type.Door d) { d.setOpen(open); b.setBlockData(d, false); }
+            var b = at.getBlock().getRelative(0, h, 0);
+            if (b.getBlockData() instanceof Door d) { d.setOpen(open); b.setBlockData(d, false); }
         }
     }
 
@@ -417,7 +471,7 @@ public final class Omori implements Listener {
     public void onHit(EntityDamageEvent e) {
         if (boss == null || !e.getEntity().equals(boss)) return;
         e.setCancelled(true);
-        if (!(e instanceof EntityDamageByEntityEvent by)) return;
+        if (over || !(e instanceof EntityDamageByEntityEvent by)) return;
         Entity from = by.getDamager();
         Player p = from instanceof Player pl ? pl : from instanceof Projectile pr && pr.getShooter() instanceof Player sh ? sh : null;
         if (p == null || !p.getWorld().equals(boss.getWorld())) return;
@@ -436,7 +490,7 @@ public final class Omori implements Listener {
 
     /** Compte des coups (aussi pour /cf omori coups). */
     public void hit(int n) {
-        if (!active() || boss == null || !boss.isValid()) return;
+        if (!active() || over || boss == null || !boss.isValid()) return;
         hits += n;
         boss.playHurtAnimation(0);
         sfx(boss.getLocation(), "coup", Sound.ENTITY_PLAYER_HURT, 0.8f, 0.6f);
@@ -450,8 +504,11 @@ public final class Omori implements Listener {
     }
 
     public void setPhase(int n) {
-        if (boss == null) return;
+        if (boss == null || over) return;
         phase = Math.max(0, Math.min(HITS.length - 1, n));
+        // Derniere phase : le sol devient noir, a partir de lui ; il redevient blanc si l'on revient en arriere (test).
+        if (phase == HITS.length - 1) darken(boss.getLocation());
+        else if (dark) floor(Material.WHITE_CONCRETE);
         hits = Math.min(hits, HITS[phase] - 1);
         turn = 0;
         wait = 60;
@@ -979,24 +1036,232 @@ public final class Omori implements Listener {
 
     // ------------------------------------------------------------------ la fin
 
-    /** Omori est vaincu : chacun choisit de se pardonner ou non, puis revient dans l'arene. */
+    /**
+     * Omori est vaincu. Il tombe a genoux et part en poussiere ; la ou il est tombe, une porte noire apparait : on
+     * sort par elle, et c'est dehors que chacun choisit de se pardonner ou non.
+     */
     private void defeated() {
-        List<Player> winners = fighters();
-        World w = boss.getWorld();
-        sfx(boss.getLocation(), "vaincu", Sound.ENTITY_WITHER_DEATH, 1f, 1.4f);
-        w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 200, 1.5, 2, 1.5, 0, INK);
-        Location home = door.clone();
-        close();
+        over = true;
+        busy = true;
+        attacking = false;
         List<String> names = new ArrayList<>();
-        for (Player p : winners) names.add(p.getName());
-        Msg.broadcast("<white><bold>Omori est vaincu</bold> <gray>par " + String.join(", ", names) + ".");
-        for (Player p : winners) {
-            p.teleport(home);
-            p.setFallDistance(0);
+        for (Player p : fighters()) {
+            winners.add(p.getUniqueId());
+            names.add(p.getName());
             Effects.unroot(p);
             p.removePotionEffect(PotionEffectType.DARKNESS);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> forgive(p), 20L);
         }
+        if (nameBar != null) nameBar.removeAll();
+        if (bar != null) bar.removeAll();
+        // Plus personne n'entre : la porte blanche s'efface (on reviendra a sa place en sortant).
+        unbuild(door);
+        // La musique se tait.
+        for (UUID id : listeners) { Player p = Bukkit.getPlayer(id); if (p != null) plugin.music().release(p); }
+        listeners.clear();
+        Msg.broadcast("<white><bold>Omori est vaincu</bold> <gray>par " + String.join(", ", names) + ".");
+        crumble();
+    }
+
+    /** Un grain de la poussiere d'Omori : il derive, prend de la vitesse, puis s'eteint. */
+    private static final class Mote {
+        final Vector pos, vel;
+        final Particle.DustOptions look;
+        int life;
+        Mote(Vector pos, Vector vel, Particle.DustOptions look, int life) { this.pos = pos; this.vel = vel; this.look = look; this.life = life; }
+    }
+
+    /** Sa poussiere : du noir surtout (elle se voit sur le blanc), un peu de gris. */
+    private static final Particle.DustOptions[] ASH = {
+            new Particle.DustOptions(Color.fromRGB(14, 14, 18), 0.9f), new Particle.DustOptions(Color.fromRGB(14, 14, 18), 0.7f),
+            new Particle.DustOptions(Color.fromRGB(64, 64, 72), 0.8f), new Particle.DustOptions(Color.fromRGB(150, 150, 158), 0.6f)};
+    /** L'ordre dans lequel il se defait : les bras, les jambes, le buste, la tete en dernier. */
+    private static final String[] ORDER = {"arm_r", "arm_l", "leg_r", "leg_l", "body", "head"};
+    /** En ticks : la premiere partie s'effrite, l'ecart entre deux parties, plus rien de lui, la poussiere revient, la porte. */
+    private static final int KNEEL = 34, GAP = 8, GONE = KNEEL + ORDER.length * GAP + 6, GATHER = GONE + 12, DOOR = GATHER + 30;
+
+    /** Des grains qui quittent un volume (son milieu, ses demi-dimensions) et partent dans le vent, en montant. */
+    private static void shed(List<Mote> motes, Location middle, double sx, double sy, double sz, int count, Vector wind) {
+        var r = java.util.concurrent.ThreadLocalRandom.current();
+        for (int i = 0; i < count; i++) {
+            Vector pos = middle.toVector().add(new Vector((r.nextDouble() * 2 - 1) * sx, (r.nextDouble() * 2 - 1) * sy, (r.nextDouble() * 2 - 1) * sz));
+            Vector vel = wind.clone().multiply(0.05 + r.nextDouble() * 0.09)
+                    .add(new Vector((r.nextDouble() - 0.5) * 0.05, 0.02 + r.nextDouble() * 0.06, (r.nextDouble() - 0.5) * 0.05));
+            motes.add(new Mote(pos, vel, ASH[r.nextInt(ASH.length)], 22 + r.nextInt(26)));
+        }
+    }
+
+    /**
+     * Sa mort, en six secondes et demie : il tombe a genoux, tete basse ; puis il part en poussiere, partie par
+     * partie (chacune grisonne, s'effrite, et ses grains s'envolent dans son dos) ; enfin la poussiere revient,
+     * tourne en se resserrant la ou il etait, et il en sort une porte noire. Sans son modele articule, il rapetisse
+     * en s'effritant.
+     */
+    private void crumble() {
+        final World w = boss.getWorld();
+        final Location fell = boss.getLocation();
+        boss.setCustomNameVisible(false);
+        sfx(fell, "vaincu", Sound.ENTITY_WITHER_DEATH, 1f, 1.4f);
+        pose("omori_vaincu", 14);
+        Vector back = fell.getDirection().setY(0);
+        final Vector wind = back.lengthSquared() < 1e-4 ? new Vector(1, 0, 0) : back.normalize().multiply(-1);
+        // La porte : la ou il est tombe, sans sortir de la zone du combat.
+        Location c = ArenaWorlds.center(w);
+        int reach = EDGE - 10;
+        final Location spot = new Location(w, Math.max(c.getBlockX() - reach, Math.min(c.getBlockX() + reach, fell.getBlockX())) + 0.5, c.getBlockY(),
+                Math.max(c.getBlockZ() - reach, Math.min(c.getBlockZ() + reach, fell.getBlockZ())) + 0.5);
+        final List<Mote> motes = new ArrayList<>();
+        dying = new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (!over || door == null) { cancel(); return; }
+                t++;
+                var r = java.util.concurrent.ThreadLocalRandom.current();
+                if (t < GONE && boss != null && boss.isValid()) {
+                    if (puppet != null) {
+                        // A genoux : un peu de poussiere s'echappe deja de lui.
+                        if (t >= 14 && t < KNEEL && t % 2 == 0) shed(motes, puppet.center("body"), 0.25, 0.35, 0.15, 2, wind);
+                        for (int i = 0; i < ORDER.length; i++) {
+                            int at = KNEEL + i * GAP;
+                            if (t == at - 4) puppet.tint(ORDER[i], Color.fromRGB(86, 86, 94));
+                            if (t != at) continue;
+                            boolean head = ORDER[i].equals("head"), limb = !head && !ORDER[i].equals("body");
+                            Location part = puppet.center(ORDER[i]);
+                            shed(motes, part, limb ? 0.11 : 0.22, head ? 0.22 : 0.33, limb ? 0.11 : head ? 0.22 : 0.12, head ? 48 : 34, wind);
+                            // Le couteau part avec le bras qui le tenait.
+                            if (i == 0) puppet.held(null);
+                            puppet.look(ORDER[i], null);
+                            w.playSound(part, Sound.BLOCK_SAND_BREAK, 0.9f, 0.55f + i * 0.05f);
+                        }
+                    } else if (t >= KNEEL) {
+                        double k = (t - KNEEL) / (double) (GONE - KNEEL);
+                        var scale = boss.getAttribute(Attribute.SCALE);
+                        if (scale != null) scale.setBaseValue(Math.max(0.1, 1 - 0.9 * k));
+                        shed(motes, boss.getLocation().add(0, 1 - 0.8 * k, 0), 0.3, 0.8 * (1 - k) + 0.1, 0.3, 5, wind);
+                        if (t % GAP == 0) w.playSound(boss.getLocation(), Sound.BLOCK_SAND_BREAK, 0.9f, 0.6f);
+                    }
+                }
+                if (t == GONE) {
+                    if (puppet != null) puppet.remove();
+                    puppet = null;
+                    if (boss != null) boss.remove();
+                    boss = null;
+                }
+                if (t >= GATHER && t < DOOR) {
+                    // La poussiere revient : six filets tournent en se resserrant, et la porte se dessine de bas en haut.
+                    double k = (t - GATHER) / (double) (DOOR - GATHER), radius = 3.2 * (1 - k) + 0.3;
+                    for (int j = 0; j < 6; j++) {
+                        double a = t * 0.45 + j * Math.PI / 3;
+                        Vector inward = new Vector(-Math.cos(a), 0, -Math.sin(a)), around = new Vector(-Math.sin(a), 0, Math.cos(a));
+                        motes.add(new Mote(spot.toVector().add(new Vector(Math.cos(a) * radius, 0.1 + r.nextDouble() * 2.0, Math.sin(a) * radius)),
+                                inward.multiply(0.09).add(around.multiply(0.06)), ASH[r.nextInt(2)], 9));
+                    }
+                    if (t % 2 == 0) w.spawnParticle(Particle.DUST, spot.clone().add(0, 0.2 + k * 1.8, 0), 6, 0.3, 0.12, 0.3, 0, ASH[0]);
+                    if (t == GATHER) w.playSound(spot, Sound.BLOCK_SAND_FALL, 1.5f, 0.5f);
+                }
+                if (t == DOOR) appear(spot);
+                for (Iterator<Mote> it = motes.iterator(); it.hasNext(); ) {
+                    Mote m = it.next();
+                    if (--m.life <= 0) { it.remove(); continue; }
+                    m.vel.multiply(1.025);
+                    m.pos.add(m.vel);
+                    if (m.life % 2 == 0) w.spawnParticle(Particle.DUST, m.pos.getX(), m.pos.getY(), m.pos.getZ(), 1, 0, 0, 0, 0, m.look);
+                }
+                if (t > DOOR && motes.isEmpty()) { cancel(); dying = null; }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    /** La porte noire se dresse la ou il est tombe, tournee vers le joueur le plus proche. */
+    private void appear(Location spot) {
+        World w = spot.getWorld();
+        List<Player> in = fighters();
+        Player near = null;
+        for (Player p : in) if (near == null || p.getLocation().distanceSquared(spot) < near.getLocation().distanceSquared(spot)) near = p;
+        exit = spot.clone();
+        build(exit, near != null ? near.getLocation() : spot.clone().add(0, 0, 1), Material.DARK_OAK_DOOR, true);
+        exitSince = System.currentTimeMillis();
+        exitWarned = false;
+        w.spawnParticle(Particle.DUST, exit.clone().add(0, 1, 0), 80, 0.4, 1.0, 0.4, 0, INK);
+        sfx(exit, "porte", Sound.BLOCK_WOODEN_DOOR_CLOSE, 1f, 0.5f);
+        for (Player p : in) Msg.send(p, "<dark_gray><bold>Une porte noire est apparue.</bold> <gray>Clic droit dessus pour sortir de l'Espace Blanc.");
+    }
+
+    /** Apres sa chute : la porte noire rappelle comment sortir ; au dernier sorti, ou le temps ecoule, tout se referme. */
+    private void aftermath(long now) {
+        List<Player> in = fighters();
+        if (in.isEmpty()) { close(); return; }
+        veil();
+        if (exit == null) return;
+        exit.getWorld().spawnParticle(Particle.DUST, exit.clone().add(0, 1.1, 0), 2, 0.4, 0.9, 0.4, 0, ASH[1]);
+        for (Player p : in) {
+            if (p.getLocation().distanceSquared(exit) > 3.5 * 3.5 || now - asked.getOrDefault(p.getUniqueId(), 0L) < 4000) continue;
+            asked.put(p.getUniqueId(), now);
+            Msg.actionBar(p, "<dark_gray>Une porte noire. <gray>Clic droit pour sortir.");
+        }
+        long left = EXIT_SECONDS * 1000L - (now - exitSince);
+        if (left <= 30000 && !exitWarned) {
+            exitWarned = true;
+            for (Player p : in) Msg.send(p, "<gray>La porte noire se refermera dans 30 secondes.");
+        }
+        if (left <= 0) {
+            for (Player p : in) leave(p);
+            close();
+        }
+    }
+
+    /** Sortir par la porte noire : on revient la ou etait la porte blanche, et la question du pardon attend dehors. */
+    private void leave(Player p) {
+        Location home = door != null ? door.clone() : plugin.game().lobbySpot();
+        Effects.unroot(p);
+        p.removePotionEffect(PotionEffectType.DARKNESS);
+        p.teleport(home);
+        p.setFallDistance(0);
+        sfx(home, "porte", Sound.BLOCK_WOODEN_DOOR_CLOSE, 1f, 0.6f);
+        if (winners.remove(p.getUniqueId())) Bukkit.getScheduler().runTaskLater(plugin, () -> forgive(p), 20L);
+    }
+
+    // ------------------------------------------------------------------ le sol
+
+    /** Repeint d'un coup tout le sol du combat : blanc au depart et a la fin, noir a la derniere phase. */
+    private void floor(Material m) {
+        if (spreading != null) { spreading.cancel(); spreading = null; }
+        dark = m == Material.BLACK_CONCRETE;
+        World w = Bukkit.getWorld(WORLD);
+        if (w == null) return;
+        Location c = ArenaWorlds.center(w);
+        int y = c.getBlockY() - 1;
+        for (int dx = -EDGE - 2; dx <= EDGE + 2; dx++) for (int dz = -EDGE - 2; dz <= EDGE + 2; dz++) {
+            var b = w.getBlockAt(c.getBlockX() + dx, y, c.getBlockZ() + dz);
+            if (b.getType() != m) b.setType(m, false);
+        }
+    }
+
+    /** Derniere phase : le noir part de sous Omori et gagne tout le sol, de proche en proche (deux blocs par tick). */
+    private void darken(Location from) {
+        if (dark) return;
+        dark = true;
+        final World w = from.getWorld();
+        Location c = ArenaWorlds.center(w);
+        final int y = c.getBlockY() - 1, ox = from.getBlockX(), oz = from.getBlockZ();
+        final List<int[]> cells = new ArrayList<>();
+        for (int dx = -EDGE - 2; dx <= EDGE + 2; dx++) for (int dz = -EDGE - 2; dz <= EDGE + 2; dz++) {
+            int x = c.getBlockX() + dx, z = c.getBlockZ() + dz;
+            cells.add(new int[]{x, z, (x - ox) * (x - ox) + (z - oz) * (z - oz)});
+        }
+        cells.sort(java.util.Comparator.comparingInt(cell -> cell[2]));
+        w.playSound(from, Sound.BLOCK_SCULK_SPREAD, 2f, 0.5f);
+        spreading = new BukkitRunnable() {
+            int i = 0;
+            double reach = 0;
+            @Override public void run() {
+                reach += 2;
+                while (i < cells.size() && cells.get(i)[2] <= reach * reach) {
+                    w.getBlockAt(cells.get(i)[0], y, cells.get(i)[1]).setType(Material.BLACK_CONCRETE, false);
+                    i++;
+                }
+                if (i >= cells.size()) { cancel(); spreading = null; }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private void forgive(Player p) {
@@ -1018,14 +1283,18 @@ public final class Omori implements Listener {
                 q -> { cf.addLife(1); Msg.send(q, "<white>Sans reponse, tu te pardonnes : une vie de plus (" + cf.lives() + ")."); });
     }
 
-    /** L'evenement se referme : plus de porte ni de boss ; ceux qui sont encore dans l'Espace Blanc en sortent. */
+    /** L'evenement se referme : plus de portes ni de boss, le sol redevient blanc ; ceux qui sont encore dans l'Espace Blanc en sortent. */
     public void close() {
         if (loop != null) loop.cancel();
+        if (dying != null) { dying.cancel(); dying = null; }
         Location home = door;
-        if (door != null) for (int h = 1; h >= 0; h--) {
-            var b = door.getBlock().getRelative(0, h, 0);
-            if (b.getType() == Material.PALE_OAK_DOOR) b.setType(Material.AIR, false);
-        }
+        unbuild(door);
+        unbuild(exit);
+        exit = null;
+        over = false;
+        exitWarned = false;
+        winners.clear();
+        if (dark || spreading != null) floor(Material.WHITE_CONCRETE);
         if (nameBar != null) nameBar.removeAll();
         nameBar = null;
         unveil();
@@ -1062,5 +1331,16 @@ public final class Omori implements Listener {
     @EventHandler
     public void onBurn(EntityCombustEvent e) {
         if (e.getEntity().equals(boss)) e.setCancelled(true);
+    }
+
+    /** Qui se reconnecte dans l'Espace Blanc alors que l'evenement est referme n'y reste pas. */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!p.isOnline() || active() || !p.getWorld().getName().equals(WORLD)) return;
+            p.teleport(plugin.game().isLobby() ? plugin.game().lobbySpot() : plugin.ferox().centre());
+            p.setFallDistance(0);
+        }, 2L);
     }
 }

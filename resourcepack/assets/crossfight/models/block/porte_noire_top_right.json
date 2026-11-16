@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/door_top_right",
+  "textures": {
+    "bottom": "crossfight:block/porte_noire_bas",
+    "top": "crossfight:block/porte_noire_haut"
+  }
+}

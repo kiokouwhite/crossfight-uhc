@@ -183,7 +183,7 @@ Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (qu
 | 2 | Effacement, Poignarder, Attaque basique |
 | 3 | Annihilation, Attaque basique, Poignarder |
 | 4 | Traumatisme, Poignarder, Attaque basique |
-| 5 | Vision obstruée en permanence ; Suicide, « Je ne peux pas le faire » |
+| 5 | Le sol devient noir (le noir part de sous Omori et gagne tout le sol en une seconde) ; vision obstruée en permanence ; Suicide, « Je ne peux pas le faire » |
 
 Chaque attaque est animée :
 
@@ -198,7 +198,13 @@ Chaque attaque est animée :
 
 Les bruitages sont ceux du jeu OMORI dans le pack complet (`python3 tools/build_omori_sons.py <dossier « Sound Effects » du jeu>` les range dans le pack privé, jamais versionné ; la table du script dit quel fichier sert à quoi) ; avec le pack public, ce sont des bruitages de Minecraft.
 
-Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Tout le monde revient alors à la porte, qui disparaît. Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
+Au dernier coup, Omori meurt en six secondes et demie : il tombe à genoux, tête basse, puis part en poussière, partie par partie (les bras et son couteau, les jambes, le buste, la tête en dernier : chacune grisonne, s'effrite, et ses grains s'envolent dans son dos) ; la poussière revient ensuite, tourne en se resserrant là où il était, et il en sort une **porte noire**. La musique se tait, la porte blanche de l'arène s'efface (plus personne n'entre), et la vision des joueurs se dégage. Sans son modèle articulé, il rapetisse en s'effritant.
+
+La porte noire est une vraie porte : un clic droit l'ouvre et fait sortir de l'Espace Blanc, à l'endroit où était la porte blanche. C'est une fois dehors que chaque joueur présent à sa mort reçoit le choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Chacun sort quand il veut ; au bout de deux minutes (prévenu trente secondes avant), ceux qui restent sont reconduits dehors, avec le même choix. Quand le dernier est sorti, l'événement se referme et le sol redevient blanc.
+
+Minecraft n'a pas de porte noire : c'est une porte en chêne noir dans l'état « alimentée » (sans redstone), auquel le pack public donne une texture noire dessinée par `python3 tools/build_porte.py` ; les portes en chêne noir du jeu ne changent pas, sauf le temps qu'un bouton ou une plaque les alimente. Sans le pack, la porte de sortie est une porte en chêne noir ordinaire.
+
+Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
 
 Omori est un personnage articulé, couteau à la main, quand son skin est dans le pack (`python3 tools/add_skin.py <skin.png> omori --prive`, puis `tools/build_pack.py` ; `omori.skin` dans `config.yml` nomme le skin à utiliser) ; sans lui, c'est un zombie en tenue noire et blanche. `/cf test omori` pose la porte devant soi dans la zone de test, pour essayer le combat sans lancer de partie.
 

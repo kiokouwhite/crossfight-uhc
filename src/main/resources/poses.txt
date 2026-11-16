@@ -986,3 +986,13 @@ pose omori_attrape
   leg_r -16 0 -3
   leg_l 14 0 3
   item  40 0 0
+
+# Vaincu : il tombe a genoux, assis sur ses talons, la tete basse, les bras ballants, avant de partir en poussiere.
+pose omori_vaincu
+  root  12 0 0   0 -10 0
+  head  40 0 0
+  arm_r -6 0 -5
+  arm_l -6 0 5
+  leg_r 78 0 -3
+  leg_l 78 0 3
+  item  0 0 0
