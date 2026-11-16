@@ -65,7 +65,7 @@ public final class EffectHud implements Listener {
     }
 
     public void start() {
-        Bukkit.getScheduler().runTaskTimer(plugin, this::update, 20L, 2L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::update, 20L, 1L);
     }
 
     private boolean enabled() { return plugin.getConfig().getBoolean("hud.effets", true); }
@@ -102,7 +102,7 @@ public final class EffectHud implements Listener {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
-            // Les icones montent le long du bord : une image de la boucle toutes les 2 ticks (ce qui renvoie aussi
+            // Les icones montent le long du bord : une image de la boucle a chaque tick (ce qui renvoie aussi
             // l'objet regulierement : un clic dans l'inventaire ou une mise a jour du serveur l'efface).
             send(p, st);
         }
@@ -142,7 +142,7 @@ public final class EffectHud implements Listener {
     }
 
     /** Images par boucle (tools/build_overlays.py : FRAMES). */
-    static final int FRAMES = 8;
+    static final int FRAMES = 16;
 
     /** L'image de la boucle a montrer maintenant. */
     private int frame() { return tick % FRAMES; }

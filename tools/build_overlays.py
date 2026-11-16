@@ -14,9 +14,9 @@ citrouille). Le plugin glisse a chaque joueur, pour lui seul, un objet invisible
 tout l'ecran et ne dessine que son bord : a gauche les icones des bonus, a droite celles des malus (un ou
 deux effets par cote), sans bande ni trait de couleur.
 
-Les icones ne sont pas fixes : nues (sans pastille), elles montent sur trois files le long du bord, sortent
+Les icones ne sont pas fixes : nues (sans pastille), petites et nombreuses, elles montent sur quatre files le long du bord, sortent
 du bas de l'ecran et s'effacent a mi-hauteur. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
-FRAMES images que le plugin fait defiler (une toutes les 2 ticks).
+FRAMES images que le plugin fait defiler (une par tick).
 
 Ecrit    resourcepack/assets/crossfight/textures/overlay/bonus_<a>[_<b>]_<image>.png   (et .png.mcmeta : lissage)
          resourcepack/assets/crossfight/textures/overlay/malus_<a>[_<b>]_<image>.png
@@ -36,11 +36,11 @@ W, H = 1024, 576
 BADGE_R = 25
 SLOTS_Y = (392, 318)          # premiere icone, puis la seconde au-dessus
 # L'animation : les icones montent le long du bord en file, apparaissent en bas et s'effacent en haut.
-FRAMES = 8                    # images par boucle (le plugin en change tous les 2 ticks)
-COPIES = 12                   # icones de chaque effet a l'ecran en meme temps (un multiple de STEP : une file par rang)
-STEP = 3                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut ; autant de files
+FRAMES = 16                   # images par boucle (le plugin en change a chaque tick : 20 par seconde, sans saccade)
+COPIES = 24                   # icones de chaque effet a l'ecran en meme temps (un multiple de STEP : une file par rang)
+STEP = 4                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut ; autant de files
 RISE = (H + 34, 320)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee (mi-hauteur)
-LANES = (30, 76, 122)         # distance au bord de chaque file
+LANES = (22, 54, 86, 118)         # distance au bord de chaque file
 SIZE = (512, 288)             # taille des images ecrites (dessinees en 1024 x 576 puis reduites)
 EDGE_X = 62                   # centre des icones, depuis le bord
 
@@ -235,19 +235,19 @@ def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
     stream = []
     for j in range(COPIES):
         # Avec deux effets, leurs icones alternent dans la file : il y a toujours COPIES icones en tout.
-        n = j % len(effects)
+        n = (j // STEP + j % STEP) % len(effects)
         t = (j / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
         stream.append((t, j % STEP, effects[n], colors[n]))
     for t, lane, e, color in sorted(stream):
         fade = min(1.0, (1 - t) / 0.42)
-        size = int(58 * (1.05 - 0.32 * t))
+        size = int(36 * (1.05 - 0.3 * t))
         b = sprite(e, color, size)
         b.putalpha(b.getchannel("A").point(lambda v: int(v * fade)))
         # Des files qui ondulent, de plus en plus loin du bord.
-        off = LANES[lane % len(LANES)] + int(10 * math.sin(t * math.pi * 2 + lane * 2.1))
+        off = LANES[lane % len(LANES)] + 7 * math.sin(t * math.pi * 2 + lane * 2.1)
         cx = off if left else W - off
-        cy = int(RISE[0] + (RISE[1] - RISE[0]) * t)
-        img.alpha_composite(b, (cx - b.width // 2, cy - b.height // 2))
+        cy = RISE[0] + (RISE[1] - RISE[0]) * t
+        img.alpha_composite(b, (round(cx - b.width / 2), round(cy - b.height / 2)))
     return img
 
 
