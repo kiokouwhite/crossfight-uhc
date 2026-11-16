@@ -83,6 +83,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(structures, this);
         // Puis les structures (plugins/CrossfightUHC/structures/) qui ne sont pas encore sur cette map, a des endroits tires au sort.
         worldMap = new com.kiokouwhite.crossfight.game.WorldMap(this);
+        pm.registerEvents(worldMap, this);
         getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); worldMap.attach(); });
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
         pm.registerEvents(hostTools, this);

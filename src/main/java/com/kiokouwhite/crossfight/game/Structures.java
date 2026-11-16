@@ -143,10 +143,33 @@ public final class Structures implements Listener {
         return out;
     }
 
+    /**
+     * Les fiches deja lues : {la fiche, la date de son fichier, l'heure ou on l'a regardee}. La carte demande le titre
+     * de chaque lieu a chaque tick : le fichier n'est relu que s'il a change, et regarde toutes les deux secondes au plus.
+     */
+    private final Map<String, Object[]> read = new HashMap<>();
+
     public Sheet sheet(String name) {
+        long now = System.currentTimeMillis();
+        Object[] known = read.get(name);
+        if (known != null && now - (long) known[2] < 2000) return (Sheet) known[0];
+        File index = new File(new File(folder(), name), "structure.yml");
+        long stamp = name.matches("[a-z0-9_]+") && index.isFile() ? index.lastModified() : -1;
+        if (known != null && (long) known[1] == stamp) { known[2] = now; return (Sheet) known[0]; }
+        Sheet s = stamp < 0 ? null : load(name);
+        read.put(name, new Object[]{s, stamp, now});
+        return s;
+    }
+
+    /** Le niveau du sol d'un lieu pose, la ou l'on marche (le bas de sa boite, si sa fiche n'est plus la). */
+    public int level(Placed p) {
+        Sheet s = sheet(p.name());
+        return s != null ? p.y() + (s.ground() - s.y1()) : p.y();
+    }
+
+    private Sheet load(String name) {
         File dir = new File(folder(), name);
         File index = new File(dir, "structure.yml");
-        if (!name.matches("[a-z0-9_]+") || !index.isFile()) return null;
         YamlConfiguration y = YamlConfiguration.loadConfiguration(index);
         List<Integer> b = y.getIntegerList("boite");
         if (b.size() != 6) return null;
@@ -191,6 +214,7 @@ public final class Structures implements Listener {
         y.set("sous-sol", carve ? "creuse" : "garde");
         if (!title.isEmpty()) y.set("titre", title);
         try { y.save(index); } catch (IOException ex) { plugin.getLogger().warning("Fiche de " + name + " non ecrite : " + ex); return false; }
+        read.remove(name);
         return true;
     }
 

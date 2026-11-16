@@ -10,7 +10,7 @@
 | `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
 | `/cf test omori` | Zone de test avec la porte d'Omori devant soi, pour essayer le boss (une seconde fois pour la retirer) |
 | `/cf omori lancer\|fermer\|phase <1-5>\|coups <n>` | Essayer l'événement Omori : l'ouvrir, le refermer, changer de phase, compter des coups (test) |
-| `/cf map` | La carte de la map, dans la main : les lieux et leur nom, l'arène, la bordure, soi et son équipe |
+| `/cf map` | La carte de la map, dans la main : les lieux et leur nom, l'arène, la bordure, soi et son équipe. Pour un admin : clic droit avec la carte pour viser un endroit, clic pour s'y téléporter |
 | `/cf structure liste\|monde\|fiche\|placer\|disperser` | Les lieux posés au hasard sur la map : les lister (et la part que la bordure laisse à chacun), visiter le monde d'origine d'un lieu, écrire sa fiche, en poser un, poser ceux qui manquent (admin) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |

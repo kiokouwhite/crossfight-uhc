@@ -9,7 +9,18 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCanvas;
@@ -19,6 +30,7 @@ import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 import org.bukkit.map.MinecraftFont;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.awt.Color;
 import java.util.ArrayList;
@@ -36,8 +48,12 @@ import java.util.UUID;
  *
  * C'est une seule carte de Minecraft pour tout le serveur (son numero est garde dans config.yml, pour ne pas en
  * creer une a chaque demarrage), dont le dessin est fait ici au lieu d'etre celui du terrain.
+ *
+ * Pour un admin, la carte sert aussi a se deplacer : un clic droit, carte en main, fait apparaitre une croix rouge
+ * dessus. Minecraft n'a pas de curseur sur une carte tenue en main : c'est le regard qui en tient lieu. Tourner la
+ * tete a droite pousse la croix vers l'est, baisser les yeux la pousse vers le sud ; un clic teleporte la ou elle est.
  */
-public final class WorldMap {
+public final class WorldMap implements Listener {
 
     private static final int SIZE = 128, MARGIN = 6;
     private static final Color PAPER = new Color(214, 194, 152), FRAME = new Color(120, 92, 58), GRID = new Color(196, 174, 132),
@@ -53,9 +69,36 @@ public final class WorldMap {
     private static final String[] TINT_TAGS = {"<red>", "<blue>", "<dark_green>", "<yellow>", "<dark_purple>", "<gold>", "<dark_aqua>", "<light_purple>", "<green>",
             "<aqua>", "<light_purple>", "<#835432>", "<white>", "<dark_gray>"};
 
+    /**
+     * La visee. La carte tenue a deux mains n'est a plat devant les yeux que le regard baisse : la croix la parcourt
+     * de haut en bas entre ces deux inclinaisons (en degres), et d'un bord a l'autre sur le meme angle.
+     */
+    private static final float LOOK_TOP = 46f, LOOK_BOTTOM = 89f, LOOK_MIDDLE = (LOOK_TOP + LOOK_BOTTOM) / 2;
+    /** Positions de marque (deux par pixel de la carte) parcourues par degre de regard. */
+    private static final float UNITS = 256f / (LOOK_BOTTOM - LOOK_TOP);
+    /** En ticks : le temps avant qu'un clic compte (celui qui ouvre la visee ne la valide pas), et la duree d'une visee. */
+    private static final int ARMED = 10, PATIENCE = 20 * 90;
+
     private final CrossfightPlugin plugin;
     private final NamespacedKey mark;
     private MapView view;
+
+    /** La visee d'un admin : son regard d'avant (rendu a la fin), le lacet qui met la croix au milieu, et la croix. */
+    private static final class Aim {
+        final float yaw, pitch;
+        float zero;
+        final int since;
+        /** La croix, en position de marque : de -128 (ouest, nord) a 127 (est, sud). */
+        int u, v;
+        int sent = -100, told = -100;
+
+        Aim(float yaw, float pitch, int since) { this.yaw = yaw; this.pitch = pitch; this.zero = yaw; this.since = since; }
+    }
+
+    private final Map<UUID, Aim> aims = new HashMap<>();
+    /** Le tick de la fin de la derniere visee de chacun : un clic maintenu ne la rouvre pas aussitot. */
+    private final Map<UUID, Integer> rested = new HashMap<>();
+    private BukkitTask tracking;
 
     public WorldMap(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -116,6 +159,7 @@ public final class WorldMap {
         lines.add("<gray>Pointeur blanc : toi. Marques bleues : ton equipe.");
         lines.add("<gray>Cadre rouge : la bordure.");
         for (String l : lines) lore.add(Msg.mm(l).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+        if (admin(p)) lore.add(Msg.mm("<yellow>Admin : clic droit pour viser, clic pour s'y teleporter.").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
         meta.lore(lore);
         meta.getPersistentDataContainer().set(mark, PersistentDataType.BYTE, (byte) 1);
         map.setItemMeta(meta);
@@ -132,7 +176,210 @@ public final class WorldMap {
         inv.setItemInMainHand(map);
         Msg.send(p, "<gold>La carte est dans ta main. <gray>Le nord est en haut ; elle couvre toute la map, d'un bord a l'autre de la bordure.");
         for (String l : lines.subList(0, lines.size() - 2)) Msg.send(p, l);
+        if (admin(p)) Msg.send(p, "<yellow>Admin : <white>clic droit<gray> avec la carte pour viser un endroit (une croix rouge suit ton regard), <white>clic<gray> pour t'y teleporter.");
     }
+
+    // ------------------------------------------------------------------------------------------------- la visee
+
+    private boolean admin(Player p) {
+        return p.hasPermission("crossfight.admin");
+    }
+
+    private boolean holds(Player p) {
+        return isMap(p.getInventory().getItemInMainHand()) || isMap(p.getInventory().getItemInOffHand());
+    }
+
+    private double scale() {
+        return (SIZE - 2.0 * MARGIN) / (2.0 * Math.max(50, plugin.game().rules().value("bordure")));
+    }
+
+    /** Ou est la croix dans le monde : {x, z}, jamais au-dela de la bordure de depart. */
+    private int[] pointed(Aim aim) {
+        int border = Math.max(50, plugin.game().rules().value("bordure"));
+        double scale = scale();
+        return new int[]{(int) Math.max(-border + 1, Math.min(border - 1, Math.round(aim.u / (2 * scale)))),
+                (int) Math.max(-border + 1, Math.min(border - 1, Math.round(aim.v / (2 * scale))))};
+    }
+
+    /** Ce qu'il y a a cet endroit de la map : le titre d'un lieu, l'arene, ou rien. */
+    private String nameAt(World w, int x, int z) {
+        for (Structures.Placed pl : places(w)) if (x >= pl.x() && x < pl.x() + pl.sx() && z >= pl.z() && z < pl.z() + pl.sz()) return plugin.structures().title(pl.name());
+        Location arena = plugin.ferox().centre();
+        return Math.hypot(x - arena.getX(), z - arena.getZ()) <= 92 ? "Arene de Ferox" : null;
+    }
+
+    /** Un clic droit avec la carte ouvre la visee (admins) ; pendant la visee, n'importe quel clic la valide. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onClick(PlayerInteractEvent e) {
+        if (e.getAction() == Action.PHYSICAL) return;
+        Player p = e.getPlayer();
+        Aim aim = aims.get(p.getUniqueId());
+        if (aim != null) {
+            e.setCancelled(true);
+            // Jeter la carte fait aussi un geste du bras : sans elle, ce n'est pas un clic sur la carte.
+            if (holds(p) && Bukkit.getCurrentTick() - aim.since >= ARMED) jump(p, aim);
+            return;
+        }
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        if (!isMap(e.getItem()) || !admin(p) || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
+        if (Bukkit.getCurrentTick() - rested.getOrDefault(p.getUniqueId(), -100) < ARMED) { e.setCancelled(true); return; }
+        // Une porte, un coffre, un levier : le clic est pour eux.
+        if (e.getAction() == Action.RIGHT_CLICK_BLOCK && e.getClickedBlock() != null && e.getClickedBlock().getType().isInteractable()) return;
+        e.setCancelled(true);
+        aim(p);
+    }
+
+    /** Pendant la visee, un coup donne a ce qui passe devant est un clic comme un autre. */
+    @EventHandler(priority = EventPriority.LOW)
+    public void onHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player p)) return;
+        Aim aim = aims.get(p.getUniqueId());
+        if (aim == null) return;
+        e.setCancelled(true);
+        if (holds(p) && Bukkit.getCurrentTick() - aim.since >= ARMED) jump(p, aim);
+    }
+
+    @EventHandler
+    public void onSneak(PlayerToggleSneakEvent e) {
+        if (!e.isSneaking()) return;
+        Aim aim = aims.remove(e.getPlayer().getUniqueId());
+        if (aim != null) drop(e.getPlayer(), aim, "<gray>Visee annulee.");
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        aims.remove(e.getPlayer().getUniqueId());
+        rested.remove(e.getPlayer().getUniqueId());
+    }
+
+    private void aim(Player p) {
+        Location at = p.getLocation();
+        Aim aim = new Aim(at.getYaw(), at.getPitch(), Bukkit.getCurrentTick());
+        aims.put(p.getUniqueId(), aim);
+        // Le regard baisse sur la carte : elle se leve en entier, la croix en son milieu.
+        if (at.getPitch() < LOOK_TOP + 3 || at.getPitch() > LOOK_BOTTOM - 3) p.setRotation(at.getYaw(), LOOK_MIDDLE);
+        p.playSound(p.getLocation(), Sound.ITEM_BOOK_PAGE_TURN, 0.8f, 1.2f);
+        Msg.send(p, "<gold>Visee sur la carte. <gray>La <red>croix rouge<gray> suit ton regard : <white>clic<gray> pour t'y teleporter, <white>accroupi<gray> pour annuler.");
+        if (tracking == null) tracking = Bukkit.getScheduler().runTaskTimer(plugin, this::track, 1L, 1L);
+    }
+
+    /** A chaque tick : la croix suit le regard de ceux qui visent ; la carte leur est renvoyee des qu'elle bouge. */
+    private void track() {
+        int now = Bukkit.getCurrentTick();
+        for (var it = aims.entrySet().iterator(); it.hasNext(); ) {
+            var entry = it.next();
+            Player p = Bukkit.getPlayer(entry.getKey());
+            Aim aim = entry.getValue();
+            if (p == null) { it.remove(); continue; }
+            String end = !holds(p) ? "<gray>Visee annulee : la carte n'est plus dans ta main." : !admin(p) ? "<gray>Visee annulee."
+                    : now - aim.since > PATIENCE ? "<gray>Visee annulee : trop longue." : null;
+            if (end != null) { it.remove(); drop(p, aim, end); continue; }
+            Location at = p.getLocation();
+            // Le lacet, ramene entre -180 et 180 autour de celui qui met la croix au milieu. Pousser la croix contre
+            // un bord deplace ce milieu : des qu'on revient, elle repart (comme une souris au bord de l'ecran).
+            float turn = at.getYaw() - aim.zero;
+            turn -= 360f * Math.round(turn / 360f);
+            float edge = 127.4f / UNITS;
+            if (turn > edge) { aim.zero += turn - edge; turn = edge; }
+            if (turn < -edge) { aim.zero += turn + edge; turn = -edge; }
+            int u = Math.max(-128, Math.min(127, Math.round(turn * UNITS)));
+            int v = Math.max(-128, Math.min(127, Math.round((at.getPitch() - LOOK_MIDDLE) * UNITS)));
+            boolean moved = u != aim.u || v != aim.v;
+            aim.u = u;
+            aim.v = v;
+            if (moved || now - aim.sent >= 20) { aim.sent = now; p.sendMap(view()); }
+            if ((moved && now - aim.told >= 2) || now - aim.told >= 20) { aim.told = now; tell(p, aim); }
+        }
+        if (aims.isEmpty() && tracking != null) { tracking.cancel(); tracking = null; }
+    }
+
+    /** Dans la barre d'action : ou pointe la croix, et ce qu'il y a la. */
+    private void tell(Player p, Aim aim) {
+        World w = plugin.game().world();
+        int[] at = pointed(aim);
+        String name = nameAt(w, at[0], at[1]);
+        boolean out = !w.getWorldBorder().isInside(new Location(w, at[0] + 0.5, 64, at[1] + 0.5));
+        Msg.actionBar(p, "<white>x " + at[0] + "  z " + at[1] + (name != null ? " <gray>- <gold>" + name : "") + (out ? " <gray>- <red>hors de la bordure" : "")
+                + " <gray>- clic : s'y teleporter");
+    }
+
+    /** La visee s'arrete sans teleportation : le regard d'avant est rendu, la croix quitte la carte. */
+    private void drop(Player p, Aim aim, String why) {
+        rested.put(p.getUniqueId(), Bukkit.getCurrentTick());
+        p.setRotation(aim.yaw, aim.pitch);
+        p.sendMap(view());
+        Msg.actionBar(p, why);
+    }
+
+    /** Le clic : teleporte la ou est la croix, au sol de l'endroit (ou tout pres, s'il n'y en a pas ou s'il est dangereux). */
+    private void jump(Player p, Aim aim) {
+        aims.remove(p.getUniqueId());
+        rested.put(p.getUniqueId(), Bukkit.getCurrentTick());
+        World w = plugin.game().world();
+        int[] at = pointed(aim);
+        String name = nameAt(w, at[0], at[1]);
+        Msg.actionBar(p, "<gray>Teleportation...");
+        w.getChunkAtAsync(at[0] >> 4, at[1] >> 4).thenAccept(chunk -> {
+            if (!p.isOnline()) return;
+            Block ground = landing(w, at[0], at[1], p.getGameMode() == org.bukkit.GameMode.SURVIVAL || p.getGameMode() == org.bukkit.GameMode.ADVENTURE);
+            if (ground == null) {
+                drop(p, aim, "<gray>Pas de sol sur ou se poser a cet endroit.");
+                return;
+            }
+            Location to = new Location(w, ground.getX() + 0.5, ground.getY() + 1, ground.getZ() + 0.5, aim.yaw, aim.pitch);
+            p.setFallDistance(0);
+            p.teleport(to);
+            p.sendMap(view());
+            p.playSound(to, Sound.ENTITY_ENDERMAN_TELEPORT, 0.7f, 1.3f);
+            Msg.send(p, "<green>Teleporte" + (name != null ? " a <gold>" + name + "<green>" : "") + " : <white>" + to.getBlockX() + ", " + to.getBlockY() + ", " + to.getBlockZ() + "<green>.");
+        });
+    }
+
+    /**
+     * Le bloc sur lequel se poser, a cet endroit ou a quelques blocs de la : celui de {@link #stand}, sauf s'il n'y en
+     * a pas (une faille jusqu'au vide) ou s'il blesse un joueur en survie (lave, magma, feu, cactus).
+     */
+    private Block landing(World w, int x, int z, boolean fragile) {
+        for (int r = 0; r <= 8; r++) for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++) {
+            if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+            Block b = stand(w, x + dx, z + dz);
+            if (b == null) continue;
+            if (fragile && (HARMFUL.contains(b.getType()) || HARMFUL.contains(b.getRelative(BlockFace.UP).getType()))) continue;
+            return b;
+        }
+        return null;
+    }
+
+    /**
+     * Le bloc qui porte, dans cette colonne. En pleine nature, le plus haut. Dans un lieu ou dans l'arene, le plus
+     * haut est souvent un toit, un dome, le haut d'une tour : c'est le premier endroit ou l'on tient debout a partir
+     * du niveau du sol du lieu (sa rue, son rez-de-chaussee) ; sur de l'eau, on se pose a sa surface.
+     */
+    private Block stand(World w, int x, int z) {
+        int top = w.getHighestBlockYAt(x, z);
+        if (top < w.getMinHeight()) return null;
+        Integer floor = floorAt(w, x, z);
+        if (floor != null) for (int y = Math.max(w.getMinHeight(), floor - 2); y <= top; y++) {
+            Block b = w.getBlockAt(x, y, z);
+            if ((b.isLiquid() || !b.isPassable()) && free(b.getRelative(BlockFace.UP)) && free(b.getRelative(BlockFace.UP, 2))) return b;
+        }
+        Block b = w.getBlockAt(x, top, z);
+        return b.getType().isAir() ? null : b;
+    }
+
+    private boolean free(Block b) {
+        return b.isPassable() && !b.isLiquid();
+    }
+
+    /** Le niveau du sol de ce qui est bati a cet endroit : celui du lieu, celui de la fosse de l'arene ; null en pleine nature. */
+    private Integer floorAt(World w, int x, int z) {
+        for (Structures.Placed pl : places(w)) if (x >= pl.x() && x < pl.x() + pl.sx() && z >= pl.z() && z < pl.z() + pl.sz()) return plugin.structures().level(pl);
+        Location arena = plugin.ferox().centre();
+        return Math.hypot(x - arena.getX(), z - arena.getZ()) <= 92 ? arena.getBlockY() : null;
+    }
+
+    private static final java.util.Set<Material> HARMFUL = java.util.Set.of(Material.LAVA, Material.MAGMA_BLOCK, Material.FIRE, Material.SOUL_FIRE, Material.CAMPFIRE,
+            Material.SOUL_CAMPFIRE, Material.CACTUS, Material.SWEET_BERRY_BUSH, Material.POWDER_SNOW, Material.WITHER_ROSE, Material.POINTED_DRIPSTONE);
 
     /** Dessine la carte pour chaque joueur qui la tient : le fond quand il change, les marques a chaque fois. */
     private final class Painter extends MapRenderer {
@@ -164,7 +411,11 @@ public final class WorldMap {
                         Component.text(plugin.structures().title(pl.name()))));
             }
             cursors.addCursor(new MapCursor(at(arena.getX(), scale), at(arena.getZ(), scale), (byte) 8, MapCursor.Type.MANSION, true, Component.text("Arene de Ferox")));
-            if (!p.getWorld().equals(w)) return;
+            Aim aim = aims.get(p.getUniqueId());
+            if (!p.getWorld().equals(w)) {
+                if (aim != null) cursors.addCursor(new MapCursor((byte) aim.u, (byte) aim.v, (byte) 8, MapCursor.Type.RED_X, true));
+                return;
+            }
             // Les coequipiers, puis le joueur par-dessus.
             Team team = plugin.teams().teamOf(p);
             if (team != null) for (Player mate : team.onlineMembers()) {
@@ -175,6 +426,8 @@ public final class WorldMap {
             float yaw = p.getLocation().getYaw();
             yaw += yaw < 0 ? -8 : 8;
             cursors.addCursor(new MapCursor(at(p.getLocation().getX(), scale), at(p.getLocation().getZ(), scale), (byte) ((int) (yaw * 16 / 360) & 15), MapCursor.Type.PLAYER, true));
+            // La croix de visee d'un admin, par-dessus tout le reste.
+            if (aim != null) cursors.addCursor(new MapCursor((byte) aim.u, (byte) aim.v, (byte) 8, MapCursor.Type.RED_X, true));
         }
 
         /** Une coordonnee du monde, en position de marque sur la carte (de -128 a 127, deux par pixel). */
