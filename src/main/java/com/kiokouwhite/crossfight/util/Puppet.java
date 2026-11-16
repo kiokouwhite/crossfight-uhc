@@ -380,6 +380,15 @@ public final class Puppet {
         else apply(pose, ticks);
     }
 
+    /** Le pantin reste jusqu'a ce qu'on le retire (un boss), au lieu de s'effacer de lui-meme au bout de 30 secondes. */
+    public Puppet keep() {
+        removeAt = Integer.MAX_VALUE;
+        return this;
+    }
+
+    /** Vrai tant que le pantin est affiche. */
+    public boolean shown() { return task != null && ACTIVE.get(entity.getUniqueId()) == this; }
+
     /** Termine l'animation dans {@code after} ticks : retour a la position debout en {@code blend} ticks, puis le joueur reapparait. */
     public void endAfter(int after, int blend) {
         endAt = age + after;

@@ -181,8 +181,13 @@ public final class Omori implements Listener {
         });
         // Avec son skin dans le pack ("skin.omori", ou celui que nomme omori.skin dans config.yml), Omori est un
         // personnage articule, son couteau a la main ; sinon il garde cette tenue noire et blanche.
+        dress();
+    }
+
+    /** Habille Omori de son modele articule, pour de bon (un pantin ordinaire s'efface au bout de 30 secondes). */
+    private void dress() {
         puppet = com.kiokouwhite.crossfight.util.Puppet.show(boss, plugin.getConfig().getString("omori.skin", "omori"), new ItemStack(Material.IRON_SWORD), "debout");
-        if (puppet != null) boss.getEquipment().clear();
+        if (puppet != null) { puppet.keep(); boss.getEquipment().clear(); }
     }
 
     private com.kiokouwhite.crossfight.util.Puppet puppet;
@@ -218,6 +223,7 @@ public final class Omori implements Listener {
         List<Player> in = fighters();
         if (in.isEmpty()) { if (boss != null) { if (puppet != null) puppet.remove(); puppet = null; boss.remove(); boss = null; } return; }
         if (boss == null || !boss.isValid()) summon();
+        else if (puppet != null && !puppet.shown()) dress();
         for (Player p : new ArrayList<>(bar.getPlayers())) if (!in.contains(p)) bar.removePlayer(p);
         for (Player p : in) {
             bar.addPlayer(p);
