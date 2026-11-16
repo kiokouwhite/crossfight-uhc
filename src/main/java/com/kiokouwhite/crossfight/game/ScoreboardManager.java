@@ -58,7 +58,7 @@ public final class ScoreboardManager {
         Scoreboard board = boards.computeIfAbsent(p.getUniqueId(), u -> Bukkit.getScoreboardManager().getNewScoreboard());
         Objective old = board.getObjective("cf");
         if (old != null) old.unregister();
-        Objective obj = board.registerNewObjective("cf", Criteria.DUMMY, Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC"));
+        Objective obj = board.registerNewObjective("cf", Criteria.DUMMY, title(p));
         // Pendant le choix du personnage, le tableau laisse l'ecran aux cartes (la barre du haut donne le temps).
         if (plugin.selection() == null || !plugin.selection().isViewing(p)) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
@@ -70,6 +70,21 @@ public final class ScoreboardManager {
             obj.getScore(entry).setScore(score--);
         }
         if (p.getScoreboard() != board) p.setScoreboard(board);
+    }
+
+    /** Le logo dans la police "crossfight:logo" du pack (tools/build_logo.js) : ses deux moities, recollees. */
+    private static final net.kyori.adventure.text.Component LOGO = net.kyori.adventure.text.Component.text("\uE000\uE002\uE001")
+            .font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "logo")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE);
+
+    /**
+     * Le titre du tableau : le logo Crossfight UHC pour qui a charge le pack, le nom en lettres sinon.
+     * scoreboard.logo dans config.yml : auto (selon le pack), toujours (le pack est installe a la main), jamais.
+     */
+    private net.kyori.adventure.text.Component title(Player p) {
+        String mode = plugin.getConfig().getString("scoreboard.logo", "auto").toLowerCase(java.util.Locale.ROOT);
+        boolean logo = com.kiokouwhite.crossfight.util.Sounds.has("font.logo") && !mode.equals("jamais") && !mode.equals("false")
+                && (mode.equals("toujours") || mode.equals("true") || com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p));
+        return logo ? LOGO : Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
     }
 
     private String unique(String line, List<String> all, int idx) {

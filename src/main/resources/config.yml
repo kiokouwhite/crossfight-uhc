@@ -63,6 +63,11 @@ resource-pack:
   # true : un joueur qui refuse le pack est deconnecte
   required: false
 
+scoreboard:
+  # Le logo Crossfight UHC a la place du titre du tableau de droite. auto : pour les joueurs qui ont charge le pack
+  # envoye par le serveur ; toujours : pour tous (pack installe a la main) ; jamais : le titre en lettres
+  logo: auto
+
 armor:
   # L'armure portee n'est plus dessinee sur le corps (on voit le skin du personnage) ; elle protege autant
   hidden: true

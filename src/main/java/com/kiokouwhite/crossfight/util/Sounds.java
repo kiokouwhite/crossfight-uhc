@@ -233,6 +233,15 @@ public final class Sounds {
     }
 
     /** Le joueur a repondu (pack charge, refuse ou en echec), ou n'a pas repondu a temps. */
+    /** Ceux chez qui le pack envoye par le serveur est charge : eux voient ses images (le logo du tableau). */
+    private static final java.util.Set<java.util.UUID> PACK_LOADED = new java.util.HashSet<>();
+
+    public static void packLoaded(Player p, boolean loaded) {
+        if (loaded) PACK_LOADED.add(p.getUniqueId()); else PACK_LOADED.remove(p.getUniqueId());
+    }
+
+    public static boolean hasPackLoaded(Player p) { return PACK_LOADED.contains(p.getUniqueId()); }
+
     public static void packSettled(Player p) {
         PACK_PENDING.remove(p.getUniqueId());
         java.util.List<Runnable> waiting = AFTER_PACK.remove(p.getUniqueId());
@@ -242,7 +251,7 @@ public final class Sounds {
 
     public static boolean packPending(Player p) { return PACK_PENDING.contains(p.getUniqueId()); }
 
-    public static void forget(Player p) { PACK_PENDING.remove(p.getUniqueId()); AFTER_PACK.remove(p.getUniqueId()); }
+    public static void forget(Player p) { PACK_PENDING.remove(p.getUniqueId()); AFTER_PACK.remove(p.getUniqueId()); PACK_LOADED.remove(p.getUniqueId()); }
 
     /** Propose (ou impose) le pack de ressources au joueur qui se connecte. */
     public static void sendPack(Player p) {

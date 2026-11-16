@@ -28,7 +28,7 @@ Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un person
 articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>", une image de l'ecran
 de selection (tools/build_selection.py) sous "select.<type>.<nom>", un signe de Glyph
 (tools/build_glyphs.py) sous "glyph.<nom>", le modele 3D d'une arme (tools/build_falchion.py,
-tools/build_armes.py) sous "model.<nom>".
+tools/build_armes.py) sous "model.<nom>", une image de police (tools/build_logo.js : le logo) sous "font.<nom>".
 Un son prive remplace le son public du meme nom, qui n'est alors plus declare dans le pack public.
 
 Le plugin joue tout son connu de sa liste (publics + prives). Pour que les joueurs entendent les sons
@@ -127,6 +127,12 @@ def models(base: Path):
     if (folder / "arme").is_dir():
         out |= {"model." + f.stem for f in (folder / "arme").glob("*.json") if "_tire_" not in f.stem}
     return out
+
+
+def fonts(base: Path):
+    """Les images de police (tools/build_logo.js : le logo du tableau de droite) : "font.<nom>"."""
+    folder = base / "assets" / NS / "font"
+    return {"font." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
 
 
 def overlays(base: Path):
@@ -291,7 +297,7 @@ def main() -> int:
 
     # Ce que le plugin embarque : tous les sons connus (publics et prives), l'empreinte du pack public.
     res = ROOT / "src" / "main" / "resources"
-    index = sorted(set(events) | skins(PACK) | selection(PACK) | glyphs(PACK) | models(PACK) | private_names)
+    index = sorted(set(events) | skins(PACK) | selection(PACK) | glyphs(PACK) | models(PACK) | fonts(PACK) | private_names)
     (res / "sounds.txt").write_text("# Genere par tools/build_pack.py\n" + "\n".join(index) + "\n", encoding="utf-8")
     (res / "pack.sha1").write_text(sha1 + "\n", encoding="utf-8")
     # La duree des repliques : le plugin enchaine un dialogue sans que la seconde replique coupe la premiere.

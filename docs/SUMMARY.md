@@ -17,6 +17,7 @@
   * [Charge de l'Ultime](architecture/charge-de-l-ultime.md)
   * [Bonus fractionnaires](architecture/bonus-fractionnaires.md)
   * [Sons, voix et musiques](architecture/sons-voix-et-musiques.md)
+  * [Logo du tableau](architecture/logo-du-tableau.md)
   * [Skins des personnages](architecture/skins-des-personnages.md)
   * [Armure invisible](architecture/armure-invisible.md)
   * [Bonus et malus à l'écran](architecture/bonus-et-malus-a-l-ecran.md)

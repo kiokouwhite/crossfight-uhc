@@ -238,6 +238,12 @@ Sur une machine qui n'a plus `resourcepack-prive/`, `python3 tools/build_pack.py
 python3 tools/add_audio.py --prive voice vc_marth_appeal01.wav marth_ult
 ```
 
+### Logo du tableau
+
+Le titre du tableau de droite est le logo Crossfight UHC, posé au-dessus du tableau, pour les joueurs qui ont chargé le pack envoyé par le serveur ; les autres voient le titre en lettres. `scoreboard.logo` dans `config.yml` : `auto` (selon le pack), `toujours` (pour tous, quand le pack est installé à la main), `jamais`.
+
+Le logo est une image de police du pack (`assets/crossfight/font/logo.json`, police `crossfight:logo`). Pour le changer : remplacer `tools/logo/crossfight_uhc.svg`, puis `node tools/build_logo.js` (Playwright et son Chromium), `python3 tools/build_pack.py`, et recompiler. La taille à l'écran et la hauteur au-dessus du tableau sont les constantes `HAUTEUR` et `MONTEE` du script.
+
 ### Skins des personnages
 
 Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. Dans les menus de choix de personnage (mode test, sélection classique), chaque personnage est montré par la tête de son skin ; ceux qui n'ont pas de skin gardent leur objet. Une forme peut avoir son propre skin dans la table (`eren_titan`, porté pendant la forme de Titan d'Eren). `skins.enabled: false` dans `config.yml` coupe tout.
