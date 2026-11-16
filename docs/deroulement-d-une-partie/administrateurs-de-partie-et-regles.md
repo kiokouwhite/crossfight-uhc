@@ -8,7 +8,7 @@ Pas besoin de commandes : dans le lobby, les opérateurs et les administrateurs 
 |---|---|
 | Comparateur « Règles de la partie » | Ouvre le menu des règles : un objet par règle, avec sa valeur. Clic gauche : plus ; clic droit : moins ; Maj + clic : cinq crans d'un coup ; un clic bascule les règles oui / non et la taille des équipes. À la fermeture, une seule annonce dit à tous ce qui a changé. |
 | Livre enchanté « Scénarios » | Ouvre le menu des scénarios : un clic coche ou décoche chacun ; une annonce à la fermeture |
-| Casque « Taille des équipes » | Passe de solo à duo, puis trio |
+| Casque « Équipes par défaut » | Format des équipes créées au lancement pour ceux qui n'ont pas choisi : solitaire, duo, puis trio |
 | Bloc d'herbe « Nouvelle map » | Crée une nouvelle map (deux clics en moins de cinq secondes) |
 | Boussole « Rappeler au lobby » | Ramène tous les joueurs sur la plateforme |
 | Teinture verte « Lancer la partie » | Lance la partie (deux clics en moins de cinq secondes) |

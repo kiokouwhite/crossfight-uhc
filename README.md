@@ -31,10 +31,10 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
-| `/cf setsize SOLO|DUO|TRIO` | Taille des équipes (admin) |
+| `/cf setsize SOLO|DUO|TRIO` | Format des équipes créées au lancement pour les joueurs qui n'ont pas choisi (admin) |
 | `/cf setborder <rayon>` | Taille de la map (admin) |
 | `/cf setpvp <minute>` | Minute d'activation du PvP (admin) |
-| `/cf team create|join <id>|leave|list` | Gestion des équipes dans le lobby |
+| `/cf team create [solo\|duo\|trio]\|join <id>\|leave\|list` | Choisir son équipe dans le lobby (comme la bannière « Choisir son équipe ») |
 | `/cf team add <joueur> <id>` | Forcer un joueur dans une équipe (admin) |
 | `/cf perso [id]` | Ouvrir le menu de choix ou choisir un personnage |
 | `/cf give <joueur> <perso>` | Forcer un personnage (admin, pour tester) |
@@ -74,11 +74,17 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 
 Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plateforme de verre de 43 blocs de côté, à 250 blocs de haut, au-dessus du point d'apparition du monde. Pour patienter, chaque bloc de verre change de couleur (avec une petite note) quand un joueur marche dessus. Des murs et un plafond invisibles empêchent d'en tomber. On y arrive en se connectant, en quittant le mode test, après `/cf stop`, et avec `/cf lobby`, qui y envoie tous les joueurs ; elle disparaît du ciel quand la partie démarre et revient au retour au lobby. Réglages dans `config.yml` : `lobby.plateforme` (false : on reste au point d'apparition), `lobby.hauteur`, `lobby.rayon`.
 
-1. **Lobby** : les joueurs forment leurs équipes (ou sont répartis automatiquement au lancement).
-2. **Sélection** : une licence est tirée au sort par équipe, chacun choisit un personnage (60 s, puis attribution automatique).
+1. **Lobby** : les joueurs choisissent leur équipe (solitaire, duo ou équipe de trois) ; ceux qui n'ont rien choisi sont répartis automatiquement au lancement.
+2. **Sélection** : une licence est tirée au sort par équipe, parmi celles de son format, chacun choisit un personnage (60 s, puis attribution automatique).
 3. **Lancement** : téléportation par équipe, armes et items de capacités donnés.
 4. **Partie** : PvP à 30 min, événements à 20 / 30 / 40 / 50 / 60 min, 3 vies par joueur.
 5. **Fin** : dernière équipe en vie.
+
+### Choisir son équipe
+
+Dans le lobby, chaque joueur a une bannière « Choisir son équipe » dans sa barre (clic droit). Le menu propose de jouer en solitaire, de créer un duo ou de créer une équipe de trois, et montre les équipes déjà formées (un bloc de laine à leur couleur, avec leurs membres et leurs places libres) : un clic sur une équipe incomplète la rejoint, « Quitter mon équipe » la quitte. Une équipe que tout le monde a quittée disparaît, et un joueur qui se déconnecte du lobby libère sa place.
+
+Les formats se mélangent dans une même partie : chaque équipe tire sa licence parmi celles de son format (Personnage Solitaire, Groupe Duo, Équipe de Trois). Au lancement, les joueurs sans équipe complètent d'abord les équipes incomplètes, puis forment de nouvelles équipes au format par défaut, que l'administrateur règle avec son casque « Équipes par défaut » ou `/cf setsize`.
 
 ### Administrateurs de partie et règles
 
@@ -90,7 +96,7 @@ Pas besoin de commandes : dans le lobby, les opérateurs et les administrateurs 
 |---|---|
 | Comparateur « Règles de la partie » | Ouvre le menu des règles : un objet par règle, avec sa valeur. Clic gauche : plus ; clic droit : moins ; Maj + clic : cinq crans d'un coup ; un clic bascule les règles oui / non et la taille des équipes. À la fermeture, une seule annonce dit à tous ce qui a changé. |
 | Livre enchanté « Scénarios » | Ouvre le menu des scénarios : un clic coche ou décoche chacun ; une annonce à la fermeture |
-| Casque « Taille des équipes » | Passe de solo à duo, puis trio |
+| Casque « Équipes par défaut » | Format des équipes créées au lancement pour ceux qui n'ont pas choisi : solitaire, duo, puis trio |
 | Bloc d'herbe « Nouvelle map » | Crée une nouvelle map (deux clics en moins de cinq secondes) |
 | Boussole « Rappeler au lobby » | Ramène tous les joueurs sur la plateforme |
 | Teinture verte « Lancer la partie » | Lance la partie (deux clics en moins de cinq secondes) |

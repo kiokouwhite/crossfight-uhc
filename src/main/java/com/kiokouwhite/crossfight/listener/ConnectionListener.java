@@ -66,7 +66,8 @@ public final class ConnectionListener implements Listener {
             Msg.send(p, "<gray>Bienvenue sur <gold>Crossfight UHC</gold>. En attente du lancement.");
             // Operateurs et administrateurs de partie : leurs outils de reglage en main.
             plugin.hostTools().refresh(p);
-            if (plugin.hostTools().canHost(p)) Msg.send(p, "<gray>Tes outils d'administrateur sont dans ta barre : regles, equipes, nouvelle map, rappel, lancement.");
+            Msg.send(p, plugin.hostTools().canHost(p) ? "<gray>Dans ta barre : tes outils d'administrateur (regles, scenarios, nouvelle map, lancement...) et la banniere pour choisir ton equipe."
+                    : "<gray>La banniere dans ta barre sert a choisir ton equipe : solitaire, duo ou equipe de trois.");
             return;
         }
         // Partie en cours : les joueurs sans equipe ou sans vie sont spectateurs.
@@ -116,5 +117,11 @@ public final class ConnectionListener implements Listener {
         e.quitMessage(Msg.prefixed("<gray>" + e.getPlayer().getName() + " est parti."));
         plugin.scoreboard().remove(e.getPlayer());
         plugin.abilities().clearGaugeBars(e.getPlayer());
+        // Parti du lobby : sa place dans son equipe se libere.
+        if (plugin.game().isLobby()) {
+            plugin.teams().leave(e.getPlayer());
+            plugin.teams().prune();
+            plugin.hostTools().refreshTeamMenus();
+        }
     }
 }

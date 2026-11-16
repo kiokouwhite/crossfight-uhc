@@ -88,9 +88,11 @@ public final class ScoreboardManager {
             case LOBBY, ENDED -> {
                 lines.add("<white>Etat : <yellow>Lobby");
                 lines.add("<white>Joueurs : <yellow>" + Bukkit.getOnlinePlayers().size());
-                lines.add("<white>Equipes : <yellow>" + plugin.teams().teamSize().label());
+                int formed = 0;
+                for (Team each : plugin.teams().all()) if (each.size() > 0) formed++;
+                lines.add("<white>Equipes : <yellow>" + formed);
                 Team t = cf.team();
-                lines.add("<white>Ton equipe : " + (t == null ? "<gray>aucune" : t.coloredName()));
+                lines.add("<white>Ton equipe : " + (t == null ? "<gray>aucune" : t.coloredName() + " <gray>" + t.kind().shortLabel() + " " + t.size() + "/" + t.capacity()));
             }
             case TEST -> {
                 lines.add("<white>Etat : <aqua>Mode test");

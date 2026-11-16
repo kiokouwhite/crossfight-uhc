@@ -5,6 +5,7 @@
 * [Compiler](compiler.md)
 * [Commandes](commandes.md)
 * [Déroulement d'une partie](deroulement-d-une-partie.md)
+  * [Choisir son équipe](deroulement-d-une-partie/choisir-son-equipe.md)
   * [Administrateurs de partie et règles](deroulement-d-une-partie/administrateurs-de-partie-et-regles.md)
   * [Scénarios](deroulement-d-une-partie/scenarios.md)
   * [Armes fabriquées](deroulement-d-une-partie/armes-fabriquees.md)

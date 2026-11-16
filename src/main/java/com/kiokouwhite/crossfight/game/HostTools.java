@@ -32,7 +32,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Les outils de l'administrateur de partie : dans le lobby, les operateurs et les joueurs nommes par /cf admin
+ * Les objets du lobby. Tous les joueurs ont de quoi choisir leur equipe (jouer en solitaire, creer un duo ou
+ * une equipe de trois, en rejoindre une). Les outils de l'administrateur de partie : dans le lobby, les operateurs et les joueurs nommes par /cf admin
  * ont en main des objets pour regler la partie sans taper de commande. Les regles s'ouvrent dans un menu (clic
  * gauche : plus, clic droit : moins), les scenarios dans un autre ; la taille des equipes, la nouvelle map, le rappel au lobby et le
  * lancement se font d'un clic droit, objet en main.
@@ -44,11 +45,15 @@ public final class HostTools implements Listener {
 
     private static final List<Tool> TOOLS = List.of(
             new Tool("regles", 0, Material.COMPARATOR, "<gold><bold>Regles de la partie", List.of("Bordure, PvP, vies, minerais, evenements...", "", "<yellow>Clic droit <gray>: ouvrir le menu")),
-            new Tool("equipes", 1, Material.LEATHER_HELMET, "<aqua><bold>Taille des equipes", List.of("Solo, duo ou trio", "", "<yellow>Clic droit <gray>: changer")),
+            new Tool("equipes", 1, Material.LEATHER_HELMET, "<aqua><bold>Equipes par defaut", List.of("Le format des equipes creees au lancement", "pour ceux qui n'ont pas choisi", "", "<yellow>Clic droit <gray>: solitaire, duo, trio")),
             new Tool("map", 2, Material.GRASS_BLOCK, "<green><bold>Nouvelle map", List.of("Cree un monde tout neuf et y amene tout le monde", "", "<yellow>Deux clics droits <gray>: creer la map")),
             new Tool("rappel", 3, Material.COMPASS, "<white><bold>Rappeler au lobby", List.of("Ramene tous les joueurs sur la plateforme", "", "<yellow>Clic droit <gray>: rappeler")),
             new Tool("scenarios", 4, Material.ENCHANTED_BOOK, "<light_purple><bold>Scenarios", List.of("CutClean, Hasty Boys, Timber...", "", "<yellow>Clic droit <gray>: choisir les scenarios")),
             new Tool("lancer", 8, Material.LIME_DYE, "<green><bold>Lancer la partie", List.of("", "<yellow>Deux clics droits <gray>: lancer")));
+
+    /** L'objet de tous les joueurs : choisir son equipe (case 5 ; case 6 pour un administrateur, qui a deja les siens). */
+    private static final Tool TEAM_TOOL = new Tool("equipe", 4, Material.WHITE_BANNER, "<yellow><bold>Choisir son equipe",
+            List.of("Jouer en solitaire, creer un duo ou une equipe de trois,", "ou rejoindre une equipe", "", "<yellow>Clic droit <gray>: ouvrir"));
 
     /** Ce que change un clic dans le menu, par regle, et son icone. */
     private record Dial(Material icon, int step) {}
@@ -123,8 +128,10 @@ public final class HostTools implements Listener {
     public void refresh(Player p) {
         var inv = p.getInventory();
         for (int i = 0; i < inv.getSize(); i++) if (toolOf(inv.getItem(i)) != null) inv.setItem(i, null);
-        if (!waiting() || plugin.testMode().isTester(p) || !canHost(p)) return;
-        for (Tool t : TOOLS) inv.setItem(t.slot(), item(t));
+        if (!waiting() || plugin.testMode().isTester(p)) return;
+        boolean host = canHost(p);
+        inv.setItem(host ? TEAM_TOOL.slot() + 1 : TEAM_TOOL.slot(), item(TEAM_TOOL));
+        if (host) for (Tool t : TOOLS) inv.setItem(t.slot(), item(t));
     }
 
     public void refreshAll() {
@@ -148,11 +155,16 @@ public final class HostTools implements Listener {
         if (tool == null) return;
         e.setCancelled(true);
         Player p = e.getPlayer();
-        if (!waiting() || plugin.testMode().isTester(p) || !canHost(p)) { refresh(p); return; }
+        if (!waiting() || plugin.testMode().isTester(p) || (!tool.equals("equipe") && !canHost(p))) { refresh(p); return; }
         // Un clic droit maintenu se repete : un seul compte.
         long now = System.currentTimeMillis();
         Long last = lastUse.put(p.getUniqueId(), now);
         if (last != null && now - last < 300) return;
+        if (tool.equals("equipe")) {
+            if (!plugin.game().isLobby()) Msg.actionBar(p, "<red>Impossible pendant un mode test.");
+            else openTeams(p);
+            return;
+        }
         switch (tool) {
             case "regles" -> openRules(p);
             case "scenarios" -> openScenarios(p);
@@ -160,8 +172,7 @@ public final class HostTools implements Listener {
                 if (!plugin.game().isLobby()) { Msg.actionBar(p, "<red>Impossible pendant un mode test."); return; }
                 TeamSize next = TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length];
                 plugin.teams().setTeamSize(next);
-                plugin.teams().clear();
-                Msg.broadcast("<yellow>Mode : <gold>" + next.label());
+                Msg.broadcast("<yellow>Equipes par defaut : <gold>" + next.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
                 p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.2f);
                 refreshAll();
             }
@@ -234,7 +245,131 @@ public final class HostTools implements Listener {
             menu.inv.setItem(place, it);
         }
         menu.inv.setItem(TEAM_PLACE, Items.of(Material.LEATHER_HELMET, "<gold>equipes <white><bold>" + plugin.teams().teamSize().label(),
-                List.of("Taille des equipes", "", "<yellow>Clic <gray>: solo, duo, trio")));
+                List.of("Format des equipes creees au lancement", "pour ceux qui n'ont pas choisi", "", "<yellow>Clic <gray>: solitaire, duo, trio")));
+    }
+
+    // ------------------------------------------------------------------ le menu des equipes
+
+    private static final class TeamMenu implements InventoryHolder {
+        Inventory inv;
+        Player owner;
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Places des boutons du haut (jouer seul, creer un duo, creer un trio, quitter) et de la premiere equipe. */
+    private static final int SOLO_PLACE = 1, DUO_PLACE = 3, TRIO_PLACE = 5, LEAVE_PLACE = 7, TEAMS_FIRST = 18, TEAM_MENU_SIZE = 54;
+
+    private static final Map<String, Material> WOOL = Map.ofEntries(
+            Map.entry("red", Material.RED_WOOL), Map.entry("blue", Material.BLUE_WOOL), Map.entry("green", Material.LIME_WOOL),
+            Map.entry("yellow", Material.YELLOW_WOOL), Map.entry("aqua", Material.LIGHT_BLUE_WOOL), Map.entry("light_purple", Material.MAGENTA_WOOL),
+            Map.entry("gold", Material.ORANGE_WOOL), Map.entry("dark_green", Material.GREEN_WOOL), Map.entry("dark_aqua", Material.CYAN_WOOL),
+            Map.entry("dark_purple", Material.PURPLE_WOOL), Map.entry("dark_red", Material.RED_TERRACOTTA), Map.entry("dark_blue", Material.BLUE_TERRACOTTA),
+            Map.entry("white", Material.WHITE_WOOL), Map.entry("gray", Material.LIGHT_GRAY_WOOL));
+
+    private void openTeams(Player p) {
+        TeamMenu menu = new TeamMenu();
+        menu.owner = p;
+        menu.inv = Bukkit.createInventory(menu, TEAM_MENU_SIZE, Msg.mm("<dark_gray>Choisir son equipe"));
+        fill(menu);
+        p.openInventory(menu.inv);
+        p.playSound(p.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.3f);
+    }
+
+    /** Les equipes ont change : les menus ouverts se redessinent. */
+    public void refreshTeamMenus() {
+        for (Player o : Bukkit.getOnlinePlayers()) {
+            if (o.getOpenInventory().getTopInventory().getHolder() instanceof TeamMenu menu) fill(menu);
+        }
+    }
+
+    /** Les equipes du lobby, dans l'ordre ou le menu les montre. */
+    private List<com.kiokouwhite.crossfight.team.Team> shownTeams() {
+        List<com.kiokouwhite.crossfight.team.Team> out = new ArrayList<>();
+        for (var t : plugin.teams().all()) if (t.size() > 0 && out.size() < TEAM_MENU_SIZE - TEAMS_FIRST) out.add(t);
+        return out;
+    }
+
+    private void fill(TeamMenu menu) {
+        Player p = menu.owner;
+        var mine = plugin.teams().teamOf(p);
+        menu.inv.clear();
+        ItemStack pane = Items.of(Material.GRAY_STAINED_GLASS_PANE, "<gray> ", null);
+        for (int i = 0; i < TEAMS_FIRST; i++) menu.inv.setItem(i, pane);
+        menu.inv.setItem(SOLO_PLACE, create(TeamSize.SOLO, "<gold><bold>Jouer en solitaire", "Seul contre tous, avec un Personnage Solitaire", "jouer seul"));
+        menu.inv.setItem(DUO_PLACE, create(TeamSize.DUO, "<gold><bold>Creer un duo", "Une equipe de deux, avec une licence de Groupe Duo", "creer un duo"));
+        menu.inv.setItem(TRIO_PLACE, create(TeamSize.TRIO, "<gold><bold>Creer une equipe de trois", "Une equipe de trois, avec une licence d'Equipe de Trois", "creer une equipe de trois"));
+        menu.inv.setItem(LEAVE_PLACE, mine == null ? Items.of(Material.LIGHT_GRAY_DYE, "<gray>Aucune equipe", List.of("Sans equipe au lancement, tu es place", "dans une equipe au hasard (" + plugin.teams().teamSize().label() + ")"))
+                : Items.of(Material.BARRIER, "<red><bold>Quitter mon equipe", List.of(mine.name() + " (" + mine.kind().shortLabel() + ")", "", "<yellow>Clic <gray>: quitter")));
+        int place = TEAMS_FIRST;
+        for (var t : shownTeams()) {
+            List<String> lore = new ArrayList<>();
+            for (var u : t.members()) {
+                var cf = plugin.players().get(u);
+                lore.add("<white>- " + (cf == null ? "?" : cf.name()));
+            }
+            for (int i = t.size(); i < t.capacity(); i++) lore.add("<dark_gray>- place libre");
+            lore.add("");
+            lore.add(t == mine ? "<green>Ton equipe" : t.isFull() ? "<red>Complete" : "<yellow>Clic <gray>: rejoindre");
+            ItemStack it = Items.of(WOOL.getOrDefault(t.color(), Material.WHITE_WOOL), t.coloredName() + " <gray>" + t.kind().shortLabel() + " <white>" + t.size() + "/" + t.capacity(), lore);
+            it.setAmount(Math.max(1, t.size()));
+            if (t == mine) it.editMeta(m -> m.setEnchantmentGlintOverride(true));
+            menu.inv.setItem(place++, it);
+        }
+    }
+
+    private ItemStack create(TeamSize kind, String name, String what, String action) {
+        ItemStack it = Items.of(Material.PLAYER_HEAD, name, List.of(what, "", "<yellow>Clic <gray>: " + action));
+        it.setAmount(kind.size());
+        return it;
+    }
+
+    @EventHandler
+    public void onTeamClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof TeamMenu menu) || !(e.getWhoClicked() instanceof Player p)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != menu.inv) return;
+        if (!plugin.game().isLobby()) { p.closeInventory(); return; }
+        var teams = plugin.teams();
+        var mine = teams.teamOf(p);
+        int slot = e.getRawSlot();
+        TeamSize kind = slot == SOLO_PLACE ? TeamSize.SOLO : slot == DUO_PLACE ? TeamSize.DUO : slot == TRIO_PLACE ? TeamSize.TRIO : null;
+        if (kind != null) {
+            // Deja seul dans une equipe de ce format : rien a refaire.
+            if (mine != null && mine.kind() == kind && mine.size() == 1) { deny(p); return; }
+            leaveTeam(p, mine);
+            var t = teams.create(kind);
+            teams.join(p, t);
+            Msg.send(p, kind == TeamSize.SOLO ? "<green>Tu joues en solitaire <gray>(" + t.coloredName() + "<gray>)."
+                    : "<green>Tu as cree " + t.coloredName() + " <gray>(" + kind.shortLabel() + ")<green> : les autres la rejoignent depuis ce menu.");
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
+        } else if (slot == LEAVE_PLACE) {
+            if (mine == null) { deny(p); return; }
+            leaveTeam(p, mine);
+            Msg.send(p, "<yellow>Tu as quitte ton equipe.");
+            p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 0.9f);
+        } else if (slot >= TEAMS_FIRST) {
+            var shown = shownTeams();
+            int i = slot - TEAMS_FIRST;
+            if (i >= shown.size()) return;
+            var t = shown.get(i);
+            if (t == mine || t.isFull()) { deny(p); return; }
+            leaveTeam(p, mine);
+            teams.join(p, t);
+            for (Player member : t.onlineMembers()) Msg.send(member, member == p ? "<green>Tu as rejoint " + t.coloredName() + "<green>." : "<green>" + p.getName() + " a rejoint ton equipe.");
+            p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
+        } else return;
+        refreshTeamMenus();
+    }
+
+    private void leaveTeam(Player p, com.kiokouwhite.crossfight.team.Team mine) {
+        if (mine == null) return;
+        plugin.teams().leave(p);
+        for (Player member : mine.onlineMembers()) Msg.send(member, "<yellow>" + p.getName() + " a quitte ton equipe.");
+        plugin.teams().prune();
+    }
+
+    private void deny(Player p) {
+        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.6f, 0.7f);
     }
 
     // ------------------------------------------------------------------ le menu des scenarios
@@ -299,7 +434,7 @@ public final class HostTools implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
-        if (e.getInventory().getHolder() instanceof ScenarioMenu) return;
+        if (e.getInventory().getHolder() instanceof ScenarioMenu || e.getInventory().getHolder() instanceof TeamMenu) return;
         if (!(e.getInventory().getHolder() instanceof Menu menu)) {
             // Dans son propre inventaire : les outils restent a leur place.
             if (toolOf(e.getCurrentItem()) != null || toolOf(e.getCursor()) != null
@@ -314,8 +449,7 @@ public final class HostTools implements Listener {
             if (!plugin.game().isLobby()) return;
             TeamSize next = TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length];
             plugin.teams().setTeamSize(next);
-            plugin.teams().clear();
-            Msg.broadcast("<yellow>Mode : <gold>" + next.label());
+            Msg.broadcast("<yellow>Equipes par defaut : <gold>" + next.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
             refreshAll();
         } else {
             Rules.Rule rule = null;

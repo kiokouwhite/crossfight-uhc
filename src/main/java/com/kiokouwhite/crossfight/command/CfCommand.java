@@ -113,7 +113,7 @@ public final class CfCommand implements TabExecutor {
                         var rules = plugin.game().rules();
                         if (args.length < 2) {
                             Msg.raw(sender, "<gold><bold>Regles de la partie</bold> <gray>(/cf regle <nom> <valeur>)");
-                            Msg.raw(sender, "<yellow>equipes <white>" + plugin.teams().teamSize().label() + " <dark_gray>- <gray>Taille des equipes (/cf setsize)");
+                            Msg.raw(sender, "<yellow>equipes <white>" + plugin.teams().teamSize().label() + " <dark_gray>- <gray>Format des equipes creees au lancement pour ceux qui n'ont rien choisi (/cf setsize)");
                             for (var r : com.kiokouwhite.crossfight.game.Rules.all()) Msg.raw(sender, "<yellow>" + r.name() + " <white>" + rules.shown(r) + " <dark_gray>- <gray>" + r.help());
                             return true;
                         }
@@ -174,8 +174,8 @@ public final class CfCommand implements TabExecutor {
                         if (size == null) { Msg.send(sender, "<red>Usage : /cf setsize <SOLO|DUO|TRIO>"); return true; }
                         if (!plugin.game().isLobby()) { Msg.send(sender, "<red>Impossible en cours de partie."); return true; }
                         plugin.teams().setTeamSize(size);
-                        plugin.teams().clear();
-                        Msg.broadcast("<yellow>Mode : <gold>" + size.label());
+                        Msg.broadcast("<yellow>Equipes par defaut : <gold>" + size.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
+                        plugin.hostTools().refreshAll();
                     }
                     case "setborder" -> {
                         int radius;
@@ -574,7 +574,7 @@ public final class CfCommand implements TabExecutor {
             case "list" -> {
                 if (plugin.teams().all().isEmpty()) { Msg.send(s, "<gray>Aucune equipe. Elles seront creees au lancement."); return; }
                 for (Team t : plugin.teams().all()) {
-                    StringBuilder sb = new StringBuilder(t.coloredName() + " <gray>(" + t.size() + "/" + plugin.teams().teamSize().size() + ") : ");
+                    StringBuilder sb = new StringBuilder(t.coloredName() + " <gray>(" + t.kind().shortLabel() + " " + t.size() + "/" + t.capacity() + ") : ");
                     for (var u : t.members()) {
                         CfPlayer cf = plugin.players().get(u);
                         sb.append("<white>").append(cf == null ? u.toString().substring(0, 6) : cf.name()).append(" ");
@@ -586,9 +586,16 @@ public final class CfCommand implements TabExecutor {
             case "create" -> {
                 if (!(s instanceof Player p)) return;
                 if (!plugin.game().isLobby()) { Msg.send(p, "<red>Impossible en cours de partie."); return; }
-                Team t = plugin.teams().create();
+                // /cf team create [solo|duo|trio] : sans format, celui par defaut.
+                TeamSize kind = args.length > 2 ? TeamSize.parse(args[2]) : plugin.teams().teamSize();
+                if (kind == null) { Msg.send(p, "<red>Usage : /cf team create [solo|duo|trio]"); return; }
+                plugin.teams().leave(p);
+                plugin.teams().prune();
+                Team t = plugin.teams().create(kind);
                 plugin.teams().join(p, t);
-                Msg.send(p, "<green>Tu as cree " + t.coloredName() + "<green>. Les autres rejoignent avec <white>/cf team join " + t.id());
+                Msg.send(p, kind == TeamSize.SOLO ? "<green>Tu joues en solitaire <gray>(" + t.coloredName() + "<gray>)."
+                        : "<green>Tu as cree " + t.coloredName() + " <gray>(" + kind.shortLabel() + ")<green>. Les autres rejoignent avec l'objet <white>Choisir son equipe</white> ou <white>/cf team join " + t.id());
+                plugin.hostTools().refreshTeamMenus();
             }
             case "join" -> {
                 if (!(s instanceof Player p)) return;
@@ -596,14 +603,17 @@ public final class CfCommand implements TabExecutor {
                 Team t = null;
                 try { t = plugin.teams().get(Integer.parseInt(args[2])); } catch (Exception ignored) { }
                 if (t == null) { Msg.send(p, "<red>Equipe introuvable."); return; }
-                if (plugin.teams().join(p, t)) Msg.send(p, "<green>Tu as rejoint " + t.coloredName());
+                if (plugin.teams().join(p, t)) { plugin.teams().prune(); Msg.send(p, "<green>Tu as rejoint " + t.coloredName()); }
                 else Msg.send(p, "<red>Cette equipe est pleine.");
+                plugin.hostTools().refreshTeamMenus();
             }
             case "leave" -> {
                 if (!(s instanceof Player p)) return;
                 if (!plugin.game().isLobby()) { Msg.send(p, "<red>Impossible en cours de partie."); return; }
                 plugin.teams().leave(p);
+                plugin.teams().prune();
                 Msg.send(p, "<yellow>Tu as quitte ton equipe.");
+                plugin.hostTools().refreshTeamMenus();
             }
             case "add" -> {
                 if (!s.hasPermission("crossfight.admin") && !isHost(s)) { Msg.send(s, "<red>Permission refusee."); return; }
@@ -615,7 +625,7 @@ public final class CfCommand implements TabExecutor {
                 if (plugin.teams().join(target, t)) Msg.send(s, "<green>" + target.getName() + " ajoute a " + t.coloredName());
                 else Msg.send(s, "<red>Equipe pleine.");
             }
-            default -> Msg.send(s, "<red>Usage : /cf team list|create|join <id>|leave");
+            default -> Msg.send(s, "<red>Usage : /cf team list|create [solo|duo|trio]|join <id>|leave");
         }
     }
 

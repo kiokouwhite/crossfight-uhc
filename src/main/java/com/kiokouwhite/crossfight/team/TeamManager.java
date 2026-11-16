@@ -15,7 +15,9 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Gere les equipes, leur remplissage et l'attribution des licences.
+ * Gere les equipes, leur remplissage et l'attribution des licences. Chaque equipe a son format (solitaire, duo,
+ * trio) : les joueurs choisissent le leur dans le lobby ; "teamSize" est le format par defaut, celui des equipes
+ * creees au lancement pour les joueurs qui n'ont rien choisi.
  */
 public final class TeamManager {
 
@@ -43,8 +45,10 @@ public final class TeamManager {
         plugin.saveConfig();
     }
 
-    public Team create() {
-        Team t = new Team(nextId, COLORS[(nextId - 1) % COLORS.length]);
+    public Team create() { return create(teamSize); }
+
+    public Team create(TeamSize kind) {
+        Team t = new Team(nextId, COLORS[(nextId - 1) % COLORS.length], kind);
         teams.put(nextId, t);
         nextId++;
         return t;
@@ -74,7 +78,7 @@ public final class TeamManager {
 
     /** Ajoute un joueur a une equipe, en le retirant de son ancienne. Refuse si l'equipe est pleine. */
     public boolean join(Player p, Team team) {
-        if (team.size() >= teamSize.size() && !team.contains(p.getUniqueId())) return false;
+        if (team.isFull() && !team.contains(p.getUniqueId())) return false;
         Team old = teamOf(p);
         if (old != null) old.remove(p.getUniqueId());
         team.add(p.getUniqueId());
@@ -97,6 +101,11 @@ public final class TeamManager {
         plugin.players().get(p).setTeam(null);
     }
 
+    /** Dans le lobby : les equipes que tout le monde a quittees disparaissent. */
+    public void prune() {
+        teams.values().removeIf(t -> t.size() == 0);
+    }
+
     public void clear() {
         teams.clear();
         nextId = 1;
@@ -113,7 +122,7 @@ public final class TeamManager {
         for (Player p : free) {
             Team target = null;
             for (Team t : teams.values()) {
-                if (t.size() < teamSize.size()) { target = t; break; }
+                if (!t.isFull()) { target = t; break; }
             }
             if (target == null) target = create();
             join(p, target);
@@ -124,15 +133,16 @@ public final class TeamManager {
 
     /** Tire une licence au sort pour chaque equipe, sans doublon tant que c'est possible. */
     public void assignLicences() {
-        List<Licence> pool = new ArrayList<>(plugin.characters().licencesFor(teamSize));
-        if (pool.isEmpty()) {
-            plugin.getLogger().warning("Aucune licence disponible pour la taille " + teamSize);
-            return;
-        }
-        List<Licence> bag = new ArrayList<>();
+        // Un sac de licences par format : une equipe tire la sienne parmi celles de son format.
+        Map<TeamSize, List<Licence>> bags = new java.util.EnumMap<>(TeamSize.class);
         for (Team t : teams.values()) {
+            List<Licence> bag = bags.computeIfAbsent(t.kind(), k -> new ArrayList<>());
             if (bag.isEmpty()) {
-                bag.addAll(pool);
+                bag.addAll(plugin.characters().licencesFor(t.kind()));
+                if (bag.isEmpty()) {
+                    plugin.getLogger().warning("Aucune licence disponible pour le format " + t.kind());
+                    continue;
+                }
                 Collections.shuffle(bag, ThreadLocalRandom.current());
             }
             t.setLicence(bag.remove(bag.size() - 1));

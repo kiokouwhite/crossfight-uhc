@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Une equipe : ses membres, sa couleur et la licence qui lui a ete attribuee.
+ * Une equipe : ses membres, sa couleur, son format (solitaire, duo ou trio : chaque equipe a le sien) et la
+ * licence qui lui a ete attribuee.
  */
 public final class Team {
 
@@ -20,10 +21,18 @@ public final class Team {
     private Licence licence;
     private boolean eliminated;
 
-    public Team(int id, String color) {
+    private final TeamSize kind;
+
+    public Team(int id, String color, TeamSize kind) {
         this.id = id;
         this.color = color;
+        this.kind = kind;
     }
+
+    /** Son format : il fixe le nombre de places et la famille de licences dans laquelle la sienne est tiree. */
+    public TeamSize kind() { return kind; }
+    public int capacity() { return kind.size(); }
+    public boolean isFull() { return members.size() >= kind.size(); }
 
     public int id() { return id; }
     public String color() { return color; }
