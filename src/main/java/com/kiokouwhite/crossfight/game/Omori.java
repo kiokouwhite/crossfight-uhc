@@ -73,6 +73,8 @@ public final class Omori implements Listener {
     private BukkitTask loop;
     private int phase, hits, turn, wait;
     private boolean busy;
+    /** Vrai pendant une attaque (de son declenchement a sa fin, annonce non comprise) : Omori est alors intouchable. */
+    private boolean attacking;
     private final Map<UUID, Long> lastHit = new HashMap<>(), asked = new HashMap<>();
 
     public Omori(CrossfightPlugin plugin) { this.plugin = plugin; }
@@ -220,6 +222,7 @@ public final class Omori implements Listener {
         turn = 0;
         wait = 20;
         busy = false;
+        attacking = false;
         bar = Bukkit.createBossBar("OMORI", BarColor.WHITE, BarStyle.SEGMENTED_10);
         updateBar();
     }
@@ -232,6 +235,7 @@ public final class Omori implements Listener {
         World w = space();
         Location c = ArenaWorlds.center(w);
         busy = false;
+        attacking = false;
         wait = 60;
         boss = w.spawn(c, Zombie.class, z -> {
             z.setAdult();
@@ -273,7 +277,7 @@ public final class Omori implements Listener {
 
     private void updateBar() {
         if (bar == null) return;
-        bar.setTitle("OMORI - phase " + (phase + 1) + "/" + HITS.length + " - " + (HITS[phase] - hits) + " coups");
+        bar.setTitle("OMORI - phase " + (phase + 1) + "/" + HITS.length + " - " + (HITS[phase] - hits) + " coups" + (attacking ? " - intouchable" : ""));
         bar.setProgress(Math.max(0, Math.min(1, 1 - hits / (double) HITS[phase])));
         bar.setColor(phase == HITS.length - 1 ? BarColor.RED : BarColor.WHITE);
     }
@@ -337,6 +341,9 @@ public final class Omori implements Listener {
                 nameBar.setProgress(Math.max(0, 1 - t / (double) WARNING));
                 if (t < WARNING) return;
                 cancel();
+                // L'attaque part : jusqu'a sa fin, aucun coup ne compte.
+                attacking = true;
+                updateBar();
                 attack(name);
             }
         }.runTaskTimer(plugin, 2L, 2L);
@@ -417,6 +424,13 @@ public final class Omori implements Listener {
         long now = System.currentTimeMillis();
         if (now - lastHit.getOrDefault(p.getUniqueId(), 0L) < 250) return;
         lastHit.put(p.getUniqueId(), now);
+        if (attacking) {
+            // Pendant ses attaques, Omori est intouchable : le coup glisse sur lui et ne compte pas.
+            boss.getWorld().playSound(boss.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.5f, 1.7f);
+            boss.getWorld().spawnParticle(Particle.DUST, boss.getLocation().add(0, 1.1, 0), 6, 0.3, 0.5, 0.3, 0, BLADE);
+            Msg.actionBar(p, "<gray>Omori est intouchable pendant ses attaques.");
+            return;
+        }
         hit(1);
     }
 
@@ -453,8 +467,10 @@ public final class Omori implements Listener {
     /** Apres une attaque, cinq secondes avant la suivante. */
     private void rest() {
         busy = false;
+        attacking = false;
         wait = 100;
         if (nameBar != null) nameBar.removeAll();
+        updateBar();
     }
 
     private void hurt(Player p, double hearts) {
@@ -799,7 +815,8 @@ public final class Omori implements Listener {
     /**
      * "Je ne peux pas le faire" : Omori reste immobile et fixe les joueurs. Pendant 10 secondes ils ne peuvent
      * plus bouger et leur regard est ramene de force sur lui ; des meches de cheveux noirs leur tombent devant les
-     * yeux, de plus en plus longues, jusqu'a couvrir l'ecran (chacun ne voit que les siennes).
+     * yeux, de plus en plus longues, jusqu'a couvrir l'ecran (chacun ne voit que les siennes). Chaque seconde, ils
+     * perdent un coeur (sans recul : ils restent cloues sur place).
      */
     private void stare() {
         busy = true;
@@ -814,7 +831,7 @@ public final class Omori implements Listener {
         for (Player p : held) {
             Effects.root(p, 200);
             Effects.say(p, "<dark_gray>Je ne peux pas le faire...");
-            p.sendMessage(Msg.prefixed("<dark_gray>Omori te fixe : immobilise 10 secondes."));
+            p.sendMessage(Msg.prefixed("<dark_gray>Omori te fixe : immobilise 10 secondes, un coeur perdu par seconde."));
         }
         new BukkitRunnable() {
             int t = 0;
@@ -829,6 +846,11 @@ public final class Omori implements Listener {
                 if (t % 20 == 1) w.playSound(eyes, Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.5f);
                 for (Player p : held) {
                     if (!present(p)) continue;
+                    // Un coeur par seconde, dix fois ; sans attaquant, donc sans recul.
+                    if (t % 20 == 0) {
+                        Effects.damage(p, 2, null);
+                        p.spawnParticle(Particle.DUST, p.getLocation().add(0, 1, 0), 10, 0.3, 0.5, 0.3, 0, INK);
+                    }
                     // Le regard est ramene sur lui, a chaque tick.
                     p.lookAt(eyes.getX(), eyes.getY(), eyes.getZ(), io.papermc.paper.entity.LookAnchor.EYES);
                     if (t % 2 != 0) continue;
@@ -854,7 +876,7 @@ public final class Omori implements Listener {
 
     private void attack(String name) {
         Player target = nearest();
-        if (target == null || boss == null) return;
+        if (target == null || boss == null) { rest(); return; }
         World w = boss.getWorld();
         switch (name) {
             // Attaque basique : il regarde le plus proche, lui fonce dessus et le tranche.
