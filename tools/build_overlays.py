@@ -14,8 +14,8 @@ citrouille). Le plugin glisse a chaque joueur, pour lui seul, un objet invisible
 tout l'ecran et ne dessine que son bord : a gauche les icones des bonus, a droite celles des malus (un ou
 deux effets par cote), sans bande ni trait de couleur.
 
-Les icones ne sont pas fixes : nues (sans pastille), petites et nombreuses, elles montent sur quatre files le long du bord, sortent
-du bas de l'ecran et s'effacent a mi-hauteur. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
+Les icones ne sont pas fixes : nues (sans pastille), petites et nombreuses, elles sortent du bas de l'ecran et montent en
+files de moins en moins hautes en s'eloignant du bord : un triangle rectangle dans le coin, dense en bas. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
 FRAMES images que le plugin fait defiler (une par tick).
 
 Ecrit    resourcepack/assets/crossfight/textures/overlay/bonus_<a>[_<b>]_<image>.png   (et .png.mcmeta : lissage)
@@ -37,10 +37,10 @@ BADGE_R = 25
 SLOTS_Y = (392, 318)          # premiere icone, puis la seconde au-dessus
 # L'animation : les icones montent le long du bord en file, apparaissent en bas et s'effacent en haut.
 FRAMES = 16                   # images par boucle (le plugin en change a chaque tick : 20 par seconde, sans saccade)
-COPIES = 24                   # icones de chaque effet a l'ecran en meme temps (un multiple de STEP : une file par rang)
-STEP = 4                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut ; autant de files
-RISE = (H + 34, 320)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee (mi-hauteur)
-LANES = (22, 54, 86, 118)         # distance au bord de chaque file
+RISE = H + 34                 # hauteur de depart : sous le bas de l'ecran, elles en sortent
+GAP = 40                      # ecart entre deux icones d'une file
+LANE_ICONS = (8, 7, 6, 5, 4, 3, 2, 1)  # icones par file, du bord vers l'interieur : une file monte de GAP par icone
+LANE_X, LANE_GAP = 20, 27     # distance au bord de la premiere file, puis entre deux files
 SIZE = (512, 288)             # taille des images ecrites (dessinees en 1024 x 576 puis reduites)
 EDGE_X = 62                   # centre des icones, depuis le bord
 
@@ -230,25 +230,24 @@ def arrow(up: bool, color, size: int) -> Image.Image:
 def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     colors = [dict(palette)[e] for e in effects]
-    # Les icones en file montante : chaque effet a COPIES icones, espacees regulierement ; d'une image a la
-    # suivante elles montent d'un cran, et au bout de la boucle chacune a pris la place de la suivante.
+    # Un triangle rectangle dans le coin du bas : la file du bord monte le plus haut, les suivantes de moins en
+    # moins, si bien que les icones sont denses en bas et rares en haut. Chaque file a ses icones, espacees de
+    # GAP ; d'une image a la suivante elles montent, et au bout de la boucle chacune a pris la place de celle du
+    # dessus (de la meme file, donc du meme effet : avec deux effets, les files alternent).
     stream = []
-    for j in range(COPIES):
-        # Avec deux effets, chacun a ses files (une sur deux) : a la fin de la boucle, une icone prend la place de
-        # celle qui est STEP rangs plus haut, qui doit donc etre du meme effet, sinon les icones changent d'effet
-        # d'un coup. Il y a toujours COPIES icones en tout.
-        n = (j % STEP) % len(effects)
-        t = (j / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
-        stream.append((t, j % STEP, effects[n], colors[n]))
-    for t, lane, e, color in sorted(stream):
+    for lane, count in enumerate(LANE_ICONS):
+        n = lane % len(effects)
+        for i in range(count):
+            t = ((i + lane * 0.37) / count + frame / (FRAMES * count)) % 1.0
+            stream.append((t, lane, count, effects[n], colors[n]))
+    for t, lane, count, e, color in sorted(stream):
         fade = min(1.0, (1 - t) / 0.42)
         size = int(36 * (1.05 - 0.3 * t))
         b = sprite(e, color, size)
         b.putalpha(b.getchannel("A").point(lambda v: int(v * fade)))
-        # Des files qui ondulent, de plus en plus loin du bord.
-        off = LANES[lane % len(LANES)] + 7 * math.sin(t * math.pi * 2 + lane * 2.1)
+        off = LANE_X + LANE_GAP * lane + 6 * math.sin(t * math.pi * 2 + lane * 2.1)
         cx = off if left else W - off
-        cy = RISE[0] + (RISE[1] - RISE[0]) * t
+        cy = RISE - GAP * count * t
         img.alpha_composite(b, (round(cx - b.width / 2), round(cy - b.height / 2)))
     return img
 
