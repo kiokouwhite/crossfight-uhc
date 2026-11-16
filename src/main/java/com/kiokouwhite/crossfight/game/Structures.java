@@ -111,6 +111,7 @@ public final class Structures implements Listener {
     public void abort() {
         run++;
         working = false;
+        skipped.clear();
     }
 
     /** Le nom d'un lieu tel qu'on l'annonce : son titre, ou "beacon_academy" -> "Beacon academy". */
@@ -133,14 +134,50 @@ public final class Structures implements Listener {
     /** Les lieux disponibles sur ce serveur (un dossier et sa fiche chacun). */
     public List<Sheet> sheets() {
         List<Sheet> out = new ArrayList<>();
+        Set<String> names = new java.util.TreeSet<>();
         File[] dirs = folder().listFiles(File::isDirectory);
         if (dirs == null) return out;
-        java.util.Arrays.sort(dirs);
         for (File d : dirs) {
-            Sheet s = sheet(d.getName());
+            if (holds(d)) { names.add(d.getName()); continue; }
+            File[] inner = d.listFiles(File::isDirectory);
+            if (inner != null) for (File e : inner) if (holds(e)) names.add(e.getName());
+        }
+        for (String name : names) {
+            Sheet s = sheet(name);
             if (s != null) out.add(s);
         }
         return out;
+    }
+
+    /**
+     * Le dossier d'un lieu : structures/&lt;nom&gt;. Une archive decompressee "dans un dossier a son nom" laisse souvent
+     * un dossier de trop (structures/jouki/jouki/...) : un lieu range un cran plus bas est trouve aussi.
+     */
+    public File home(String name) {
+        File direct = new File(folder(), name);
+        if (holds(direct)) return direct;
+        File[] dirs = folder().listFiles(File::isDirectory);
+        if (dirs != null) for (File d : dirs) {
+            File inner = new File(d, name);
+            if (holds(inner)) return inner;
+        }
+        return direct;
+    }
+
+    /** Vrai si ce dossier est celui d'un lieu : il a sa fiche, ou au moins son monde. */
+    private static boolean holds(File dir) {
+        return new File(dir, "structure.yml").isFile() || new File(dir, "monde/level.dat").isFile();
+    }
+
+    /** Pour un admin : pourquoi cette map n'a aucun lieu, et quoi faire (en MiniMessage). Null si elle en a. */
+    public String advice(World w) {
+        if (!placed(w).isEmpty()) return null;
+        if (!enabled()) return "les lieux sont desactives (<white>structures.enabled<gray> dans config.yml).";
+        int count = sheets().size();
+        if (count == 0) return "aucun lieu n'est installe sur ce serveur. Ils ne sont pas dans le plugin : decompresse leurs archives dans "
+                + "<white>plugins/CrossfightUHC/structures/<gray> (un dossier par lieu, avec <white>structure.yml<gray> et <white>monde/<gray>), puis <white>/cf structure disperser<gray>.";
+        if (working) return "la pose des lieux commence : ils apparaissent sur la carte un par un.";
+        return count + " lieu(x) installe(s), aucun pose sur cette map : <white>/cf structure disperser<gray> les pose (<white>/cf structure liste<gray> pour le detail).";
     }
 
     /**
@@ -153,7 +190,7 @@ public final class Structures implements Listener {
         long now = System.currentTimeMillis();
         Object[] known = read.get(name);
         if (known != null && now - (long) known[2] < 2000) return (Sheet) known[0];
-        File index = new File(new File(folder(), name), "structure.yml");
+        File index = new File(home(name), "structure.yml");
         long stamp = name.matches("[a-z0-9_]+") && index.isFile() ? index.lastModified() : -1;
         if (known != null && (long) known[1] == stamp) { known[2] = now; return (Sheet) known[0]; }
         Sheet s = stamp < 0 ? null : load(name);
@@ -168,7 +205,7 @@ public final class Structures implements Listener {
     }
 
     private Sheet load(String name) {
-        File dir = new File(folder(), name);
+        File dir = home(name);
         File index = new File(dir, "structure.yml");
         YamlConfiguration y = YamlConfiguration.loadConfiguration(index);
         List<Integer> b = y.getIntegerList("boite");
@@ -242,7 +279,7 @@ public final class Structures implements Listener {
 
     /** Ecrit (ou reecrit) la fiche d'un lieu dont le monde est deja dans son dossier. */
     public boolean define(String name, int x1, int y1, int z1, int x2, int y2, int z2, int ground, int heartX, int heartZ, boolean carve, String title) {
-        File dir = new File(folder(), name);
+        File dir = home(name);
         if (!name.matches("[a-z0-9_]+") || !new File(dir, "monde/level.dat").isFile()) return false;
         File index = new File(dir, "structure.yml");
         YamlConfiguration y = YamlConfiguration.loadConfiguration(index);
@@ -313,16 +350,15 @@ public final class Structures implements Listener {
     /**
      * Pose un lieu, recadre a {@code max} blocs de cote au plus, son coin (x, z) aligne sur les chunks, son niveau du
      * sol a la hauteur mediane du terrain. Reprend la ou elle s'etait arretee si la pose avait ete interrompue.
-     * {@code done} est appele a la fin.
+     * {@code done} est appele a la fin. Rend faux si la pose n'a pas pu commencer ({@code done} n'est alors pas appele).
      */
-    public void place(CommandSender to, Sheet s, World w, int atX, int atZ, int max, Runnable done) {
-        if (working) { Msg.send(to, "<red>Une pose est deja en cours."); return; }
+    public boolean place(CommandSender to, Sheet s, World w, int atX, int atZ, int max, Runnable done) {
+        if (working) { Msg.send(to, "<red>Une pose est deja en cours."); return false; }
         final World from = source(s);
         if (from == null) {
             String no = unusable(s);
             Msg.send(to, "<red>Le monde de " + s.name() + " n'a pas pu etre charge" + (no != null ? " : " + no : "") + ".");
-            if (done != null) done.run();
-            return;
+            return false;
         }
         working = true;
         final int mine = run;
@@ -331,7 +367,7 @@ public final class Structures implements Listener {
         List<Integer> saved = plugin.getConfig().getIntegerList(key(w, s.name()) + ".decoupe");
         if (before != null && before.x() == x0 && before.z() == z0 && saved.size() == 2) {
             paste(to, s, from, w, before, saved.get(0), saved.get(1), plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), done);
-            return;
+            return true;
         }
         final int[] cut = cut(s, max);
         // Le niveau du terrain : la mediane de vingt-cinq hauteurs prises sous le lieu, chunks charges sans attendre.
@@ -356,6 +392,7 @@ public final class Structures implements Listener {
             plugin.saveConfig();
             paste(to, s, from, w, box, cut[0], cut[1], 0, done);
         }));
+        return true;
     }
 
     /**
@@ -597,12 +634,28 @@ public final class Structures implements Listener {
         for (Sheet s : all) {
             Placed before = find(w, s.name());
             if (before != null && plugin.getConfig().getBoolean(key(w, s.name()) + ".finie", false)) continue;
+            // Un lieu dont le monde ne peut pas servir est passe, et dit une fois : les autres sont poses.
+            if (skipped.contains(s.name())) continue;
+            String no = unusable(s);
+            if (no != null) {
+                skipped.add(s.name());
+                plugin.getLogger().warning("Lieu " + s.name() + " : il n'est pas pose, son monde ne peut pas servir (" + no + ").");
+                continue;
+            }
             int[] cut = cut(s, max);
             int[] at = before != null ? new int[]{before.x(), before.z()} : s.name().equals(middle) ? new int[]{-cut[2] / 2, -cut[3] / 2} : spot(w, s.name(), cut[2], cut[3]);
             if (at == null) { plugin.getLogger().warning("Lieu " + s.name() + " : aucun emplacement libre sur cette map (" + cut[2] + " x " + cut[3] + " blocs)."); continue; }
-            place(Bukkit.getConsoleSender(), s, w, at[0], at[1], max, () -> scatter(w));
-            return;
+            if (place(Bukkit.getConsoleSender(), s, w, at[0], at[1], max, () -> scatter(w))) return;
+            skipped.add(s.name());
         }
+    }
+
+    /** Les lieux qui n'ont pas pu etre poses depuis le demarrage : {@link #scatter} ne les retente pas a chaque passage. */
+    private final Set<String> skipped = new HashSet<>();
+
+    /** On retentera tout au prochain {@link #scatter} (un dossier a ete corrige, la map a change). */
+    public void retry() {
+        skipped.clear();
     }
 
     /** Un emplacement libre pour un lieu de cette taille (son coin, aligne sur les chunks), ou null. */

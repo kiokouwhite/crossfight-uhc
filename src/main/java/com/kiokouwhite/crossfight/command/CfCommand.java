@@ -142,8 +142,11 @@ public final class CfCommand implements TabExecutor {
                                 var sheets = st.sheets();
                                 int share = st.share(plugin.game().world());
                                 Msg.send(sender, "<gold>" + sheets.size() + " lieu(x) dans plugins/CrossfightUHC/structures/ <gray>; avec cette bordure, chacun occupe au plus <white>" + share + " x " + share + "</white> blocs" + (st.working() ? " <yellow>(une pose est en cours)" : ""));
+                                String advice = st.advice(plugin.game().world());
+                                if (advice != null) Msg.send(sender, "<yellow>Cette map n'a aucun lieu : <gray>" + advice);
                                 for (var s : sheets) {
-                                    String where = "<gray>pas encore pose";
+                                    String no = st.unusable(s);
+                                    String where = no != null ? "<red>monde inutilisable, " + no : "<gray>pas encore pose";
                                     for (var p : st.placed(plugin.game().world())) if (p.name().equals(s.name())) where = "<green>en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2) + " (" + p.sx() + " x " + p.sz() + ")";
                                     Msg.send(sender, "<white>" + s.name() + " <gray>" + s.sx() + " x " + s.sy() + " x " + s.sz() + (s.author().isEmpty() ? "" : ", par " + s.author()) + " : " + where);
                                 }
@@ -153,7 +156,7 @@ public final class CfCommand implements TabExecutor {
                                 // Charge le monde d'origine d'un lieu (structures/<nom>/monde) et y emmene, en spectateur : pour reperer sa boite.
                                 if (!(sender instanceof Player sp) || args.length < 3) { Msg.send(sender, "<yellow>/cf structure monde <nom>"); return true; }
                                 String name = args[2].toLowerCase();
-                                java.io.File dir = new java.io.File(plugin.getDataFolder(), "structures/" + name + "/monde");
+                                java.io.File dir = new java.io.File(st.home(name), "monde");
                                 if (!name.matches("[a-z0-9_]+") || !new java.io.File(dir, "level.dat").isFile()) { Msg.send(sender, "<red>Aucun monde dans plugins/CrossfightUHC/structures/" + name + "/monde."); return true; }
                                 String no = st.refusal(dir);
                                 if (no != null) { Msg.send(sender, "<red>Ce monde n'est pas charge : " + no + "."); return true; }
@@ -195,8 +198,11 @@ public final class CfCommand implements TabExecutor {
                             }
                             case "disperser" -> {
                                 if (st.working()) { Msg.send(sender, "<red>Une pose est deja en cours."); return true; }
+                                if (st.sheets().isEmpty()) { Msg.send(sender, "<red>Rien a poser : <gray>" + st.advice(plugin.game().world())); return true; }
+                                st.retry();
                                 st.scatter(plugin.game().world());
-                                Msg.send(sender, "<yellow>Les lieux qui manquent a cette map sont poses l'un apres l'autre (suivi dans la console).");
+                                Msg.send(sender, st.working() ? "<yellow>Les lieux qui manquent a cette map sont poses l'un apres l'autre (suivi dans la console, et sur /cf map)."
+                                        : "<gray>Aucun lieu a poser : ils sont tous sur cette map, ou leur monde est inutilisable (/cf structure liste).");
                             }
                             default -> Msg.send(sender, "<yellow>/cf structure liste|monde|fiche|placer|disperser");
                         }

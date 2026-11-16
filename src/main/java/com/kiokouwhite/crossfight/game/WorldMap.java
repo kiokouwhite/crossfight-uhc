@@ -176,6 +176,12 @@ public final class WorldMap implements Listener {
         inv.setItemInMainHand(map);
         Msg.send(p, "<gold>La carte est dans ta main. <gray>Le nord est en haut ; elle couvre toute la map, d'un bord a l'autre de la bordure.");
         for (String l : lines.subList(0, lines.size() - 2)) Msg.send(p, l);
+        if (places.isEmpty()) {
+            // Une carte sans lieux : on le dit, et a un admin pourquoi (les lieux ne viennent pas avec le plugin).
+            Msg.send(p, "<gray>Aucun lieu n'est pose sur cette map.");
+            String advice = admin(p) ? plugin.structures().advice(w) : null;
+            if (advice != null) Msg.send(p, "<yellow>Admin : <gray>" + advice);
+        }
         if (admin(p)) Msg.send(p, "<yellow>Admin : <white>clic droit<gray> avec la carte pour viser un endroit (une croix rouge suit ton regard), <white>clic<gray> pour t'y teleporter.");
     }
 
