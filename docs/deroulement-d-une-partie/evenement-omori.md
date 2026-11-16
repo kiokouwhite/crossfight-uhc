@@ -6,11 +6,24 @@ Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (qu
 
 | Phase | Attaques, dans l'ordre |
 |---|---|
-| 1 | Attaque basique (2 cœurs au plus proche), Poignarder (3 cœurs, Wither et Lenteur V 5 s), Trancher (2 cœurs et Wither 2 s à tous) |
-| 2 | Effacement (tous éjectés à 10 blocs, 3 cœurs), Poignarder, Attaque basique |
-| 3 | Annihilation (pendant 10 s, une main noire tombe sur chaque joueur toutes les 2 s : 2 cœurs), Attaque basique, Poignarder |
-| 4 | Traumatisme (le plus proche est projeté à 15 blocs de haut, Darkness 10 s), Poignarder, Attaque basique |
-| 5 | Vision obstruée en permanence ; Suicide (tous éjectés à 10 blocs, Darkness, 5 cœurs), « Je ne peux pas le faire » (tous immobilisés 10 s) |
+| 1 | Attaque basique, Poignarder, Trancher |
+| 2 | Effacement, Poignarder, Attaque basique |
+| 3 | Annihilation, Attaque basique, Poignarder |
+| 4 | Traumatisme, Poignarder, Attaque basique |
+| 5 | Vision obstruée en permanence ; Suicide, « Je ne peux pas le faire » |
+
+Chaque attaque est animée :
+
+- **Attaque basique** (2 cœurs) : Omori regarde le joueur le plus proche, lève son couteau, lui fonce dessus et le tranche ; un croissant blanc, fin, s'abat en travers de la cible, puis il retourne à sa place.
+- **Poignarder** (3 cœurs, Wither et Lenteur V 5 s) : il fonce sur sa cible, l'attrape (elle ne peut plus bouger), arme son couteau et l'enfonce lentement, pendant une seconde et demie.
+- **Trancher** (2 cœurs et Wither 2 s à tous) : il tremble sur place, de plus en plus fort, puis lâche une rafale de coups ; les croissants tombent sur chaque joueur, en tous sens.
+- **Effacement** (3 cœurs) : deux mains rouges sortent du sol de part et d'autre de chaque joueur, se referment sur lui, puis le jettent à 10 blocs dans les airs.
+- **Annihilation** (2 cœurs par main) : pendant 10 s, toutes les 2 s, une main sanglante tombe sur chaque joueur. Une cible rouge se dessine au sol là où elle va tomber, avec des bips de plus en plus rapides et un « DANGER » à l'écran : il reste une seconde et demie pour s'écarter.
+- **Traumatisme** : il charge le joueur le plus proche et l'éjecte à 15 blocs de haut en le percutant, avec Darkness 10 s.
+- **Suicide** (5 cœurs, Darkness) : une surface rouge se referme autour de lui, puis éclate en fils qui partent en tous sens, transpercent chaque joueur et l'éjectent à 10 blocs.
+- **« Je ne peux pas le faire »** : il fixe les joueurs. Pendant 10 s ils ne peuvent plus bouger, leur regard est ramené de force sur lui, et des mèches de cheveux noirs leur tombent devant les yeux jusqu'à couvrir l'écran.
+
+Les bruitages sont ceux du jeu OMORI dans le pack complet (`python3 tools/build_omori_sons.py <dossier « Sound Effects » du jeu>` les range dans le pack privé, jamais versionné ; la table du script dit quel fichier sert à quoi) ; avec le pack public, ce sont des bruitages de Minecraft.
 
 Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Tout le monde revient alors à la porte, qui disparaît. Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
 

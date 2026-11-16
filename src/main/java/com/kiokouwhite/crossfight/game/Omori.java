@@ -80,6 +80,15 @@ public final class Omori implements Listener {
 
     public boolean active() { return door != null; }
 
+    /**
+     * Un bruitage de l'evenement : celui du jeu OMORI si le pack l'a ("ability.omori_<cle>", pack complet,
+     * tools/build_omori_sons.py), sinon ce bruitage de Minecraft.
+     */
+    private static void sfx(Location at, String key, Sound fallback, float volume, float pitch) {
+        if (com.kiokouwhite.crossfight.util.Sounds.has("ability.omori_" + key)) com.kiokouwhite.crossfight.util.Sounds.at(at, "ability.omori_" + key);
+        else at.getWorld().playSound(at, fallback, volume, pitch);
+    }
+
     private World space() {
         return ArenaWorlds.get(WORLD, new ArenaWorlds.InfiniteFloorGenerator(Material.WHITE_CONCRETE), World.Environment.NORMAL);
     }
@@ -178,14 +187,6 @@ public final class Omori implements Listener {
 
     private com.kiokouwhite.crossfight.util.Puppet puppet;
 
-    /** Le geste d'un coup : le bras tendu, puis retour au repos. */
-    private void strike() {
-        boss.swingMainHand();
-        if (puppet == null) return;
-        puppet.pose("omori_coup", 3);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> { if (puppet != null && boss != null && boss.isValid()) puppet.pose("debout", 5); }, 12L);
-    }
-
     private static ItemStack dyed(Material m, Color c) {
         ItemStack it = new ItemStack(m);
         LeatherArmorMeta meta = (LeatherArmorMeta) it.getItemMeta();
@@ -240,7 +241,7 @@ public final class Omori implements Listener {
         double a = Math.random() * Math.PI * 2;
         Location at = c.clone().add(Math.cos(a) * 12, 0, Math.sin(a) * 12);
         at.setDirection(c.toVector().subtract(at.toVector()));
-        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 0.7f);
+        sfx(p.getLocation(), "porte", Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 0.7f);
         p.teleport(at);
         p.setFallDistance(0);
         Effects.invincible(p, 2000);
@@ -270,7 +271,7 @@ public final class Omori implements Listener {
         if (!active() || boss == null || !boss.isValid()) return;
         hits += n;
         boss.playHurtAnimation(0);
-        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_PLAYER_HURT, 0.8f, 0.6f);
+        sfx(boss.getLocation(), "coup", Sound.ENTITY_PLAYER_HURT, 0.8f, 0.6f);
         boss.getWorld().spawnParticle(Particle.DUST, boss.getLocation().add(0, 1.1, 0), 8, 0.3, 0.5, 0.3, 0, INK);
         while (boss != null && hits >= HITS[phase]) {
             hits -= HITS[phase];
@@ -287,7 +288,7 @@ public final class Omori implements Listener {
         turn = 0;
         wait = 60;
         World w = boss.getWorld();
-        w.playSound(boss.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.6f);
+        sfx(boss.getLocation(), "phase", Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.6f);
         w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 60, 1.2, 1.2, 1.2, 0, phase == HITS.length - 1 ? RED : INK);
         for (Player p : fighters()) Msg.send(p, phase == HITS.length - 1 ? "<dark_red><bold>Omori : cinquieme phase.</bold> <gray>Tout devient noir." : "<white><bold>Omori : phase " + (phase + 1) + ".");
         updateBar();
@@ -305,21 +306,395 @@ public final class Omori implements Listener {
         Effects.damage(p, hearts * 2, boss);
     }
 
-    /** Un trait d'encre d'Omori a sa cible : l'annonce d'un coup, une demi-seconde avant. */
-    private void slash(Player target, Runnable then) {
-        busy = true;
-        Location from = boss.getLocation().add(0, 1.2, 0);
-        strike();
-        Fx.line(from, target.getLocation().add(0, 1, 0), 0.4, INK);
-        boss.getWorld().playSound(from, Sound.ITEM_TRIDENT_THROW, 1f, 0.6f);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (boss != null && boss.isValid() && target.isOnline() && !target.isDead() && target.getWorld().equals(boss.getWorld())) {
-                target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
-                target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.3, 0.3, 0.3, 0);
-                then.run();
+    private static final Particle.DustOptions BLADE = new Particle.DustOptions(Color.fromRGB(250, 250, 255), 0.55f), BLADE_EDGE = new Particle.DustOptions(Color.fromRGB(20, 20, 24), 0.45f),
+            BLADE_RED = new Particle.DustOptions(Color.fromRGB(215, 25, 35), 0.6f);
+
+    /** Change la pose d'Omori (quand il a son modele articule). */
+    private void pose(String name, int ticks) {
+        if (puppet != null && boss != null && boss.isValid()) puppet.pose(name, ticks);
+    }
+
+    private boolean present(Player p) {
+        return boss != null && boss.isValid() && p.isOnline() && !p.isDead() && p.getWorld().equals(boss.getWorld());
+    }
+
+    /**
+     * Le croissant d'un coup de couteau : un trait fin et blanc, borde de noir, qui s'abat en travers de la cible
+     * en quatre ticks, du haut a droite vers le bas a gauche (rouge pour un coup de poignard).
+     */
+    private void crescent(Location at, Vector facing, boolean red) { crescent(at, facing, red, false, false); }
+
+    /** Le meme croissant ; {@code flip} le retourne (du haut a gauche vers le bas a droite), {@code quiet} le rend muet : pour une rafale. */
+    private void crescent(Location at, Vector facing, boolean red, boolean flip, boolean quiet) {
+        World w = at.getWorld();
+        Vector flat = facing.clone().setY(0);
+        final Vector f = (flat.lengthSquared() < 0.01 ? new Vector(0, 0, 1) : flat).normalize();
+        Vector side = f.clone().crossProduct(new Vector(0, 1, 0)).normalize().multiply(flip ? -1 : 1);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (t >= 4) { cancel(); return; }
+                for (int i = 0; i < 12; i++) {
+                    // Un arc de cercle pose de biais devant la cible ; il se dessine par quarts.
+                    double u = (t + i / 12.0) / 4, a = Math.toRadians(-70 + 150 * u), thick = Math.sin(u * Math.PI);
+                    Vector p = side.clone().multiply(Math.cos(a) * 1.5 - 0.5).add(new Vector(0, -Math.sin(a) * 1.5 + 0.3, 0));
+                    Location l = at.clone().add(p).subtract(f.clone().multiply(0.4));
+                    w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, red ? BLADE_RED : BLADE);
+                    if (thick > 0.4) w.spawnParticle(Particle.DUST, l.clone().add(side.clone().multiply(0.09)).add(0, 0.07, 0), 1, 0, 0, 0, 0, BLADE_EDGE);
+                }
+                t++;
             }
-            rest();
-        }, 10L);
+        }.runTaskTimer(plugin, 0L, 1L);
+        if (!quiet) sfx(at, "basique", Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, red ? 0.6f : 1.5f);
+    }
+
+    /**
+     * Omori fonce : il file vers sa cible (qu'il suit si elle bouge), ou vers un point, a deux blocs par tick, le
+     * buste couche, dans une trainee d'encre ; puis {@code then}.
+     */
+    private void dash(Player target, Location point, Runnable then) {
+        pose("omori_fonce", 2);
+        boss.getWorld().playSound(boss.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.9f, 1.4f);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (boss == null || !boss.isValid() || (target != null && !present(target))) { cancel(); if (boss != null && boss.isValid()) then.run(); return; }
+                Location from = boss.getLocation();
+                Location goal = target != null ? target.getLocation() : point;
+                Vector to = goal.toVector().subtract(from.toVector());
+                double stop = target != null ? 1.5 : 0.1, dist = to.length();
+                if (dist <= stop + 0.05 || t++ > 16) { cancel(); then.run(); return; }
+                Vector step = to.clone().normalize().multiply(Math.min(2.0, dist - stop));
+                Location next = from.clone().add(step);
+                next.setDirection(to.clone().setY(0).lengthSquared() < 0.01 ? from.getDirection() : to.clone().setY(0));
+                next.setPitch(0);
+                boss.teleport(next);
+                Fx.line(from.clone().add(0, 1, 0), next.clone().add(0, 1, 0), 0.35, INK);
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /** Retour au centre de l'Espace Blanc, puis repos. */
+    private void home() {
+        if (boss == null || !boss.isValid()) { rest(); return; }
+        dash(null, ArenaWorlds.center(boss.getWorld()), () -> { pose("debout", 4); rest(); });
+    }
+
+    /**
+     * Un coup au corps a corps : Omori regarde sa cible, leve son couteau, lui fonce dessus et frappe (le croissant
+     * du coup, puis {@code then}), avant de revenir a sa place.
+     */
+    private void lunge(Player target, String strike, boolean red, Runnable then) {
+        busy = true;
+        pose("omori_garde", 4);
+        boss.getWorld().playSound(boss.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.5f, 1.8f);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!present(target)) { home(); return; }
+            dash(target, null, () -> {
+                if (present(target) && target.getLocation().distanceSquared(boss.getLocation()) < 16) {
+                    pose(strike, 2);
+                    boss.swingMainHand();
+                    crescent(target.getLocation().add(0, 1, 0), target.getLocation().toVector().subtract(boss.getLocation().toVector()), red);
+                    then.run();
+                }
+                Bukkit.getScheduler().runTaskLater(plugin, this::home, 10L);
+            });
+        }, 9L);
+    }
+
+    /**
+     * Poignarder : Omori fonce sur sa cible et l'attrape de la main gauche (elle ne peut plus bouger), arme son
+     * couteau, puis l'enfonce lentement, pendant une seconde et demie ; alors seulement viennent les 3 coeurs, le
+     * Wither et la Lenteur. Il la relache et retourne a sa place.
+     */
+    private void stab(Player target) {
+        busy = true;
+        pose("omori_garde", 4);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!present(target)) { home(); return; }
+            dash(target, null, () -> {
+                if (!present(target) || target.getLocation().distanceSquared(boss.getLocation()) > 16) { home(); return; }
+                World w = boss.getWorld();
+                // La prise : la victime est figee, tournee de force vers lui.
+                Effects.root(target, 46);
+                pose("omori_attrape", 4);
+                sfx(target.getLocation(), "attrape", Sound.ENTITY_WARDEN_ATTACK_IMPACT, 0.7f, 1.6f);
+                Effects.say(target, "<dark_gray>Omori t'a attrape.");
+                new BukkitRunnable() {
+                    int t = 0;
+                    @Override public void run() {
+                        if (!present(target)) { cancel(); home(); return; }
+                        t++;
+                        // Il reste colle a elle.
+                        Location hold = boss.getLocation();
+                        hold.setDirection(target.getLocation().toVector().subtract(hold.toVector()).setY(0));
+                        boss.setRotation(hold.getYaw(), 0);
+                        if (t == 12) {
+                            // Le couteau s'enfonce lentement : la pose se fait sur trente ticks.
+                            pose("omori_coup", 30);
+                            w.playSound(boss.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 1.5f, 0.6f);
+                        }
+                        if (t >= 12 && t < 42 && t % 3 == 0) {
+                            // La lame avance vers elle, peu a peu, en rouge.
+                            Location from = boss.getLocation().add(0, 1.15, 0), to = target.getLocation().add(0, 1.05, 0);
+                            Vector path = to.toVector().subtract(from.toVector());
+                            Fx.line(from, from.clone().add(path.multiply((t - 12) / 30.0)), 0.12, BLADE_RED);
+                            if (t % 9 == 0) w.playSound(target.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 1.2f, 0.7f + t * 0.01f);
+                        }
+                        if (t < 42) return;
+                        cancel();
+                        hurt(target, 3);
+                        Effects.give(target, PotionEffectType.WITHER, 0, 100);
+                        Effects.give(target, PotionEffectType.SLOWNESS, 4, 100);
+                        Effects.say(target, "<dark_gray>Omori te poignarde.");
+                        sfx(target.getLocation(), "poignarde", Sound.ENTITY_PLAYER_HURT_SWEET_BERRY_BUSH, 1f, 0.5f);
+                        w.spawnParticle(Particle.DUST, target.getLocation().add(0, 1.05, 0), 26, 0.25, 0.3, 0.25, 0, RED);
+                        Effects.unroot(target);
+                        Bukkit.getScheduler().runTaskLater(plugin, Omori.this::home, 12L);
+                    }
+                }.runTaskTimer(plugin, 1L, 1L);
+            });
+        }, 9L);
+    }
+
+    /**
+     * Trancher : Omori tremble sur place, de plus en plus fort, puis frappe en rafale, le couteau qui va et vient ;
+     * les croissants de ses coups s'abattent sur chaque joueur, en tous sens. 2 coeurs et Wither 2 secondes a tous.
+     */
+    private void hack() {
+        busy = true;
+        pose("omori_garde", 4);
+        World w = boss.getWorld();
+        Location stand = boss.getLocation();
+        boolean gameSound = com.kiokouwhite.crossfight.util.Sounds.has("ability.omori_rafale");
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (boss == null || !boss.isValid()) { cancel(); rest(); return; }
+                t++;
+                if (t <= 20) {
+                    // Le tremblement : de petites secousses, de plus en plus larges, un battement qui s'accelere.
+                    double shake = 0.03 + t * 0.006;
+                    Location l = stand.clone().add((Math.random() - 0.5) * 2 * shake, 0, (Math.random() - 0.5) * 2 * shake);
+                    l.setYaw(stand.getYaw() + (float) ((Math.random() - 0.5) * 10));
+                    boss.teleport(l);
+                    if (t % Math.max(2, 8 - t / 3) == 0) w.playSound(stand, Sound.ENTITY_WARDEN_HEARTBEAT, 1.6f, 0.8f + t * 0.04f);
+                    return;
+                }
+                if (t == 21) {
+                    boss.teleport(stand);
+                    if (gameSound) com.kiokouwhite.crossfight.util.Sounds.at(stand, "ability.omori_rafale");
+                }
+                if (t <= 45) {
+                    // La rafale : un coup toutes les deux ticks, le bras qui remonte et retombe.
+                    if (t % 2 == 1) {
+                        int n = (t - 21) / 2;
+                        pose(n % 2 == 0 ? "omori_tranche" : "omori_garde", 2);
+                        boss.swingMainHand();
+                        if (!gameSound) w.playSound(stand, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.9f, 1.3f + (n % 3) * 0.25f);
+                        for (Player p : fighters()) {
+                            Vector toward = p.getLocation().toVector().subtract(stand.toVector());
+                            // Chaque coup tombe un peu a cote du precedent, d'un cote puis de l'autre.
+                            Location at = p.getLocation().add((Math.random() - 0.5) * 0.9, 0.7 + Math.random() * 0.7, (Math.random() - 0.5) * 0.9);
+                            crescent(at, toward, false, n % 2 == 1, true);
+                        }
+                    }
+                    if (t == 33) for (Player p : fighters()) {
+                        hurt(p, 2);
+                        Effects.give(p, PotionEffectType.WITHER, 0, 40);
+                    }
+                    return;
+                }
+                cancel();
+                pose("debout", 6);
+                rest();
+            }
+        }.runTaskTimer(plugin, 6L, 1L);
+    }
+
+    /**
+     * Une main faite de blocs : paume, quatre doigts, pouce et poignet, a cette taille, tournee de {@code turn}.
+     * Tous ses morceaux sont au meme endroit (leur decalage est dans leur transformation) : on la deplace d'un bloc.
+     */
+    private List<org.bukkit.entity.BlockDisplay> hand(Location at, float size, org.joml.Quaternionf turn, Material skin, Material tips, int glide) {
+        // x, y, z du coin, puis largeur, hauteur, epaisseur ; les doigts pointent vers +Y.
+        float[][] boxes = {{-1.2f, 0, -0.35f, 2.4f, 2.2f, 0.7f}, {-0.8f, -1.8f, -0.3f, 1.6f, 1.8f, 0.6f},
+                {-1.15f, 2.2f, -0.28f, 0.5f, 1.5f, 0.56f}, {-0.55f, 2.2f, -0.28f, 0.5f, 2.0f, 0.56f}, {0.05f, 2.2f, -0.28f, 0.5f, 1.9f, 0.56f}, {0.65f, 2.2f, -0.28f, 0.5f, 1.4f, 0.56f},
+                {1.2f, 0.5f, -0.28f, 0.6f, 1.5f, 0.56f}};
+        List<org.bukkit.entity.BlockDisplay> out = new ArrayList<>();
+        for (int i = 0; i < boxes.length; i++) {
+            float[] b = boxes[i];
+            boolean tip = i >= 2;
+            org.joml.Vector3f offset = turn.transform(new org.joml.Vector3f(b[0], b[1], b[2]).mul(size));
+            out.add(at.getWorld().spawn(at, org.bukkit.entity.BlockDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setBlock((tip ? tips : skin).createBlockData());
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setViewRange(4f);
+                d.setTeleportDuration(glide);
+                d.setTransformation(new org.bukkit.util.Transformation(offset, new org.joml.Quaternionf(turn), new org.joml.Vector3f(b[3], b[4], b[5]).mul(size), new org.joml.Quaternionf()));
+            }));
+        }
+        return out;
+    }
+
+    private static void move(List<org.bukkit.entity.BlockDisplay> hand, Location to) {
+        for (var d : hand) if (d.isValid()) d.teleport(to);
+    }
+
+    /**
+     * Effacement : deux mains rouges sortent du sol de part et d'autre de chaque joueur, se referment sur lui (il
+     * ne peut plus bouger), puis le jettent dans les airs, a 10 blocs : 3 coeurs.
+     */
+    private void grab() {
+        busy = true;
+        pose("omori_croix", 5);
+        World w = boss.getWorld();
+        w.playSound(boss.getLocation(), Sound.ENTITY_WARDEN_SONIC_CHARGE, 1f, 1.4f);
+        List<Player> caught = fighters();
+        Map<Player, List<List<org.bukkit.entity.BlockDisplay>>> hands = new HashMap<>();
+        for (Player p : caught) {
+            Location l = p.getLocation();
+            Effects.root(p, 34);
+            Effects.say(p, "<red>Des mains rouges t'attrapent.");
+            sfx(l, "mains", Sound.ENTITY_WARDEN_EMERGE, 0.6f, 1.6f);
+            List<List<org.bukkit.entity.BlockDisplay>> pair = new ArrayList<>();
+            // Une main de chaque cote, doigts vers le haut, la paume tournee vers le joueur ; elles partent de sous le sol.
+            pair.add(hand(l.clone().add(1.5, -3.2, 0), 0.5f, new org.joml.Quaternionf().rotationY((float) Math.toRadians(90)), Material.RED_CONCRETE, Material.RED_NETHER_BRICKS, 10));
+            pair.add(hand(l.clone().add(-1.5, -3.2, 0), 0.5f, new org.joml.Quaternionf().rotationY((float) Math.toRadians(-90)), Material.RED_CONCRETE, Material.RED_NETHER_BRICKS, 10));
+            hands.put(p, pair);
+        }
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                for (var e : hands.entrySet()) {
+                    Player p = e.getKey();
+                    if (!p.isOnline()) continue;
+                    Location l = p.getLocation();
+                    if (t == 2) { move(e.getValue().get(0), l.clone().add(1.5, 0.4, 0)); move(e.getValue().get(1), l.clone().add(-1.5, 0.4, 0)); }
+                    // Elles se referment.
+                    if (t == 14) { move(e.getValue().get(0), l.clone().add(0.45, 0.4, 0)); move(e.getValue().get(1), l.clone().add(-0.45, 0.4, 0)); w.playSound(l, Sound.ENTITY_WARDEN_ATTACK_IMPACT, 0.8f, 1.2f); }
+                    if (t >= 14 && t < 26 && t % 3 == 0) w.spawnParticle(Particle.DUST, l.clone().add(0, 1, 0), 6, 0.4, 0.5, 0.4, 0, RED);
+                    // Elles le jettent.
+                    if (t == 26) {
+                        Effects.unroot(p);
+                        if (present(p)) { Effects.launchUp(p, 10); hurt(p, 3); }
+                        move(e.getValue().get(0), l.clone().add(0.45, 4.5, 0));
+                        move(e.getValue().get(1), l.clone().add(-0.45, 4.5, 0));
+                        sfx(l, "jette", Sound.ENTITY_BREEZE_WIND_BURST, 1f, 0.7f);
+                    }
+                }
+                if (t < 40) return;
+                cancel();
+                for (var pair : hands.values()) for (var h : pair) for (var d : h) d.remove();
+                pose("debout", 5);
+                rest();
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    /**
+     * Suicide : une surface rouge se referme autour d'Omori, de plus en plus dense, puis eclate en fils rouges
+     * qui partent en tous sens et transpercent chaque joueur : ejectes a 10 blocs, Darkness, 5 coeurs.
+     */
+    private void burst() {
+        busy = true;
+        pose("omori_contre_lui", 8);
+        World w = boss.getWorld();
+        sfx(boss.getLocation(), "enveloppe", Sound.ENTITY_WARDEN_SONIC_CHARGE, 1f, 0.6f);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (boss == null || !boss.isValid()) { cancel(); rest(); return; }
+                t++;
+                Location c = boss.getLocation().add(0, 1, 0);
+                if (t <= 30) {
+                    // La surface : une sphere de points rouges, qui se resserre et se remplit.
+                    double radius = 2.6 - t * 0.03;
+                    for (int i = 0; i < 10 + t * 2; i++) {
+                        double az = Math.random() * Math.PI * 2, el = Math.acos(2 * Math.random() - 1);
+                        w.spawnParticle(Particle.DUST, c.clone().add(Math.sin(el) * Math.cos(az) * radius, Math.cos(el) * radius, Math.sin(el) * Math.sin(az) * radius), 1, 0, 0, 0, 0, RED);
+                    }
+                    if (t % Math.max(2, 9 - t / 4) == 0) w.playSound(c, Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.6f + t * 0.03f);
+                    return;
+                }
+                cancel();
+                // L'eclatement : des fils dans toutes les directions, et un vers chaque joueur.
+                sfx(c, "eclate", Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.6f);
+                w.playSound(c, Sound.BLOCK_GLASS_BREAK, 1.2f, 0.5f);
+                for (int i = 0; i < 46; i++) {
+                    double az = Math.random() * Math.PI * 2, el = Math.acos(2 * Math.random() - 1), len = 8 + Math.random() * 14;
+                    Fx.line(c, c.clone().add(Math.sin(el) * Math.cos(az) * len, Math.abs(Math.cos(el)) * len * 0.5, Math.sin(el) * Math.sin(az) * len), 0.3, BLADE_RED);
+                }
+                for (Player p : fighters()) {
+                    Fx.line(c, p.getLocation().add(0, 1, 0), 0.15, BLADE_RED);
+                    Effects.knockbackFrom(p, boss.getLocation(), 10);
+                    Effects.give(p, PotionEffectType.DARKNESS, 0, 200);
+                    hurt(p, 5);
+                    w.spawnParticle(Particle.DUST, p.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0, RED);
+                }
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { pose("debout", 6); rest(); }, 20L);
+            }
+        }.runTaskTimer(plugin, 6L, 1L);
+    }
+
+    private static final Particle.DustOptions HAIR = new Particle.DustOptions(Color.fromRGB(6, 6, 9), 0.5f);
+
+    /**
+     * "Je ne peux pas le faire" : Omori reste immobile et fixe les joueurs. Pendant 10 secondes ils ne peuvent
+     * plus bouger et leur regard est ramene de force sur lui ; des meches de cheveux noirs leur tombent devant les
+     * yeux, de plus en plus longues, jusqu'a couvrir l'ecran (chacun ne voit que les siennes).
+     */
+    private void stare() {
+        busy = true;
+        pose("debout", 6);
+        World w = boss.getWorld();
+        sfx(boss.getLocation(), "fixe", Sound.ENTITY_WARDEN_ROAR, 1.2f, 0.5f);
+        List<Player> held = fighters();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> { if (boss != null && boss.isValid()) sfx(boss.getLocation(), "cheveux", Sound.BLOCK_WOOL_PLACE, 1f, 0.5f); }, 12L);
+        // Les meches de chacun : leur place en travers de l'ecran, et leur longueur finale.
+        double[][] strands = new double[22][];
+        for (int i = 0; i < strands.length; i++) strands[i] = new double[]{-0.75 + 1.5 * i / (strands.length - 1.0) + (Math.random() - 0.5) * 0.05, 0.55 + Math.random() * 0.65, Math.random() * 12};
+        for (Player p : held) {
+            Effects.root(p, 200);
+            Effects.say(p, "<dark_gray>Je ne peux pas le faire...");
+            p.sendMessage(Msg.prefixed("<dark_gray>Omori te fixe : immobilise 10 secondes."));
+        }
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (boss == null || !boss.isValid() || t++ >= 200) {
+                    cancel();
+                    for (Player p : held) if (p.isOnline()) Effects.unroot(p);
+                    if (boss != null && boss.isValid()) { pose("debout", 6); rest(); } else rest();
+                    return;
+                }
+                Location eyes = boss.getLocation().add(0, 1.62, 0);
+                if (t % 20 == 1) w.playSound(eyes, Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.5f);
+                for (Player p : held) {
+                    if (!present(p)) continue;
+                    // Le regard est ramene sur lui, a chaque tick.
+                    p.lookAt(eyes.getX(), eyes.getY(), eyes.getZ(), io.papermc.paper.entity.LookAnchor.EYES);
+                    if (t % 2 != 0) continue;
+                    Location eye = p.getEyeLocation();
+                    Vector look = eyes.toVector().subtract(eye.toVector()).normalize();
+                    Vector side = look.clone().crossProduct(new Vector(0, 1, 0));
+                    if (side.lengthSquared() < 0.01) side = new Vector(1, 0, 0);
+                    side.normalize();
+                    Vector up = side.clone().crossProduct(look).normalize();
+                    Location plane = eye.clone().add(look.clone().multiply(0.62));
+                    for (double[] st : strands) {
+                        // Chaque meche descend du haut de l'ecran, a son rythme, en ondulant un peu.
+                        double grown = Math.max(0, Math.min(1, (t - st[2]) / 60.0)) * st[1];
+                        for (double y = 0; y < grown; y += 0.07) {
+                            double sway = Math.sin(y * 7 + st[0] * 9 + t * 0.05) * 0.02;
+                            p.spawnParticle(Particle.DUST, plane.clone().add(side.clone().multiply(st[0] + sway)).add(up.clone().multiply(0.48 - y)), 1, 0, 0, 0, 0, HAIR);
+                        }
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     private void attack(String name) {
@@ -327,95 +702,102 @@ public final class Omori implements Listener {
         if (target == null || boss == null) return;
         World w = boss.getWorld();
         switch (name) {
-            case "basique" -> slash(target, () -> hurt(target, 2));
-            case "poignarder" -> slash(target, () -> {
-                hurt(target, 3);
-                Effects.give(target, PotionEffectType.WITHER, 0, 100);
-                Effects.give(target, PotionEffectType.SLOWNESS, 4, 100);
-                Effects.say(target, "<dark_gray>Omori te poignarde.");
-            });
-            case "trancher" -> {
+            // Attaque basique : il regarde le plus proche, lui fonce dessus et le tranche.
+            case "basique" -> lunge(target, "omori_tranche", false, () -> hurt(target, 2));
+            // Poignarder : il vient sur sa cible, l'attrape, puis enfonce lentement son couteau.
+            case "poignarder" -> stab(target);
+            // Trancher : il tremble, puis lache une rafale de coups qui tranchent tout le monde.
+            case "trancher" -> hack();
+            // Effacement : des mains rouges sortent du sol, attrapent chaque joueur et le jettent dans les airs.
+            case "effacement" -> grab();
+            case "annihilation" -> { pose("omori_leve", 6); hands(); }
+            // Traumatisme : il charge le plus proche et l'ejecte en le percutant.
+            case "traumatisme" -> {
                 busy = true;
-                strike();
-                w.playSound(boss.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.8f, 1.6f);
-                for (Player p : fighters()) {
-                    Fx.line(boss.getLocation().add(0, 1.2, 0), p.getLocation().add(0, 1, 0), 0.5, INK);
-                    hurt(p, 2);
-                    Effects.give(p, PotionEffectType.WITHER, 0, 40);
-                }
-                Bukkit.getScheduler().runTaskLater(plugin, this::rest, 10L);
+                pose("omori_garde", 3);
+                w.playSound(boss.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 0.7f, 1.6f);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (!present(target)) { home(); return; }
+                    dash(target, null, () -> {
+                        if (present(target) && target.getLocation().distanceSquared(boss.getLocation()) < 16) {
+                            pose("omori_haut", 2);
+                            Effects.launchUp(target, 15);
+                            Effects.give(target, PotionEffectType.DARKNESS, 0, 200);
+                            Effects.say(target, "<dark_gray>Traumatisme.");
+                            sfx(target.getLocation(), "charge", Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 0.6f);
+                            w.spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 40, 0.5, 0.6, 0.5, 0, INK);
+                            Fx.line(target.getLocation(), target.getLocation().add(0, 5, 0), 0.25, INK);
+                        }
+                        Bukkit.getScheduler().runTaskLater(plugin, Omori.this::home, 12L);
+                    });
+                }, 7L);
             }
-            case "effacement" -> {
-                busy = true;
-                w.playSound(boss.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 0.6f);
-                Fx.burst(boss.getLocation().add(0, 0.2, 0), new Vector(0, 1, 0), "vent", Color.WHITE, 2f, 26f, 10, 60);
-                for (Player p : fighters()) {
-                    Effects.knockbackFrom(p, boss.getLocation(), 10);
-                    hurt(p, 3);
-                }
-                Bukkit.getScheduler().runTaskLater(plugin, this::rest, 10L);
-            }
-            case "annihilation" -> hands();
-            case "traumatisme" -> slash(target, () -> {
-                Effects.launchUp(target, 15);
-                Effects.give(target, PotionEffectType.DARKNESS, 0, 200);
-                Effects.say(target, "<dark_gray>Traumatisme.");
-            });
-            case "suicide" -> {
-                busy = true;
-                w.playSound(boss.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.6f);
-                w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 120, 6, 2, 6, 0, RED);
-                for (Player p : fighters()) {
-                    Effects.knockbackFrom(p, boss.getLocation(), 10);
-                    Effects.give(p, PotionEffectType.DARKNESS, 0, 200);
-                    hurt(p, 5);
-                }
-                Bukkit.getScheduler().runTaskLater(plugin, this::rest, 10L);
-            }
-            case "peur" -> {
-                busy = true;
-                w.playSound(boss.getLocation(), Sound.ENTITY_WARDEN_ROAR, 1.2f, 0.5f);
-                for (Player p : fighters()) {
-                    Effects.root(p, 200);
-                    Effects.say(p, "<dark_gray>Je ne peux pas le faire...");
-                    p.sendMessage(Msg.prefixed("<dark_gray>Tu es effraye : immobilise 10 secondes."));
-                }
-                Bukkit.getScheduler().runTaskLater(plugin, this::rest, 200L);
-            }
+            // Suicide : une surface rouge l'enveloppe, puis eclate en fils qui blessent tout le monde.
+            case "suicide" -> burst();
+            // "Je ne peux pas le faire" : il te fixe ; immobile, force de le regarder, des cheveux te tombent devant les yeux.
+            case "peur" -> stare();
             default -> rest();
         }
     }
 
-    /** Annihilation : pendant 10 secondes, toutes les 2 secondes, une main noire tombe sur chaque joueur. */
+    /**
+     * Annihilation : pendant 10 secondes, toutes les 2 secondes, une main sanglante tombe sur chaque joueur. Une
+     * cible rouge se dessine au sol la ou elle va tomber, avec des bips de plus en plus rapides et aigus : il
+     * reste une seconde et demie pour s'ecarter. 2 coeurs a qui est encore dessous.
+     */
     private void hands() {
         busy = true;
         new BukkitRunnable() {
             int n = 0;
             @Override public void run() {
-                if (boss == null || !boss.isValid() || n++ >= 5) { cancel(); rest(); return; }
-                for (Player p : fighters()) {
-                    Location mark = p.getLocation();
-                    World w = mark.getWorld();
-                    // L'ombre de la main au sol, puis la main qui s'abat une seconde plus tard.
-                    for (int i = 0; i < 24; i++) w.spawnParticle(Particle.DUST, mark.clone().add(Math.cos(i * 0.262) * 2, 0.1, Math.sin(i * 0.262) * 2), 1, 0, 0, 0, 0, RED);
-                    var hand = w.spawn(mark.clone().add(-0.9, 12, -0.9), org.bukkit.entity.BlockDisplay.class, d -> {
-                        d.setPersistent(false);
-                        d.setBlock(Material.BLACK_CONCRETE.createBlockData());
-                        d.setBrightness(new Display.Brightness(15, 15));
-                        d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.Quaternionf(), new org.joml.Vector3f(1.8f, 3.4f, 1.8f), new org.joml.Quaternionf()));
-                        d.setTeleportDuration(18);
-                    });
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> hand.teleport(mark.clone().add(-0.9, 0, -0.9)), 2L);
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        hand.remove();
-                        w.playSound(mark, Sound.ENTITY_IRON_GOLEM_ATTACK, 1f, 0.5f);
-                        w.spawnParticle(Particle.DUST, mark.clone().add(0, 0.4, 0), 40, 1.2, 0.3, 1.2, 0, INK);
-                        if (boss == null) return;
-                        for (Player q : fighters()) if (q.getLocation().distanceSquared(mark) <= 2.2 * 2.2) hurt(q, 2);
-                    }, 21L);
-                }
+                if (boss == null || !boss.isValid() || n++ >= 5) { cancel(); pose("debout", 6); rest(); return; }
+                for (Player p : fighters()) fall(p, p.getLocation());
             }
         }.runTaskTimer(plugin, 0L, 40L);
+    }
+
+    private void fall(Player warned, Location mark) {
+        World w = mark.getWorld();
+        Location ground = mark.clone();
+        ground.setY(Math.floor(mark.getY()) + 0.08);
+        // La main, a plat, paume vers le bas, doigts vers l'avant : elle attend en l'air puis s'abat.
+        sfx(ground, "mains", Sound.ENTITY_WARDEN_EMERGE, 0.5f, 1.8f);
+        var falling = hand(ground.clone().add(0, 16, -1.4), 0.9f, new org.joml.Quaternionf().rotationX((float) Math.toRadians(90)), Material.NETHER_WART_BLOCK, Material.RED_NETHER_BRICKS, 7);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (t <= 30) {
+                    // La cible : deux cercles et une croix, qui se resserrent ; le bip s'accelere.
+                    if (t % 2 == 0) {
+                        double r = 2.4 - t * 0.012;
+                        for (int i = 0; i < 28; i++) {
+                            double a = i * Math.PI / 14;
+                            w.spawnParticle(Particle.DUST, ground.clone().add(Math.cos(a) * r, 0, Math.sin(a) * r), 1, 0, 0, 0, 0, RED);
+                            if (i % 2 == 0) w.spawnParticle(Particle.DUST, ground.clone().add(Math.cos(a) * r * 0.5, 0, Math.sin(a) * r * 0.5), 1, 0, 0, 0, 0, RED);
+                        }
+                        for (double k = -r; k <= r; k += 0.4) {
+                            w.spawnParticle(Particle.DUST, ground.clone().add(k, 0, 0), 1, 0, 0, 0, 0, BLADE_RED);
+                            w.spawnParticle(Particle.DUST, ground.clone().add(0, 0, k), 1, 0, 0, 0, 0, BLADE_RED);
+                        }
+                    }
+                    int every = t < 12 ? 6 : t < 22 ? 3 : 2;
+                    if (t % every == 0) {
+                        w.playSound(ground, Sound.BLOCK_NOTE_BLOCK_PLING, 1.4f, 0.8f + t * 0.04f);
+                        if (warned.isOnline() && warned.getLocation().distanceSquared(ground) <= 2.4 * 2.4) warned.sendActionBar(Msg.mm("<red><bold>! DANGER !</bold>"));
+                    }
+                    if (t == 24) move(falling, ground.clone().add(0, 0, -1.4));
+                    return;
+                }
+                cancel();
+                sfx(ground, "ecrase", Sound.ENTITY_IRON_GOLEM_ATTACK, 1.2f, 0.5f);
+                w.playSound(ground, Sound.BLOCK_HONEY_BLOCK_BREAK, 1.2f, 0.5f);
+                w.spawnParticle(Particle.DUST, ground.clone().add(0, 0.4, 0), 60, 1.3, 0.3, 1.3, 0, RED);
+                w.spawnParticle(Particle.BLOCK, ground.clone().add(0, 0.3, 0), 40, 1.2, 0.2, 1.2, 0, Material.NETHER_WART_BLOCK.createBlockData());
+                if (boss != null) for (Player q : fighters()) if (q.getLocation().distanceSquared(ground) <= 2.4 * 2.4) hurt(q, 2);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { for (var d : falling) d.remove(); }, 12L);
+            }
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
     // ------------------------------------------------------------------ la fin
@@ -424,7 +806,7 @@ public final class Omori implements Listener {
     private void defeated() {
         List<Player> winners = fighters();
         World w = boss.getWorld();
-        w.playSound(boss.getLocation(), Sound.ENTITY_WITHER_DEATH, 1f, 1.4f);
+        sfx(boss.getLocation(), "vaincu", Sound.ENTITY_WITHER_DEATH, 1f, 1.4f);
         w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 200, 1.5, 2, 1.5, 0, INK);
         Location home = door.clone();
         close();
@@ -447,7 +829,7 @@ public final class Omori implements Listener {
                 new ChoiceMenu.Option(Material.WHITE_TULIP, "Me pardonner", List.of("Tu gagnes une vie supplementaire."), () -> {
                     cf.addLife(1);
                     Msg.broadcast("<white>" + p.getName() + " se pardonne <gray>et gagne une vie (" + cf.lives() + ").");
-                    p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
+                    sfx(p.getLocation(), "pardon", Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
                 }),
                 new ChoiceMenu.Option(Material.IRON_SWORD, "Ne pas me pardonner", List.of("Tu perds une vie, mais tu gagnes Force III", "pour le reste de la partie.", cf.lives() <= 1 ? "<red>C'est ta derniere vie : tu serais elimine." : ""), () -> {
                     Boosts.set(p, "omori", new Boosts.Boost(3, 0, 0, 0));

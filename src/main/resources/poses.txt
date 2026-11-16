@@ -903,3 +903,86 @@ pose omori_coup
   leg_r -12 0 -3
   leg_l 12 0 3
   item  40 0 0
+
+# Les gestes d'Omori. La garde : le couteau leve pres de la tete, avant de foncer.
+pose omori_garde
+  root  -4 -14 0
+  head  0 14 0
+  arm_r -150 0 -10
+  arm_l 10 0 10
+  leg_r 10 0 -3
+  leg_l -10 0 3
+  item  20 0 0
+
+# Il fonce : le buste couche, le couteau ramene derriere lui.
+pose omori_fonce
+  root  42 0 0   0 -2 2
+  head  -38 0 0
+  arm_r 58 0 -14
+  arm_l 30 0 12
+  leg_r -50 0 -3
+  leg_l 36 0 3
+  item  60 0 0
+
+# Il tranche : le bras retombe en travers, de haut en bas, le corps qui suit le coup.
+pose omori_tranche
+  root  14 22 0
+  head  -6 -18 0
+  arm_r -38 30 0
+  arm_l 28 0 14
+  leg_r -24 0 -4
+  leg_l 20 0 4
+  item  70 0 0
+
+# Le coup vers le haut (Traumatisme) : le bras droit dresse, le corps cambre.
+pose omori_haut
+  root  -12 0 0
+  head  -22 0 0
+  arm_r -172 0 -6
+  arm_l 20 0 12
+  leg_r 12 0 -3
+  leg_l -14 0 3
+  item  10 0 0
+
+# Les bras en croix (Effacement), puis leves (Annihilation).
+pose omori_croix
+  root  -6 0 0
+  head  -10 0 0
+  arm_r 0 0 -88
+  arm_l 0 0 88
+  item  0 0 0
+
+pose omori_leve
+  root  -8 0 0
+  head  -24 0 0
+  arm_r -168 0 -14
+  arm_l -168 0 14
+  item  0 0 0
+
+# Le couteau retourne contre lui (Suicide), la tete baissee.
+pose omori_contre_lui
+  root  10 0 0
+  head  30 0 0
+  arm_r -58 46 0
+  arm_l -30 -30 0
+  item  150 0 0
+
+# Recroqueville, les mains sur la tete ("Je ne peux pas le faire").
+pose omori_peur
+  root  24 0 0   0 -3 0
+  head  34 0 0
+  arm_r -132 34 0
+  arm_l -132 -34 0
+  leg_r -40 0 -4
+  leg_l -40 0 4
+  item  0 0 0
+
+# Poignarder : il attrape sa victime de la main gauche, le couteau arme en arriere, avant de l'enfoncer lentement.
+pose omori_attrape
+  root  8 -10 0
+  head  -6 8 0
+  arm_l -86 12 0
+  arm_r 40 0 -18
+  leg_r -16 0 -3
+  leg_l 14 0 3
+  item  40 0 0
