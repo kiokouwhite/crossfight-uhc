@@ -68,7 +68,6 @@ public final class Omori implements Listener {
 
     private final CrossfightPlugin plugin;
     private Location door;
-    private ItemDisplay doorShow;
     private Zombie boss;
     private BossBar bar;
     private BukkitTask loop;
@@ -123,11 +122,20 @@ public final class Omori implements Listener {
 
     /** Pose la porte a cet endroit, tournee vers ce point, et prepare Omori. */
     private void place(Location spot, Location facing) {
-        door = spot;
-        Location at = door.clone().add(0, 1.6, 0);
-        at.setDirection(facing.toVector().subtract(door.toVector()).setY(0));
-        doorShow = Fx.show(at, Fx.imageOr("porte_blanche", Color.WHITE, Material.PALE_OAK_DOOR), 3.2f, false);
-        doorShow.setViewRange(6f);
+        door = spot.getBlock().getLocation().add(0.5, 0, 0.5);
+        // Une vraie porte, blanche, de deux blocs : on l'ouvre d'un clic droit.
+        Vector toward = facing.toVector().subtract(door.toVector());
+        org.bukkit.block.BlockFace face = Math.abs(toward.getX()) > Math.abs(toward.getZ())
+                ? (toward.getX() > 0 ? org.bukkit.block.BlockFace.EAST : org.bukkit.block.BlockFace.WEST)
+                : (toward.getZ() > 0 ? org.bukkit.block.BlockFace.SOUTH : org.bukkit.block.BlockFace.NORTH);
+        for (int h = 0; h < 2; h++) {
+            var b = door.getBlock().getRelative(0, h, 0);
+            b.setType(Material.PALE_OAK_DOOR, false);
+            var data = (org.bukkit.block.data.type.Door) b.getBlockData();
+            data.setHalf(h == 0 ? org.bukkit.block.data.Bisected.Half.BOTTOM : org.bukkit.block.data.Bisected.Half.TOP);
+            data.setFacing(face);
+            b.setBlockData(data, false);
+        }
         spawnBoss();
     }
 
@@ -207,19 +215,19 @@ public final class Omori implements Listener {
         bar.setColor(phase == HITS.length - 1 ? BarColor.RED : BarColor.WHITE);
     }
 
-    /** Toutes les 5 ticks : la porte propose d'entrer, la barre suit les joueurs, Omori enchaine ses attaques. */
+    /** Toutes les 5 ticks : la porte rappelle comment entrer, la musique tourne, la barre suit les joueurs, Omori enchaine ses attaques. */
     private void tick() {
         if (!active()) return;
         long now = System.currentTimeMillis();
-        door.getWorld().spawnParticle(Particle.END_ROD, door.clone().add(0, 1.6, 0), 1, 0.5, 1.2, 0.5, 0.005);
+        door.getWorld().spawnParticle(Particle.END_ROD, door.clone().add(0, 1.2, 0), 1, 0.5, 1.0, 0.5, 0.005);
         for (Player p : door.getWorld().getPlayers()) {
-            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || p.getLocation().distanceSquared(door) > 2.6 * 2.6) continue;
-            if (now - asked.getOrDefault(p.getUniqueId(), 0L) < 6000 || p.getOpenInventory().getTopInventory().getType() != org.bukkit.event.inventory.InventoryType.CRAFTING) continue;
+            // Tout pres de la porte : un rappel de ce qu'il faut faire.
+            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || p.getLocation().distanceSquared(door) > 3.5 * 3.5) continue;
+            if (now - asked.getOrDefault(p.getUniqueId(), 0L) < 4000) continue;
             asked.put(p.getUniqueId(), now);
-            ChoiceMenu.open(p, "<dark_gray>Une porte blanche projette une ombre legere.", List.of(
-                    new ChoiceMenu.Option(Material.PALE_OAK_DOOR, "Ouvrir la porte", List.of("Entrer dans l'Espace Blanc"), () -> enter(p)),
-                    new ChoiceMenu.Option(Material.BARRIER, "Ne rien faire", List.of(), () -> { })));
+            Msg.actionBar(p, "<white>Une porte blanche projette une ombre legere. <gray>Clic droit pour l'ouvrir.");
         }
+        music();
         List<Player> in = fighters();
         if (in.isEmpty()) { if (boss != null) { if (puppet != null) puppet.remove(); puppet = null; boss.remove(); boss = null; } return; }
         if (boss == null || !boss.isValid()) summon();
@@ -237,7 +245,93 @@ public final class Omori implements Listener {
         if (!busy) boss.setRotation(look.getYaw(), 0);
         if (busy || (wait -= 5) > 0) return;
         String[] cycle = ATTACKS[phase];
-        attack(cycle[turn++ % cycle.length]);
+        announce(cycle[turn++ % cycle.length]);
+    }
+
+    /** Le nom de chaque attaque, tel qu'il s'annonce sous la barre d'Omori. */
+    private static final Map<String, String> NAMES = Map.of("basique", "Attaque basique", "poignarder", "Poignarder", "trancher", "Trancher",
+            "effacement", "Effacement", "annihilation", "Annihilation", "traumatisme", "Traumatisme", "suicide", "Suicide", "peur", "Je ne peux pas le faire");
+    /** Ticks entre l'annonce d'une attaque et son declenchement. */
+    private static final int WARNING = 20;
+    private BossBar nameBar;
+
+    /**
+     * L'attaque qui vient s'annonce un instant avant, par son nom, dans une seconde barre sous celle d'Omori ;
+     * cette barre se vide pendant le delai, et reste (vide) jusqu'a la fin de l'attaque.
+     */
+    private void announce(String name) {
+        busy = true;
+        if (nameBar == null) nameBar = Bukkit.createBossBar("", BarColor.RED, BarStyle.SOLID);
+        nameBar.setTitle(NAMES.getOrDefault(name, name));
+        nameBar.setProgress(1);
+        for (Player p : fighters()) nameBar.addPlayer(p);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (boss == null || !boss.isValid() || nameBar == null) { cancel(); rest(); return; }
+                t += 2;
+                nameBar.setProgress(Math.max(0, 1 - t / (double) WARNING));
+                if (t < WARNING) return;
+                cancel();
+                attack(name);
+            }
+        }.runTaskTimer(plugin, 2L, 2L);
+    }
+
+    /**
+     * La musique du combat, en boucle, pour qui est dans l'Espace Blanc : la piste "omori" du pack (pack complet :
+     * resourcepack-prive/assets/crossfight/sounds/music/omori.ogg). Sans elle, le combat se fait sans musique.
+     */
+    private void music() {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("music.omori")) return;
+        long length = com.kiokouwhite.crossfight.util.Music.tracks().getOrDefault("omori", 180000L);
+        long now = System.currentTimeMillis();
+        List<Player> in = fighters();
+        for (Player p : in) {
+            Long since = musicSince.get(p.getUniqueId());
+            if (since != null && now - since < length - 60) continue;
+            musicSince.put(p.getUniqueId(), now);
+            p.stopSound(org.bukkit.SoundCategory.MUSIC);
+            p.playSound(p, com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS, (float) plugin.getConfig().getDouble("music.volume", 0.6), 1f);
+        }
+        // Sorti de l'Espace Blanc : la musique s'arrete.
+        musicSince.keySet().removeIf(id -> {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && in.contains(p)) return false;
+            if (p != null) p.stopSound(com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS);
+            return true;
+        });
+    }
+
+    private final Map<UUID, Long> musicSince = new HashMap<>();
+
+    /** Un clic droit sur la porte blanche : elle s'ouvre, et l'on passe dans l'Espace Blanc. */
+    @EventHandler
+    public void onDoor(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (!active() || e.getClickedBlock() == null || e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+        var clicked = e.getClickedBlock();
+        var base = door.getBlock();
+        if (!clicked.equals(base) && !clicked.equals(base.getRelative(0, 1, 0))) return;
+        e.setCancelled(true);
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        Player p = e.getPlayer();
+        if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR) return;
+        swing(true);
+        sfx(door, "porte", Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 0.7f);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!active()) return;
+            if (p.isOnline() && p.getWorld().equals(door.getWorld()) && p.getLocation().distanceSquared(door) < 36) enter(p);
+            swing(false);
+        }, 8L);
+    }
+
+    /** Ouvre ou referme les deux blocs de la porte. */
+    private void swing(boolean open) {
+        if (door == null) return;
+        for (int h = 0; h < 2; h++) {
+            var b = door.getBlock().getRelative(0, h, 0);
+            if (b.getBlockData() instanceof org.bukkit.block.data.type.Door d) { d.setOpen(open); b.setBlockData(d, false); }
+        }
     }
 
     private void enter(Player p) {
@@ -247,7 +341,6 @@ public final class Omori implements Listener {
         double a = Math.random() * Math.PI * 2;
         Location at = c.clone().add(Math.cos(a) * 12, 0, Math.sin(a) * 12);
         at.setDirection(c.toVector().subtract(at.toVector()));
-        sfx(p.getLocation(), "porte", Sound.BLOCK_WOODEN_DOOR_OPEN, 1f, 0.7f);
         p.teleport(at);
         p.setFallDistance(0);
         Effects.invincible(p, 2000);
@@ -306,6 +399,7 @@ public final class Omori implements Listener {
     private void rest() {
         busy = false;
         wait = 100;
+        if (nameBar != null) nameBar.removeAll();
     }
 
     private void hurt(Player p, double hearts) {
@@ -851,7 +945,14 @@ public final class Omori implements Listener {
     public void close() {
         if (loop != null) loop.cancel();
         Location home = door;
-        if (doorShow != null) doorShow.remove();
+        if (door != null) for (int h = 1; h >= 0; h--) {
+            var b = door.getBlock().getRelative(0, h, 0);
+            if (b.getType() == Material.PALE_OAK_DOOR) b.setType(Material.AIR, false);
+        }
+        if (nameBar != null) nameBar.removeAll();
+        nameBar = null;
+        for (UUID id : musicSince.keySet()) { Player p = Bukkit.getPlayer(id); if (p != null) p.stopSound(com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS); }
+        musicSince.clear();
         if (puppet != null) puppet.remove();
         puppet = null;
         if (boss != null) boss.remove();
@@ -859,7 +960,6 @@ public final class Omori implements Listener {
         boss = null;
         bar = null;
         door = null;
-        doorShow = null;
         World w = Bukkit.getWorld(WORLD);
         if (w != null) for (Player p : w.getPlayers()) {
             Effects.unroot(p);
@@ -871,6 +971,9 @@ public final class Omori implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent e) {
         if (e.getBlock().getWorld().getName().equals(WORLD)) e.setCancelled(true);
+        // La porte blanche ne se casse pas.
+        if (active() && e.getBlock().getWorld().equals(door.getWorld()) && e.getBlock().getX() == door.getBlockX() && e.getBlock().getZ() == door.getBlockZ()
+                && e.getBlock().getY() >= door.getBlockY() && e.getBlock().getY() <= door.getBlockY() + 1) e.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)

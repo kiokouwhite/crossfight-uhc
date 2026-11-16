@@ -173,9 +173,9 @@ Dans la fosse, un coup qui tuerait ne tue pas : le joueur est à terre et regard
 
 ### Événement Omori
 
-À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. En s'en approchant, un menu propose « Ouvrir la porte » ou « Ne rien faire » : l'ouvrir emmène dans l'Espace Blanc, un monde au sol blanc sans fin où attend le boss Omori.
+À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. C'est une vraie porte, blanche, haute de deux blocs et incassable : un clic droit dessus l'ouvre et emmène dans l'Espace Blanc, un monde au sol blanc sans fin où attend le boss Omori.
 
-Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 30, 35, 40, 45 puis 50 coups, avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes :
+Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 30, 35, 40, 45 puis 50 coups, avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes ; le nom de chacune s'annonce une seconde avant qu'elle parte, dans une seconde barre rouge sous la sienne, qui se vide pendant ce délai :
 
 | Phase | Attaques, dans l'ordre |
 |---|---|
@@ -202,7 +202,7 @@ Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie 
 
 Omori est un personnage articulé, couteau à la main, quand son skin est dans le pack (`python3 tools/add_skin.py <skin.png> omori --prive`, puis `tools/build_pack.py` ; `omori.skin` dans `config.yml` nomme le skin à utiliser) ; sans lui, c'est un zombie en tenue noire et blanche. `/cf test omori` pose la porte devant soi dans la zone de test, pour essayer le combat sans lancer de partie.
 
-La porte est une image du pack : un dessin de porte blanche usée dans le pack public, l'image officielle dans le pack complet (jamais versionnée, à déposer dans `resourcepack-prive/glyphes-couleur/porte_blanche.png`).
+Une musique accompagne le combat, en boucle, pour qui est dans l'Espace Blanc, et s'arrête dès qu'on en sort : c'est la piste `omori` du pack, à déposer soi-même dans `resourcepack-prive/assets/crossfight/sounds/music/omori.ogg` (jamais versionnée), puis `python3 tools/build_pack.py`. Sans elle, le combat se fait sans musique.
 
 ### Scénarios
 

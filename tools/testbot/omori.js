@@ -13,8 +13,9 @@ bot.once('spawn', async () => {
   await sleep(31000);
   bot.chat('/cf omori lancer'); await sleep(1500); const msg = last(/porte blanche/); console.log(msg);
   const m = msg.match(/en (-?\d+) (-?\d+) (-?\d+)/); bot.chat(`/tp @s ${+m[1] + 1} ${m[2]} ${m[3]}`); await sleep(3000);
-  console.log('menu de la porte :', bot.currentWindow ? bot.currentWindow.slots.slice(0, 9).filter(Boolean).map(i => i.name).join(' ') : 'pas ouvert');
-  if (bot.currentWindow) await bot.clickWindow(3, 0, 0); await sleep(2500);
+  const door = bot.findBlock({ matching: b => b.name === 'pale_oak_door', maxDistance: 8 });
+  console.log('porte :', door ? String(door.position) : 'absente');
+  if (door) { await bot.lookAt(door.position.offset(0.5, 0.5, 0.5)); await bot.activateBlock(door); } await sleep(2500);
   const boss = bot.nearestEntity(e => e.name === 'zombie'); console.log('Espace Blanc :', last(/Espace Blanc/), '| boss a', boss ? boss.position.distanceTo(bot.entity.position).toFixed(1) : '?', 'blocs | sous les pieds :', bot.blockAt(bot.entity.position.offset(0, -1, 0)).name);
   const hp0 = bot.health; await sleep(9000); console.log('apres 9 s d\'attaques : vie', hp0, '->', bot.health);
   if (boss) { bot.chat(`/tp @s ${boss.position.x + 1.5} ${boss.position.y} ${boss.position.z}`); await sleep(800); await bot.lookAt(boss.position.offset(0, 1.2, 0)); for (let i = 0; i < 3; i++) { bot.attack(boss); await sleep(500); } }

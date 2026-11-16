@@ -292,7 +292,7 @@ public final class CfCommand implements TabExecutor {
                             }
                             if (!plugin.testMode().isTester(sp) && !plugin.testMode().enter(sp)) return true;
                             plugin.omori().openForTest(sp);
-                            Msg.send(sp, "<white>La porte blanche est devant toi : approche-toi pour l'ouvrir. <gray>Pour aller plus vite : <white>/cf omori phase <1-5></white>, <white>/cf omori coups <n></white>. <white>/cf test omori</white> la retire.");
+                            Msg.send(sp, "<white>La porte blanche est devant toi : clic droit dessus pour l'ouvrir. <gray>Pour aller plus vite : <white>/cf omori phase <1-5></white>, <white>/cf omori coups <n></white>. <white>/cf test omori</white> la retire.");
                             return true;
                         }
                         if (args.length > 1 && args[1].equalsIgnoreCase("selection")) {
