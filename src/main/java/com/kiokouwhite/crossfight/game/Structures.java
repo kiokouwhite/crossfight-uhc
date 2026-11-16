@@ -200,6 +200,8 @@ public final class Structures implements Listener {
 
     /** Le niveau du sol d'un lieu pose, la ou l'on marche (le bas de sa boite, si sa fiche n'est plus la). */
     public int level(Placed p) {
+        String path = "structures.posees." + p.world() + "." + p.name() + ".niveau";
+        if (plugin.getConfig().isInt(path)) return plugin.getConfig().getInt(path);
         Sheet s = sheet(p.name());
         return s != null ? p.y() + (s.ground() - s.y1()) : p.y();
     }
@@ -347,9 +349,14 @@ public final class Structures implements Listener {
 
     // ------------------------------------------------------------------ la pose
 
+    /** Sous le niveau du terrain, on ne copie pas le lieu plus bas que cela : le reste est le sol de la map. */
+    private static final int DEPTH = Socle.DEPTH;
+
     /**
-     * Pose un lieu, recadre a {@code max} blocs de cote au plus, son coin (x, z) aligne sur les chunks, son niveau du
-     * sol a la hauteur mediane du terrain. Reprend la ou elle s'etait arretee si la pose avait ete interrompue.
+     * Pose un lieu, recadre a {@code max} blocs de cote au plus, son coin (x, z) aligne sur les chunks. Sa decoupe est
+     * d'abord lue en entier dans son monde d'origine : de la vient le socle (game/Socle.java), c'est-a-dire quelle
+     * hauteur du lieu se pose au niveau du terrain (la hauteur mediane du terrain sous lui), ce qui est comble
+     * dessous, et ce qu'on ne pose pas. Reprend la ou elle s'etait arretee si la pose avait ete interrompue.
      * {@code done} est appele a la fin. Rend faux si la pose n'a pas pu commencer ({@code done} n'est alors pas appele).
      */
     public boolean place(CommandSender to, Sheet s, World w, int atX, int atZ, int max, Runnable done) {
@@ -363,13 +370,48 @@ public final class Structures implements Listener {
         working = true;
         final int mine = run;
         final int x0 = Math.floorDiv(atX, 16) * 16, z0 = Math.floorDiv(atZ, 16) * 16;
-        Placed before = find(w, s.name());
-        List<Integer> saved = plugin.getConfig().getIntegerList(key(w, s.name()) + ".decoupe");
-        if (before != null && before.x() == x0 && before.z() == z0 && saved.size() == 2) {
-            paste(to, s, from, w, before, saved.get(0), saved.get(1), plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), done);
-            return true;
-        }
-        final int[] cut = cut(s, max);
+        final Placed before = find(w, s.name());
+        final List<Integer> saved = plugin.getConfig().getIntegerList(key(w, s.name()) + ".decoupe");
+        final boolean resume = before != null && before.x() == x0 && before.z() == z0 && saved.size() == 2;
+        final int[] cut = resume ? new int[]{saved.get(0), saved.get(1), before.sx(), before.sz()} : cut(s, max);
+        // Le contour : une tache irreguliere pour un lieu recadre, a peine arrondie pour un lieu pose en entier.
+        final int rag = resume ? shape(w, before) : !plugin.getConfig().getBoolean("structures.contour", true) ? 0 : cut[2] < s.sx() || cut[3] < s.sz() ? 2 : 3;
+        ragged.put(w.getName() + "/" + s.name(), rag);
+        final Placed outline = new Placed(s.name(), w.getName(), x0, 0, z0, cut[2], s.sy(), cut[3]);
+        final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
+        Msg.send(to, "<gray>Lecture de <white>" + s.name() + "</white> : " + cut[2] + " x " + (maxY - minY + 1) + " x " + cut[3] + " blocs...");
+        Socle.kinds();
+        Socle.scan(plugin, from, cut[0], cut[1], cut[2], cut[3], minY, maxY, () -> mine == run, volume -> {
+            final boolean[] inside = new boolean[cut[2] * cut[3]];
+            for (int z = 0; z < cut[3]; z++) for (int x = 0; x < cut[2]; x++) inside[z * cut[2] + x] = within(w, outline, x0 + x, z0 + z);
+            // La decision se calcule hors du fil du serveur : elle parcourt tout le volume.
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                final Socle.Decision dec;
+                try {
+                    dec = Socle.decide(volume, inside, s.ground() - minY);
+                    Socle.dump(s.name(), volume, inside, dec, cut[0], cut[1], minY, s.ground() - minY);
+                } catch (RuntimeException ex) {
+                    plugin.getLogger().log(java.util.logging.Level.SEVERE, "Lieu " + s.name() + " : socle non calcule", ex);
+                    Bukkit.getScheduler().runTask(plugin, () -> { if (mine == run) { working = false; Msg.send(to, "<red>Le lieu " + s.name() + " n'a pas pu etre lu (voir la console)."); } });
+                    return;
+                }
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (mine != run) return;
+                    if (resume) {
+                        // Une pose reprise garde le niveau deja retenu.
+                        int level = plugin.getConfig().getInt(key(w, s.name()) + ".niveau", before.y() + (s.ground() - s.y1()));
+                        paste(to, s, from, w, before, cut[0], cut[1], plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), level, minY, volume.h, dec, done);
+                        return;
+                    }
+                    place(to, s, from, w, x0, z0, cut, rag, minY, volume.h, dec, mine, done);
+                });
+            });
+        });
+        return true;
+    }
+
+    /** La suite de la pose, une fois le socle decide : le niveau du terrain, la boite, puis la copie. */
+    private void place(CommandSender to, Sheet s, World from, World w, int x0, int z0, int[] cut, int rag, int minY, int height, Socle.Decision dec, int mine, Runnable done) {
         // Le niveau du terrain : la mediane de vingt-cinq hauteurs prises sous le lieu, chunks charges sans attendre.
         List<int[]> points = new ArrayList<>();
         for (int i = 0; i < 5; i++) for (int j = 0; j < 5; j++) points.add(new int[]{x0 + (int) ((i + 0.5) * cut[2] / 5.0), z0 + (int) ((j + 0.5) * cut[3] / 5.0)});
@@ -380,36 +422,47 @@ public final class Structures implements Listener {
             List<Integer> heights = new ArrayList<>();
             for (int[] p : points) heights.add(w.getHighestBlockYAt(p[0], p[1], HeightMap.MOTION_BLOCKING_NO_LEAVES) + 1);
             Collections.sort(heights);
-            int under = s.ground() - s.y1(), over = s.y2() - s.ground() + 1;
+            // La hauteur du lieu (dans son monde) qui vient au niveau du terrain : celle que dit le socle.
+            int sol = minY + dec.sol;
+            int under = Math.min(sol - s.y1(), DEPTH), over = s.y2() - sol + 1;
             int level = Math.max(w.getMinHeight() + under + 2, Math.min(w.getMaxHeight() - over - 2, heights.get(heights.size() / 2)));
-            Placed box = new Placed(s.name(), w.getName(), x0, level - under, z0, cut[2], s.sy(), cut[3]);
+            Placed box = new Placed(s.name(), w.getName(), x0, level - (sol - s.y1()), z0, cut[2], s.sy(), cut[3]);
             placed.removeIf(p -> p.world().equals(w.getName()) && p.name().equals(s.name()));
             placed.add(box);
             plugin.getConfig().set(key(w, s.name()) + ".boite", List.of(box.x(), box.y(), box.z(), box.sx(), box.sy(), box.sz()));
             plugin.getConfig().set(key(w, s.name()) + ".decoupe", List.of(cut[0], cut[1]));
+            plugin.getConfig().set(key(w, s.name()) + ".niveau", level);
             plugin.getConfig().set(key(w, s.name()) + ".avancement", 0);
-            // Le contour : une tache irreguliere pour un lieu recadre, a peine arrondie pour un lieu pose en entier.
-            int rag = !plugin.getConfig().getBoolean("structures.contour", true) ? 0 : cut[2] < s.sx() || cut[3] < s.sz() ? 2 : 3;
             plugin.getConfig().set(key(w, s.name()) + ".contour", rag);
-            ragged.put(w.getName() + "/" + s.name(), rag);
             plugin.getConfig().set(key(w, s.name()) + ".finie", false);
             plugin.saveConfig();
-            paste(to, s, from, w, box, cut[0], cut[1], 0, done);
+            paste(to, s, from, w, box, cut[0], cut[1], 0, level, minY, height, dec, done);
         }));
-        return true;
+    }
+
+    /** La roche du socle : de la pierre, veinee d'andesite et de pierre taillee, toujours la meme au meme endroit. */
+    private static Material rock(int x, int y, int z) {
+        int h = Math.floorMod((x * 73856093) ^ (y * 19349663) ^ (z * 83492791), 12);
+        return h < 2 ? Material.ANDESITE : h == 2 ? Material.COBBLESTONE : Material.STONE;
+    }
+
+    /** Le bloc d'un sol repris par le socle (un slab double redevient un bloc plein). */
+    private static BlockData floor(short id) {
+        BlockData data = Material.values()[id & (Socle.DOUBLE - 1)].createBlockData();
+        if ((id & Socle.DOUBLE) != 0 && data instanceof org.bukkit.block.data.type.Slab slab) slab.setType(org.bukkit.block.data.type.Slab.Type.DOUBLE);
+        return data;
     }
 
     /**
      * Copie le lieu dans la map, chunk par chunk, a partir du {@code start}-ieme. ({@code srcX}, {@code srcZ}) est le
      * coin, dans le monde d'origine, de la decoupe posee.
      */
-    private void paste(CommandSender to, Sheet s, World from, World w, Placed box, int srcX, int srcZ, int start, Runnable done) {
-        final int level = box.y() + (s.ground() - s.y1());
+    private void paste(CommandSender to, Sheet s, World from, World w, Placed box, int srcX, int srcZ, int start, int level, int volY, int volH, Socle.Decision dec, Runnable done) {
         final int cx0 = box.x() >> 4, cz0 = box.z() >> 4, nx = ((box.x() + box.sx() - 1) >> 4) - cx0 + 1, nz = ((box.z() + box.sz() - 1) >> 4) - cz0 + 1;
         final int mine = run;
         final boolean whole = box.sx() == s.sx() && box.sz() == s.sz();
         Msg.send(to, "<yellow>Pose de <white>" + s.name() + "</white> en " + box.x() + " " + level + " " + box.z() + " : " + box.sx() + " x " + box.sz() + " blocs"
-                + (whole ? "" : " (recadre, sur " + s.sx() + " x " + s.sz() + ")") + ", " + (nx * nz) + " chunks...");
+                + (whole ? "" : " (recadre, sur " + s.sx() + " x " + s.sz() + ")") + ", " + (nx * nz) + " chunks. <gray>Socle : " + dec.note + ".");
         new Object() {
             int column = start, waited = 0;
             /** Les chunks du monde d'origine gardes charges (avec leurs entites) tant qu'on en a besoin. */
@@ -464,6 +517,11 @@ public final class Structures implements Listener {
                 });
             }
 
+            /** Vrai si cette colonne de la boite n'est pas posee : hors du contour du lieu, ou ecartee par le socle. */
+            boolean out(int x, int z) {
+                return !within(w, box, x, z) || dec.skip[(z - box.z()) * box.sx() + (x - box.x())];
+            }
+
             /** Un chunk de la map : la part du lieu qui y tombe. */
             void chunk(int tcx, int tcz, Map<Long, ChunkSnapshot> snapshots) {
                 final int xa = Math.max(tcx << 4, box.x()), xb = Math.min((tcx << 4) + 15, box.x() + box.sx() - 1);
@@ -473,35 +531,43 @@ public final class Structures implements Listener {
                 // terrain est degage au-dessus du niveau du sol : buttes, arbres.
                 for (Entity e : w.getNearbyEntities(new BoundingBox(xa, box.y(), za, xb + 1, box.y() + box.sy(), zb + 1))) if (decor(e)) e.remove();
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
-                    if (!within(w, box, x, z)) continue;
+                    if (out(x, z)) continue;
                     int top = w.getHighestBlockYAt(x, z);
                     for (int y = level; y <= top; y++) { Block b = w.getBlockAt(x, y, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
                 }
-                // 2. Les blocs, copies tels quels, sans mise a jour. Ce que le lieu laisse vide ne remplace rien, sauf
-                // dans ses sous-sols quand il les creuse.
+                // 2. Les blocs, copies tels quels, sans mise a jour. Au-dessus du niveau, tout le lieu, vide compris. Sous
+                // le niveau, ce que le lieu laisse vide ne remplace rien, sauf la ou le socle dit de creuser (un creux a
+                // ciel ouvert). Les cases que le socle donne au sol (le vide sous le lieu) ne sont pas copiees.
                 own.clear();
-                // Par colonne : la hauteur du plus bas bloc pose, si c'est du sol (terre, pierre, sable...) pose au-dessus
-                // du niveau du lieu. Certaines maps sont des coquilles : un sol mince, du vide dessous.
-                final int[][] shell = new int[16][16];
-                for (int[] row : shell) java.util.Arrays.fill(row, Integer.MIN_VALUE);
                 final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
+                final int cells = box.sx() * box.sz();
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
-                    if (!within(w, box, x, z)) continue;
-                    final int sx = x - dx, sz = z - dz;
-                    boolean first = true;
+                    if (out(x, z)) continue;
+                    final int sx = x - dx, sz = z - dz, n = (z - box.z()) * box.sx() + (x - box.x());
+                    final int dig = s.carve() ? Integer.MIN_VALUE : dec.dig[n] + volY + dy, cap = dec.capY[n] < 0 ? Integer.MIN_VALUE : dec.capY[n] + volY + dy;
                     ChunkSnapshot snap = snapshots.computeIfAbsent(Chunk.getChunkKey(sx >> 4, sz >> 4), k -> from.getChunkAt(sx >> 4, sz >> 4).getChunkSnapshot(false, false, false, false));
                     for (int y = minY; y <= maxY; y++) {
-                        // Une tranche de seize blocs entierement vide est sautee d'un coup.
-                        if ((y & 15) == 0 && y + 15 <= maxY && snap.isSectionEmpty((y - from.getMinHeight()) >> 4) && !(s.carve() && y + dy < level)) { y += 15; continue; }
-                        BlockData data = snap.getBlockData(sx & 15, y, sz & 15);
                         int ty = y + dy;
-                        if (ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
+                        // Plus bas que douze blocs sous le niveau, c'est le sol de la map : on n'y copie rien.
+                        if (ty < level - DEPTH || ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
+                        // Au-dessus du niveau, une tranche de seize blocs entierement vide est sautee d'un coup.
+                        if (ty >= level && (y & 15) == 0 && y + 15 <= maxY && snap.isSectionEmpty((y - from.getMinHeight()) >> 4)) { y += 15; continue; }
+                        if (ty == cap) {
+                            w.getBlockAt(x, ty, z).setBlockData(floor(dec.capId[n]), false);
+                            if (ty < level) own.add(pack(x, ty, z));
+                            continue;
+                        }
+                        if (dec.fill.get((y - volY) * cells + n)) continue;
+                        BlockData data = snap.getBlockData(sx & 15, y, sz & 15);
                         if (data.getMaterial().isAir()) {
-                            if (s.carve() && ty < level) { Block b = w.getBlockAt(x, ty, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
+                            if (ty < level && ty >= dig) {
+                                Block b = w.getBlockAt(x, ty, z);
+                                if (!b.getType().isAir()) b.setType(Material.AIR, false);
+                                own.add(pack(x, ty, z));
+                            }
                             continue;
                         }
                         w.getBlockAt(x, ty, z).setBlockData(data, false);
-                        if (first) { first = false; if (ty >= level && soil(data.getMaterial())) shell[x & 15][z & 15] = ty; }
                         if (ty < level) own.add(pack(x, ty, z));
                     }
                 }
@@ -511,7 +577,8 @@ public final class Structures implements Listener {
                     if (!seen.add(Chunk.getChunkKey(sx, sz))) continue;
                     Chunk c = from.getChunkAt(sx, sz);
                     for (BlockState st : c.getTileEntities(b -> b.getX() + dx >= xa && b.getX() + dx <= xb && b.getZ() + dz >= za && b.getZ() + dz <= zb
-                            && b.getY() >= minY && b.getY() <= maxY && within(w, box, b.getX() + dx, b.getZ() + dz), false)) {
+                            && b.getY() >= minY && b.getY() <= maxY && b.getY() + dy >= level - DEPTH && !out(b.getX() + dx, b.getZ() + dz)
+                            && !dec.fill.get((b.getY() - volY) * cells + (b.getZ() + dz - box.z()) * box.sx() + (b.getX() + dx - box.x())), false)) {
                         try {
                             BlockState copy = st.copy(new Location(w, st.getX() + dx, st.getY() + dy, st.getZ() + dz));
                             if (copy instanceof Container box2) box2.getSnapshotInventory().clear();
@@ -525,7 +592,11 @@ public final class Structures implements Listener {
                     for (Entity e : c.getEntities()) {
                         Location l = e.getLocation();
                         if (!decor(e) || l.getBlockX() + dx < xa || l.getBlockX() + dx > xb || l.getBlockZ() + dz < za || l.getBlockZ() + dz > zb
-                                || l.getBlockY() < minY || l.getBlockY() > maxY || !within(w, box, l.getBlockX() + dx, l.getBlockZ() + dz)) continue;
+                                || l.getBlockY() < minY || l.getBlockY() > maxY || l.getBlockY() + dy < level - DEPTH || out(l.getBlockX() + dx, l.getBlockZ() + dz)) continue;
+                        // Pas de decor dans ce que le socle donne au sol, ni dans le terrain de la map sous le niveau.
+                        final int en = (l.getBlockZ() + dz - box.z()) * box.sx() + (l.getBlockX() + dx - box.x());
+                        if (dec.fill.get((l.getBlockY() - volY) * cells + en)) continue;
+                        if (l.getBlockY() + dy < level && !s.carve() && l.getBlockY() - volY < dec.dig[en]) continue;
                         try {
                             e.copy(new Location(w, l.getX() + dx, l.getY() + dy, l.getZ() + dz, l.getYaw(), l.getPitch()));
                         } catch (RuntimeException ex) {
@@ -533,25 +604,39 @@ public final class Structures implements Listener {
                         }
                     }
                 }
-                // 4. Le dessous est comble jusqu'au terrain. On descend depuis le niveau du sol : ce que le lieu a pose
-                // reste tel quel, les vides sont remplis (de l'herbe a l'air libre, de la terre, puis de la pierre) ;
+                // 4. Le dessous est comble jusqu'au terrain. On descend depuis le niveau du sol : ce que le lieu a pose ou
+                // creuse reste tel quel, les vides sont remplis (de l'herbe a l'air libre, de la terre, puis de la pierre) ;
                 // une fois sous le lieu, on s'arrete au premier bloc du terrain.
-                int under = s.carve() ? box.y() - 1 : level - 1;
+                final int deep = Math.max(w.getMinHeight() + 1, level - DEPTH);
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
-                    if (!within(w, box, x, z)) continue;
+                    if (out(x, z)) continue;
                     int filled = 0;
-                    // Sous un sol pose en hauteur, on comble depuis lui : le lieu ne flotte pas au-dessus du terrain.
-                    int from = shell[x & 15][z & 15] != Integer.MIN_VALUE ? shell[x & 15][z & 15] - 1 : under;
-                    for (int y = from; y > w.getMinHeight() && filled < 96; y--) {
+                    for (int y = level - 1; y > w.getMinHeight() && filled < 96; y--) {
                         Block b = w.getBlockAt(x, y, z);
                         if (own.contains(pack(x, y, z))) continue;
                         if (!fillable(b.getType())) {
-                            if (y >= box.y()) continue;
+                            if (y >= deep) continue;
                             break;
                         }
-                        boolean open = filled == 0 && from == under && w.getBlockAt(x, y + 1, z).getType().isAir();
+                        boolean open = filled == 0 && w.getBlockAt(x, y + 1, z).getType().isAir();
                         b.setType(open ? Material.GRASS_BLOCK : filled < 3 ? Material.DIRT : Material.STONE, false);
                         filled++;
+                    }
+                }
+                // 5. Le socle : au-dessus du niveau, le vide sous le lieu devient de la terre (sous ce qu'il porte), puis
+                // de la roche (game/Socle.java).
+                final int bottom = Math.max(0, level - dy - volY);
+                for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
+                    if (out(x, z)) continue;
+                    final int n = (z - box.z()) * box.sx() + (x - box.x());
+                    int depth = 0;
+                    for (int vy = volH - 1; vy >= bottom; vy--) {
+                        if (!dec.fill.get(vy * cells + n) || vy == dec.capY[n]) { depth = 0; continue; }
+                        int ty = vy + volY + dy;
+                        if (ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
+                        Block b = w.getBlockAt(x, ty, z);
+                        if (b.getType().isAir()) b.setType(depth < 3 ? Material.DIRT : rock(x, ty, z), false);
+                        depth++;
                     }
                 }
             }
@@ -814,13 +899,6 @@ public final class Structures implements Listener {
 
     private static long pack(int x, int y, int z) {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (z & 0x3FFFFFF) << 12) | (y & 0xFFF);
-    }
-
-    /** Du sol : ce sous quoi l'on comble quand un lieu le pose en hauteur (pas un toit, un pont, un feuillage). */
-    private static boolean soil(Material m) {
-        return org.bukkit.Tag.DIRT.isTagged(m) || org.bukkit.Tag.BASE_STONE_OVERWORLD.isTagged(m) || org.bukkit.Tag.SAND.isTagged(m) || org.bukkit.Tag.TERRACOTTA.isTagged(m)
-                || m == Material.GRAVEL || m == Material.CLAY || m == Material.SNOW_BLOCK || m == Material.SANDSTONE || m == Material.RED_SANDSTONE || m == Material.COBBLESTONE
-                || m == Material.MOSSY_COBBLESTONE || m == Material.BEDROCK;
     }
 
     /** Ce que le comblement remplace sous un lieu : l'air, l'eau, la lave, les plantes, les feuilles. */
