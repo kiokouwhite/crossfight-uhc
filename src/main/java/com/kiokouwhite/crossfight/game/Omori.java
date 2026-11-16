@@ -92,6 +92,69 @@ public final class Omori implements Listener {
         return ArenaWorlds.get(WORLD, new ArenaWorlds.InfiniteFloorGenerator(Material.WHITE_CONCRETE), World.Environment.NORMAL);
     }
 
+    /** Demi-cote de l'Espace Blanc visible : au-dela, tout est blanc, et l'on ne va pas plus loin. */
+    private static final int EDGE = 30;
+    private final List<org.bukkit.entity.TextDisplay> veils = new ArrayList<>();
+
+    /**
+     * Tout est blanc, meme le ciel : quatre murs et un plafond de lumiere blanche, sans ombre, ferment la vue
+     * autour du combat. Ce sont de grands panneaux de texte au fond blanc, tous poses au centre et deportes par
+     * leur transformation, pour rester charges et visibles de partout. Le temps y est fige a midi.
+     */
+    private void veil() {
+        World w = Bukkit.getWorld(WORLD);
+        if (w == null) return;
+        Location c = ArenaWorlds.center(w);
+        // Personne ne sort du blanc.
+        for (Player p : w.getPlayers()) {
+            Location l = p.getLocation();
+            double dx = l.getX() - c.getX(), dz = l.getZ() - c.getZ();
+            if (Math.max(Math.abs(dx), Math.abs(dz)) <= EDGE - 4) continue;
+            l.setX(c.getX() + Math.max(-(EDGE - 5), Math.min(EDGE - 5, dx)));
+            l.setZ(c.getZ() + Math.max(-(EDGE - 5), Math.min(EDGE - 5, dz)));
+            p.teleport(l);
+        }
+        veils.removeIf(v -> !v.isValid());
+        if (!veils.isEmpty()) return;
+        w.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
+        w.setGameRule(org.bukkit.GameRule.DO_WEATHER_CYCLE, false);
+        w.setTime(6000);
+        w.setStorm(false);
+        // Un pave de blocs pleins, blancs sur blanc : 4 blocs de cote avant mise a l'echelle.
+        String row = "\u2588".repeat(18);
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < 16; i++) text.append(i == 0 ? "" : "\n").append(row);
+        float[][] faces = { { 0, 0, EDGE }, { 90, 0, EDGE }, { 180, 0, EDGE }, { 270, 0, EDGE }, { 0, 90, 40 } };
+        // Les blocs pleins de la police ne se touchent pas : quatre couches decalees d'une demi-case bouchent les joints.
+        for (float[] f : faces) for (int layer = 0; layer < 4; layer++) {
+            final float sx = (layer & 1) * 6.75f, sy = (layer >> 1) * 7.5f;
+            Location at = c.clone().add(0, 1, 0);
+            at.setYaw(f[0]);
+            at.setPitch(f[1]);
+            veils.add(w.spawn(at, org.bukkit.entity.TextDisplay.class, d -> {
+                d.text(net.kyori.adventure.text.Component.text(text.toString(), net.kyori.adventure.text.format.NamedTextColor.WHITE));
+                d.setLineWidth(2000);
+                d.setBackgroundColor(Color.fromARGB(255, 255, 255, 254));
+                d.setShadowed(false);
+                d.setSeeThrough(false);
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setBillboard(Display.Billboard.FIXED);
+                d.setViewRange(12f);
+                d.setDisplayWidth(400f);
+                d.setDisplayHeight(400f);
+                d.setPersistent(false);
+                // Le panneau part de son pied : on le centre (murs : de 40 sous le sol a 200 au-dessus), et on le recule.
+                d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(sx, (f[1] == 0 ? -40 : -120) + sy, -f[2]),
+                        new org.joml.Quaternionf(), new org.joml.Vector3f(60, 60, 1), new org.joml.Quaternionf()));
+            }));
+        }
+    }
+
+    private void unveil() {
+        for (var v : veils) v.remove();
+        veils.clear();
+    }
+
     /** Ceux qui se battent dans l'Espace Blanc. */
     private List<Player> fighters() {
         List<Player> out = new ArrayList<>();
@@ -229,7 +292,8 @@ public final class Omori implements Listener {
         }
         music();
         List<Player> in = fighters();
-        if (in.isEmpty()) { if (boss != null) { if (puppet != null) puppet.remove(); puppet = null; boss.remove(); boss = null; } return; }
+        if (in.isEmpty()) { if (boss != null) { if (puppet != null) puppet.remove(); puppet = null; boss.remove(); boss = null; } unveil(); return; }
+        veil();
         if (boss == null || !boss.isValid()) summon();
         else if (puppet != null && !puppet.shown()) dress();
         for (Player p : new ArrayList<>(bar.getPlayers())) if (!in.contains(p)) bar.removePlayer(p);
@@ -951,6 +1015,7 @@ public final class Omori implements Listener {
         }
         if (nameBar != null) nameBar.removeAll();
         nameBar = null;
+        unveil();
         for (UUID id : musicSince.keySet()) { Player p = Bukkit.getPlayer(id); if (p != null) p.stopSound(com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS); }
         musicSince.clear();
         if (puppet != null) puppet.remove();

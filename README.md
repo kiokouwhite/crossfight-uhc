@@ -173,7 +173,7 @@ Dans la fosse, un coup qui tuerait ne tue pas : le joueur est à terre et regard
 
 ### Événement Omori
 
-À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. C'est une vraie porte, blanche, haute de deux blocs et incassable : un clic droit dessus l'ouvre et emmène dans l'Espace Blanc, un monde au sol blanc sans fin où attend le boss Omori.
+À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. C'est une vraie porte, blanche, haute de deux blocs et incassable : un clic droit dessus l'ouvre et emmène dans l'Espace Blanc, un monde au sol blanc où attend le boss Omori. Tout y est blanc, même le ciel : quatre murs et un plafond de lumière blanche, sans ombre, ferment la vue à 30 blocs du centre (de grands panneaux de texte en blocs pleins, quatre couches décalées par face), il y est toujours midi, et l'on ne peut pas s'éloigner à plus de 25 blocs du centre.
 
 Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 30, 35, 40, 45 puis 50 coups, avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes ; le nom de chacune s'annonce une seconde avant qu'elle parte, dans une seconde barre rouge sous la sienne, qui se vide pendant ce délai :
 
