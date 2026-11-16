@@ -684,6 +684,15 @@ public final class Lootbox implements Listener {
         return true;
     }
 
+    /** Le contenu d'une lootbox de ce tier, donne directement a un joueur (recompense de Regna Ferox). */
+    public void reward(Player p, int tier) {
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        List<Loot> pool = new ArrayList<>();
+        for (Loot l : LOOTS.values()) if (l.tier() == tier) pool.add(l);
+        List<ItemStack> gifts = new ArrayList<>(List.of(new ItemStack(Material.DIAMOND, r.nextInt(2, 9)), new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)), item(pool.get(r.nextInt(pool.size())).id())));
+        for (ItemStack rest : p.getInventory().addItem(gifts.toArray(new ItemStack[0])).values()) p.getWorld().dropItemNaturally(p.getLocation(), rest);
+    }
+
     /** La colonne de lumiere qui signale une lootbox de loin, a la couleur de son tier. */
     private void beam(Block b, int tier) {
         Particle.DustOptions dust = new Particle.DustOptions(TIER_BEAM[tier - 1], 2.2f);

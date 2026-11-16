@@ -75,6 +75,30 @@ public final class LivesManager {
         }
     }
 
+    /**
+     * Une vie perdue sans mourir (l'equipe battue a Regna Ferox...) : le joueur continue s'il lui en reste,
+     * sinon il est elimine comme a sa derniere mort.
+     */
+    public void loseLife(Player p, String why) {
+        CfPlayer cf = plugin.players().get(p);
+        Team team = cf.team();
+        if (!cf.isAlive()) return;
+        cf.addLife(-1);
+        if (cf.lives() > 0) {
+            Msg.broadcast("<red>" + p.getName() + " <gray>perd une vie (" + why + "). Il lui en reste <red>" + cf.lives() + "</red>.");
+            return;
+        }
+        Msg.broadcast("<red>" + p.getName() + " <gray>a perdu sa derniere vie (" + why + ") !");
+        plugin.abilities().unequip(p);
+        p.setGameMode(GameMode.SPECTATOR);
+        cf.setWaitingRespawn(false);
+        if (team != null && plugin.teams().checkElimination(team)) {
+            Msg.broadcast(team.coloredName() + " <gray>est eliminee !");
+            for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().onTeamEliminated(team);
+        }
+        plugin.game().checkWin();
+    }
+
     private boolean allDownOrWaiting(Team team) {
         for (UUID u : team.members()) {
             CfPlayer cf = plugin.players().get(u);

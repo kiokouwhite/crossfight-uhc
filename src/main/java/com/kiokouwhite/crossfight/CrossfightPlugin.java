@@ -74,6 +74,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         scenarios.start();
         lootbox = new com.kiokouwhite.crossfight.game.Lootbox(this);
         pm.registerEvents(lootbox, this);
+        ferox = new com.kiokouwhite.crossfight.game.RegnaFerox(this);
+        pm.registerEvents(ferox, this);
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
         pm.registerEvents(hostTools, this);
         ores = new com.kiokouwhite.crossfight.game.Ores(this);
@@ -148,6 +150,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     private com.kiokouwhite.crossfight.game.Ores ores;
     private com.kiokouwhite.crossfight.game.HostTools hostTools;
     private com.kiokouwhite.crossfight.game.Lootbox lootbox;
+    private com.kiokouwhite.crossfight.game.RegnaFerox ferox;
+    public com.kiokouwhite.crossfight.game.RegnaFerox ferox() { return ferox; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }
     private com.kiokouwhite.crossfight.game.Roster roster;
     public com.kiokouwhite.crossfight.game.Roster roster() { return roster; }

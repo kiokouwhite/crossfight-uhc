@@ -28,6 +28,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
+| `/cf ferox oui\|non` | Répondre à la proposition de Regna Ferox |
+| `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
@@ -158,6 +160,12 @@ Le tier est tiré au sort : tier 1 (45 %), tier 2 (35 %), tier 3 (19 %), tier 4 
 | 4 | Expiration (labyrinthe d'épines de 20×20 pendant 30 s), Livre de Naga (toute sa vie ; les ennemis à 30 blocs perdent définitivement la vie qu'avait le lanceur) |
 
 Choix faits là où le document ne tranche pas : « reach de 2 » est une allonge de 2 blocs (3 d'ordinaire) ; les lances infligent 3 cœurs ; Soin et Sauvetage visent l'allié regardé, sinon le plus proche ; Gae Bolg et Gravidus reviennent aussi après avoir touché, avec une utilisation de moins ; le lac de lave dure 20 s ; le labyrinthe laisse au moins un cœur de vie maximale aux victimes du Livre de Naga. Les haches de Lootbox blessent les joueurs, contrairement aux haches fabriquées.
+
+### Événement Regna Ferox
+
+À la minute `regna-ferox` (30 par défaut), chaque joueur en vie reçoit dans le chat une proposition de duel d'équipes, avec deux boutons : Participer et Refuser (ou `/cf ferox oui`, `/cf ferox non`). Une équipe est inscrite quand tous ses membres en vie ont accepté ; les deux premières inscrites sont emmenées dans l'arène de Ferox, un monde à part. Sans deux équipes inscrites au bout de 60 secondes, l'arène se referme.
+
+Dans l'arène, un coup qui tuerait ne tue pas : le joueur est à terre et regarde la fin du combat en spectateur. L'équipe qui met toute l'autre à terre gagne : chacun de ses joueurs reçoit le contenu d'une Lootbox de tier IV (diamants, or et un objet de tier IV) ; chaque joueur de l'équipe battue perd une vie. Tout le monde revient ensuite là où il était, avec la vie qu'il avait (pleine pour ceux qui étaient à terre). Au bout de 5 minutes sans vainqueur, personne ne gagne ni ne perd. On s'y bat même si le PvP n'est pas encore ouvert sur la map ; un joueur qui se déconnecte en plein combat compte comme à terre.
 
 ### Scénarios
 

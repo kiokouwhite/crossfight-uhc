@@ -40,6 +40,17 @@ public final class CfCommand implements TabExecutor {
             case "licences", "licenses" -> licences(sender);
             case "perso", "character" -> character(sender, args);
             case "team" -> team(sender, args);
+            case "ferox" -> {
+                // /cf ferox oui|non : repondre a la proposition de Regna Ferox ; /cf ferox lancer : l'ouvrir tout de suite (admin).
+                if (!(sender instanceof Player sp)) return true;
+                String what = args.length > 1 ? args[1].toLowerCase() : "";
+                if (what.equals("lancer")) {
+                    if (!sender.hasPermission("crossfight.admin") && !isHost(sender)) { Msg.send(sender, "<red>Tu n'as pas la permission."); return true; }
+                    if (plugin.game().state() != com.kiokouwhite.crossfight.game.GameState.RUNNING) { Msg.send(sender, "<red>Seulement pendant une partie."); return true; }
+                    plugin.ferox().ask();
+                } else if (what.equals("oui") || what.equals("non")) plugin.ferox().answer(sp, what.equals("oui"));
+                else Msg.send(sp, "<yellow>/cf ferox oui|non");
+            }
             case "choose" -> {
                 // John : choisir ses pouvoirs absorbes.
                 if (!(sender instanceof Player sp)) return true;
@@ -675,7 +686,7 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
             if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
@@ -699,6 +710,7 @@ public final class CfCommand implements TabExecutor {
                 case "scenario", "scenarios" -> { for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) out.add(s.id()); }
                 case "loot" -> { out.add("tous"); out.addAll(com.kiokouwhite.crossfight.game.Lootbox.ids()); }
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
+                case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

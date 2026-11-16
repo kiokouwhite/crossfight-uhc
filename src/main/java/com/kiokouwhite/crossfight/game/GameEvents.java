@@ -5,7 +5,7 @@ import com.kiokouwhite.crossfight.util.Msg;
 
 /**
  * Planification des evenements de la partie (lootbox, Regna Ferox, Match Found,
- * Judgement, Omori). Les Lootbox sont en place (game/Lootbox.java) ; les autres sont
+ * Judgement, Omori). Les Lootbox (game/Lootbox.java) et Regna Ferox (game/RegnaFerox.java) sont en place ; les autres sont
  * encore seulement annonces, leur logique sera branchee ici au fur et a mesure.
  */
 public final class GameEvents {
@@ -25,7 +25,7 @@ public final class GameEvents {
             plugin.lootbox().wave();
         }
         if (minute == minuteOf("regna-ferox", 30)) {
-            Msg.broadcast("<gold><bold>Evenement :</bold> Regna Ferox ouvre son arene ! <dark_gray>(a venir)");
+            plugin.ferox().ask();
         }
         if (minute == minuteOf("match-found", 40)) {
             Msg.broadcast("<gold><bold>Evenement :</bold> Match Found ! <dark_gray>(a venir)");

@@ -1,0 +1,5 @@
+# Événement Regna Ferox
+
+À la minute `regna-ferox` (30 par défaut), chaque joueur en vie reçoit dans le chat une proposition de duel d'équipes, avec deux boutons : Participer et Refuser (ou `/cf ferox oui`, `/cf ferox non`). Une équipe est inscrite quand tous ses membres en vie ont accepté ; les deux premières inscrites sont emmenées dans l'arène de Ferox, un monde à part. Sans deux équipes inscrites au bout de 60 secondes, l'arène se referme.
+
+Dans l'arène, un coup qui tuerait ne tue pas : le joueur est à terre et regarde la fin du combat en spectateur. L'équipe qui met toute l'autre à terre gagne : chacun de ses joueurs reçoit le contenu d'une Lootbox de tier IV (diamants, or et un objet de tier IV) ; chaque joueur de l'équipe battue perd une vie. Tout le monde revient ensuite là où il était, avec la vie qu'il avait (pleine pour ceux qui étaient à terre). Au bout de 5 minutes sans vainqueur, personne ne gagne ni ne perd. On s'y bat même si le PvP n'est pas encore ouvert sur la map ; un joueur qui se déconnecte en plein combat compte comme à terre.

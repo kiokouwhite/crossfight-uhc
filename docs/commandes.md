@@ -6,6 +6,8 @@
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
+| `/cf ferox oui\|non` | Répondre à la proposition de Regna Ferox |
+| `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |

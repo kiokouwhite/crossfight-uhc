@@ -123,7 +123,8 @@ public final class DamageListener implements Listener {
             e.setCancelled(true);
             return;
         }
-        if (!plugin.game().isPvpEnabled()) {
+        // Dans l'arene de Regna Ferox, on se bat meme si le PvP n'est pas encore ouvert sur la map.
+        if (!plugin.game().isPvpEnabled() && !(plugin.ferox().fighting(attacker) && plugin.ferox().fighting(victim))) {
             e.setCancelled(true);
             Msg.actionBar(attacker, "<red>Le PvP n'est pas encore actif.");
             return;
