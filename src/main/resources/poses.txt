@@ -855,3 +855,41 @@ pose sova_fureur
   leg_l 0 0 8
   item_left 0 0 0
   item_abs 90 0 0
+
+# Le Dash electrique de Remi (unOrdinary) : elle fonce, le buste couche vers l'avant, le regard droit devant,
+# le poing gauche ramene devant elle, le bras droit rejete en arriere, en pleine foulee.
+pose remi_dash
+  root  44 0 0   0 -2 2
+  head  -40 0 0
+  arm_l -38 0 14
+  arm_r 62 0 -16
+  leg_r -58 0 -4
+  leg_l 34 0 4
+
+# L'Electricite de Remi : le bras droit tendu droit devant, la main ouverte vers la cible, le buste un peu
+# penche, l'autre bras en retrait, les jambes en appui.
+pose remi_electricite
+  root  8 -10 0
+  head  -6 10 0
+  arm_r -92 -8 0
+  arm_l 26 0 16
+  leg_r -16 0 -5
+  leg_l 18 0 5
+
+# Le Dome electrique de Remi. En l'air : le corps cambre, les deux poings leves au-dessus de la tete, les jambes
+# repliees. Puis l'impact : accroupie, le buste couche, les deux poings plantes dans le sol devant elle.
+pose remi_ult_vol
+  root  -14 0 0
+  head  -18 0 0
+  arm_r -160 0 -14
+  arm_l -160 0 14
+  leg_r 34 0 -5
+  leg_l -22 0 5
+
+pose remi_ult_frappe
+  root  38 0 0   0 -7 2
+  head  -24 0 0
+  arm_r -52 0 8
+  arm_l -52 0 -8
+  leg_r -72 0 -7
+  leg_l -72 0 7

@@ -109,6 +109,56 @@ public final class Remi extends Character {
         }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
     }
 
+    /** Duree de la ruee, en ticks : assez pour qu'on la voie foncer. */
+    static final int DASH_TICKS = 6;
+    static final Particle.DustOptions STREAK = new Particle.DustOptions(Color.fromRGB(255, 190, 40), 0.9f);
+    static final Particle.DustOptions STREAK_DARK = new Particle.DustOptions(Color.fromRGB(60, 40, 10), 0.7f);
+    static final Particle.DustOptions EYE = new Particle.DustOptions(Color.fromRGB(255, 70, 30), 0.6f);
+
+    /**
+     * La ruee, vue de l'exterieur : Remi fonce le buste en avant, un poing devant elle et l'autre bras rejete en
+     * arriere, les yeux rougeoyants qui laissent une trainee ; des traits de vitesse dores filent autour d'elle et
+     * des eclairs bleus s'enroulent sur son corps.
+     */
+    static void dashLook(Player p, Vector dir) {
+        com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "remi", null, "remi_dash");
+        if (pu != null) {
+            pu.face(p.getLocation().setDirection(dir).getYaw());
+            pu.endAfter(DASH_TICKS + 3, 4);
+        }
+        Vector side = dir.clone().crossProduct(new Vector(0, 1, 0)).normalize();
+        World w = p.getWorld();
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                if (!p.isOnline() || t++ > DASH_TICKS + 1) { cancel(); return; }
+                Location c = p.getLocation();
+                // Les traits de vitesse : de longues pointes dorees, bordees de sombre, qui filent le long d'elle.
+                for (int k = 0; k < 5; k++) {
+                    Vector off = side.clone().multiply((Math.random() < 0.5 ? -1 : 1) * (0.7 + Math.random() * 1.1)).add(new Vector(0, 0.2 + Math.random() * 1.9, 0));
+                    Location head = c.clone().add(off).add(dir.clone().multiply(0.6 + Math.random()));
+                    Location tail = head.clone().subtract(dir.clone().multiply(2.2 + Math.random() * 1.6));
+                    com.kiokouwhite.crossfight.util.Fx.line(tail, head, 0.2, STREAK);
+                    com.kiokouwhite.crossfight.util.Fx.line(tail.clone().add(0, -0.07, 0), head.clone().add(0, -0.07, 0), 0.35, STREAK_DARK);
+                }
+                // Les yeux rouges, et la trainee qu'ils laissent.
+                for (int eye = -1; eye <= 1; eye += 2) {
+                    Location at = c.clone().add(0, 1.25, 0).add(dir.clone().multiply(0.75)).add(side.clone().multiply(eye * 0.13));
+                    com.kiokouwhite.crossfight.util.Fx.line(at.clone().subtract(dir.clone().multiply(0.9)).add(side.clone().multiply(eye * 0.25)), at, 0.12, EYE);
+                }
+                // Les eclairs bleus qui s'enroulent autour d'elle.
+                for (int k = 0; k < 2; k++) {
+                    Location cur = c.clone().add((Math.random() - 0.5) * 1.6, 0.2 + Math.random() * 1.6, (Math.random() - 0.5) * 1.6);
+                    for (int seg = 0; seg < 5; seg++) {
+                        Location next = cur.clone().add((Math.random() - 0.5) * 1.1, (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 1.1).subtract(dir.clone().multiply(0.3));
+                        arc(w, cur, next, seg == 0);
+                        cur = next;
+                    }
+                }
+            }
+        }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
+    }
+
     static final class DashElectrique extends ActiveAbility {
         DashElectrique() {
             super("remi_dash", "Dash electrique", "Remi fonce en avant sur 10 blocs dans une trainee magenta bordee d'eclairs, qui reste 5 secondes : Lenteur et 1 coeur par seconde aux ennemis dedans.", Material.FEATHER, 25);
@@ -124,7 +174,8 @@ public final class Remi extends Character {
                 if (!l.getBlock().isPassable()) break;
                 points.add(l);
             }
-            Effects.rush(p, from.clone().add(dir.clone().multiply(10)), 4, Particle.ELECTRIC_SPARK);
+            Effects.rush(p, from.clone().add(dir.clone().multiply(10)), DASH_TICKS, Particle.ELECTRIC_SPARK);
+            dashLook(p, dir);
             World w = p.getWorld();
             w.playSound(from, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.5f, 2f);
             w.spawnParticle(Particle.DUST, from.clone().add(0, 1, 0), 40, 0.8, 0.8, 0.8, 0, MAGENTA);
@@ -148,6 +199,21 @@ public final class Remi extends Character {
             Location l = a.clone().add(d.clone().multiply(x));
             w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, core ? BOLT_CORE : BOLT);
         }
+    }
+
+    /** Quelques arcs autour d'un corps, une seule fois. */
+    static void electrifyOnce(LivingEntity target) {
+        World w = target.getWorld();
+        Location c = target.getLocation().add(0, 1, 0);
+        for (int k = 0; k < 2; k++) {
+            Location cur = c.clone().add((Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.8, (Math.random() - 0.5) * 1.4);
+            for (int seg = 0; seg < 4; seg++) {
+                Location next = cur.clone().add((Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9, (Math.random() - 0.5) * 0.9);
+                arc(w, cur, next, seg == 0);
+                cur = next;
+            }
+        }
+        w.spawnParticle(Particle.ELECTRIC_SPARK, c, 3, 0.4, 0.7, 0.4, 0.05);
     }
 
     /** L'adversaire est electrise : arcs qui crepitent autour de son corps pendant un temps. */
@@ -193,6 +259,28 @@ public final class Remi extends Character {
                 if (dist < best) { best = dist; target = e; }
             }
             final LivingEntity aim = target;
+            // Elle tend la main vers sa cible : l'eclair en part, des arcs crepitent autour de ses doigts.
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "remi", null, "remi_electricite");
+            if (pu != null) pu.endAfter(14, 4);
+            new BukkitRunnable() {
+                int n = 0;
+                @Override public void run() {
+                    if (!p.isOnline() || n++ > 12) { cancel(); return; }
+                    Vector look = p.getLocation().getDirection().setY(0);
+                    if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
+                    look.normalize();
+                    Location hand = p.getLocation().add(0, 1.35, 0).add(look.clone().multiply(0.8)).add(look.clone().crossProduct(new Vector(0, 1, 0)).multiply(0.3));
+                    for (int k = 0; k < 2; k++) {
+                        Location cur = hand.clone();
+                        for (int seg = 0; seg < 3; seg++) {
+                            Location next = cur.clone().add((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5).add(look.clone().multiply(0.12));
+                            arc(w, cur, next, seg == 0);
+                            cur = next;
+                        }
+                    }
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, hand, 2, 0.1, 0.1, 0.1, 0.03);
+                }
+            }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
             w.playSound(start, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.6f, 1.9f);
             w.playSound(start, Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.8f);
             List<Location> points = new ArrayList<>();
@@ -292,9 +380,58 @@ public final class Remi extends Character {
         DomeElectrique() {
             super("remi_ult", "Dome electrique", "Pendant 15 secondes, un dome electrique de 40 blocs de large : des eclairs tombent a l'interieur, les ennemis dedans perdent 1 coeur par seconde, ont Lenteur et sont electrises.", Material.BEACON);
         }
+        /** Ticks passes en l'air avant de redescendre frapper le sol, puis delai de secours si elle ne touche rien. */
+        static final int RISE = 12, FALL_MAX = 30;
+
+        /**
+         * Elle s'eleve un instant, les poings leves, puis fond sur le sol et le frappe des deux poings : un eclair
+         * la touche a l'impact, et le dome part de la.
+         */
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             World w = p.getWorld();
-            Location c = p.getLocation().clone();
+            Effects.noFallUntil(p, 6000);
+            p.setVelocity(new Vector(0, 0.95, 0));
+            w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_JUMP, 1f, 1.2f);
+            w.playSound(p.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.6f);
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "remi", null, "remi_ult_vol");
+            new BukkitRunnable() {
+                int t = 0;
+                boolean falling;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead()) { if (pu != null) pu.remove(); cancel(); return; }
+                    // Des arcs se rassemblent autour d'elle pendant qu'elle monte.
+                    electrifyOnce(p);
+                    if (!falling) {
+                        // Un instant suspendue en haut, puis elle fond vers le sol.
+                        if (t > RISE - 4) p.setVelocity(new Vector(0, 0.04, 0));
+                        if (t < RISE) return;
+                        falling = true;
+                        p.setVelocity(new Vector(0, -2.2, 0));
+                        if (pu != null) pu.pose("remi_ult_frappe", 3);
+                        w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 0.7f);
+                        return;
+                    }
+                    boolean landed = p.isOnGround() || !p.getLocation().clone().subtract(0, 0.25, 0).getBlock().isPassable();
+                    if (!landed && t < RISE + FALL_MAX) { p.setVelocity(new Vector(0, -2.2, 0)); return; }
+                    cancel();
+                    if (pu != null) pu.endAfter(12, 5);
+                    Location c = p.getLocation().clone();
+                    // Le sol encaisse : poussiere, onde, puis l'eclair qui la frappe.
+                    w.spawnParticle(Particle.BLOCK, c.clone().add(0, 0.1, 0), 60, 1.2, 0.1, 1.2, 0, c.clone().subtract(0, 0.5, 0).getBlock().getBlockData());
+                    w.spawnParticle(Particle.EXPLOSION, c.clone().add(0, 0.3, 0), 2, 0.4, 0, 0.4, 0);
+                    w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 0.7f);
+                    Location sky = c.clone().add(0, 18, 0);
+                    for (int k = 0; k < 3; k++) com.kiokouwhite.crossfight.util.Fx.bolt(sky.clone().add((Math.random() - 0.5) * 3, 0, (Math.random() - 0.5) * 3), c.clone().add(0, 1, 0), 0.9, k == 0 ? BOLT_CORE : BOLT);
+                    electrify(p, 14);
+                    dome(p, c);
+                }
+            }.runTaskTimer(Unordinary.plugin(), 1L, 1L);
+            return true;
+        }
+
+        private void dome(Player p, Location c) {
+            World w = p.getWorld();
             final double R = 20.0;
             w.strikeLightningEffect(c);
             w.playSound(c, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.2f);
@@ -358,7 +495,6 @@ public final class Remi extends Character {
                     } catch (Exception ex) { cancel(); }
                 }
             }.runTaskTimer(Unordinary.plugin(), 0L, 1L);
-            return true;
         }
     }
 }
