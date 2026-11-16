@@ -334,6 +334,7 @@ skin.livai
 skin.marth
 skin.mikasa
 skin.neon
+skin.omori
 skin.remi
 skin.ruby
 skin.sage
