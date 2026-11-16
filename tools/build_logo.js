@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const LARGEUR = 448, HAUTEUR = 60, MONTEE = 5;
+const LARGEUR = 448, HAUTEUR = 30, MONTEE = 5;
 const root = path.join(__dirname, '..');
 const svg = fs.readFileSync(path.join(__dirname, 'logo', 'crossfight_uhc.svg'), 'utf8');
 const box = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);

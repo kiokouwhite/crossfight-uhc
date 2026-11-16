@@ -1,6 +1,6 @@
 {
   "providers": [
     { "type": "space", "advances": { "\uE002": -1 } },
-    { "type": "bitmap", "file": "crossfight:font/logo.png", "height": 60, "ascent": 5, "chars": ["\uE000\uE001"] }
+    { "type": "bitmap", "file": "crossfight:font/logo.png", "height": 30, "ascent": 5, "chars": ["\uE000\uE001"] }
   ]
 }

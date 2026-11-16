@@ -86,8 +86,8 @@ public final class ScoreboardManager {
         return showsLogo(p) ? LOGO : Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
     }
 
-    /** Lignes vides sous le titre, pour la hauteur du logo (60 pixels : la ligne du titre et six autres de 9). */
-    private static final int LOGO_LINES = 6;
+    /** Lignes vides sous le titre, pour la hauteur du logo (30 pixels : la ligne du titre et trois autres de 9). */
+    private static final int LOGO_LINES = 3;
 
     private boolean showsLogo(Player p) {
         String mode = plugin.getConfig().getString("scoreboard.logo", "auto").toLowerCase(java.util.Locale.ROOT);
