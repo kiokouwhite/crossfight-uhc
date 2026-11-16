@@ -234,8 +234,10 @@ def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
     # suivante elles montent d'un cran, et au bout de la boucle chacune a pris la place de la suivante.
     stream = []
     for j in range(COPIES):
-        # Avec deux effets, leurs icones alternent dans la file : il y a toujours COPIES icones en tout.
-        n = (j // STEP + j % STEP) % len(effects)
+        # Avec deux effets, chacun a ses files (une sur deux) : a la fin de la boucle, une icone prend la place de
+        # celle qui est STEP rangs plus haut, qui doit donc etre du meme effet, sinon les icones changent d'effet
+        # d'un coup. Il y a toujours COPIES icones en tout.
+        n = (j % STEP) % len(effects)
         t = (j / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
         stream.append((t, j % STEP, effects[n], colors[n]))
     for t, lane, e, color in sorted(stream):
