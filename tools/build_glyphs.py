@@ -15,12 +15,15 @@ Et, pour Valorant : un orbe (glyph.orbe, teint en jeu : les orbes de Sage), un a
 bourrasques de Jett) et un couteau de lancer (glyph.kunai : sa Tempete de Lames).
 """
 import json
+import math
 from pathlib import Path
 
-from PIL import Image, ImageFilter, ImageChops
+from PIL import Image, ImageDraw, ImageFilter, ImageChops
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "resourcepack-prive" / "glyphes"
+# Des images gardees telles quelles, en couleurs (une image officielle fournie : la porte blanche d'Omori...).
+PHOTOS = ROOT / "resourcepack-prive" / "glyphes-couleur"
 OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight"
 PUBLIC = ROOT / "resourcepack" / "assets" / "crossfight"
 SIZE = 512
@@ -156,6 +159,87 @@ def kunai() -> Image.Image:
     return img
 
 
+def photo(src: Path) -> Image.Image:
+    """Une image fournie sur fond blanc, gardee en couleurs : on la recadre sur son sujet (tout ce qui n'est pas
+    le blanc du fond), on rend le fond transparent autour de son rectangle, et on la centre dans un carre."""
+    im = Image.open(src).convert("RGB")
+    box = im.convert("L").point(lambda v: 255 if v < 246 else 0).getbbox()
+    cut = im.crop(box).convert("RGBA")
+    side = max(cut.size) + 8
+    sq = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    sq.paste(cut, ((side - cut.width) // 2, (side - cut.height) // 2))
+    return sq
+
+
+def white_door() -> Image.Image:
+    """Une porte blanche a six panneaux, seule, sans mur (pack public) : la porte de l'Espace Blanc de l'evenement
+    Omori. Elle doit avoir l'air d'une photo d'une vraie porte, un peu sale : panneaux moulures aux ombres
+    douces, grain, taches grises, eraflures, crasse en bas et autour de la poignee, bords uses. Image originale,
+    fabriquee ici de toutes pieces (aucune photo, aucune image du jeu)."""
+    import random
+    rnd = random.Random(7)
+    S, K = 256, 3                       # image finale, et facteur de dessin (reduit ensuite : bords doux)
+    W, H = S * K, S * K
+    x0, x1, y0, y1 = 83 * K, 173 * K, 5 * K, 251 * K
+    base = Image.new("L", (W, H), 0)
+    d = ImageDraw.Draw(base)
+    d.rectangle((x0, y0, x1, y1), fill=238)
+    # Les panneaux : un creux plus sombre en haut et a gauche (l'ombre de la moulure), plus clair en bas a droite.
+    def panel(px0, py0, px1, py1):
+        for i, v in enumerate((176, 200, 222, 232)):
+            d.rectangle((px0 + i * K, py0 + i * K, px1 - i * K, py1 - i * K), fill=v)
+        d.rectangle((px0 + 4 * K, py0 + 4 * K, px1 - 4 * K, py1 - 4 * K), fill=241)
+        d.line([(px0 + K, py1 - K), (px1 - K, py1 - K)], fill=250, width=K)
+        d.line([(px1 - K, py0 + K), (px1 - K, py1 - K)], fill=247, width=K)
+    for px0, px1 in ((x0 + 13 * K, x0 + 39 * K), (x1 - 39 * K, x1 - 13 * K)):
+        panel(px0, y0 + 16 * K, px1, y0 + 100 * K)
+        panel(px0, y0 + 118 * K, px1, y0 + 196 * K)
+        panel(px0, y0 + 208 * K, px1, y0 + 234 * K)
+    # La poignee ronde et son ombre portee.
+    kx, ky = x1 - 9 * K, y0 + 108 * K
+    d.ellipse((kx - 6 * K + 2 * K, ky - 6 * K + 3 * K, kx + 6 * K + 2 * K, ky + 6 * K + 3 * K), fill=188)
+    d.ellipse((kx - 6 * K, ky - 6 * K, kx + 6 * K, ky + 6 * K), fill=226)
+    d.ellipse((kx - 4 * K, ky - 5 * K, kx + 2 * K, ky + K), fill=250)
+    base = base.filter(ImageFilter.GaussianBlur(K * 0.7))
+    # La crasse : de grandes taches floues, plus denses en bas, sur les bords et autour de la poignee.
+    dirt = Image.new("L", (W, H), 0)
+    dd = ImageDraw.Draw(dirt)
+    for _ in range(170):
+        px, py = rnd.randint(x0, x1), int(y0 + (y1 - y0) * rnd.random() ** 0.55)
+        r = rnd.randint(4 * K, 22 * K)
+        dd.ellipse((px - r, py - r // 2, px + r, py + r // 2), fill=rnd.randint(10, 46))
+    for _ in range(40):
+        r = rnd.randint(3 * K, 10 * K)
+        px, py = kx + rnd.randint(-16 * K, 4 * K), ky + rnd.randint(-18 * K, 18 * K)
+        dd.ellipse((px - r, py - r, px + r, py + r), fill=rnd.randint(14, 40))
+    dd.rectangle((x0, y1 - 14 * K, x1, y1), fill=44)
+    dd.rectangle((x0, y0, x0 + 3 * K, y1), fill=36)
+    dirt = dirt.filter(ImageFilter.GaussianBlur(K * 5))
+    # Les eraflures : de fins traits sombres, et quelques eclats ou la peinture a saute.
+    marks = Image.new("L", (W, H), 0)
+    dm = ImageDraw.Draw(marks)
+    for _ in range(46):
+        px, py = rnd.randint(x0, x1), rnd.randint(y0, y1)
+        ln, an = rnd.randint(6 * K, 34 * K), rnd.uniform(-0.5, 0.5) + (1.57 if rnd.random() < 0.7 else 0)
+        dm.line([(px, py), (px + ln * math.cos(an), py + ln * math.sin(an))], fill=rnd.randint(40, 110), width=rnd.choice((1, 1, 2)))
+    for _ in range(120):
+        px, py = rnd.choice((rnd.randint(x0, x0 + 6 * K), rnd.randint(x1 - 6 * K, x1), rnd.randint(x0, x1))), rnd.randint(y0, y1)
+        r = rnd.randint(1, 2 * K)
+        dm.ellipse((px - r, py - r, px + r, py + r), fill=rnd.randint(50, 130))
+    marks = marks.filter(ImageFilter.GaussianBlur(0.8))
+    # Le grain d'une photo.
+    noise = Image.effect_noise((W, H), 16).filter(ImageFilter.GaussianBlur(0.6))
+    tone = ImageChops.subtract(ImageChops.subtract(base, dirt), marks.point(lambda v: v // 2))
+    tone = ImageChops.add(ImageChops.subtract(tone, Image.new("L", (W, H), 22)), noise.point(lambda v: v // 6))
+    # Un blanc un peu jauni, plus froid dans les ombres.
+    rgb = Image.merge("RGB", (tone.point(lambda v: min(255, int(v * 1.0 + 4))), tone.point(lambda v: min(255, int(v * 0.99 + 3))), tone.point(lambda v: int(v * 0.955))))
+    mask = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(mask).rectangle((x0, y0, x1, y1), fill=255)
+    out = rgb.convert("RGBA")
+    out.putalpha(mask)
+    return out.resize((S, S), Image.LANCZOS)
+
+
 def write(name: str, img: Image.Image, out: Path = OUT):
     tex = out / "textures" / "item" / "glyph" / f"{name}.png"
     tex.parent.mkdir(parents=True, exist_ok=True)
@@ -180,6 +264,13 @@ def main() -> int:
     # Valorant : les orbes de Sage, les bourrasques et les couteaux de Jett.
     for name, img in (("orbe", orb()), ("vent", gust()), ("kunai", kunai())):
         print(write(name, img, PUBLIC).relative_to(ROOT))
+    # L'evenement Omori : la porte blanche de l'Espace Blanc.
+    print(write("porte_blanche", white_door(), PUBLIC).relative_to(ROOT))
+    # Les images officielles fournies remplacent, dans le pack complet, le dessin public du meme nom.
+    if PHOTOS.is_dir():
+        for src in sorted(PHOTOS.iterdir()):
+            if src.suffix.lower() in (".png", ".webp"):
+                print(write(src.stem, photo(src)).relative_to(ROOT))
     if not SOURCES.is_dir():
         print(f"pas de {SOURCES} : rien a faire (les Glyphs gardent leurs particules)")
         return 0

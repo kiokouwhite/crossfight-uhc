@@ -10,6 +10,7 @@
   * [Administrateurs de partie et règles](deroulement-d-une-partie/administrateurs-de-partie-et-regles.md)
   * [Événement Lootbox](deroulement-d-une-partie/evenement-lootbox.md)
   * [Événement Regna Ferox](deroulement-d-une-partie/evenement-regna-ferox.md)
+  * [Événement Omori](deroulement-d-une-partie/evenement-omori.md)
   * [Scénarios](deroulement-d-une-partie/scenarios.md)
   * [Armes fabriquées](deroulement-d-une-partie/armes-fabriquees.md)
   * [Force](deroulement-d-une-partie/force.md)

@@ -5,7 +5,7 @@ import com.kiokouwhite.crossfight.util.Msg;
 
 /**
  * Planification des evenements de la partie (lootbox, Regna Ferox, Match Found,
- * Judgement, Omori). Les Lootbox (game/Lootbox.java) et Regna Ferox (game/RegnaFerox.java) sont en place ; les autres sont
+ * Judgement, Omori). Les Lootbox (game/Lootbox.java), Regna Ferox (game/RegnaFerox.java) et Omori (game/Omori.java) sont en place ; les autres sont
  * encore seulement annonces, leur logique sera branchee ici au fur et a mesure.
  */
 public final class GameEvents {
@@ -34,7 +34,7 @@ public final class GameEvents {
             Msg.broadcast("<dark_red><bold>Evenement :</bold> l'antre de Judgement s'ouvre au centre de la map. <dark_gray>(a venir)");
         }
         if (minute == minuteOf("omori", 60)) {
-            Msg.broadcast("<white><bold>Evenement :</bold> une porte vers l'Espace Blanc apparait... <dark_gray>(a venir)");
+            plugin.omori().open();
         }
     }
 }

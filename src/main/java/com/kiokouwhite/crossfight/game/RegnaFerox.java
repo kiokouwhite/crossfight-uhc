@@ -51,6 +51,8 @@ public final class RegnaFerox implements Listener {
     private static final int MOSAIC = 40, GRATE = 33, FIRES = 49;
     /** Hauteur des piliers de l'enceinte, qui depassent du toit (TOWER est le point le plus haut a degager). */
     private static final int PILLAR = 42;
+    /** Demi-largeur des galeries d'entree et hauteur de leurs herses. */
+    private static final int GALLERY = 3, GATE = 6;
 
     private enum Phase { IDLE, ASKING, FIGHT }
 
@@ -147,8 +149,17 @@ public final class RegnaFerox implements Listener {
     public Location build() {
         World w = plugin.game().world();
         int cx = 0, cz = 0;
-        String key = "ferox.arene-fermee." + w.getName();
+        String key = "ferox.arene-ouverte." + w.getName();
         int y = plugin.getConfig().getInt(key, Integer.MIN_VALUE);
+        // Une arene d'une version precedente (sans galeries) : on la refait sur place, a la meme hauteur.
+        int before = plugin.getConfig().getInt("ferox.arene-fermee." + w.getName(), Integer.MIN_VALUE);
+        if (y == Integer.MIN_VALUE && before != Integer.MIN_VALUE && plugin.getConfig().getInt("ferox.arene-fermee." + w.getName() + "-x", cx) == cx) {
+            y = before;
+            raise(w, cx, y, cz);
+            plugin.getConfig().set(key, y);
+            plugin.getConfig().set(key + "-x", cx);
+            plugin.saveConfig();
+        }
         boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER;
         if (!there) {
             // Le sol de la fosse a la hauteur mediane du terrain sous le colisee : ni perche sur une butte, ni enterre.
@@ -207,7 +218,8 @@ public final class RegnaFerox implements Listener {
      * Dedans, dans les bruns et les noirs : une fosse octogonale pavee de 113 blocs, sa grande mosaique ronde de
      * 81 blocs au centre, quatre grilles aux coins, douze grands braseros le long du mur ; un mur sombre a
      * tentures rouges et a herses ; des gradins de brique de terre en dix-neuf marches ; une enceinte noire
-     * rythmee par seize piliers qui percent le toit, coiffes de feux. La salle est sombre, eclairee par les
+     * rythmee par seize piliers qui percent le toit, coiffes de feux ; quatre galeries la traversent du dehors
+     * jusqu'aux herses de la fosse, fermees sauf pour l'evenement Omori. La salle est sombre, eclairee par les
      * braseros (une lumiere invisible et faible empeche seulement les monstres d'y apparaitre). Une paroi
      * invisible ferme la fosse : on n'y entre et on n'en sort que par l'evenement. La construction se fait par
      * tranches, quelques-unes par tick, pour ne pas figer le serveur. Construction originale, en blocs de
@@ -241,6 +253,24 @@ public final class RegnaFerox implements Listener {
         // Le toit : tuiles sombres, nervures noires dans l'axe des piliers.
         set.accept(top, toPillar < 1.6 ? Material.POLISHED_BLACKSTONE : ((int) d & 7) == 0 ? Material.DEEPSLATE_BRICKS : Material.DEEPSLATE_TILES);
         boolean lamp = Math.floorMod(x, 7) == 0 && Math.floorMod(z, 7) == 0;
+        // Quatre galeries traversent les gradins dans l'axe des herses, du dehors jusqu'au mur de la fosse.
+        boolean gallery = Math.min(Math.abs(x), Math.abs(z)) <= GALLERY && o > PIT + 0.5;
+        if (gallery) {
+            boolean bars = o <= PIT + 1.5;
+            set.accept(0, Material.POLISHED_BLACKSTONE_BRICKS);
+            for (int h = 1; h <= GATE; h++) set.accept(h, bars ? Material.IRON_BARS : Material.AIR);
+            for (int h = GATE + 1; h < Math.min(top, o <= PIT + 3.5 ? RING + 1 : top); h++) set.accept(h, Material.DEEPSLATE_BRICKS);
+            if (o <= PIT + 3.5) set.accept(RING, Material.CHISELED_DEEPSLATE);
+            else if (d <= OUT - 3.5) {
+                // Les gradins passent par-dessus la galerie.
+                int row = Math.max(0, (int) ((d - PIT - 3.5) / 1.5)), step = Math.min(top - 4, RING + 1 + row);
+                for (int h = step + 1; h < top; h++) set.accept(h, Material.AIR);
+                set.accept(step, (row & 1) == 0 ? Material.MUD_BRICKS : Material.PACKED_MUD);
+            }
+            if (bars) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
+            if (Math.floorMod(Math.max(Math.abs(x), Math.abs(z)), 8) == 0 && Math.min(Math.abs(x), Math.abs(z)) == GALLERY) set.accept(GATE, Material.SHROOMLIGHT);
+            return;
+        }
         if (o <= PIT + 0.5) {
             boolean grate = Math.abs(Math.abs(x) - GRATE) <= 3 && Math.abs(Math.abs(z) - GRATE) <= 3;
             set.accept(0, d < MOSAIC + 0.5 ? mosaic(d / (MOSAIC + 0.5) * 13.5, angle) : grate ? Material.WAXED_OXIDIZED_COPPER_GRATE : COBBLES[mix]);
@@ -258,9 +288,7 @@ public final class RegnaFerox implements Listener {
             boolean inner = o <= PIT + 1.5;
             for (int h = 0; h <= RING; h++) {
                 Material m = h == RING ? Material.CHISELED_DEEPSLATE : h == 0 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.DEEPSLATE_BRICKS;
-                if (inner && h >= 1 && h <= 6 && toGate < 4.5) m = Material.IRON_BARS;
-                else if (!inner && h <= 6 && toGate < 4.5) m = Material.BLACK_CONCRETE;
-                else if (inner && h >= 2 && h < RING && ((int) (angle / 5.625) & 3) == 1) m = h == RING - 1 || h == 2 ? Material.YELLOW_TERRACOTTA : Material.RED_WOOL;
+                if (inner && h >= 2 && h < RING && ((int) (angle / 5.625) & 3) == 1) m = h == RING - 1 || h == 2 ? Material.YELLOW_TERRACOTTA : Material.RED_WOOL;
                 set.accept(h, m);
             }
             if (inner) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
@@ -290,7 +318,35 @@ public final class RegnaFerox implements Listener {
         if (b.getBlockData() instanceof org.bukkit.block.data.type.Light l) { l.setLevel(8); b.setBlockData(l, false); }
     }
 
-    /** Le centre du sol de l'arene (null hors partie). */
+    /** Leve (ou rabaisse) les quatre herses de la fosse : l'arene s'ouvre pour l'evenement Omori. */
+    public void gates(boolean open) {
+        if (centre == null) return;
+        World w = centre.getWorld();
+        int cx = centre.getBlockX(), y = centre.getBlockY() - 1, cz = centre.getBlockZ();
+        for (int side = 0; side < 4; side++) for (int k = -GALLERY; k <= GALLERY; k++) for (int h = 1; h <= GATE; h++) {
+            int along = (side < 2 ? 1 : -1) * (PIT + 1);
+            w.getBlockAt(cx + (side % 2 == 0 ? along : k), y + h, cz + (side % 2 == 0 ? k : along)).setType(open ? Material.AIR : Material.IRON_BARS, false);
+        }
+    }
+
+    /** Un endroit au hasard sur le pave de la fosse, entre la mosaique et le mur, loin des braseros et des grilles. */
+    public Location randomSpot() {
+        if (centre == null) build();
+        var r = java.util.concurrent.ThreadLocalRandom.current();
+        for (int i = 0; i < 60; i++) {
+            double angle = r.nextDouble(Math.PI * 2), d = r.nextDouble(MOSAIC + 3, PIT - 9);
+            Location l = centre.clone().add(Math.cos(angle) * d, 0, Math.sin(angle) * d);
+            Material floor = l.clone().subtract(0, 1, 0).getBlock().getType();
+            if (floor != Material.WAXED_OXIDIZED_COPPER_GRATE && l.getBlock().getType().isAir() && l.clone().add(0, 2, 0).getBlock().getType().isAir()
+                    && Math.abs(d - FIRES) > 4) return l;
+        }
+        return centre.clone().add(MOSAIC + 4, 0, 0);
+    }
+
+    /** Le centre du sol de la fosse. */
+    public Location centre() { return centre != null ? centre.clone() : build().clone(); }
+
+    /** Le centre du sol de l'arene (null tant qu'elle n'est pas batie). */
     private Location centre;
 
     private boolean inArena(Location l) {

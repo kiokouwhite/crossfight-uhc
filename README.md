@@ -30,6 +30,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
 | `/cf ferox oui\|non` | Répondre à la proposition de Regna Ferox |
 | `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
+| `/cf omori lancer\|fermer\|phase <1-5>\|coups <n>` | Essayer l'événement Omori : l'ouvrir, le refermer, changer de phase, compter des coups (test) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
@@ -163,11 +164,29 @@ Choix faits là où le document ne tranche pas : « reach de 2 » est une allong
 
 ### Événement Regna Ferox
 
-L'arène de Ferox se dresse au centre de la map, en 0, 0, avant même le lancement de la partie : elle est bâtie au démarrage du serveur et à chaque nouvelle map (`/cf regenere`), et elle est indestructible en permanence. Sa hauteur, qui dépend du relief, est rappelée au lancement. C'est une salle massive et fermée de 185 blocs de large, dans les bruns et les noirs de l'arène de Ferox : un toit en cône bas la couvre entièrement ; dedans, une fosse octogonale pavée de 113 blocs, avec au centre une grande mosaïque ronde de 81 blocs (soleil clair, étoile noire à seize branches, cercle de rayons, dents de scie, frise de volutes dorées), quatre grilles aux coins et douze grands braseros le long du mur ; un mur sombre à tentures rouges et à herses, des gradins de brique de terre en dix-neuf marches, une enceinte noire rythmée par seize piliers qui percent le toit, coiffés de feux. La salle est sombre, éclairée par les braseros. Une paroi invisible ferme la fosse (on n'y entre que par l'événement). Elle se bâtit en quelques secondes, par tranches.
+L'arène de Ferox se dresse au centre de la map, en 0, 0, avant même le lancement de la partie : elle est bâtie au démarrage du serveur et à chaque nouvelle map (`/cf regenere`), et elle est indestructible en permanence. Sa hauteur, qui dépend du relief, est rappelée au lancement. C'est une salle massive et fermée de 185 blocs de large, dans les bruns et les noirs de l'arène de Ferox : un toit en cône bas la couvre entièrement ; dedans, une fosse octogonale pavée de 113 blocs, avec au centre une grande mosaïque ronde de 81 blocs (soleil clair, étoile noire à seize branches, cercle de rayons, dents de scie, frise de volutes dorées), quatre grilles aux coins et douze grands braseros le long du mur ; un mur sombre à tentures rouges et à herses, des gradins de brique de terre en dix-neuf marches, une enceinte noire rythmée par seize piliers qui percent le toit, coiffés de feux. La salle est sombre, éclairée par les braseros. Quatre galeries traversent les gradins du dehors jusqu'aux herses de la fosse, qui restent fermées sauf pour l'événement Omori ; une paroi invisible ferme la fosse au-dessus de son mur. Elle se bâtit en quelques secondes, par tranches.
 
 À la minute `regna-ferox` (30 par défaut), chaque joueur en vie reçoit dans le chat une proposition de duel d'équipes, avec deux boutons : Participer et Refuser (ou `/cf ferox oui`, `/cf ferox non`). Une équipe est inscrite quand tous ses membres en vie ont accepté ; les deux premières inscrites sont téléportées dans la fosse. Sans deux équipes inscrites au bout de 60 secondes, l'arène reste fermée.
 
 Dans la fosse, un coup qui tuerait ne tue pas : le joueur est à terre et regarde la fin du combat en spectateur. L'équipe qui met toute l'autre à terre gagne : chacun de ses joueurs reçoit le contenu d'une Lootbox de tier IV (diamants, or et un objet de tier IV) ; chaque joueur de l'équipe battue perd une vie. Tout le monde revient ensuite là où il était, avec la vie qu'il avait (pleine pour ceux qui étaient à terre). Le combat n'a pas de limite de temps. On s'y bat même si le PvP n'est pas encore ouvert sur la map ; un joueur qui se déconnecte en plein combat compte comme à terre.
+
+### Événement Omori
+
+À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. En s'en approchant, un menu propose « Ouvrir la porte » ou « Ne rien faire » : l'ouvrir emmène dans l'Espace Blanc, un monde au sol blanc sans fin où attend le boss Omori.
+
+Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 30, 35, 40, 45 puis 50 coups, avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes :
+
+| Phase | Attaques, dans l'ordre |
+|---|---|
+| 1 | Attaque basique (2 cœurs au plus proche), Poignarder (3 cœurs, Wither et Lenteur V 5 s), Trancher (2 cœurs et Wither 2 s à tous) |
+| 2 | Effacement (tous éjectés à 10 blocs, 3 cœurs), Poignarder, Attaque basique |
+| 3 | Annihilation (pendant 10 s, une main noire tombe sur chaque joueur toutes les 2 s : 2 cœurs), Attaque basique, Poignarder |
+| 4 | Traumatisme (le plus proche est projeté à 15 blocs de haut, Darkness 10 s), Poignarder, Attaque basique |
+| 5 | Vision obstruée en permanence ; Suicide (tous éjectés à 10 blocs, Darkness, 5 cœurs), « Je ne peux pas le faire » (tous immobilisés 10 s) |
+
+Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Tout le monde revient alors à la porte, qui disparaît. Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
+
+La porte est une image du pack : un dessin de porte blanche usée dans le pack public, l'image officielle dans le pack complet (jamais versionnée, à déposer dans `resourcepack-prive/glyphes-couleur/porte_blanche.png`).
 
 ### Scénarios
 

@@ -8,6 +8,7 @@
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
 | `/cf ferox oui\|non` | Répondre à la proposition de Regna Ferox |
 | `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
+| `/cf omori lancer\|fermer\|phase <1-5>\|coups <n>` | Essayer l'événement Omori : l'ouvrir, le refermer, changer de phase, compter des coups (test) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |

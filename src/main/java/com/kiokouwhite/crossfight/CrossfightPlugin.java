@@ -76,6 +76,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(lootbox, this);
         ferox = new com.kiokouwhite.crossfight.game.RegnaFerox(this);
         pm.registerEvents(ferox, this);
+        omori = new com.kiokouwhite.crossfight.game.Omori(this);
+        pm.registerEvents(omori, this);
         // L'arene de Ferox est sur la map avant meme la partie : on la batit (ou on la retrouve) une fois le serveur pret.
         getServer().getScheduler().runTask(this, () -> ferox.build());
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
@@ -153,6 +155,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     private com.kiokouwhite.crossfight.game.HostTools hostTools;
     private com.kiokouwhite.crossfight.game.Lootbox lootbox;
     private com.kiokouwhite.crossfight.game.RegnaFerox ferox;
+    private com.kiokouwhite.crossfight.game.Omori omori;
+    public com.kiokouwhite.crossfight.game.Omori omori() { return omori; }
     public com.kiokouwhite.crossfight.game.RegnaFerox ferox() { return ferox; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }
     private com.kiokouwhite.crossfight.game.Roster roster;

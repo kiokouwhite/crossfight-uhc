@@ -129,6 +129,19 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "omori" -> {
+                        // /cf omori lancer|fermer|entrer|phase <n>|coups <n> : essayer l'evenement Omori (test).
+                        String what = args.length > 1 ? args[1].toLowerCase() : "";
+                        int n = 1;
+                        try { if (args.length > 2) n = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) { }
+                        switch (what) {
+                            case "lancer" -> { if (plugin.game().isRunning()) plugin.omori().open(); else Msg.send(sender, "<red>Seulement pendant une partie ou un mode test."); }
+                            case "fermer" -> { plugin.omori().close(); plugin.ferox().gates(false); Msg.send(sender, "<yellow>Evenement Omori referme."); }
+                            case "phase" -> plugin.omori().setPhase(n - 1);
+                            case "coups" -> plugin.omori().hit(n);
+                            default -> Msg.send(sender, "<yellow>/cf omori lancer|fermer|phase <1-5>|coups <n>");
+                        }
+                    }
                     case "lootbox" -> {
                         // /cf lootbox [tier] : une lootbox devant soi (test) ; /cf lootbox vague : l'evenement entier.
                         if (!(sender instanceof Player p)) return true;
@@ -688,7 +701,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -711,6 +724,7 @@ public final class CfCommand implements TabExecutor {
                 case "loot" -> { out.add("tous"); out.addAll(com.kiokouwhite.crossfight.game.Lootbox.ids()); }
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
+                case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

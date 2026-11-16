@@ -493,6 +493,8 @@ public final class GameManager {
         plugin.teams().clear();
         plugin.lootbox().clear();
         plugin.ferox().cancel();
+        plugin.omori().close();
+        plugin.ferox().gates(false);
         plugin.hostTools().refreshAll();
         com.kiokouwhite.crossfight.util.Mannequins.clearAll();
         elapsed = 0;
