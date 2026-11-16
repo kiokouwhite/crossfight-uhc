@@ -163,9 +163,11 @@ Choix faits là où le document ne tranche pas : « reach de 2 » est une allong
 
 ### Événement Regna Ferox
 
-À la minute `regna-ferox` (30 par défaut), chaque joueur en vie reçoit dans le chat une proposition de duel d'équipes, avec deux boutons : Participer et Refuser (ou `/cf ferox oui`, `/cf ferox non`). Une équipe est inscrite quand tous ses membres en vie ont accepté ; les deux premières inscrites sont emmenées dans l'arène de Ferox, un monde à part. Sans deux équipes inscrites au bout de 60 secondes, l'arène se referme.
+L'arène de Ferox se dresse sur la map dès le début de la partie, à l'est du centre (à 30 % du rayon de la bordure) ; ses coordonnées sont annoncées au lancement. C'est un colisée rond de 65 blocs de large : une fosse dallée au blason central, ceinte d'un mur à tapisseries bleues et à herses, des gradins en dix marches, une enceinte crénelée rythmée par seize piliers sombres coiffés de braseros. Un dôme invisible ferme la fosse (on n'y entre que par l'événement) et le colisée est indestructible pendant la partie.
 
-Dans l'arène, un coup qui tuerait ne tue pas : le joueur est à terre et regarde la fin du combat en spectateur. L'équipe qui met toute l'autre à terre gagne : chacun de ses joueurs reçoit le contenu d'une Lootbox de tier IV (diamants, or et un objet de tier IV) ; chaque joueur de l'équipe battue perd une vie. Tout le monde revient ensuite là où il était, avec la vie qu'il avait (pleine pour ceux qui étaient à terre). Au bout de 5 minutes sans vainqueur, personne ne gagne ni ne perd. On s'y bat même si le PvP n'est pas encore ouvert sur la map ; un joueur qui se déconnecte en plein combat compte comme à terre.
+À la minute `regna-ferox` (30 par défaut), chaque joueur en vie reçoit dans le chat une proposition de duel d'équipes, avec deux boutons : Participer et Refuser (ou `/cf ferox oui`, `/cf ferox non`). Une équipe est inscrite quand tous ses membres en vie ont accepté ; les deux premières inscrites sont téléportées dans la fosse. Sans deux équipes inscrites au bout de 60 secondes, l'arène reste fermée.
+
+Dans la fosse, un coup qui tuerait ne tue pas : le joueur est à terre et regarde la fin du combat en spectateur. L'équipe qui met toute l'autre à terre gagne : chacun de ses joueurs reçoit le contenu d'une Lootbox de tier IV (diamants, or et un objet de tier IV) ; chaque joueur de l'équipe battue perd une vie. Tout le monde revient ensuite là où il était, avec la vie qu'il avait (pleine pour ceux qui étaient à terre). Le combat n'a pas de limite de temps. On s'y bat même si le PvP n'est pas encore ouvert sur la map ; un joueur qui se déconnecte en plein combat compte comme à terre.
 
 ### Scénarios
 

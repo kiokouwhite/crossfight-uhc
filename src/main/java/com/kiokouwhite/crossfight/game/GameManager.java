@@ -379,6 +379,8 @@ public final class GameManager {
         }
         int pvpMin = plugin.getConfig().getInt("game.pvp-minute", 30);
         if (pvpMin <= 0) pvpEnabled = true;
+        Location ferox = plugin.ferox().build();
+        Msg.broadcast("<gold>L'arene de Regna Ferox se dresse en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
         Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
     }
 

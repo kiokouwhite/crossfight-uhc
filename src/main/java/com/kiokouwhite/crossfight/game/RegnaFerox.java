@@ -3,7 +3,6 @@ package com.kiokouwhite.crossfight.game;
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.team.Team;
-import com.kiokouwhite.crossfight.util.ArenaWorlds;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Msg;
 import net.kyori.adventure.text.Component;
@@ -38,15 +37,16 @@ import java.util.UUID;
 /**
  * L'evenement Regna Ferox : a sa minute (30 par defaut), chaque joueur se voit proposer un duel d'equipes dans
  * l'arene de Ferox. Une equipe est inscrite quand tous ses membres en vie ont accepte ; les deux premieres
- * inscrites sont emmenees dans l'arene. L'equipe qui met l'autre a terre gagne : chacun de ses joueurs recoit le
+ * inscrites sont emmenees dans l'arene, qui se dresse sur la map des le debut de la partie. L'equipe qui met l'autre a terre gagne : chacun de ses joueurs recoit le
  * contenu d'une Lootbox de tier IV ; chaque joueur de l'equipe battue perd une vie. Tomber dans l'arene ne coute
  * rien d'autre : on y regarde la fin du combat, puis tout le monde revient la ou il etait.
  */
 public final class RegnaFerox implements Listener {
 
-    public static final String WORLD = "crossfight_ferox";
-    /** Demi-cote de l'arene, hauteur de ses murs, secondes pour s'inscrire, secondes de combat au plus. */
-    private static final int HALF = 18, WALL = 12, ASK_SECONDS = 60, FIGHT_SECONDS = 300;
+    /** Secondes pour s'inscrire. Le combat, lui, n'a pas de limite de temps. */
+    private static final int ASK_SECONDS = 60;
+    /** Le colisee : rayon de la fosse, rayon hors tout, hauteur du mur de la fosse, du dome, de l'enceinte, des piliers. */
+    private static final int PIT = 18, OUT = 32, RING = 5, DOME = 15, WALL_OUT = 17, TOWER = 23;
 
     private enum Phase { IDLE, ASKING, FIGHT }
 
@@ -135,19 +135,110 @@ public final class RegnaFerox implements Listener {
 
     // ------------------------------------------------------------------ le combat
 
-    private World arena() {
-        World w = ArenaWorlds.get(WORLD);
-        if (w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).getType() != Material.STONE_BRICKS) {
-            ArenaWorlds.buildPlatform(w, HALF, Material.STONE_BRICKS, Material.STONE_BRICKS, WALL);
-            w.getBlockAt(0, ArenaWorlds.FLOOR_Y, 0).setType(Material.STONE_BRICKS, false);
-            // Un plafond invisible : on ne sort pas de l'arene par les airs. Un cercle de sable marque le centre.
-            for (int x = -HALF; x <= HALF; x++) for (int z = -HALF; z <= HALF; z++) {
-                w.getBlockAt(x, ArenaWorlds.FLOOR_Y + WALL + 1, z).setType(Material.BARRIER, false);
-                double d = Math.hypot(x, z);
-                if (d <= 6.5 && d >= 5.5) w.getBlockAt(x, ArenaWorlds.FLOOR_Y, z).setType(Material.CHISELED_STONE_BRICKS, false);
+    /**
+     * L'arene est sur la map des le debut de la partie : un colisee de pierre (voir raise), pose sur le terrain
+     * a 30 % du rayon de la bordure, a l'est du centre (le centre est garde pour d'autres evenements). Sa hauteur
+     * est retenue par monde dans config.yml, pour la retrouver (et ne pas la rebatir) a la partie suivante.
+     */
+    public Location build() {
+        World w = plugin.game().world();
+        int cx = (int) Math.round(plugin.game().rules().value("bordure") * 0.3), cz = 0;
+        String key = "ferox.arene." + w.getName();
+        int y = plugin.getConfig().getInt(key, Integer.MIN_VALUE);
+        boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.LAPIS_BLOCK;
+        if (!there) {
+            // Le sol de la fosse a la hauteur mediane du terrain sous le colisee : ni perche sur une butte, ni enterre.
+            List<Integer> heights = new ArrayList<>();
+            for (int dx = -24; dx <= 24; dx += 24) for (int dz = -24; dz <= 24; dz += 24) heights.add(w.getHighestBlockYAt(cx + dx, cz + dz, org.bukkit.HeightMap.MOTION_BLOCKING_NO_LEAVES));
+            heights.sort(null);
+            y = Math.max(w.getMinHeight() + 6, Math.min(w.getMaxHeight() - TOWER - 8, heights.get(heights.size() / 2)));
+            raise(w, cx, y, cz);
+            plugin.getConfig().set(key, y);
+            plugin.getConfig().set(key + "-x", cx);
+            plugin.saveConfig();
+        }
+        centre = new Location(w, cx + 0.5, y + 1, cz + 0.5);
+        return centre;
+    }
+
+    /**
+     * Batit le colisee de Ferox, rond, de 65 blocs de large : une fosse de combat dallee au blason central,
+     * ceinte d'un mur a tapisseries bleues et a herses ; des gradins qui montent en dix marches ; une enceinte
+     * crenelee de 18 blocs, rythmee par seize piliers sombres coiffes de braseros. Un dome invisible ferme la
+     * fosse : on n'y entre et on n'en sort que par l'evenement. Dessin original, sans rien de recopie.
+     */
+    private void raise(World w, int cx, int y, int cz) {
+        for (int x = -OUT; x <= OUT; x++) for (int z = -OUT; z <= OUT; z++) {
+            double d = Math.hypot(x, z);
+            if (d > OUT + 0.5) continue;
+            double angle = Math.toDegrees(Math.atan2(z, x)) + 180;
+            // L'ecart a l'axe le plus proche parmi 16 (les piliers) et parmi 4 (les herses), en degres.
+            double toPillar = Math.abs((angle + 11.25) % 22.5 - 11.25), toGate = Math.abs((angle + 45) % 90 - 45);
+            final int bx = cx + x, bz = cz + z;
+            java.util.function.BiConsumer<Integer, Material> set = (h, m) -> w.getBlockAt(bx, y + h, bz).setType(m, false);
+            for (int h = -4; h < 0; h++) set.accept(h, Material.STONE_BRICKS);
+            for (int h = 1; h <= TOWER + 3; h++) set.accept(h, Material.AIR);
+            if (d <= PIT + 0.5) {
+                // La fosse : dalles claires, deux cercles sombres, une rosace au centre, des lumieres dans le sol.
+                Material floor = d < 1.5 ? Material.LAPIS_BLOCK : d < 3.5 ? Material.CHISELED_STONE_BRICKS
+                        : (d >= 5.5 && d < 6.5) || (d >= 13.5 && d < 14.5) ? Material.POLISHED_DEEPSLATE
+                        : d >= 9.5 && d < 10.5 && toPillar < 4 ? Material.SEA_LANTERN
+                        : (toGate < 3.5 && d >= 6.5) ? Material.POLISHED_ANDESITE : ((x + z) & 1) == 0 ? Material.SMOOTH_STONE : Material.STONE_BRICKS;
+                set.accept(0, floor);
+                set.accept(DOME, Material.BARRIER);
+            } else if (d <= PIT + 2.5) {
+                // Le mur de la fosse : pierre, tapisseries bleues entre les piliers, herses aux quatre points cardinaux.
+                boolean inner = d <= PIT + 1.5;
+                for (int h = 0; h <= RING; h++) {
+                    Material m = h == RING ? Material.CHISELED_STONE_BRICKS : Material.STONE_BRICKS;
+                    if (inner && h >= 1 && h <= 4 && toGate < 6) m = Material.IRON_BARS;
+                    else if (!inner && h <= 4 && toGate < 6) m = Material.DEEPSLATE_TILES;
+                    else if (inner && h >= 2 && h < RING && toPillar > 8.5) m = (h == RING - 1 || toPillar > 10.3) ? Material.WHITE_WOOL : Material.BLUE_WOOL;
+                    set.accept(h, m);
+                }
+                if (inner) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
+            } else if (d <= OUT - 2.5) {
+                // Les gradins : une marche tous les 1,1 bloc, bancs de pierre lisse, escaliers sombres dans l'axe des piliers.
+                int step = RING + 1 + (int) ((d - PIT - 2.5) / 1.1);
+                for (int h = 0; h < step; h++) set.accept(h, Material.STONE_BRICKS);
+                set.accept(step, toPillar < 2.6 ? Material.POLISHED_DEEPSLATE : ((int) ((d - PIT - 2.5) / 1.1) & 1) == 0 ? Material.SMOOTH_STONE : Material.STONE_BRICKS);
+                if (toPillar < 1.2 && ((int) d) % 4 == 0) set.accept(step, Material.SEA_LANTERN);
+            } else {
+                // L'enceinte : seize piliers sombres a brasero, des creneaux entre eux, un bandeau cisele.
+                boolean pillar = toPillar < 3.4;
+                int top = pillar ? TOWER : WALL_OUT + (((int) (angle / 3.75)) & 1);
+                for (int h = 0; h <= top; h++) {
+                    Material m = pillar ? (h == top ? Material.CHISELED_DEEPSLATE : Material.POLISHED_DEEPSLATE)
+                            : h == WALL_OUT - 3 || h == RING + 1 ? Material.CHISELED_STONE_BRICKS : h > WALL_OUT - 3 && toPillar > 9 ? Material.BLUE_WOOL : Material.STONE_BRICKS;
+                    set.accept(h, m);
+                }
+                if (pillar && toPillar < 1.4 && d > OUT - 1.5 && d <= OUT - 0.5) { set.accept(top + 1, Material.NETHERRACK); set.accept(top + 2, Material.FIRE); }
             }
         }
-        return w;
+    }
+
+    /** Le centre du sol de l'arene (null hors partie). */
+    private Location centre;
+
+    private boolean inArena(Location l) {
+        return centre != null && l.getWorld().equals(centre.getWorld()) && Math.hypot(l.getX() - centre.getX(), l.getZ() - centre.getZ()) <= OUT + 1
+                && l.getY() >= centre.getY() - 5.5 && l.getY() <= centre.getY() + TOWER + 3;
+    }
+
+    /** L'enceinte ne se casse pas, ne se complete pas, n'explose pas. */
+    @EventHandler(ignoreCancelled = true)
+    public void onBreak(org.bukkit.event.block.BlockBreakEvent e) {
+        if (inArena(e.getBlock().getLocation().add(0.5, 0.5, 0.5))) { e.setCancelled(true); Msg.actionBar(e.getPlayer(), "<red>L'arene de Regna Ferox est indestructible."); }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlace(org.bukkit.event.block.BlockPlaceEvent e) {
+        if (inArena(e.getBlock().getLocation().add(0.5, 0.5, 0.5))) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onExplode(org.bukkit.event.entity.EntityExplodeEvent e) {
+        e.blockList().removeIf(b -> inArena(b.getLocation().add(0.5, 0.5, 0.5)));
     }
 
     private void start(Team a, Team b) {
@@ -157,7 +248,8 @@ public final class RegnaFerox implements Listener {
         teamB = b;
         fighters.clear();
         down.clear();
-        World w = arena();
+        Location c = centre != null ? centre : build();
+        World w = c.getWorld();
         Msg.broadcast("<gold><bold>Regna Ferox :</bold> " + a.coloredName() + " <gold>affronte " + b.coloredName() + " <gold>dans l'arene !");
         for (Team t : List.of(a, b)) {
             List<Player> members = active(t);
@@ -167,7 +259,7 @@ public final class RegnaFerox implements Listener {
                 back.put(p.getUniqueId(), p.getLocation());
                 modes.put(p.getUniqueId(), p.getGameMode());
                 double side = t == a ? -1 : 1;
-                Location at = new Location(w, (i - (members.size() - 1) / 2.0) * 3 + 0.5, ArenaWorlds.FLOOR_Y + 1, side * (HALF - 6) + 0.5, side < 0 ? 0 : 180, 0);
+                Location at = new Location(w, c.getX() + (i - (members.size() - 1) / 2.0) * 3, c.getY(), c.getZ() + side * (PIT - 6), side < 0 ? 0 : 180, 0);
                 p.teleport(at);
                 p.setFallDistance(0);
                 Effects.invincible(p, 3000);
@@ -175,7 +267,6 @@ public final class RegnaFerox implements Listener {
                 p.playSound(at, Sound.EVENT_RAID_HORN, 1f, 0.9f);
             }
         }
-        timer = Bukkit.getScheduler().runTaskLater(plugin, () -> { if (phase == Phase.FIGHT) finish(null); }, FIGHT_SECONDS * 20L);
     }
 
     /** Un coup qui tuerait dans l'arene ne tue pas : le joueur est a terre et regarde la fin du combat. */
@@ -210,14 +301,14 @@ public final class RegnaFerox implements Listener {
         phase = Phase.IDLE;
         if (timer != null) timer.cancel();
         Team loser = winner == null ? null : winner == teamA ? teamB : teamA;
-        Msg.broadcast(winner == null ? "<gold><bold>Regna Ferox :</bold> le temps est ecoule, personne ne l'emporte."
-                : "<gold><bold>Regna Ferox :</bold> " + winner.coloredName() + " <gold>l'emporte sur " + loser.coloredName() + " <gold>!");
+        if (winner != null) Msg.broadcast("<gold><bold>Regna Ferox :</bold> " + winner.coloredName() + " <gold>l'emporte sur " + loser.coloredName() + " <gold>!");
         for (UUID u : new ArrayList<>(fighters)) {
             Player p = Bukkit.getPlayer(u);
             if (p == null) continue;
             p.setGameMode(modes.getOrDefault(u, GameMode.SURVIVAL));
             Location home = back.remove(u);
             p.teleport(home != null ? home : plugin.game().randomGroundLocation(300));
+            p.setFireTicks(0);
             p.setFallDistance(0);
             Effects.invincible(p, 3000);
             Team mine = plugin.players().get(p).team();
@@ -250,6 +341,7 @@ public final class RegnaFerox implements Listener {
         modes.clear();
         accepted.clear();
         ready.clear();
+        centre = null;
     }
 
     /** Parti en plein combat : il compte comme a terre. */
@@ -258,14 +350,15 @@ public final class RegnaFerox implements Listener {
         if (fighting(e.getPlayer())) fall(e.getPlayer());
     }
 
-    /** Revenu apres la fin du combat alors qu'il etait reste dans l'arene : il retourne sur la map. */
+    /** Revenu apres la fin du combat alors qu'il etait reste dans l'arene : il retourne d'ou il venait. */
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
-        if (!p.getWorld().getName().equals(WORLD) || (phase == Phase.FIGHT && fighters.contains(p.getUniqueId()))) return;
+        Location home = back.get(p.getUniqueId());
+        if (home == null || (phase == Phase.FIGHT && fighters.contains(p.getUniqueId()))) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
-            Location home = back.remove(p.getUniqueId());
-            p.teleport(home != null ? home : plugin.game().isRunning() ? plugin.game().randomGroundLocation(300) : plugin.game().lobbySpot());
+            back.remove(p.getUniqueId());
+            p.teleport(home);
             if (plugin.game().isRunning() && plugin.players().get(p).isAlive()) p.setGameMode(GameMode.SURVIVAL);
         });
     }

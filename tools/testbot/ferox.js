@@ -15,7 +15,7 @@ const last = (b, re) => (b.chatLog.filter(m => re.test(m)).pop() || '-').slice(0
   a.chat('/cf team create solo'); b.chat('/cf team create solo'); await sleep(800);
   a.chat('/cf start'); await sleep(3500); a.chat('/cf perso yuki'); b.chat('/cf perso shoja'); await sleep(1500);
   for (let i = 0; i < 40 && !a.chatLog.some(m => /La partie commence/.test(m)); i++) await sleep(500);
-  await sleep(32000); console.log('partie :', last(a, /partie commence/), '|', where(a), '|', where(b));
+  await sleep(32000); console.log('partie :', last(a, /arene de Regna/), '|', where(a), '|', where(b));
   a.chat('/cf ferox lancer'); await sleep(1200); console.log('proposition lue par Bleu :', last(b, /Regna Ferox/));
   a.chat('/cf ferox oui'); await sleep(700); console.log('une equipe :', last(b, /inscrite/));
   b.chat('/cf ferox oui'); await sleep(2500); console.log('arene :', last(a, /affronte/), '|', where(a), '|', where(b), '| mode', b.game.gameMode);
