@@ -133,6 +133,17 @@ public final class DamageListener implements Listener {
         }
     }
 
+    /** Une hache fabriquee est un outil : un coup porte avec elle a un joueur ne compte pas. */
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onAxeHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player attacker) || com.kiokouwhite.crossfight.util.Effects.isAbilityDamage()) return;
+        if (e.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK && e.getCause() != EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) return;
+        if (!(e.getEntity() instanceof Player) && !com.kiokouwhite.crossfight.util.Mannequins.isMannequin(e.getEntity())) return;
+        if (!RestrictionListener.isToolAxe(attacker.getInventory().getItemInMainHand())) return;
+        e.setCancelled(true);
+        Msg.actionBar(attacker, "<red>Une hache fabriquee ne blesse pas les joueurs.");
+    }
+
     /** Capacites de l'attaquant et de la victime, puis resistance fractionnaire. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onAbilityHooks(EntityDamageByEntityEvent e) {

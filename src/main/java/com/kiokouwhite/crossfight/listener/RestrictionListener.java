@@ -33,11 +33,20 @@ public final class RestrictionListener implements Listener {
 
     // ------------------------------------------------------------------ armes
 
+    /**
+     * Une arme : epee, arc, arbalete, trident, masse, et la hache d'un personnage. Une hache fabriquee est un
+     * outil (elle s'enchante comme une pioche) : elle ne blesse pas les joueurs.
+     */
     public static boolean isWeapon(ItemStack it) {
         if (it == null) return false;
         String n = it.getType().name();
-        return n.endsWith("_SWORD") || n.endsWith("_AXE") || n.equals("BOW") || n.equals("CROSSBOW")
+        return n.endsWith("_SWORD") || (n.endsWith("_AXE") && !isToolAxe(it)) || n.equals("BOW") || n.equals("CROSSBOW")
                 || n.equals("TRIDENT") || n.equals("MACE");
+    }
+
+    /** Une hache qui n'est l'arme d'aucun personnage : fabriquee, trouvee... */
+    public static boolean isToolAxe(ItemStack it) {
+        return it != null && it.getType().name().endsWith("_AXE") && !com.kiokouwhite.crossfight.ability.AbilityEngine.isWeaponItem(it);
     }
 
     @EventHandler
@@ -59,11 +68,13 @@ public final class RestrictionListener implements Listener {
     public void onCraft(PrepareItemCraftEvent e) {
         ItemStack result = e.getInventory().getResult();
         if (e.getRecipe() instanceof org.bukkit.Keyed k && k.getKey().getNamespace().equals("crossfight")) return;
-        if (!e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) return;
+        // Les epees : personne (elles viennent du personnage, ou d'une recette du plugin). Les autres armes : Shoja seule.
+        boolean sword = result != null && result.getType().name().endsWith("_SWORD");
+        if (!sword && !e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) return;
         if (isWeapon(result)) {
             e.getInventory().setResult(null);
             if (!e.getViewers().isEmpty() && e.getViewers().get(0) instanceof Player p) {
-                Msg.actionBar(p, "<red>Les armes ne peuvent pas etre craftees.");
+                Msg.actionBar(p, sword ? "<red>Les epees ne peuvent pas etre craftees." : "<red>Les armes ne peuvent pas etre craftees.");
             }
         }
     }

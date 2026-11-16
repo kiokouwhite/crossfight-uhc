@@ -68,6 +68,9 @@ public final class CrossfightPlugin extends JavaPlugin {
         music = new com.kiokouwhite.crossfight.util.Music(this);
         pm.registerEvents(music, this);
         pm.registerEvents(new DamageListener(this), this);
+        scenarios = new com.kiokouwhite.crossfight.game.Scenarios(this);
+        pm.registerEvents(scenarios, this);
+        scenarios.start();
         hostTools = new com.kiokouwhite.crossfight.game.HostTools(this);
         pm.registerEvents(hostTools, this);
         ores = new com.kiokouwhite.crossfight.game.Ores(this);
@@ -141,6 +144,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
     private com.kiokouwhite.crossfight.game.Ores ores;
     private com.kiokouwhite.crossfight.game.HostTools hostTools;
+    private com.kiokouwhite.crossfight.game.Scenarios scenarios;
+    public com.kiokouwhite.crossfight.game.Scenarios scenarios() { return scenarios; }
     public com.kiokouwhite.crossfight.game.HostTools hostTools() { return hostTools; }
     public com.kiokouwhite.crossfight.game.Ores ores() { return ores; }
     private com.kiokouwhite.crossfight.game.SelectionStage selectionStage;

@@ -6,6 +6,8 @@
 * [Commandes](commandes.md)
 * [Déroulement d'une partie](deroulement-d-une-partie.md)
   * [Administrateurs de partie et règles](deroulement-d-une-partie/administrateurs-de-partie-et-regles.md)
+  * [Scénarios](deroulement-d-une-partie/scenarios.md)
+  * [Armes fabriquées](deroulement-d-une-partie/armes-fabriquees.md)
   * [Force](deroulement-d-une-partie/force.md)
   * [Minerais multipliés](deroulement-d-une-partie/minerais-multiplies.md)
   * [Nouvelle map](deroulement-d-une-partie/nouvelle-map.md)

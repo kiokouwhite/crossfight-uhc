@@ -27,6 +27,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf start` / `/cf stop` | Lancer ou arrêter la partie (admin) |
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
+| `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
@@ -88,6 +89,7 @@ Pas besoin de commandes : dans le lobby, les opérateurs et les administrateurs 
 | Objet | Ce qu'il fait |
 |---|---|
 | Comparateur « Règles de la partie » | Ouvre le menu des règles : un objet par règle, avec sa valeur. Clic gauche : plus ; clic droit : moins ; Maj + clic : cinq crans d'un coup ; un clic bascule les règles oui / non et la taille des équipes. À la fermeture, une seule annonce dit à tous ce qui a changé. |
+| Livre enchanté « Scénarios » | Ouvre le menu des scénarios : un clic coche ou décoche chacun ; une annonce à la fermeture |
 | Casque « Taille des équipes » | Passe de solo à duo, puis trio |
 | Bloc d'herbe « Nouvelle map » | Crée une nouvelle map (deux clics en moins de cinq secondes) |
 | Boussole « Rappeler au lobby » | Ramène tous les joueurs sur la plateforme |
@@ -115,6 +117,23 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 
 La bordure se réduit maintenant d'elle-même : à sa minute, elle passe en `bordure-duree` minutes de son rayon de départ à son rayon final, avec une annonce cinq minutes avant.
+
+### Scénarios
+
+Des scénarios UHC de confort, à cocher avant la partie avec l'objet « Scénarios » de l'administrateur ou `/cf scenario <nom>` ; `/cf scenario` seul en donne la liste à tout le monde, et ceux qui sont cochés sont rappelés au lancement. Tous sont décochés par défaut et gardés dans `config.yml` (`scenarios`).
+
+| Scénario | Ce qu'il fait |
+|---|---|
+| `cutclean` CutClean | Les minerais de fer, d'or et de cuivre donnent des lingots (avec leur expérience), les animaux de la viande cuite |
+| `hastyboys` Hasty Boys | Les outils fabriqués (pioche, hache, pelle, houe) ont Efficacité III et Solidité I |
+| `timber` Timber | Casser une bûche fait tomber tout l'arbre (accroupi : seulement la bûche ; une construction en bûches sans feuillage ne tombe pas) |
+| `fastsmelting` Fast Smelting | Les fours cuisent 4 fois plus vite |
+| `vanillaplus` Vanilla+ | Le gravier donne toujours du silex ; tous les feuillages donnent des pommes (3 %) |
+| `cateyes` Cat Eyes | Vision nocturne permanente pendant la partie |
+
+### Armes fabriquées
+
+Personne ne fabrique d'épée : elles viennent du personnage, ou d'une recette du plugin (les épées d'Aura). Les haches se fabriquent et s'enchantent comme des outils, mais un coup de hache fabriquée ne blesse pas un joueur ; la hache d'un personnage reste une arme. Arcs, arbalètes, tridents et masses ne se fabriquent pas non plus, sauf par Shoja.
 
 ### Force
 

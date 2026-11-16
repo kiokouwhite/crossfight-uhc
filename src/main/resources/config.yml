@@ -26,6 +26,21 @@ game:
     judgement: 50
     omori: 60
 
+# Scenarios UHC de confort (a cocher en jeu : objet "Scenarios" de l'administrateur, ou /cf scenario <nom>)
+scenarios:
+  # Les minerais donnent des lingots et les animaux de la viande cuite
+  cutclean: false
+  # Les outils fabriques ont Efficacite III et Solidite I
+  hastyboys: false
+  # Casser une buche fait tomber tout l'arbre (accroupi : seulement la buche)
+  timber: false
+  # Les fours cuisent 4 fois plus vite
+  fastsmelting: false
+  # Le gravier donne toujours du silex, tous les feuillages donnent des pommes (3 %)
+  vanillaplus: false
+  # Vision nocturne permanente pendant la partie
+  cateyes: false
+
 resource-pack:
   # Le pack de sons et de voix, propose a chaque joueur a la connexion
   enabled: true

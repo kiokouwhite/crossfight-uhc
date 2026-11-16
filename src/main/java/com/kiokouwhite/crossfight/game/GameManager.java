@@ -267,6 +267,8 @@ public final class GameManager {
             }
         }
         Msg.broadcast("<yellow>Choisissez votre personnage ! <gray>(" + SELECTION_SECONDS + " secondes)");
+        var scenarios = plugin.scenarios().active();
+        if (!scenarios.isEmpty()) Msg.broadcast("<light_purple>Scenarios : <white>" + String.join("<gray>, <white>", scenarios));
         startClock();
         return true;
     }

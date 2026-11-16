@@ -34,7 +34,7 @@ import java.util.UUID;
 /**
  * Les outils de l'administrateur de partie : dans le lobby, les operateurs et les joueurs nommes par /cf admin
  * ont en main des objets pour regler la partie sans taper de commande. Les regles s'ouvrent dans un menu (clic
- * gauche : plus, clic droit : moins) ; la taille des equipes, la nouvelle map, le rappel au lobby et le
+ * gauche : plus, clic droit : moins), les scenarios dans un autre ; la taille des equipes, la nouvelle map, le rappel au lobby et le
  * lancement se font d'un clic droit, objet en main.
  */
 public final class HostTools implements Listener {
@@ -47,6 +47,7 @@ public final class HostTools implements Listener {
             new Tool("equipes", 1, Material.LEATHER_HELMET, "<aqua><bold>Taille des equipes", List.of("Solo, duo ou trio", "", "<yellow>Clic droit <gray>: changer")),
             new Tool("map", 2, Material.GRASS_BLOCK, "<green><bold>Nouvelle map", List.of("Cree un monde tout neuf et y amene tout le monde", "", "<yellow>Deux clics droits <gray>: creer la map")),
             new Tool("rappel", 3, Material.COMPASS, "<white><bold>Rappeler au lobby", List.of("Ramene tous les joueurs sur la plateforme", "", "<yellow>Clic droit <gray>: rappeler")),
+            new Tool("scenarios", 4, Material.ENCHANTED_BOOK, "<light_purple><bold>Scenarios", List.of("CutClean, Hasty Boys, Timber...", "", "<yellow>Clic droit <gray>: choisir les scenarios")),
             new Tool("lancer", 8, Material.LIME_DYE, "<green><bold>Lancer la partie", List.of("", "<yellow>Deux clics droits <gray>: lancer")));
 
     /** Ce que change un clic dans le menu, par regle, et son icone. */
@@ -154,6 +155,7 @@ public final class HostTools implements Listener {
         if (last != null && now - last < 300) return;
         switch (tool) {
             case "regles" -> openRules(p);
+            case "scenarios" -> openScenarios(p);
             case "equipes" -> {
                 if (!plugin.game().isLobby()) { Msg.actionBar(p, "<red>Impossible pendant un mode test."); return; }
                 TeamSize next = TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length];
@@ -235,9 +237,69 @@ public final class HostTools implements Listener {
                 List.of("Taille des equipes", "", "<yellow>Clic <gray>: solo, duo, trio")));
     }
 
+    // ------------------------------------------------------------------ le menu des scenarios
+
+    /** Le menu des scenarios : ceux qui etaient coches a l'ouverture, pour annoncer les changements. */
+    private static final class ScenarioMenu implements InventoryHolder {
+        Inventory inv;
+        List<String> before;
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    private static final int SCENARIO_FIRST = 10;
+
+    private void openScenarios(Player p) {
+        ScenarioMenu menu = new ScenarioMenu();
+        menu.inv = Bukkit.createInventory(menu, 27, Msg.mm("<dark_gray>Scenarios"));
+        menu.before = plugin.scenarios().active();
+        ItemStack pane = Items.of(Material.GRAY_STAINED_GLASS_PANE, "<gray> ", null);
+        for (int i = 0; i < 27; i++) if (i < 9 || i >= 18 || i % 9 == 0 || i % 9 == 8) menu.inv.setItem(i, pane);
+        fill(menu);
+        p.openInventory(menu.inv);
+        p.playSound(p.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.3f);
+    }
+
+    private void fill(ScenarioMenu menu) {
+        var all = Scenarios.Scenario.values();
+        for (int i = 0; i < all.length; i++) {
+            var s = all[i];
+            boolean on = plugin.scenarios().on(s);
+            ItemStack it = Items.of(s.icon(), (on ? "<green><bold>" : "<gray>") + s.label() + (on ? " <white>active" : " <dark_gray>desactive"),
+                    List.of(s.help(), "", "<yellow>Clic <gray>: " + (on ? "desactiver" : "activer")));
+            it.editMeta(m -> {
+                m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+                m.setEnchantmentGlintOverride(on);
+            });
+            menu.inv.setItem(SCENARIO_FIRST + i, it);
+        }
+    }
+
+    @EventHandler
+    public void onScenarioClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof ScenarioMenu menu) || !(e.getWhoClicked() instanceof Player p)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != menu.inv) return;
+        if (!waiting() || !canHost(p)) { p.closeInventory(); return; }
+        int i = e.getRawSlot() - SCENARIO_FIRST;
+        var all = Scenarios.Scenario.values();
+        if (i < 0 || i >= all.length) return;
+        boolean on = !plugin.scenarios().on(all[i]);
+        plugin.scenarios().set(all[i], on);
+        fill(menu);
+        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, on ? 1.3f : 0.9f);
+    }
+
+    @EventHandler
+    public void onScenarioClose(InventoryCloseEvent e) {
+        if (!(e.getInventory().getHolder() instanceof ScenarioMenu menu)) return;
+        List<String> now = plugin.scenarios().active();
+        if (!now.equals(menu.before)) Msg.broadcast("<light_purple>Scenarios <gray>(" + e.getPlayer().getName() + ") : <white>" + (now.isEmpty() ? "aucun" : String.join("<gray>, <white>", now)));
+    }
+
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getInventory().getHolder() instanceof ScenarioMenu) return;
         if (!(e.getInventory().getHolder() instanceof Menu menu)) {
             // Dans son propre inventaire : les outils restent a leur place.
             if (toolOf(e.getCurrentItem()) != null || toolOf(e.getCursor()) != null

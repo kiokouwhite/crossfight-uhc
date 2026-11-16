@@ -44,7 +44,7 @@ public final class Shoja extends Character implements Listener, Solo.Burst {
         setUltimate(new CouronneAraignee());
     }
 
-    @Override public ItemStack createWeapon() { return Weapons.melee(Material.IRON_SWORD, 8.5, "<dark_red><bold>Epee de l'Ego", List.of("<gray>8.5 dmg.", "<gray>Shoja peut crafter, enchanter et reparer des armes.")); }
+    @Override public ItemStack createWeapon() { return Weapons.melee(Material.IRON_SWORD, 8.5, "<dark_red><bold>Epee de l'Ego", List.of("<gray>8.5 dmg.", "<gray>Shoja peut enchanter et reparer des armes, et crafter arcs et arbaletes.")); }
 
     @Override
     public List<String> summary() {

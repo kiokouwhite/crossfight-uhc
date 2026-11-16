@@ -5,6 +5,7 @@
 | `/cf start` / `/cf stop` | Lancer ou arrêter la partie (admin) |
 | `/cf lobby` | Téléporter tous les joueurs sur la plateforme du lobby (admin, hors partie ; les joueurs en mode test restent où ils sont) |
 | `/cf regenere [graine]` | Créer une map toute neuve et y amener tout le monde (admin, hors partie) |
+| `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |

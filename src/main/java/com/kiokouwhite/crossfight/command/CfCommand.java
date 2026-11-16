@@ -55,6 +55,15 @@ public final class CfCommand implements TabExecutor {
                 // Un administrateur de partie (/cf admin) a les commandes qui reglent, lancent et arretent la partie ;
                 // le reste (mode test, triche de test) demande d'etre operateur.
                 boolean op = sender.hasPermission("crossfight.admin");
+                // /cf scenario, sans rien : la liste, pour tout le monde.
+                if ((sub.equals("scenario") || sub.equals("scenarios")) && args.length < 2) {
+                    Msg.raw(sender, "<light_purple><bold>Scenarios</bold> <gray>(/cf scenario <nom> [oui|non])");
+                    for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) {
+                        boolean on = plugin.scenarios().on(s);
+                        Msg.raw(sender, (on ? "<green>✔ " : "<dark_gray>✘ ") + (on ? "<white>" : "<gray>") + s.label() + " <dark_gray>- <gray>" + s.help());
+                    }
+                    return true;
+                }
                 if (!op && !(isHost(sender) && HOST_COMMANDS.contains(sub))) {
                     Msg.send(sender, isHost(sender) ? "<red>Cette commande est reservee aux operateurs du serveur." : "<red>Tu n'as pas la permission.");
                     return true;
@@ -83,6 +92,14 @@ public final class CfCommand implements TabExecutor {
                         if (target != null && target != sender) Msg.send(target, now ? "<green>Tu es administrateur de partie. <gray>Dans le lobby, tes outils sont dans ta barre : regles, equipes, nouvelle map, rappel, lancement. Les commandes marchent aussi (<white>/cf regle</white>, <white>/cf start</white>, <white>/cf stop</white>...)."
                                 : "<yellow>Tu n'es plus administrateur de partie.");
                         if (target != null) plugin.hostTools().refresh(target);
+                    }
+                    case "scenario", "scenarios" -> {
+                        // /cf scenario <nom> [oui|non] : coche ou decoche un scenario.
+                        var s = com.kiokouwhite.crossfight.game.Scenarios.Scenario.parse(args[1]);
+                        if (s == null) { Msg.send(sender, "<red>Scenario inconnu : " + args[1] + ". <gray>/cf scenario pour la liste."); return true; }
+                        boolean on = args.length < 3 ? !plugin.scenarios().on(s) : List.of("oui", "on", "true", "1", "vrai").contains(args[2].toLowerCase(java.util.Locale.ROOT));
+                        plugin.scenarios().set(s, on);
+                        Msg.broadcast("<light_purple>Scenario <white>" + s.label() + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
                     case "outils", "outil", "tools" -> {
                         // Redonne les outils d'administrateur (apres un /op, un inventaire vide...).
@@ -482,7 +499,7 @@ public final class CfCommand implements TabExecutor {
 
     /** Ce qu'un administrateur de partie (/cf admin) peut faire sans etre operateur. */
     private static final java.util.Set<String> HOST_COMMANDS = java.util.Set.of("start", "stop", "lobby", "setsize", "setborder", "setpvp",
-            "regenere", "regenerer", "regen", "newmap", "outils", "outil", "tools", "regle", "regles", "rule", "rules", "config");
+            "regenere", "regenerer", "regen", "newmap", "outils", "outil", "tools", "scenario", "scenarios", "regle", "regles", "rule", "rules", "config");
 
     private boolean isHost(CommandSender s) {
         return s instanceof Player p && plugin.game().rules().isHost(p.getUniqueId());
@@ -498,6 +515,7 @@ public final class CfCommand implements TabExecutor {
         if (isHost(s) && !s.hasPermission("crossfight.admin")) {
             Msg.raw(s, "<red>/cf start|stop|lobby <gray>- lancer, arreter, rappeler tout le monde au lobby");
             Msg.raw(s, "<red>/cf regenere [graine] <gray>- une map toute neuve (hors partie)");
+            Msg.raw(s, "<red>/cf scenario [nom] <gray>- les scenarios (CutClean, Hasty Boys, Timber...)");
             Msg.raw(s, "<red>/cf regle [nom] [valeur] <gray>- voir et changer les regles (bordure, PvP, vies...)");
             Msg.raw(s, "<red>/cf setsize <SOLO|DUO|TRIO> <gray>- taille des equipes");
         }
@@ -605,9 +623,9 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack"));
-            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario"));
+            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "outils", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -626,6 +644,7 @@ public final class CfCommand implements TabExecutor {
                 case "effet", "fx" -> out.add("resurrection");
                 case "regle", "regles", "rule", "rules", "config" -> { for (var r : com.kiokouwhite.crossfight.game.Rules.all()) out.add(r.name()); }
                 case "admin", "admins" -> { for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName()); }
+                case "scenario", "scenarios" -> { for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) out.add(s.id()); }
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
