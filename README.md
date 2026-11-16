@@ -75,7 +75,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf pack` | Redemander le pack de sons (ouvert à tous) |
 | `/cf son [nom]` | Compter les sons du pack, ou en jouer un (test) |
 | `/cf dialogue <perso> <perso> [joueur]` | Écouter l'échange de deux personnages après leur choix (test) |
-| `/cf musique [piste\|stop]` | Lister les musiques de combat, en écouter une, l'arrêter (test) |
+| `/cf musique [piste\|stop]` | Lister les musiques du pack, en écouter une en boucle, l'arrêter (test) |
 
 ## Déroulement d'une partie
 
@@ -175,7 +175,7 @@ Dans la fosse, un coup qui tuerait ne tue pas : le joueur est à terre et regard
 
 À la minute `omori` (60 par défaut), les quatre herses de l'arène se lèvent (on y entre par les galeries qui traversent les gradins) et une porte blanche apparaît à un endroit au hasard de la fosse ; ses coordonnées sont annoncées. C'est une vraie porte, blanche, haute de deux blocs et incassable : un clic droit dessus l'ouvre et emmène dans l'Espace Blanc, un monde au sol blanc où attend le boss Omori. Tout y est blanc, même le ciel : quatre murs et un plafond de lumière blanche, sans ombre, ferment la vue à 30 blocs du centre (de grands panneaux de texte en blocs pleins, quatre couches décalées par face), il y est toujours midi, et l'on ne peut pas s'éloigner à plus de 25 blocs du centre.
 
-Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 30, 35, 40, 45 puis 50 coups, avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes ; le nom de chacune s'annonce une seconde avant qu'elle parte, dans une seconde barre rouge sous la sienne, qui se vide pendant ce délai :
+Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (quatre par seconde au plus par joueur). Il se bat en cinq phases, à 38, 44, 50, 56 puis 63 coups (251 en tout), avec une barre en haut de l'écran. Il enchaîne les attaques de sa phase, une toutes les cinq secondes ; le nom de chacune s'annonce une seconde avant qu'elle parte, dans une seconde barre rouge sous la sienne, qui se vide pendant ce délai :
 
 | Phase | Attaques, dans l'ordre |
 |---|---|
@@ -202,7 +202,7 @@ Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie 
 
 Omori est un personnage articulé, couteau à la main, quand son skin est dans le pack (`python3 tools/add_skin.py <skin.png> omori --prive`, puis `tools/build_pack.py` ; `omori.skin` dans `config.yml` nomme le skin à utiliser) ; sans lui, c'est un zombie en tenue noire et blanche. `/cf test omori` pose la porte devant soi dans la zone de test, pour essayer le combat sans lancer de partie.
 
-Une musique accompagne le combat, en boucle, pour qui est dans l'Espace Blanc, et s'arrête dès qu'on en sort : c'est la piste `omori` du pack, à déposer soi-même dans `resourcepack-prive/assets/crossfight/sounds/music/omori.ogg` (jamais versionnée), puis `python3 tools/build_pack.py`. Sans elle, le combat se fait sans musique.
+Une musique accompagne le combat pour qui est dans l'Espace Blanc, et s'arrête dès qu'on en sort : la piste `omori` du pack complet (jamais versionnée), une boucle de jeu vidéo. Chacun l'entend depuis son début en entrant : tout le morceau une fois (4 min 30), puis sa dernière section de 42 secondes, qui tourne sans fin, sans conclusion ni reprise audible. Elle se fabrique avec `python3 tools/boucle_musique.py <fichier> omori --debut 270.85 --longueur 1846977 --prive` (voir « Sons, voix et musiques »), puis `python3 tools/build_pack.py`. Sans elle, le combat se fait sans musique. `/cf musique omori` l'écoute hors combat, `/cf musique omori_boucle` fait entendre la boucle seule.
 
 ### Scénarios
 
@@ -277,11 +277,17 @@ Le plugin envoie à chaque joueur un pack de ressources (`dist/CrossfightPack.zi
 - **Bruitages** : chaque capacité réussie joue `ability.<id>`. `resourcepack/abilities.txt` associe chaque capacité à une catégorie de la bibliothèque (`sounds/sfx/<catégorie>/`, 28 catégories de sons libres, crédits dans `resourcepack/CREDITS.md`). Un fichier `sounds/ability/<id>.ogg` remplace la catégorie pour cette capacité.
 - **Voix** : `sounds/voice/<clé>.ogg`. Pour l'Ultime en Duo de RWBY, le lanceur dit `<perso>_duo_<partenaire>` (appel de partenaire de BlazBlue) et la partenaire répond `<partenaire>_nom_<perso>`. Les quatre membres de RWBY ont aussi leurs échanges de sélection (les entrées en duo de BlazBlue Cross Tag Battle), pour les six paires. Une réplique qui répond à une autre attend la fin de la première : `build_pack.py` écrit la durée de chaque réplique dans `durations.txt`, embarqué dans le plugin (`/cf dialogue <perso> <perso>` pour écouter un échange). La clé est l'id de la capacité, ou `<perso>_selection`, `<perso>_mort`, `<perso>_kill`, `<perso>_burst`, `syn_<a>_<b>_<perso>` (Synergie), `duo_<a>_<b>_<perso>` (échange des deux membres d'un duo après le choix des personnages). `<clé>_1.ogg`, `<clé>_2.ogg` sont des variantes tirées au hasard. Les voix sont entendues autour du personnage ; la réplique de sélection, par le joueur seul.
 - **Musiques de combat** : `sounds/music/<piste>.ogg`, et `resourcepack/music.txt` dit quelles licences la déclenchent (`licence_a + licence_b = piste`). La musique démarre au premier coup entre deux équipes, repart sur elle-même tant qu'elles se battent (la reprise est lancée `music.loop-overlap-ms` avant la fin de la piste, et `add_audio.py` retire les silences de début et de fin), et s'arrête après `music.silence-seconds` (20 s) sans coup ou quand une équipe n'a plus de joueur en vie. Elle passe par le réglage « Juke-box / Blocs musicaux » du joueur.
+- **Musiques à boucle** (comme dans un jeu vidéo : une introduction jouée une fois, puis une section qui tourne sans fin) : `tools/boucle_musique.py`.
+  - `python3 tools/boucle_musique.py analyse <fichier>` cherche où la piste se répète. Sur un disque, la section qui boucle est en général jouée deux fois avant le fondu final : le second passage est le même enregistrement que le premier, et l'outil retrouve leur décalage à l'échantillon près, dit jusqu'où les deux passages se ressemblent (et où commence le fondu final), et propose des points de raccord calmes.
+  - `python3 tools/boucle_musique.py <fichier> <piste> --debut <secondes> --longueur <échantillons> [--tours 8] [--suite 4] [--prive]` écrit la piste en deux fichiers : `<piste>.ogg` (l'introduction, puis 8 tours de boucle) et `<piste>_boucle.ogg` (4 tours, pour la suite). La boucle va de `--debut` à `--debut` + `--longueur` : ce qui suit sa fin est, sur le disque même, ce qui suit son début, et les 300 dernières millisecondes d'un tour glissent du second passage vers le premier (alignés à l'échantillon près). Le niveau est réglé par un gain fixe, le même pour les deux fichiers.
+  - Minecraft ne sait pas boucler un son : le serveur relance un fichier, à un vingtième de seconde près. Dans un fichier, les tours s'enchaînent à l'échantillon près ; le premier contient donc déjà une dizaine de minutes de musique sans aucun raccord fait par le serveur. À l'instant écrit dans le fichier (étiquettes `CROSSFIGHT_RELAIS` et `CROSSFIGHT_SUITE`, lues par `build_pack.py` et reportées dans la table des musiques), sa suite prend le relais, puis se relaie elle-même ; les deux se recouvrent en fondu un quart de seconde, pour que ce relais ne laisse ni blanc ni claquement.
+  - Une piste peut être tenue pour un joueur hors des combats d'équipes (`Music.hold` / `Music.release`) : c'est ainsi que joue la musique du boss Omori. `/cf musique <piste>` joue une piste en boucle jusqu'à `/cf musique stop`.
 
 Un son absent du pack n'est simplement pas joué : ajouter une voix ou une musique ne demande aucun changement de code.
 
 ```
 python3 tools/add_audio.py music "ma piste.mp3"        # convertit et range une musique
+python3 tools/boucle_musique.py analyse "ma piste.mp3" # cherche le point de boucle d'une musique
 python3 tools/add_audio.py voice netsu.wav netsu_ult   # une réplique
 python3 tools/build_pack.py                            # reconstruit le pack, puis recompiler le plugin
 ```

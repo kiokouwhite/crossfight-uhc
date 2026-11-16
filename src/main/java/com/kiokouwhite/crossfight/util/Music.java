@@ -30,6 +30,12 @@ import java.util.UUID;
  * moment (music.silence-seconds) ou quand l'une des deux n'a plus de joueur en vie.
  * La correspondance licences -> piste et la duree des pistes viennent de music.txt, ecrit par
  * tools/build_pack.py a partir de resourcepack/music.txt.
+ * Une piste peut aussi etre tenue pour un joueur hors de ces combats (un boss, une scene) : {@link #hold}.
+ *
+ * Une piste simple repart sur elle-meme a sa fin. Une piste a boucle (tools/boucle_musique.py) n'a pas de fin :
+ * son premier fichier joue l'introduction puis plusieurs tours de boucle, enchaines a l'echantillon pres dans le
+ * fichier ; a l'instant qu'il indique, un second fichier (d'autres tours) prend le relais, puis se relaie lui-meme.
+ * Les deux fichiers se recouvrent en fondu un quart de seconde : le relais, lance au tick pres, ne s'entend pas.
  */
 public final class Music implements Listener {
 
@@ -37,6 +43,9 @@ public final class Music implements Listener {
     private static final Map<String, String> PAIR_TRACK = new TreeMap<>();
     /** Piste -> duree en millisecondes, pour l'enchainer sur elle-meme sans blanc. */
     private static final Map<String, Long> DURATION = new TreeMap<>();
+    /** Fichier d'une piste a boucle -> l'instant (ms) ou sa suite prend le relais, et le nom de cette suite. */
+    private static final Map<String, Long> RELAY = new HashMap<>();
+    private static final Map<String, String> NEXT = new HashMap<>();
 
     private static final class Fight {
         final int teamA, teamB; final String track; long lastHit;
@@ -45,13 +54,16 @@ public final class Music implements Listener {
     }
 
     private static final class Playing {
-        final String track; long startedAt;
-        Playing(String track) { this.track = track; this.startedAt = System.currentTimeMillis(); }
+        /** La piste demandee ; le fichier en cours (elle-meme, ou sa suite) ; celui d'avant, qui finit de s'eteindre. */
+        final String track; String file, before; long startedAt;
+        Playing(String track) { this.track = track; this.file = track; this.startedAt = System.currentTimeMillis(); }
     }
 
     private final CrossfightPlugin plugin;
     private final Map<String, Fight> fights = new HashMap<>();
     private final Map<UUID, Playing> playing = new HashMap<>();
+    /** Joueur -> la piste tenue pour lui hors des combats d'equipes : elle passe avant tout. */
+    private final Map<UUID, String> held = new HashMap<>();
 
     public Music(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -61,13 +73,16 @@ public final class Music implements Listener {
     }
 
     private void load() {
-        PAIR_TRACK.clear(); DURATION.clear();
+        PAIR_TRACK.clear(); DURATION.clear(); RELAY.clear(); NEXT.clear();
         try (InputStream in = plugin.getResource("music.txt")) {
             if (in == null) return;
             BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             for (String line; (line = r.readLine()) != null; ) {
                 String[] p = line.trim().split("\\s+");
-                if (p.length == 3 && p[0].equals("track")) DURATION.put(p[1], Long.parseLong(p[2]));
+                if (p.length >= 3 && p[0].equals("track")) {
+                    DURATION.put(p[1], Long.parseLong(p[2]));
+                    if (p.length >= 5) { RELAY.put(p[1], Long.parseLong(p[3])); NEXT.put(p[1], p[4]); }
+                }
                 else if (p.length == 4 && p[0].equals("pair")) PAIR_TRACK.put(pairKey(p[1], p[2]), p[3]);
             }
         } catch (Exception ex) { plugin.getLogger().warning("music.txt illisible : " + ex); }
@@ -110,7 +125,22 @@ public final class Music implements Listener {
     }
 
     @EventHandler
-    public void onQuit(PlayerQuitEvent e) { playing.remove(e.getPlayer().getUniqueId()); }
+    public void onQuit(PlayerQuitEvent e) { playing.remove(e.getPlayer().getUniqueId()); held.remove(e.getPlayer().getUniqueId()); }
+
+    /**
+     * Tient une piste pour un joueur, en boucle, jusqu'a {@link #release} : la musique d'un boss, d'une scene.
+     * Elle passe avant la musique de son combat d'equipes. Rend faux si la piste n'est pas dans le pack.
+     */
+    public boolean hold(Player p, String track) {
+        if (!enabled() || !DURATION.containsKey(track)) return false;
+        if (!track.equals(held.put(p.getUniqueId(), track))) refresh(p);
+        return true;
+    }
+
+    /** Relache la piste tenue pour ce joueur : sa musique s'arrete (ou celle de son combat reprend). */
+    public void release(Player p) {
+        if (held.remove(p.getUniqueId()) != null) refresh(p);
+    }
 
     private boolean alive(int teamId) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -122,6 +152,8 @@ public final class Music implements Listener {
 
     /** La piste que ce joueur devrait entendre : celle de son combat le plus recent. */
     private String wanted(Player p) {
+        String own = held.get(p.getUniqueId());
+        if (own != null) return own;
         Team t = plugin.teams().teamOf(p);
         if (t == null) return null;
         Fight best = null;
@@ -134,11 +166,16 @@ public final class Music implements Listener {
         Playing now = playing.get(p.getUniqueId());
         if (want == null) { if (now != null) stop(p); return; }
         if (now != null && now.track.equals(want)) {
-            // Fin de la piste : on la relance tant que le combat dure.
-            long length = DURATION.getOrDefault(want, 180000L);
-            if (System.currentTimeMillis() - now.startedAt >= length - overlapMillis()) {
+            // Une piste a boucle passe le relais a sa suite a l'instant dit par le fichier, au tick le plus proche ;
+            // une piste simple repart sur elle-meme un peu avant sa fin. Dans les deux cas, tant qu'on la veut.
+            Long relay = RELAY.get(now.file);
+            long due = relay != null ? relay - 25 : DURATION.getOrDefault(now.file, 180000L) - overlapMillis();
+            if (System.currentTimeMillis() - now.startedAt >= due) {
+                String next = relay != null && DURATION.containsKey(NEXT.get(now.file)) ? NEXT.get(now.file) : now.file;
+                now.before = now.file;
+                now.file = next;
                 now.startedAt = System.currentTimeMillis();
-                play(p, want);
+                play(p, next);
             }
             return;
         }
@@ -152,7 +189,10 @@ public final class Music implements Listener {
 
     private void stop(Player p) {
         Playing now = playing.remove(p.getUniqueId());
-        if (now != null) p.stopSound(Sounds.NS + ":music." + now.track, SoundCategory.RECORDS);
+        if (now == null) return;
+        p.stopSound(Sounds.NS + ":music." + now.file, SoundCategory.RECORDS);
+        // Juste apres un relais, le fichier d'avant joue encore sa derniere fraction de seconde.
+        if (now.before != null && !now.before.equals(now.file)) p.stopSound(Sounds.NS + ":music." + now.before, SoundCategory.RECORDS);
     }
 
     private void tick() {
@@ -167,20 +207,17 @@ public final class Music implements Listener {
     /** Coupe toutes les musiques (fin de partie). */
     public void stopAll() {
         fights.clear();
+        held.clear();
         for (UUID id : new ArrayList<>(playing.keySet())) { Player p = Bukkit.getPlayer(id); if (p != null) stop(p); }
         playing.clear();
     }
 
-    /** Test : joue une piste a un joueur, hors combat (null pour l'arreter). */
+    /** Test : joue une piste a un joueur, hors combat, en boucle jusqu'a ce qu'on l'arrete (null pour l'arreter). */
     public void preview(Player p, String track) {
         stop(p);
-        fights.remove("preview|" + p.getUniqueId());
-        if (track == null) return;
-        playing.put(p.getUniqueId(), new Playing(track));
-        // Un combat fictif de l'equipe contre elle-meme tient la piste jusqu'a sa fin.
-        Team t = plugin.teams().teamOf(p);
-        if (t != null) { Fight f = new Fight(t.id(), t.id(), track); f.lastHit = System.currentTimeMillis() + DURATION.getOrDefault(track, 180000L); fights.put("preview|" + p.getUniqueId(), f); }
-        p.stopSound(SoundCategory.MUSIC);
-        play(p, track);
+        held.remove(p.getUniqueId());
+        if (track == null || !DURATION.containsKey(track)) { refresh(p); return; }
+        held.put(p.getUniqueId(), track);
+        refresh(p);
     }
 }

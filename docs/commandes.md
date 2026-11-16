@@ -53,4 +53,4 @@
 | `/cf pack` | Redemander le pack de sons (ouvert à tous) |
 | `/cf son [nom]` | Compter les sons du pack, ou en jouer un (test) |
 | `/cf dialogue <perso> <perso> [joueur]` | Écouter l'échange de deux personnages après leur choix (test) |
-| `/cf musique [piste\|stop]` | Lister les musiques de combat, en écouter une, l'arrêter (test) |
+| `/cf musique [piste\|stop]` | Lister les musiques du pack, en écouter une en boucle, l'arrêter (test) |

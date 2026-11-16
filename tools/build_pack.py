@@ -23,7 +23,9 @@ Conventions de nommage, sous sounds/ :
   sfx/<categorie>/<n>.ogg     bibliotheque de bruitages : tous les fichiers d'un dossier sont des variantes
   ability/<id>.ogg            bruitage propre a une capacite (prioritaire sur abilities.txt)
   voice/<cle>.ogg             une replique ; <cle>_1.ogg, <cle>_2.ogg... = variantes tirees au hasard
-  music/<piste>.ogg           une musique de combat (stereo)
+  music/<piste>.ogg           une musique de combat (stereo) ; une piste a boucle (tools/boucle_musique.py) est en
+                              deux fichiers, <piste>.ogg et sa suite <piste>_boucle.ogg : chacun porte, en etiquettes,
+                              l'instant ou il est relaye et par quel fichier (CROSSFIGHT_RELAIS, CROSSFIGHT_SUITE)
 Le reste de assets/ (modeles, textures, objets) est embarque tel quel. Un personnage qui a un modele
 articule (tools/add_skin.py) est declare au plugin sous le nom "skin.<personnage>", une image de l'ecran
 de selection (tools/build_selection.py) sous "select.<type>.<nom>", un signe de Glyph
@@ -74,10 +76,29 @@ def millis(f: Path) -> int:
         return 180000
 
 
+def music_info(f: Path):
+    """La duree (ms) d'une musique et, pour une piste a boucle, son relais : (duree, (instant du relais en ms, suite))."""
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration:format_tags:stream_tags", "-of", "json", str(f)],
+                       capture_output=True, text=True)
+    try:
+        info = json.loads(r.stdout)
+        ms = int(round(float(info["format"]["duration"]) * 1000))
+    except (ValueError, KeyError):
+        print(f"duree illisible (ffprobe) : {f.name}, 180 s par defaut")
+        return 180000, None
+    tags = {}
+    for holder in [info.get("format", {})] + info.get("streams", []):
+        tags.update({k.upper(): str(v) for k, v in holder.get("tags", {}).items()})
+    relay, follow = tags.get("CROSSFIGHT_RELAIS", ""), tags.get("CROSSFIGHT_SUITE", "")
+    if relay.isdigit() and re.fullmatch(r"[\w.-]+", follow):
+        return ms, (int(relay), follow)
+    return ms, None
+
+
 def collect(base: Path, with_library: bool):
-    """Les evenements d'une source : nom -> fichiers, et la duree des musiques."""
+    """Les evenements d'une source : nom -> fichiers, la duree des musiques, et le relais des pistes a boucle."""
     sounds = base / SUB
-    events, tracks = {}, {}
+    events, tracks, loops = {}, {}, {}
     library = {}
     if with_library and (sounds / "sfx").is_dir():
         for cat in sorted(p for p in (sounds / "sfx").iterdir() if p.is_dir()):
@@ -91,9 +112,11 @@ def collect(base: Path, with_library: bool):
         events["voice." + key] = files
     if (sounds / "music").is_dir():
         for f in sorted((sounds / "music").glob("*.ogg")):
-            tracks[f.stem] = millis(f)
+            tracks[f.stem], loop = music_info(f)
+            if loop:
+                loops[f.stem] = loop
             events["music." + f.stem] = [f]
-    return events, tracks, library
+    return events, tracks, library, loops
 
 
 def skins(base: Path):
@@ -197,7 +220,7 @@ def restore_private(zip_path: Path):
 def main() -> int:
     if "--depuis" in sys.argv:
         restore_private(Path(sys.argv[sys.argv.index("--depuis") + 1]))
-    events, tracks, library = collect(PACK, True)
+    events, tracks, library, loops = collect(PACK, True)
 
     # Bruitages des capacites d'apres la correspondance (les fichiers propres la remplacent).
     unknown = []
@@ -222,9 +245,9 @@ def main() -> int:
 
     # Sons prives : presents sur cette machine, ou seulement connus par leur nom (prive.txt).
     private_list = PACK / "prive.txt"
-    private_names, private_tracks, p_events, private_voice_ms = set(), {}, {}, {}
+    private_names, private_tracks, p_events, private_voice_ms, private_loops = set(), {}, {}, {}, {}
     if PRIVATE.is_dir():
-        p_events, private_tracks, _ = collect(PRIVATE, False)
+        p_events, private_tracks, _, private_loops = collect(PRIVATE, False)
         private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
@@ -234,8 +257,12 @@ def main() -> int:
                       ", ".join(sorted(before - private_names)))
         lines = ["# Sons du pack prive (resourcepack-prive/, non versionne). Genere par tools/build_pack.py.",
                  "# Seuls les noms sont ici : le plugin doit les connaitre pour les jouer."]
-        lines += [name + (f" {private_tracks[name[6:]]}" if name.startswith("music.") else f" {private_voice_ms[name]}" if name in private_voice_ms else "")
-                  for name in sorted(private_names)]
+        def note(name):
+            if name.startswith("music."):
+                relay = private_loops.get(name[6:])
+                return f" {private_tracks[name[6:]]}" + (f" {relay[0]} {relay[1]}" if relay else "")
+            return f" {private_voice_ms[name]}" if name in private_voice_ms else ""
+        lines += [name + note(name) for name in sorted(private_names)]
         private_list.write_text("\n".join(lines) + "\n", encoding="utf-8")
     elif private_list.exists():
         for line in private_list.read_text(encoding="utf-8").splitlines():
@@ -245,6 +272,8 @@ def main() -> int:
             private_names.add(parts[0])
             if parts[0].startswith("music.") and len(parts) > 1:
                 private_tracks[parts[0][6:]] = int(parts[1])
+                if len(parts) > 3:
+                    private_loops[parts[0][6:]] = (int(parts[2]), parts[3])
             if parts[0].startswith("voice.") and len(parts) > 1:
                 private_voice_ms[parts[0]] = int(parts[1])
 
@@ -306,7 +335,10 @@ def main() -> int:
     (res / "durations.txt").write_text("# Genere par tools/build_pack.py : duree (ms) de chaque replique\n"
                                        + "".join(f"{k} {v}\n" for k, v in sorted(durations.items())), encoding="utf-8")
     lines = ["# Genere par tools/build_pack.py"]
-    lines += [f"track {t} {s}" for t, s in sorted(all_tracks.items())]
+    # Une piste a boucle : apres sa duree, l'instant (ms) ou sa suite prend le relais, et le nom de cette suite.
+    all_loops = dict(loops)
+    all_loops.update(private_loops)
+    lines += [f"track {t} {s}" + (f" {all_loops[t][0]} {all_loops[t][1]}" if t in all_loops else "") for t, s in sorted(all_tracks.items())]
     lines += [f"pair {a} {b} {t}" for a, b, t in pairs]
     (res / "music.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 

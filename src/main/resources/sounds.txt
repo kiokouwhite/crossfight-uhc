@@ -276,6 +276,8 @@ glyph.schnee_flocon
 glyph.vent
 model.falchion
 model.yumi_fujin
+music.omori
+music.omori_boucle
 overlay.minecraft
 select.card.byleth
 select.card.corrin

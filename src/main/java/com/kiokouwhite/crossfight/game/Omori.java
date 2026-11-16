@@ -56,7 +56,7 @@ public final class Omori implements Listener {
 
     public static final String WORLD = "crossfight_espace_blanc";
     /** Coups a porter pour vaincre chaque phase. */
-    private static final int[] HITS = {30, 35, 40, 45, 50};
+    private static final int[] HITS = {38, 44, 50, 56, 63};
     /** Le roulement d'attaques de chaque phase. */
     private static final String[][] ATTACKS = {
             {"basique", "poignarder", "trancher"},
@@ -343,31 +343,22 @@ public final class Omori implements Listener {
     }
 
     /**
-     * La musique du combat, en boucle, pour qui est dans l'Espace Blanc : la piste "omori" du pack (pack complet :
-     * resourcepack-prive/assets/crossfight/sounds/music/omori.ogg). Sans elle, le combat se fait sans musique.
+     * La musique du combat, pour qui est dans l'Espace Blanc : la piste "omori" du pack complet, une boucle de jeu
+     * video (tools/boucle_musique.py) : tout le morceau une fois, puis sa derniere section, sans fin. Chacun
+     * l'entend depuis son debut a son entree ; elle s'arrete des qu'il sort. Sans elle, le combat est sans musique.
      */
     private void music() {
-        if (!com.kiokouwhite.crossfight.util.Sounds.has("music.omori")) return;
-        long length = com.kiokouwhite.crossfight.util.Music.tracks().getOrDefault("omori", 180000L);
-        long now = System.currentTimeMillis();
         List<Player> in = fighters();
-        for (Player p : in) {
-            Long since = musicSince.get(p.getUniqueId());
-            if (since != null && now - since < length - 60) continue;
-            musicSince.put(p.getUniqueId(), now);
-            p.stopSound(org.bukkit.SoundCategory.MUSIC);
-            p.playSound(p, com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS, (float) plugin.getConfig().getDouble("music.volume", 0.6), 1f);
-        }
-        // Sorti de l'Espace Blanc : la musique s'arrete.
-        musicSince.keySet().removeIf(id -> {
+        for (Player p : in) if (listeners.add(p.getUniqueId())) plugin.music().hold(p, "omori");
+        listeners.removeIf(id -> {
             Player p = Bukkit.getPlayer(id);
             if (p != null && in.contains(p)) return false;
-            if (p != null) p.stopSound(com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS);
+            if (p != null) plugin.music().release(p);
             return true;
         });
     }
 
-    private final Map<UUID, Long> musicSince = new HashMap<>();
+    private final java.util.Set<UUID> listeners = new java.util.HashSet<>();
 
     /** Un clic droit sur la porte blanche : elle s'ouvre, et l'on passe dans l'Espace Blanc. */
     @EventHandler
@@ -1016,8 +1007,8 @@ public final class Omori implements Listener {
         if (nameBar != null) nameBar.removeAll();
         nameBar = null;
         unveil();
-        for (UUID id : musicSince.keySet()) { Player p = Bukkit.getPlayer(id); if (p != null) p.stopSound(com.kiokouwhite.crossfight.util.Sounds.NS + ":music.omori", org.bukkit.SoundCategory.RECORDS); }
-        musicSince.clear();
+        for (UUID id : listeners) { Player p = Bukkit.getPlayer(id); if (p != null) plugin.music().release(p); }
+        listeners.clear();
         if (puppet != null) puppet.remove();
         puppet = null;
         if (boss != null) boss.remove();
