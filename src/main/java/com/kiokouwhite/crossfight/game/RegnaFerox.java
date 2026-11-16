@@ -45,8 +45,12 @@ public final class RegnaFerox implements Listener {
 
     /** Secondes pour s'inscrire. Le combat, lui, n'a pas de limite de temps. */
     private static final int ASK_SECONDS = 60;
-    /** Le colisee : rayon de la fosse, rayon hors tout, hauteur du mur de la fosse, du dome, de l'enceinte, des piliers. */
-    private static final int PIT = 18, OUT = 32, RING = 5, DOME = 15, WALL_OUT = 17, TOWER = 23;
+    /** L'arene : rayon de la fosse, rayon hors tout, hauteur du mur de la fosse, de sa paroi invisible, de l'enceinte, des piliers. */
+    private static final int PIT = 56, OUT = 92, RING = 8, DOME = 20, WALL_OUT = 32, TOWER = 66;
+    /** Rayon de la mosaique, distance au centre des grilles (sur chaque axe) et des braseros. */
+    private static final int MOSAIC = 40, GRATE = 33, FIRES = 49;
+    /** Hauteur des piliers de l'enceinte, qui depassent du toit (TOWER est le point le plus haut a degager). */
+    private static final int PILLAR = 42;
 
     private enum Phase { IDLE, ASKING, FIGHT }
 
@@ -136,20 +140,20 @@ public final class RegnaFerox implements Listener {
     // ------------------------------------------------------------------ le combat
 
     /**
-     * L'arene est sur la map des le debut de la partie : un colisee de pierre (voir raise), pose sur le terrain
+     * L'arene est sur la map des le debut de la partie : une salle massive et fermee (voir raise), posee sur le terrain
      * a 30 % du rayon de la bordure, a l'est du centre (le centre est garde pour d'autres evenements). Sa hauteur
      * est retenue par monde dans config.yml, pour la retrouver (et ne pas la rebatir) a la partie suivante.
      */
     public Location build() {
         World w = plugin.game().world();
         int cx = (int) Math.round(plugin.game().rules().value("bordure") * 0.3), cz = 0;
-        String key = "ferox.arene." + w.getName();
+        String key = "ferox.arene-fermee." + w.getName();
         int y = plugin.getConfig().getInt(key, Integer.MIN_VALUE);
         boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.SMOOTH_SANDSTONE;
         if (!there) {
             // Le sol de la fosse a la hauteur mediane du terrain sous le colisee : ni perche sur une butte, ni enterre.
             List<Integer> heights = new ArrayList<>();
-            for (int dx = -24; dx <= 24; dx += 24) for (int dz = -24; dz <= 24; dz += 24) heights.add(w.getHighestBlockYAt(cx + dx, cz + dz, org.bukkit.HeightMap.MOTION_BLOCKING_NO_LEAVES));
+            for (int dx = -24; dx <= 24; dx += 24) for (int dz = -24; dz <= 24; dz += 24) heights.add(w.getHighestBlockYAt(cx + dx * 3, cz + dz * 3, org.bukkit.HeightMap.MOTION_BLOCKING_NO_LEAVES));
             heights.sort(null);
             y = Math.max(w.getMinHeight() + 6, Math.min(w.getMaxHeight() - TOWER - 8, heights.get(heights.size() / 2)));
             raise(w, cx, y, cz);
@@ -165,83 +169,125 @@ public final class RegnaFerox implements Listener {
     private static final Material[] COBBLES = {Material.BROWN_TERRACOTTA, Material.TERRACOTTA, Material.MUD_BRICKS, Material.GRANITE, Material.PACKED_MUD, Material.BROWN_TERRACOTTA, Material.MUD_BRICKS, Material.COARSE_DIRT};
 
     /**
-     * La grande mosaique ronde du centre de la fosse, a la maniere de l'arene de Ferox : un soleil clair, une
-     * etoile noire, un cercle de rayons, une dent de scie noire et creme, un bandeau brun, une frise de volutes
-     * dorees sur fond noir, un lisere d'or.
+     * La grande mosaique ronde du centre de la fosse, a la maniere de l'arene de Ferox, de 81 blocs de large : un
+     * soleil clair, une etoile noire a seize branches, un cercle de rayons, une dent de scie noire et creme, un
+     * bandeau brun, une frise de volutes dorees sur fond noir, un lisere d'or ; un filet dore separe les bandes.
+     * {@code u} est la distance au centre ramenee sur 13,5 (le bord de la mosaique), l'angle est en degres.
      */
-    private static Material mosaic(double d, double angle) {
-        if (d < 1.5) return Material.SMOOTH_SANDSTONE;
-        if (d < 3.5) return ((int) (angle / 22.5) & 1) == 0 ? Material.BLACKSTONE : Material.SANDSTONE;
-        if (d < 4.5) return Material.CUT_SANDSTONE;
-        if (d < 6.5) return ((int) (angle / 11.25) & 1) == 0 ? Material.WHITE_TERRACOTTA : Material.LIGHT_GRAY_TERRACOTTA;
-        if (d < 7.5) return Material.POLISHED_BLACKSTONE;
-        if (d < 9.5) return (angle % 15) / 15 < (d - 7.5) / 2 ? Material.SMOOTH_SANDSTONE : Material.BLACKSTONE;
-        if (d < 10.5) return Material.BROWN_TERRACOTTA;
-        if (d < 12.5) return Math.abs(d - 11.5 - 0.75 * Math.sin(Math.toRadians(angle * 12))) < 0.45 ? Material.YELLOW_TERRACOTTA : Material.BLACKSTONE;
-        return Material.ORANGE_TERRACOTTA;
+    private static Material mosaic(double u, double angle) {
+        if (u < 0.5) return Material.YELLOW_TERRACOTTA;
+        if (u < 1.2) return Material.SMOOTH_SANDSTONE;
+        if (u < 1.5) return Material.YELLOW_TERRACOTTA;
+        if (u < 3.5) return Math.abs((angle % 22.5) / 22.5 - 0.5) * 2 < 1 - (u - 1.5) / 2 ? Material.SANDSTONE : Material.BLACKSTONE;
+        if (u < 3.8) return Material.YELLOW_TERRACOTTA;
+        if (u < 4.5) return Material.CUT_SANDSTONE;
+        if (u < 6.5) return ((int) (angle / 3.75) & 1) == 0 ? Material.WHITE_TERRACOTTA : Material.LIGHT_GRAY_TERRACOTTA;
+        if (u < 6.8) return Material.YELLOW_TERRACOTTA;
+        if (u < 7.5) return Material.POLISHED_BLACKSTONE;
+        if (u < 9.5) return (angle % 10) / 10 < (u - 7.5) / 2 ? Material.SMOOTH_SANDSTONE : Material.BLACKSTONE;
+        if (u < 9.8) return Material.YELLOW_TERRACOTTA;
+        if (u < 10.5) return Material.BROWN_TERRACOTTA;
+        if (u < 12.5) {
+            // Les volutes : une onde doree, doublee d'une seconde plus fine, en opposition.
+            double wave = Math.sin(Math.toRadians(angle * 16));
+            if (Math.abs(u - 11.5 - 0.6 * wave) < 0.2) return Material.YELLOW_TERRACOTTA;
+            if (Math.abs(u - 11.5 + 0.35 * wave) < 0.12) return Material.ORANGE_TERRACOTTA;
+            return Material.BLACKSTONE;
+        }
+        return u < 13.2 ? Material.ORANGE_TERRACOTTA : Material.YELLOW_TERRACOTTA;
+    }
+
+    /** La hauteur du toit au-dessus du sol de la fosse, a cette distance du centre : un cone bas, ferme. */
+    private static int roof(double d) {
+        return WALL_OUT + 1 + (int) ((OUT - d) * 0.3);
     }
 
     /**
-     * Batit le colisee de Ferox, de 65 blocs de large, dans les bruns et les noirs de l'arene de Ferox : une fosse
-     * octogonale pavee, sa grande mosaique ronde au centre, quatre grilles aux coins, douze braseros sur leur
-     * colonne le long du mur ; un mur sombre a tentures rouges et a herses ; des gradins de brique de terre en dix
-     * marches ; une enceinte crenelee de 18 blocs, rythmee par seize piliers noirs coiffes de feux. Un dome
-     * invisible ferme la fosse : on n'y entre et on n'en sort que par l'evenement. Construction originale, faite
-     * de blocs de Minecraft d'apres l'allure du lieu.
+     * Batit l'arene de Ferox, massive et fermee : 185 blocs de large, un toit en cone bas qui la couvre toute.
+     * Dedans, dans les bruns et les noirs : une fosse octogonale pavee de 113 blocs, sa grande mosaique ronde de
+     * 81 blocs au centre, quatre grilles aux coins, douze grands braseros le long du mur ; un mur sombre a
+     * tentures rouges et a herses ; des gradins de brique de terre en dix-neuf marches ; une enceinte noire
+     * rythmee par seize piliers qui percent le toit, coiffes de feux. La salle est sombre, eclairee par les
+     * braseros (une lumiere invisible et faible empeche seulement les monstres d'y apparaitre). Une paroi
+     * invisible ferme la fosse : on n'y entre et on n'en sort que par l'evenement. La construction se fait par
+     * tranches, quelques-unes par tick, pour ne pas figer le serveur. Construction originale, en blocs de
+     * Minecraft, d'apres l'allure du lieu.
      */
     private void raise(World w, int cx, int y, int cz) {
-        for (int x = -OUT; x <= OUT; x++) for (int z = -OUT; z <= OUT; z++) {
-            double d = Math.hypot(x, z);
-            if (d > OUT + 0.5) continue;
-            // La fosse est un octogone : sa "distance" au centre est la plus grande des distances a ses huit cotes.
-            double o = Math.max(Math.max(Math.abs(x), Math.abs(z)), (Math.abs(x) + Math.abs(z)) * 0.7071);
-            double angle = Math.toDegrees(Math.atan2(z, x)) + 180;
-            // L'ecart a l'axe le plus proche parmi 16 (les piliers), 4 (les herses) et 12 (les braseros), en degres.
-            double toPillar = Math.abs((angle + 11.25) % 22.5 - 11.25), toGate = Math.abs((angle + 45) % 90 - 45), toFire = Math.abs(angle % 30 - 15);
-            int mix = Math.floorMod(x * 7349 + z * 9151 + (x * z) * 31, 8);
-            final int bx = cx + x, bz = cz + z;
-            java.util.function.BiConsumer<Integer, Material> set = (h, m) -> w.getBlockAt(bx, y + h, bz).setType(m, false);
-            for (int h = -4; h < 0; h++) set.accept(h, Material.DEEPSLATE_BRICKS);
-            for (int h = 1; h <= TOWER + 3; h++) set.accept(h, Material.AIR);
-            if (o <= PIT + 0.5) {
-                boolean grate = Math.abs(Math.abs(x) - 11) <= 1 && Math.abs(Math.abs(z) - 11) <= 1;
-                set.accept(0, d < 13.5 ? mosaic(d, angle) : grate ? Material.WAXED_OXIDIZED_COPPER_GRATE : COBBLES[mix]);
-                if (grate) set.accept(-1, Material.BLACK_CONCRETE);
-                // Les braseros : une colonne noire de trois blocs, un feu dessus, le long du mur.
-                if (d >= 15.5 && d < 16.5 && toFire < 2.2 && o <= PIT - 1.5) {
-                    for (int h = 1; h <= 3; h++) set.accept(h, h == 3 ? Material.NETHERRACK : Material.POLISHED_BLACKSTONE_BRICKS);
-                    set.accept(4, Material.FIRE);
-                }
-                set.accept(DOME, Material.BARRIER);
-            } else if (o <= PIT + 2.5) {
-                // Le mur de la fosse : brique sombre, tentures rouges et or entre les axes, herses aux quatre points cardinaux.
-                boolean inner = o <= PIT + 1.5;
-                for (int h = 0; h <= RING; h++) {
-                    Material m = h == RING ? Material.CHISELED_DEEPSLATE : h == 0 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.DEEPSLATE_BRICKS;
-                    if (inner && h >= 1 && h <= 4 && toGate < 6) m = Material.IRON_BARS;
-                    else if (!inner && h <= 4 && toGate < 6) m = Material.BLACK_CONCRETE;
-                    else if (inner && h >= 2 && h < RING && toPillar > 8.5) m = (h == RING - 1 || toPillar > 10.3) ? Material.YELLOW_TERRACOTTA : Material.RED_WOOL;
-                    set.accept(h, m);
-                }
-                if (inner) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
-            } else if (d <= OUT - 2.5) {
-                // Les gradins : une marche tous les 1,1 bloc, bancs de brique de terre, escaliers noirs dans l'axe des piliers.
-                int row = Math.max(0, (int) ((d - PIT - 2.5) / 1.1)), step = RING + 1 + row;
-                for (int h = 0; h < step; h++) set.accept(h, Material.DEEPSLATE_BRICKS);
-                set.accept(step, toPillar < 2.6 ? Material.POLISHED_BLACKSTONE : (row & 1) == 0 ? Material.MUD_BRICKS : Material.PACKED_MUD);
-                if (toPillar < 1.2 && ((int) d) % 4 == 0) set.accept(step, Material.SHROOMLIGHT);
-            } else {
-                // L'enceinte : seize piliers noirs a brasero, des creneaux entre eux, des bandeaux ciseles, des tentures rouges.
-                boolean pillar = toPillar < 3.4;
-                int top = pillar ? TOWER : WALL_OUT + (((int) (angle / 3.75)) & 1);
-                for (int h = 0; h <= top; h++) {
-                    Material m = pillar ? (h == top ? Material.CHISELED_POLISHED_BLACKSTONE : Material.POLISHED_BLACKSTONE_BRICKS)
-                            : h == WALL_OUT - 3 || h == RING + 1 ? Material.CHISELED_DEEPSLATE : h > WALL_OUT - 3 && toPillar > 9 ? Material.RED_WOOL : Material.DEEPSLATE_BRICKS;
-                    set.accept(h, m);
-                }
-                if (pillar && toPillar < 1.4 && d > OUT - 1.5 && d <= OUT - 0.5) { set.accept(top + 1, Material.NETHERRACK); set.accept(top + 2, Material.FIRE); }
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int x = -OUT;
+            @Override public void run() {
+                for (int n = 0; n < 2 && x <= OUT; n++, x++) for (int z = -OUT; z <= OUT; z++) column(w, cx, y, cz, x, z);
+                if (x > OUT) cancel();
             }
+        }.runTaskTimer(plugin, 1L, 1L);
+    }
+
+    private void column(World w, int cx, int y, int cz, int x, int z) {
+        double d = Math.hypot(x, z);
+        if (d > OUT + 0.5) return;
+        // La fosse est un octogone : sa "distance" au centre est la plus grande des distances a ses huit cotes.
+        double o = Math.max(Math.max(Math.abs(x), Math.abs(z)), (Math.abs(x) + Math.abs(z)) * 0.7071);
+        double angle = Math.toDegrees(Math.atan2(z, x)) + 180;
+        // L'ecart, en blocs le long du cercle, a l'axe le plus proche parmi 16 (les piliers) et parmi 4 (les herses).
+        double perDegree = Math.PI / 180 * d;
+        double toPillar = Math.abs((angle + 11.25) % 22.5 - 11.25) * perDegree, toGate = Math.abs((angle + 45) % 90 - 45) * perDegree;
+        int mix = Math.floorMod(x * 7349 + z * 9151 + (x * z) * 31, 8);
+        final int bx = cx + x, bz = cz + z, top = roof(d);
+        java.util.function.BiConsumer<Integer, Material> set = (h, m) -> { var b = w.getBlockAt(bx, y + h, bz); if (b.getType() != m) b.setType(m, false); };
+        for (int h = -4; h < 0; h++) set.accept(h, Material.DEEPSLATE_BRICKS);
+        for (int h = 1; h < top; h++) set.accept(h, Material.AIR);
+        for (int h = top + 1; h <= TOWER + 3; h++) set.accept(h, Material.AIR);
+        // Le toit : tuiles sombres, nervures noires dans l'axe des piliers.
+        set.accept(top, toPillar < 1.6 ? Material.POLISHED_BLACKSTONE : ((int) d & 7) == 0 ? Material.DEEPSLATE_BRICKS : Material.DEEPSLATE_TILES);
+        boolean lamp = Math.floorMod(x, 7) == 0 && Math.floorMod(z, 7) == 0;
+        if (o <= PIT + 0.5) {
+            boolean grate = Math.abs(Math.abs(x) - GRATE) <= 3 && Math.abs(Math.abs(z) - GRATE) <= 3;
+            set.accept(0, d < MOSAIC + 0.5 ? mosaic(d / (MOSAIC + 0.5) * 13.5, angle) : grate ? Material.WAXED_OXIDIZED_COPPER_GRATE : COBBLES[mix]);
+            if (grate) set.accept(-1, Material.BLACK_CONCRETE);
+            // Les braseros : douze colonnes noires de cinq blocs, un grand feu dessus, le long du mur.
+            double fireAngle = Math.toRadians(Math.floor(angle / 30) * 30 + 15 - 180);
+            double toFire = Math.hypot(x - FIRES * Math.cos(fireAngle), z - FIRES * Math.sin(fireAngle));
+            if (toFire < 1.9) {
+                for (int h = 1; h <= 5; h++) set.accept(h, h == 5 ? Material.NETHERRACK : toFire < 1.0 || h == 1 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.POLISHED_BLACKSTONE_BRICK_WALL);
+                set.accept(6, Material.FIRE);
+            } else if (lamp) light(w, bx, y + 4, bz);
+            set.accept(DOME, Material.BARRIER);
+        } else if (o <= PIT + 3.5) {
+            // Le mur de la fosse : brique sombre, tentures rouges et or, herses aux quatre points cardinaux.
+            boolean inner = o <= PIT + 1.5;
+            for (int h = 0; h <= RING; h++) {
+                Material m = h == RING ? Material.CHISELED_DEEPSLATE : h == 0 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.DEEPSLATE_BRICKS;
+                if (inner && h >= 1 && h <= 6 && toGate < 4.5) m = Material.IRON_BARS;
+                else if (!inner && h <= 6 && toGate < 4.5) m = Material.BLACK_CONCRETE;
+                else if (inner && h >= 2 && h < RING && ((int) (angle / 5.625) & 3) == 1) m = h == RING - 1 || h == 2 ? Material.YELLOW_TERRACOTTA : Material.RED_WOOL;
+                set.accept(h, m);
+            }
+            if (inner) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
+        } else if (d <= OUT - 3.5) {
+            // Les gradins : une marche tous les 1,5 bloc, bancs de brique de terre, escaliers noirs dans l'axe des piliers.
+            int row = Math.max(0, (int) ((d - PIT - 3.5) / 1.5)), step = Math.min(top - 4, RING + 1 + row);
+            for (int h = 0; h < step; h++) set.accept(h, Material.DEEPSLATE_BRICKS);
+            set.accept(step, toPillar < 1.6 ? Material.POLISHED_BLACKSTONE : (row & 1) == 0 ? Material.MUD_BRICKS : Material.PACKED_MUD);
+            if (lamp) light(w, bx, y + step + 3, bz);
+        } else {
+            // L'enceinte : pleine jusqu'au toit ; seize piliers noirs le percent, coiffes d'un feu ; bandeaux ciseles.
+            boolean pillar = toPillar < 2.6;
+            int high = pillar ? PILLAR : top;
+            for (int h = 0; h <= high; h++) {
+                if (h == top && !pillar) continue;
+                set.accept(h, pillar ? (h == high ? Material.CHISELED_POLISHED_BLACKSTONE : Material.POLISHED_BLACKSTONE_BRICKS)
+                        : h == WALL_OUT - 4 || h == RING + 1 ? Material.CHISELED_DEEPSLATE : h > WALL_OUT - 4 && ((int) (angle / 5.625) & 3) == 1 ? Material.RED_WOOL : Material.DEEPSLATE_BRICKS);
+            }
+            if (pillar && toPillar < 1.3 && d > OUT - 2.5 && d <= OUT - 0.5) { set.accept(high + 1, Material.NETHERRACK); set.accept(high + 2, Material.FIRE); }
         }
+    }
+
+    /** Une lumiere invisible et faible : assez pour qu'aucun monstre n'apparaisse dans la salle, sans l'eclairer. */
+    private static void light(World w, int x, int y, int z) {
+        var b = w.getBlockAt(x, y, z);
+        b.setType(Material.LIGHT, false);
+        if (b.getBlockData() instanceof org.bukkit.block.data.type.Light l) { l.setLevel(8); b.setBlockData(l, false); }
     }
 
     /** Le centre du sol de l'arene (null hors partie). */
@@ -286,7 +332,7 @@ public final class RegnaFerox implements Listener {
                 back.put(p.getUniqueId(), p.getLocation());
                 modes.put(p.getUniqueId(), p.getGameMode());
                 double side = t == a ? -1 : 1;
-                Location at = new Location(w, c.getX() + (i - (members.size() - 1) / 2.0) * 3, c.getY(), c.getZ() + side * (PIT - 6), side < 0 ? 0 : 180, 0);
+                Location at = new Location(w, c.getX() + (i - (members.size() - 1) / 2.0) * 3, c.getY(), c.getZ() + side * (MOSAIC - 12), side < 0 ? 0 : 180, 0);
                 p.teleport(at);
                 p.setFallDistance(0);
                 Effects.invincible(p, 3000);
