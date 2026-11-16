@@ -62,21 +62,20 @@ code { font: 13px var(--mono); background: var(--panel); border: 1px solid var(-
   <header>
     <div>
       <h1>Bible des icônes Crossfight</h1>
-      <p class="lede">Les règles pour dessiner les icônes des capacités, afin que les 215 se ressemblent quel que soit le personnage. Tout est en 64 × 64 pixels, affiché dans une case d'inventaire.</p>
+      <p class="lede">Les règles pour dessiner les icônes des capacités, afin que les 215 se ressemblent quel que soit le personnage. Tout est en 32 × 32 pixels : deux fois la finesse d'un objet de Minecraft.</p>
     </div>
     <div class="row" id="hero" aria-label="Quatre icônes d'exemple"></div>
   </header>
 
   <section>
-    <h2>Les sept règles</h2>
+    <h2>Les six règles</h2>
     <div>
-      <div class="rule"><div><span class="num">RÈGLE 1</span><h3>64 × 64, une marge de 4 pixels</h3><p>L'icône tient dans 56 × 56 au centre. Seule une pointe (lame, éclat) peut entrer dans la marge. Aucun fond : le reste est transparent.</p></div><div class="row" id="r1"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 2</span><h3>Rien de plus fin que 2 pixels</h3><p>En jeu, une case d'inventaire fait 32 à 64 pixels d'écran selon la taille de l'interface : l'icône est souvent réduite de moitié. Un trait d'un pixel disparaît ou scintille. Chaque trait, reflet ou détail fait donc au moins 2 pixels.</p></div><div class="row" id="r2"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 3</span><h3>Un contour sombre de 2 pixels, partout</h3><p>Toujours la même couleur de contour, un bleu nuit presque noir, jamais du noir pur. C'est lui qui détache l'icône du gris de l'inventaire. Les effets (éclats, arcs, traits de vitesse) n'ont pas de contour.</p></div><div class="row" id="r3"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 4</span><h3>La lumière vient d'en haut à gauche</h3><p>Chaque matière a trois tons : clair, base, sombre. Un liseré clair de 2 pixels longe les bords tournés vers le haut et la gauche, un liseré sombre ceux du bas et de la droite. Des aplats nets : pas de dégradé lissé, pas de pixel semi-transparent.</p></div><div class="row" id="r4"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 5</span><h3>Un objet, sur la diagonale</h3><p>Un seul sujet par icône, posé de bas-gauche vers haut-droite comme une épée de Minecraft. Deux éléments au plus : le sujet et son effet. Une silhouette qu'on reconnaît même remplie en noir.</p></div><div class="row" id="r5"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 6</span><h3>Deux familles de couleur, pas plus</h3><p>Une couleur dominante pour le sujet (souvent celle du personnage), une couleur d'accent pour l'effet. Le contour et l'éclat blanc ne comptent pas. On reste dans la palette commune ci-dessous.</p></div><div class="row" id="r6"></div></div>
-      <div class="rule"><div><span class="num">RÈGLE 7</span><h3>Le type de capacité se lit d'un coup d'œil</h3><p>Une capacité active montre du mouvement (arc, traits, éclats). Un passif est posé, immobile. Un ultime porte toujours l'étoile blanche à quatre branches.</p></div><div class="row" id="r7"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 1</span><h3>32 × 32, une marge de 2 pixels</h3><p>L'icône tient dans 28 × 28 au centre. Seule une pointe (lame, éclat) peut entrer dans la marge. Aucun fond : le reste est transparent. À cette taille, chaque pixel de l'image tombe sur un pixel entier de l'écran dès la taille d'interface 2.</p></div><div class="row" id="r1"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 2</span><h3>Un contour sombre d'un pixel, partout</h3><p>Toujours la même couleur de contour, un bleu nuit presque noir, jamais du noir pur. C'est lui qui détache l'icône du gris de l'inventaire. Les effets (éclats, arcs, traits de vitesse) n'ont pas de contour.</p></div><div class="row" id="r2"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 3</span><h3>La lumière vient d'en haut à gauche</h3><p>Chaque matière a trois tons : clair, base, sombre. Un liseré clair d'un pixel longe les bords tournés vers le haut et la gauche, un liseré sombre ceux du bas et de la droite. Des aplats nets : pas de dégradé lissé, pas de pixel semi-transparent.</p></div><div class="row" id="r3"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 4</span><h3>Un objet, sur la diagonale</h3><p>Un seul sujet par icône, posé de bas-gauche vers haut-droite comme une épée de Minecraft. Deux éléments au plus : le sujet et son effet. Une silhouette qu'on reconnaît même remplie en noir.</p></div><div class="row" id="r4"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 5</span><h3>Deux familles de couleur, pas plus</h3><p>Une couleur dominante pour le sujet (souvent celle du personnage), une couleur d'accent pour l'effet. Le contour et l'éclat blanc ne comptent pas. On reste dans la palette commune ci-dessous.</p></div><div class="row" id="r5"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 6</span><h3>Le type de capacité se lit d'un coup d'œil</h3><p>Une capacité active montre du mouvement (arc, traits, éclats). Un passif est posé, immobile. Un ultime porte toujours l'étoile blanche à quatre branches.</p></div><div class="row" id="r6"></div></div>
     </div>
   </section>
 
@@ -103,14 +102,13 @@ code { font: 13px var(--mono); background: var(--panel); border: 1px solid var(-
   <section>
     <h2>Avant d'enregistrer une icône</h2>
     <ul class="check">
-      <li>64 × 64, fond transparent, PNG</li>
-      <li>Marge de 4 pixels, sauf une pointe</li>
-      <li>Aucun trait ni détail de moins de 2 pixels</li>
-      <li>Contour de 2 pixels, couleur de contour de la palette</li>
+      <li>32 × 32, fond transparent, PNG</li>
+      <li>Marge de 2 pixels, sauf une pointe</li>
+      <li>Contour d'un pixel, couleur de contour de la palette</li>
       <li>Clair en haut à gauche, sombre en bas à droite</li>
       <li>Uniquement des couleurs de la palette, en aplats nets</li>
       <li>Un sujet, un effet au plus</li>
-      <li>Encore lisible réduite à 32 × 32, sur le gris de l'inventaire</li>
+      <li>Lisible à taille réelle, sur le gris de l'inventaire</li>
       <li>Étoile blanche si c'est un ultime, rien sinon</li>
       <li>Nom du fichier : l'identifiant de la capacité, par exemple <code>marth_contre.png</code></li>
     </ul>
@@ -118,18 +116,19 @@ code { font: 13px var(--mono); background: var(--panel); border: 1px solid var(-
 </div>
 
 <script>
-// Les icones d'exemple sont dessinees ici en 64 x 64 selon les regles de la page : des formes pleines, un lisere
-// clair en haut a gauche et sombre en bas a droite (2 px), un contour de 2 px, puis les effets sans contour.
-const N = 64, OUT = "#181628";
+// Les icones d'exemple sont dessinees ici en 32 x 32 selon les regles de la page : des formes pleines (ecrites sur
+// une grille de 64, rendues a l'echelle S), un lisere clair en haut a gauche et sombre en bas a droite (1 px), un
+// contour d'un pixel, puis les effets sans contour.
+const N = 32, S = 64 / N, OUT = "#181628";
 const R = { acier: ["#ced8e8", "#92a0bc", "#5c688a"], or: ["#fff096", "#ffd04a", "#d69426"], bleu: ["#78b0ff", "#4070dc", "#223c8c"],
   rouge: ["#ff9696", "#e23e46", "#961e34"], bois: ["#c89a64", "#8a5a34", "#54341e"], blanc: ["#fafaff", "#fafaff", "#ced8e8"] };
 const inPoly = (pts, x, y) => { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
-const poly = (pts, ramp) => ({ ramp, has: (x, y) => inPoly(pts, x + .5, y + .5) });
-const disc = (cx, cy, r, ramp) => ({ ramp, has: (x, y) => (x + .5 - cx) ** 2 + (y + .5 - cy) ** 2 <= r * r });
+const poly = (pts, ramp) => ({ ramp, has: (x, y) => inPoly(pts, (x + .5) * S, (y + .5) * S) });
+const disc = (cx, cy, r, ramp) => ({ ramp, has: (x, y) => ((x + .5) * S - cx) ** 2 + ((y + .5) * S - cy) ** 2 <= r * r });
 const rect = (x0, y0, x1, y1, ramp) => poly([[x0, y0], [x1, y0], [x1, y1], [x0, y1]], ramp);
-const arc = (cx, cy, r0, r1, a0, a1, color) => ({ color, has: (x, y) => { const dx = x + .5 - cx, dy = y + .5 - cy, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx) * 180 / Math.PI; return d >= r0 && d <= r1 && a >= a0 && a <= a1; } });
-const star = (cx, cy, r, color) => ({ color, has: (x, y) => { const dx = Math.abs(x + .5 - cx), dy = Math.abs(y + .5 - cy); return (dx <= r && dy <= r) && (Math.sqrt(dx) + Math.sqrt(dy) <= Math.sqrt(r)); } });
-const fx = (pts, color) => ({ color, has: (x, y) => inPoly(pts, x + .5, y + .5) });
+const arc = (cx, cy, r0, r1, a0, a1, color) => ({ color, has: (x, y) => { const dx = (x + .5) * S - cx, dy = (y + .5) * S - cy, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx) * 180 / Math.PI; return d >= r0 && d <= r1 && a >= a0 && a <= a1; } });
+const star = (cx, cy, r, color) => ({ color, has: (x, y) => { const dx = Math.abs((x + .5) * S - cx), dy = Math.abs((y + .5) * S - cy); return (dx <= r && dy <= r) && (Math.sqrt(dx) + Math.sqrt(dy) <= Math.sqrt(r)); } });
+const fx = (pts, color) => ({ color, has: (x, y) => inPoly(pts, (x + .5) * S, (y + .5) * S) });
 const SWORD = [poly([[55, 5], [59, 5], [59, 9], [27, 43], [21, 43], [21, 37]], R.acier), poly([[13, 35], [18, 30], [34, 46], [29, 51]], R.or),
   poly([[19, 43], [23, 47], [12, 58], [8, 54]], R.bois), disc(8, 57, 4, R.or)];
 const ICONS = {
@@ -141,14 +140,12 @@ const ICONS = {
   ult: { solid: [poly([[43, 17], [47, 17], [47, 21], [25, 45], [19, 45], [19, 39]], R.acier), poly([[11, 37], [16, 32], [32, 48], [27, 53]], R.or),
       poly([[17, 45], [21, 49], [11, 59], [7, 55]], R.bois), disc(7, 58, 4, R.or)],
     effects: [star(47, 17, 15, "#fafaff"), fx([[10, 20], [14, 16], [18, 20], [14, 24]], "#e23e46"), fx([[36, 52], [40, 48], [44, 52], [40, 56]], "#e23e46"), fx([[48, 40], [51, 37], [54, 40], [51, 43]], "#e23e46")] },
-  // Le meme sujet avec des details d'un pixel : pour montrer ce qui disparait a la reduction.
-  fin: { solid: [poly([[57, 5], [59, 5], [59, 7], [24, 42], [22, 42], [22, 40]], R.acier), poly([[15, 36], [17, 34], [31, 48], [29, 50]], R.or), poly([[20, 43], [22, 45], [11, 56], [9, 54]], R.bois)], effects: [], thin: true },
 };
 function pixels(icon, opts = {}) {
   const id = new Int16Array(N * N).fill(-1), px = new Array(N * N).fill(null);
   icon.solid.forEach((s, k) => { for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (s.has(x, y)) id[y * N + x] = k; });
   const at = (x, y) => x < 0 || y < 0 || x >= N || y >= N ? -1 : id[y * N + x];
-  const w = icon.thin ? 1 : 2;
+  const w = 1;
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const k = at(x, y);
     if (k >= 0) {
@@ -157,7 +154,7 @@ function pixels(icon, opts = {}) {
       px[y * N + x] = opts.flat ? opts.flat : opts.noShade ? ramp[1] : dark ? ramp[2] : lit ? ramp[0] : ramp[1];
     } else if (!opts.noOutline) {
       let near = false;
-      for (let dy = -w; dy <= w && !near; dy++) for (let dx = -w; dx <= w && !near; dx++) if (Math.abs(dx) + Math.abs(dy) <= w + 1 && at(x + dx, y + dy) >= 0) near = true;
+      for (let dy = -w; dy <= w && !near; dy++) for (let dx = -w; dx <= w && !near; dx++) if (at(x + dx, y + dy) >= 0) near = true;
       if (near) px[y * N + x] = OUT;
     }
   }
@@ -169,7 +166,7 @@ function draw(icon, size, opts = {}) {
   const c = document.createElement("canvas"); c.width = N; c.height = N; c.style.width = c.style.height = size + "px";
   const x = c.getContext("2d");
   pixels(icon, opts).forEach((col, i) => { if (col) { x.fillStyle = col; x.fillRect(i % N, Math.floor(i / N), 1, 1); } });
-  if (opts.margin) { x.fillStyle = "rgba(255,0,80,.38)"; x.fillRect(0, 0, N, 4); x.fillRect(0, N - 4, N, 4); x.fillRect(0, 4, 4, N - 8); x.fillRect(N - 4, 4, 4, N - 8); }
+  if (opts.margin) { x.fillStyle = "rgba(255,0,80,.38)"; x.fillRect(0, 0, N, 2); x.fillRect(0, N - 2, N, 2); x.fillRect(0, 2, 2, N - 4); x.fillRect(N - 2, 2, 2, N - 4); }
   if (opts.blur) c.style.imageRendering = "auto";
   return c;
 }
@@ -182,18 +179,17 @@ function fig(parent, name, caption, size = 96, opts = {}) {
 }
 ["contre", "charisme", "leader", "ult"].forEach(n => fig("hero", n, "", 96));
 fig("r1", "epee", "La marge en rouge", 128, { margin: true });
-fig("r2", "epee", "Traits de 2 px, réduite à 32", 32);
-fig("r2", "fin", "Traits de 1 px, réduite à 32 : elle s'efface", 32);
-fig("r3", "epee", "Avec contour", 96);
-fig("r3", "epee", "Sans : elle se noie", 96, { noOutline: true });
-fig("r4", "leader", "Liseré clair à gauche, sombre à droite", 128);
-fig("r4", "leader", "Sans ombrage : plate", 96, { noShade: true });
-fig("r5", "epee", "Le sujet", 96);
-fig("r5", "epee", "Sa silhouette", 96, { flat: OUT });
-fig("r6", "charisme", "Bleu + or", 96);
-fig("r7", "contre", "Active : l'arc de parade", 96);
-fig("r7", "leader", "Passif : posé", 96);
-fig("r7", "ult", "Ultime : l'étoile", 96);
+fig("r1", "epee", "Taille réelle ×2", 64);
+fig("r2", "epee", "Avec contour", 96);
+fig("r2", "epee", "Sans : elle se noie", 96, { noOutline: true });
+fig("r3", "leader", "Liseré clair à gauche, sombre à droite", 128);
+fig("r3", "leader", "Sans ombrage : plate", 96, { noShade: true });
+fig("r4", "epee", "Le sujet", 96);
+fig("r4", "epee", "Sa silhouette", 96, { flat: OUT });
+fig("r5", "charisme", "Bleu + or", 96);
+fig("r6", "contre", "Active : l'arc de parade", 96);
+fig("r6", "leader", "Passif : posé", 96);
+fig("r6", "ult", "Ultime : l'étoile", 96);
 
 const RAMPS = [["Contour et éclat", ["#181628", "#fafaff"]], ["Acier", ["#ced8e8", "#92a0bc", "#5c688a"]], ["Or", ["#fff096", "#ffd04a", "#d69426"]],
   ["Bleu", ["#78b0ff", "#4070dc", "#223c8c"]], ["Rouge", ["#ff9696", "#e23e46", "#961e34"]], ["Vert", ["#b4f078", "#58b83c", "#2a7030"]],
@@ -208,11 +204,11 @@ fig("dos", "ult", "Contour, trois tons, deux couleurs, étoile d'ultime.", 112, 
 fig("dos", "ult", "Sans contour : illisible sur le gris.", 112, { tag: "À éviter", noOutline: true });
 fig("dos", "ult", "Agrandie puis lissée : les bords bavent.", 112, { tag: "À éviter", blur: true });
 fig("dos", "ult", "Hors palette : elle jure à côté des autres.", 112, { tag: "À éviter", map: { "#ced8e8": "#e8ff7a", "#92a0bc": "#b6ff3c", "#5c688a": "#3cbf5a", "#ffd04a": "#ff3cf0", "#fff096": "#ff9af6", "#d69426": "#a020c0", "#e23e46": "#3cf0ff" } });
-fig("dos", "fin", "Traits d'un pixel : trop fins pour l'inventaire.", 112, { tag: "À éviter" });
+fig("dos", "leader", "Sans ombrage : plate, sans volume.", 112, { tag: "À éviter", noShade: true });
 
 const MEANINGS = [["Attaque, dégâts", "#e23e46", "Rouge", "Éclats rouges, lame"], ["Défense, parade, résistance", "#4070dc", "Bleu", "Arc ou bouclier"],
   ["Vitesse, déplacement", "#fafaff", "Blanc", "Chevrons ou traits derrière le sujet"], ["Soin, régénération", "#58b83c", "Vert", "Croix ou cœur"],
   ["Force, bonus d'équipe", "#ffd04a", "Or", "Couronne, bannière, flèche vers le haut"], ["Foudre, électricité", "#58d8f0", "Cyan", "Éclair en zigzag"],
-  ["Feu, explosion", "#ff8a1e", "Orange", "Flamme en goutte"], ["Magie, vol de vie, ombre", "#9a50e0", "Violet", "Volutes, orbe"], ["Ultime", "#fafaff", "Blanc", "Étoile à quatre branches, environ 30 × 30"]];
+  ["Feu, explosion", "#ff8a1e", "Orange", "Flamme en goutte"], ["Magie, vol de vie, ombre", "#9a50e0", "Violet", "Volutes, orbe"], ["Ultime", "#fafaff", "Blanc", "Étoile à quatre branches, environ 15 × 15"]];
 document.getElementById("meanings").innerHTML = MEANINGS.map(([a, c, n, s]) => `<tr><td>${a}</td><td><span class="dot" style="background:${c};outline:1px solid var(--line)"></span>${n}</td><td>${s}</td></tr>`).join("");
 </script>
