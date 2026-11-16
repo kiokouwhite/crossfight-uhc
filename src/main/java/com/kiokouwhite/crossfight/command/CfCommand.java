@@ -155,6 +155,8 @@ public final class CfCommand implements TabExecutor {
                                 String name = args[2].toLowerCase();
                                 java.io.File dir = new java.io.File(plugin.getDataFolder(), "structures/" + name + "/monde");
                                 if (!name.matches("[a-z0-9_]+") || !new java.io.File(dir, "level.dat").isFile()) { Msg.send(sender, "<red>Aucun monde dans plugins/CrossfightUHC/structures/" + name + "/monde."); return true; }
+                                String no = st.refusal(dir);
+                                if (no != null) { Msg.send(sender, "<red>Ce monde n'est pas charge : " + no + "."); return true; }
                                 var sheet = st.sheet(name);
                                 org.bukkit.World w;
                                 if (sheet != null) w = st.source(sheet);

@@ -3,7 +3,7 @@
 
 Usage :  python3 tools/lieu.py <dossier du monde> <nom> [--titre "..."] [--auteur "..."] [--source <adresse>]
                                [--seuil 3] [--boite x1,z1,x2,z2] [--sol y] [--coeur x,z] [--profondeur 12] [--hauteur 240]
-                               [--creuse] [--sortie <dossier>]
+                               [--creuse] [--sortie <dossier>] [--serveur 4556]
 
 Lit les chunks du monde (toutes versions : avant la 1.13, des numeros de blocs ; depuis, des palettes) et note, pour
 chacun, combien de sortes de blocs "batis" il contient (ce qui n'est ni terrain ni vegetation). La construction est le
@@ -20,7 +20,14 @@ Ecrit, dans <sortie>/<nom>/ (par defaut prive/structures/, jamais versionne : ce
   monde/               le monde, reduit aux fichiers de region que touche la boite (level.dat, region/, entities/)
   apercu.png           la carte des chunks batis, la boite et le coeur, pour verifier d'un coup d'oeil
 A deposer ensuite dans plugins/CrossfightUHC/structures/ sur le serveur. Demande nbtlib, numpy et Pillow.
+
+Un monde enregistre dans une version de Minecraft plus recente que celle du serveur ne peut pas y etre charge tel
+quel : Paper arrete le serveur plutot que de lire un chunk venu du futur. Quand le monde est plus recent que --serveur
+(le numero de version des donnees du serveur ; 4556 pour la 1.21.10), les chunks gardes sont recopies avec ce numero,
+et level.dat aussi. Ce n'est pas une vraie conversion : cela ne vaut que si le monde n'utilise rien que le serveur ne
+connaisse pas (entre deux versions voisines, c'est le cas des blocs ; l'outil le rappelle quand il le fait).
 """
+import gzip
 import io
 import os
 import re
@@ -96,6 +103,52 @@ def surface(level, modern: bool):
     return np.array(out[:256]) + (-64 if modern else 0)
 
 
+def stamp(nbt: bytes, version: int):
+    """Les donnees d'un chunk, ses numeros de version plus recents que celui du serveur ramenes a celui-ci."""
+    mark, out, pos, n = b"\x03\x00\x0bDataVersion", bytearray(nbt), 0, 0
+    while True:
+        pos = nbt.find(mark, pos)
+        if pos < 0:
+            return bytes(out), n
+        at = pos + len(mark)
+        if struct.unpack(">i", nbt[at:at + 4])[0] > version:
+            out[at:at + 4] = struct.pack(">i", version)
+            n += 1
+        pos = at
+
+
+def restamp(src: Path, dst: Path, version: int):
+    """Recopie un fichier de region, ses chunks marques a la version du serveur. Rend (chunks remarques, chunks laisses)."""
+    data = src.read_bytes()
+    head, body, done, left = bytearray(8192), bytearray(), 0, 0
+    for i in range(1024):
+        loc = struct.unpack(">I", data[i * 4:i * 4 + 4])[0]
+        if not loc:
+            continue
+        off = (loc >> 8) * 4096
+        length = struct.unpack(">I", data[off:off + 4])[0]
+        kind, raw = data[off + 4], data[off + 5:off + 4 + length]
+        try:
+            nbt = zlib.decompress(raw) if kind == 2 else gzip.decompress(raw) if kind == 1 else raw if kind == 3 else None
+        except Exception:
+            nbt = None
+        if nbt is None:                           # une compression que l'outil ne lit pas : le chunk reste comme il est
+            chunk, left = data[off:off + 4 + length], left + 1
+        else:
+            patched, n = stamp(nbt, version)
+            payload = zlib.compress(patched, 6)
+            chunk, done = struct.pack(">IB", len(payload) + 1, 2) + payload, done + (1 if n else 0)
+        chunk += bytes(-len(chunk) % 4096)
+        if len(chunk) // 4096 > 255:              # trop gros pour un fichier de region : on ne le garde pas
+            left += 1
+            continue
+        head[i * 4:i * 4 + 4] = struct.pack(">I", ((2 + len(body) // 4096) << 8) | (len(chunk) // 4096))
+        head[4096 + i * 4:4100 + i * 4] = data[4096 + i * 4:4100 + i * 4]
+        body += chunk
+    dst.write_bytes(bytes(head) + bytes(body))
+    return done, left
+
+
 def option(argv, name, default=None):
     if name in argv:
         i = argv.index(name)
@@ -114,6 +167,7 @@ def main() -> int:
     box_arg, ground_arg, heart_arg = option(argv, "--boite"), option(argv, "--sol"), option(argv, "--coeur")
     depth, height = int(option(argv, "--profondeur", 12)), int(option(argv, "--hauteur", 240))
     out_root = Path(option(argv, "--sortie", str(ROOT / "prive" / "structures")))
+    server = int(option(argv, "--serveur", 4556))
     if len(argv) != 3:
         print(__doc__)
         return 1
@@ -203,8 +257,19 @@ def main() -> int:
     if out.exists():
         shutil.rmtree(out)
     (out / "monde").mkdir(parents=True)
-    shutil.copy2(world / "level.dat", out / "monde" / "level.dat")
-    kept = 0
+    # Un monde plus recent que le serveur : level.dat et les chunks gardes sont marques a la version du serveur.
+    info = nbtlib.load(world / "level.dat")
+    made = int(info.get("Data", {}).get("DataVersion", 0))
+    newer = made > server
+    if newer:
+        info["Data"]["DataVersion"] = nbtlib.Int(server)
+        if "Version" in info["Data"]:
+            info["Data"]["Version"]["Id"] = nbtlib.Int(server)
+        info["Data"].pop("Player", None)
+        info.save(out / "monde" / "level.dat", gzipped=True)
+    else:
+        shutil.copy2(world / "level.dat", out / "monde" / "level.dat")
+    kept, restamped, untouched = 0, 0, 0
     for sub in ("region", "entities"):
         if not (world / sub).is_dir():
             continue
@@ -213,7 +278,11 @@ def main() -> int:
             for rz in range(z1 >> 9, (z2 >> 9) + 1):
                 f = world / sub / f"r.{rx}.{rz}.mca"
                 if f.is_file() and f.stat().st_size >= 8192:
-                    shutil.copy2(f, out / "monde" / sub / f.name)
+                    if newer:
+                        a, b = restamp(f, out / "monde" / sub / f.name, server)
+                        restamped, untouched = restamped + a, untouched + b
+                    else:
+                        shutil.copy2(f, out / "monde" / sub / f.name)
                     kept += 1
     lines = [f"# Fiche du lieu {name} (tools/lieu.py). Coordonnees dans son monde d'origine.",
              f"boite: [{x1}, {y1}, {z1}, {x2}, {y2}, {z2}]", f"sol: {ground}", f"coeur: [{hx}, {hz}]", f"sous-sol: {'creuse' if carve else 'garde'}"]
@@ -240,6 +309,10 @@ def main() -> int:
           f"| colonnes vides : {100 * empty // max(1, total)} %")
     print(f"{name} : boite {x2 - x1 + 1} x {y2 - y1 + 1} x {z2 - z1 + 1} (x {x1}..{x2}, y {y1}..{y2}, z {z1}..{z2}), sol {ground}, coeur {hx} {hz} ; "
           f"{len(best)} chunks batis, {kept} fichiers de region gardes, {size} Mo -> {out}")
+    if newer:
+        print(f"monde plus recent que le serveur (version des donnees {made} > {server}) : {restamped} chunks marques a la version du serveur"
+              + (f", {untouched} laisses tels quels (illisibles ou trop gros)" if untouched else "")
+              + ". A verifier en jeu : ce que le serveur ne connait pas serait perdu.")
     return 0
 
 

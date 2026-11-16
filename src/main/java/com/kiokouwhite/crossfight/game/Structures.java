@@ -186,11 +186,49 @@ public final class Structures implements Listener {
         return Bukkit.getWorldContainer().getAbsoluteFile().toPath().normalize().relativize(new File(dir, sub).getAbsoluteFile().toPath().normalize()).toString().replace('\\', '/');
     }
 
+    /**
+     * Pourquoi ce dossier de monde ne doit pas etre charge, ou null s'il peut l'etre. Paper arrete le serveur plutot
+     * que de lire un chunk enregistre par une version de Minecraft plus recente que la sienne : un monde venu d'une
+     * version plus recente est refuse ici, avant. (tools/lieu.py sait le ramener a la version du serveur.)
+     */
+    @SuppressWarnings("deprecation")
+    public String refusal(File worldDir) {
+        int made = dataVersion(new File(worldDir, "level.dat")), ours = Bukkit.getUnsafe().getDataVersion();
+        return made > ours ? "il vient d'une version de Minecraft plus recente que ce serveur (donnees " + made + " > " + ours
+                + ") ; a preparer avec tools/lieu.py --serveur " + ours : null;
+    }
+
+    /** Le numero de version des donnees d'un monde, lu dans son level.dat (-1 si on ne le trouve pas). */
+    private static int dataVersion(File levelDat) {
+        final byte[] mark = {3, 0, 11, 'D', 'a', 't', 'a', 'V', 'e', 'r', 's', 'i', 'o', 'n'};
+        try (var in = new java.util.zip.GZIPInputStream(new java.io.FileInputStream(levelDat))) {
+            byte[] all = in.readAllBytes();
+            int best = -1;
+            search:
+            for (int i = 0; i + mark.length + 4 <= all.length; i++) {
+                for (int k = 0; k < mark.length; k++) if (all[i + k] != mark[k]) continue search;
+                int at = i + mark.length;
+                best = Math.max(best, ((all[at] & 255) << 24) | ((all[at + 1] & 255) << 16) | ((all[at + 2] & 255) << 8) | (all[at + 3] & 255));
+            }
+            return best;
+        } catch (IOException | RuntimeException ex) {
+            return -1;
+        }
+    }
+
+    /** Pourquoi le monde d'origine de ce lieu ne peut pas servir (absent, ou trop recent pour le serveur), ou null. */
+    public String unusable(Sheet s) {
+        if (Bukkit.getWorld(s.world()) != null) return null;
+        File dir = new File(Bukkit.getWorldContainer(), s.world());
+        return new File(dir, "level.dat").isFile() ? refusal(dir) : "il est introuvable (" + s.world() + ")";
+    }
+
     /** Charge le monde d'origine d'un lieu (ou le rend, s'il l'est deja) : rien n'y vit, rien n'y pousse. */
     public World source(Sheet s) {
         World w = Bukkit.getWorld(s.world());
         if (w != null) return w;
-        if (!new File(Bukkit.getWorldContainer(), s.world() + "/level.dat").isFile()) return null;
+        String no = unusable(s);
+        if (no != null) { plugin.getLogger().warning("Lieu " + s.name() + " : son monde n'est pas charge, " + no + "."); return null; }
         w = new WorldCreator(s.world()).generator(new ArenaWorlds.VoidGenerator()).keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE).createWorld();
         if (w == null) return null;
         w.setGameRule(GameRule.DO_MOB_SPAWNING, false);
@@ -280,7 +318,12 @@ public final class Structures implements Listener {
     public void place(CommandSender to, Sheet s, World w, int atX, int atZ, int max, Runnable done) {
         if (working) { Msg.send(to, "<red>Une pose est deja en cours."); return; }
         final World from = source(s);
-        if (from == null) { Msg.send(to, "<red>Le monde de " + s.name() + " est introuvable (" + s.world() + ")."); if (done != null) done.run(); return; }
+        if (from == null) {
+            String no = unusable(s);
+            Msg.send(to, "<red>Le monde de " + s.name() + " n'a pas pu etre charge" + (no != null ? " : " + no : "") + ".");
+            if (done != null) done.run();
+            return;
+        }
         working = true;
         final int mine = run;
         final int x0 = Math.floorDiv(atX, 16) * 16, z0 = Math.floorDiv(atZ, 16) * 16;
@@ -423,6 +466,8 @@ public final class Structures implements Listener {
                         try {
                             BlockState copy = st.copy(new Location(w, st.getX() + dx, st.getY() + dy, st.getZ() + dz));
                             if (copy instanceof Container box2) box2.getSnapshotInventory().clear();
+                            // Un bloc de commande arrive sans sa commande : celles d'une map n'ont rien a faire dans une partie.
+                            if (copy instanceof org.bukkit.block.CommandBlock order) order.setCommand("");
                             copy.update(true, false);
                         } catch (RuntimeException ex) {
                             plugin.getLogger().warning("Lieu " + s.name() + " : bloc non copie en " + st.getX() + " " + st.getY() + " " + st.getZ() + " : " + ex);
