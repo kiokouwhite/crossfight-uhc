@@ -8,12 +8,13 @@
 //
 // Un caractere d'image ne depasse pas 256 pixels de cote : le logo est coupe en deux moities (U+E000, U+E001), pour
 // rester net aux grandes tailles d'interface ; U+E002 recule d'un pixel pour les recoller. HAUTEUR est sa taille a
-// l'ecran (en pixels d'interface) et MONTEE ce qui depasse au-dessus de la ligne du titre : il se pose sur le tableau.
+// l'ecran (en pixels d'interface) et MONTEE ce qui depasse au-dessus de la ligne du titre : presque rien, le logo
+// descend dans le gris du tableau, qui lui reserve des lignes vides (ScoreboardManager.LOGO_LINES).
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const LARGEUR = 448, HAUTEUR = 60, MONTEE = 58;
+const LARGEUR = 448, HAUTEUR = 60, MONTEE = 5;
 const root = path.join(__dirname, '..');
 const svg = fs.readFileSync(path.join(__dirname, 'logo', 'crossfight_uhc.svg'), 'utf8');
 const box = /viewBox="0 0 ([\d.]+) ([\d.]+)"/.exec(svg);

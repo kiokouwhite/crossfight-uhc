@@ -63,6 +63,8 @@ public final class ScoreboardManager {
         if (plugin.selection() == null || !plugin.selection().isViewing(p)) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         List<String> lines = buildLines(p);
+        // Le logo descend dans le gris du tableau : des lignes vides lui gardent sa place.
+        if (showsLogo(p)) for (int i = 0; i < LOGO_LINES; i++) lines.add(0, "");
         int score = lines.size();
         for (String line : lines) {
             // Chaque entree doit etre unique : on ajoute des codes couleur invisibles au besoin
@@ -81,10 +83,16 @@ public final class ScoreboardManager {
      * scoreboard.logo dans config.yml : auto (selon le pack), toujours (le pack est installe a la main), jamais.
      */
     private net.kyori.adventure.text.Component title(Player p) {
+        return showsLogo(p) ? LOGO : Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
+    }
+
+    /** Lignes vides sous le titre, pour la hauteur du logo (60 pixels : la ligne du titre et six autres de 9). */
+    private static final int LOGO_LINES = 6;
+
+    private boolean showsLogo(Player p) {
         String mode = plugin.getConfig().getString("scoreboard.logo", "auto").toLowerCase(java.util.Locale.ROOT);
-        boolean logo = com.kiokouwhite.crossfight.util.Sounds.has("font.logo") && !mode.equals("jamais") && !mode.equals("false")
+        return com.kiokouwhite.crossfight.util.Sounds.has("font.logo") && !mode.equals("jamais") && !mode.equals("false")
                 && (mode.equals("toujours") || mode.equals("true") || com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p));
-        return logo ? LOGO : Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
     }
 
     private String unique(String line, List<String> all, int idx) {
