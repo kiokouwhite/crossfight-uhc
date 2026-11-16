@@ -30,6 +30,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf scenario [nom] [oui\|non]` | Voir les scénarios (tout le monde), en cocher ou décocher un (admin) |
 | `/cf ferox oui\|non` | Répondre à la proposition de Regna Ferox |
 | `/cf ferox lancer` | Ouvrir Regna Ferox tout de suite (admin, en partie) |
+| `/cf test omori` | Zone de test avec la porte d'Omori devant soi, pour essayer le boss (une seconde fois pour la retirer) |
 | `/cf omori lancer\|fermer\|phase <1-5>\|coups <n>` | Essayer l'événement Omori : l'ouvrir, le refermer, changer de phase, compter des coups (test) |
 | `/cf lootbox [1-4\|vague]` | Poser une Lootbox devant soi (tier au choix), ou lancer l'événement entier (test) |
 | `/cf loot <objet\|tous>` | Recevoir un objet de Lootbox (test) |
@@ -185,6 +186,8 @@ Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (qu
 | 5 | Vision obstruée en permanence ; Suicide (tous éjectés à 10 blocs, Darkness, 5 cœurs), « Je ne peux pas le faire » (tous immobilisés 10 s) |
 
 Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Tout le monde revient alors à la porte, qui disparaît. Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
+
+Omori est un personnage articulé, couteau à la main, quand son skin est dans le pack (`python3 tools/add_skin.py <skin.png> omori --prive`, puis `tools/build_pack.py` ; `omori.skin` dans `config.yml` nomme le skin à utiliser) ; sans lui, c'est un zombie en tenue noire et blanche. `/cf test omori` pose la porte devant soi dans la zone de test, pour essayer le combat sans lancer de partie.
 
 La porte est une image du pack : un dessin de porte blanche usée dans le pack public, l'image officielle dans le pack complet (jamais versionnée, à déposer dans `resourcepack-prive/glyphes-couleur/porte_blanche.png`).
 

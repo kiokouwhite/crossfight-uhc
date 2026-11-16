@@ -14,4 +14,6 @@ Omori ne perd pas de vie : chaque coup qu'un joueur lui porte compte pour un (qu
 
 Vaincu, Omori laisse à chaque joueur présent un choix : se pardonner (une vie de plus) ou ne pas se pardonner (une vie de moins, mais Force III pour le reste de la partie) ; fermer le menu sans choisir, c'est se pardonner. Tout le monde revient alors à la porte, qui disparaît. Mourir dans l'Espace Blanc est une mort ordinaire. Omori n'existe que tant qu'un joueur est dans l'Espace Blanc : si tout le monde en sort, il reprend plus tard là où il en était. On n'y casse ni n'y pose aucun bloc.
 
+Omori est un personnage articulé, couteau à la main, quand son skin est dans le pack (`python3 tools/add_skin.py <skin.png> omori --prive`, puis `tools/build_pack.py` ; `omori.skin` dans `config.yml` nomme le skin à utiliser) ; sans lui, c'est un zombie en tenue noire et blanche. `/cf test omori` pose la porte devant soi dans la zone de test, pour essayer le combat sans lancer de partie.
+
 La porte est une image du pack : un dessin de porte blanche usée dans le pack public, l'image officielle dans le pack complet (jamais versionnée, à déposer dans `resourcepack-prive/glyphes-couleur/porte_blanche.png`).

@@ -283,6 +283,18 @@ public final class CfCommand implements TabExecutor {
                             else plugin.testMode().enterForest(sp);
                             return true;
                         }
+                        if (args.length > 1 && args[1].equalsIgnoreCase("omori")) {
+                            // La porte d'Omori devant soi, dans la zone de test ; une seconde fois pour la retirer.
+                            if (plugin.omori().active() && plugin.testMode().isTester(sp)) {
+                                plugin.omori().close();
+                                Msg.send(sp, "<yellow>La porte d'Omori est retiree. <gray>/cf test omori pour la remettre, /cf test pour sortir du mode test.");
+                                return true;
+                            }
+                            if (!plugin.testMode().isTester(sp) && !plugin.testMode().enter(sp)) return true;
+                            plugin.omori().openForTest(sp);
+                            Msg.send(sp, "<white>La porte blanche est devant toi : approche-toi pour l'ouvrir. <gray>Pour aller plus vite : <white>/cf omori phase <1-5></white>, <white>/cf omori coups <n></white>. <white>/cf test omori</white> la retire.");
+                            return true;
+                        }
                         if (args.length > 1 && args[1].equalsIgnoreCase("selection")) {
                             // Essai de l'ecran de selection en 3D : /cf test selection [licence] ; sans licence, une seconde fois pour revenir.
                             var sel = plugin.selection();
@@ -730,7 +742,7 @@ public final class CfCommand implements TabExecutor {
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }
                 }
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
-                case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre"));
+                case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre", "omori"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }

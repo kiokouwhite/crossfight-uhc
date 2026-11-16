@@ -65,6 +65,11 @@ resource-pack:
   # true : un joueur qui refuse le pack est deconnecte
   required: false
 
+omori:
+  # Le modele articule du boss Omori : le nom d'un skin du pack (tools/add_skin.py <skin.png> omori --prive).
+  # Sans ce skin dans le pack, Omori est un zombie en tenue noire et blanche.
+  skin: omori
+
 scoreboard:
   # Le logo Crossfight UHC a la place du titre du tableau de droite. auto : pour les joueurs qui ont charge le pack
   # envoye par le serveur ; toujours : pour tous (pack installe a la main) ; jamais : le titre en lettres

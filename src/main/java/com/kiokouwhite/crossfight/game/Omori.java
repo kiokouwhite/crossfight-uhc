@@ -104,17 +104,32 @@ public final class Omori implements Listener {
     public void open() {
         if (active()) return;
         plugin.ferox().gates(true);
-        door = plugin.ferox().randomSpot();
         // La porte, debout, tournee vers le centre de la fosse.
-        Location centre = plugin.ferox().centre();
-        Location at = door.clone().add(0, 1.6, 0);
-        at.setDirection(centre.toVector().subtract(door.toVector()).setY(0));
-        doorShow = Fx.show(at, Fx.imageOr("porte_blanche", Color.WHITE, Material.PALE_OAK_DOOR), 3.2f, false);
-        doorShow.setViewRange(6f);
-        spawnBoss();
+        place(plugin.ferox().randomSpot(), plugin.ferox().centre());
         Msg.broadcast("<white><bold>Evenement :</bold> une porte blanche est apparue dans l'arene, en <gray>" + door.getBlockX() + " " + door.getBlockY() + " " + door.getBlockZ()
                 + "<white>. Les herses sont levees. Derriere la porte : l'Espace Blanc.");
         for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.BLOCK_BELL_RESONATE, 1f, 0.6f);
+        loop = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 5L, 5L);
+    }
+
+    /** Pose la porte a cet endroit, tournee vers ce point, et prepare Omori. */
+    private void place(Location spot, Location facing) {
+        door = spot;
+        Location at = door.clone().add(0, 1.6, 0);
+        at.setDirection(facing.toVector().subtract(door.toVector()).setY(0));
+        doorShow = Fx.show(at, Fx.imageOr("porte_blanche", Color.WHITE, Material.PALE_OAK_DOOR), 3.2f, false);
+        doorShow.setViewRange(6f);
+        spawnBoss();
+    }
+
+    /** /cf test omori : la porte devant le testeur, dans la zone de test, sans annonce ni arene. */
+    public void openForTest(Player p) {
+        if (active()) close();
+        Vector ahead = p.getLocation().getDirection().setY(0);
+        if (ahead.lengthSquared() < 0.01) ahead = new Vector(0, 0, 1);
+        Location spot = p.getLocation().add(ahead.normalize().multiply(5));
+        spot.setY(p.getLocation().getY());
+        place(spot, p.getLocation());
         loop = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 5L, 5L);
     }
 
@@ -155,6 +170,20 @@ public final class Omori implements Listener {
             eq.setBoots(dyed(Material.LEATHER_BOOTS, Color.WHITE));
             eq.setItemInMainHand(new ItemStack(Material.IRON_SWORD));
         });
+        // Avec son skin dans le pack ("skin.omori", ou celui que nomme omori.skin dans config.yml), Omori est un
+        // personnage articule, son couteau a la main ; sinon il garde cette tenue noire et blanche.
+        puppet = com.kiokouwhite.crossfight.util.Puppet.show(boss, plugin.getConfig().getString("omori.skin", "omori"), new ItemStack(Material.IRON_SWORD), "debout");
+        if (puppet != null) boss.getEquipment().clear();
+    }
+
+    private com.kiokouwhite.crossfight.util.Puppet puppet;
+
+    /** Le geste d'un coup : le bras tendu, puis retour au repos. */
+    private void strike() {
+        boss.swingMainHand();
+        if (puppet == null) return;
+        puppet.pose("omori_coup", 3);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> { if (puppet != null && boss != null && boss.isValid()) puppet.pose("debout", 5); }, 12L);
     }
 
     private static ItemStack dyed(Material m, Color c) {
@@ -186,7 +215,7 @@ public final class Omori implements Listener {
                     new ChoiceMenu.Option(Material.BARRIER, "Ne rien faire", List.of(), () -> { })));
         }
         List<Player> in = fighters();
-        if (in.isEmpty()) { if (boss != null) { boss.remove(); boss = null; } return; }
+        if (in.isEmpty()) { if (boss != null) { if (puppet != null) puppet.remove(); puppet = null; boss.remove(); boss = null; } return; }
         if (boss == null || !boss.isValid()) summon();
         for (Player p : new ArrayList<>(bar.getPlayers())) if (!in.contains(p)) bar.removePlayer(p);
         for (Player p : in) {
@@ -280,7 +309,7 @@ public final class Omori implements Listener {
     private void slash(Player target, Runnable then) {
         busy = true;
         Location from = boss.getLocation().add(0, 1.2, 0);
-        boss.swingMainHand();
+        strike();
         Fx.line(from, target.getLocation().add(0, 1, 0), 0.4, INK);
         boss.getWorld().playSound(from, Sound.ITEM_TRIDENT_THROW, 1f, 0.6f);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -307,7 +336,7 @@ public final class Omori implements Listener {
             });
             case "trancher" -> {
                 busy = true;
-                boss.swingMainHand();
+                strike();
                 w.playSound(boss.getLocation(), Sound.ENTITY_WITHER_SHOOT, 0.8f, 1.6f);
                 for (Player p : fighters()) {
                     Fx.line(boss.getLocation().add(0, 1.2, 0), p.getLocation().add(0, 1, 0), 0.5, INK);
@@ -435,6 +464,8 @@ public final class Omori implements Listener {
         if (loop != null) loop.cancel();
         Location home = door;
         if (doorShow != null) doorShow.remove();
+        if (puppet != null) puppet.remove();
+        puppet = null;
         if (boss != null) boss.remove();
         if (bar != null) bar.removeAll();
         boss = null;

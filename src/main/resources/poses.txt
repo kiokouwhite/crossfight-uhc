@@ -893,3 +893,13 @@ pose remi_ult_frappe
   arm_l -52 0 -8
   leg_r -72 0 -7
   leg_l -72 0 7
+
+# Omori (le boss de l'evenement) : le coup de couteau, bras droit tendu devant lui, le buste a peine penche.
+pose omori_coup
+  root  6 0 0
+  head  -4 0 0
+  arm_r -84 -6 0
+  arm_l 14 0 8
+  leg_r -12 0 -3
+  leg_l 12 0 3
+  item  40 0 0
