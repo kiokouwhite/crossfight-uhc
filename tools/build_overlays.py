@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Les bandes et icones de bonus/malus sur les bords de l'ecran (util/EffectHud.java).
+"""Les icones de bonus/malus sur les bords de l'ecran (util/EffectHud.java).
 
 Usage :  python3 tools/build_overlays.py [--apercu image.png] [--minecraft client.jar]
 
@@ -11,11 +11,11 @@ Usage :  python3 tools/build_overlays.py [--apercu image.png] [--minecraft clien
 Minecraft dessine en plein ecran l'image "camera_overlay" d'un objet porte (comme la vue a travers une
 citrouille). Le plugin glisse a chaque joueur, pour lui seul, un objet invisible dans sa case de casque
 (les bonus) et dans celle de jambieres (les malus) : sa vraie armure ne change pas. Chaque image couvre
-tout l'ecran et ne dessine que son bord : a gauche la bande et les icones des bonus, a droite celles des
-malus, une ou deux icones par cote.
+tout l'ecran et ne dessine que son bord : a gauche les icones des bonus, a droite celles des malus (un ou
+deux effets par cote), sans bande ni trait de couleur.
 
-Les icones ne sont pas fixes : nues (sans pastille), elles montent sur deux files le long du bord, sortent
-du bas de l'ecran et s'effacent en haut. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
+Les icones ne sont pas fixes : nues (sans pastille), elles montent sur trois files le long du bord, sortent
+du bas de l'ecran et s'effacent a mi-hauteur. Une image de plein ecran ne peut pas etre animee par le pack : chaque boucle est donc une suite de
 FRAMES images que le plugin fait defiler (une toutes les 2 ticks).
 
 Ecrit    resourcepack/assets/crossfight/textures/overlay/bonus_<a>[_<b>]_<image>.png   (et .png.mcmeta : lissage)
@@ -37,9 +37,10 @@ BADGE_R = 25
 SLOTS_Y = (392, 318)          # premiere icone, puis la seconde au-dessus
 # L'animation : les icones montent le long du bord en file, apparaissent en bas et s'effacent en haut.
 FRAMES = 8                    # images par boucle (le plugin en change tous les 2 ticks)
-COPIES = 6                    # icones de chaque effet a l'ecran en meme temps (pair : elles montent sur deux files)
-STEP = 2                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut
-RISE = (H + 34, 150)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee
+COPIES = 12                   # icones de chaque effet a l'ecran en meme temps (un multiple de STEP : une file par rang)
+STEP = 3                      # en une boucle, chaque icone prend la place de celle qui est STEP rangs plus haut ; autant de files
+RISE = (H + 34, 320)          # hauteur de depart (sous le bas de l'ecran : elles en sortent) et d'arrivee (mi-hauteur)
+LANES = (30, 76, 122)         # distance au bord de chaque file
 SIZE = (512, 288)             # taille des images ecrites (dessinees en 1024 x 576 puis reduites)
 EDGE_X = 62                   # centre des icones, depuis le bord
 
@@ -229,48 +230,21 @@ def arrow(up: bool, color, size: int) -> Image.Image:
 def overlay(effects, palette, left: bool, frame: int = 0) -> Image.Image:
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     colors = [dict(palette)[e] for e in effects]
-    top, bottom = colors[-1], colors[0]
-    # La bande : un degrade le long du bord, de la couleur du premier effet en bas a celle du second en haut.
-    band = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    px = band.load()
-    width = 58
-    for y in range(H):
-        k = y / (H - 1)
-        col = tuple(int(top[i] * (1 - k) + bottom[i] * k) for i in range(3))
-        fade = min(1.0, y / 60, (H - 1 - y) / 60) * 0.25 + 0.75
-        for x in range(width):
-            a = int(255 * 0.62 * fade * (1 - x / width) ** 1.7)
-            if a:
-                px[x if left else W - 1 - x, y] = col + (a,)
-    img.alpha_composite(band)
-    # Les traits verticaux le long du bord (comme dans un jeu de tir).
-    d = ImageDraw.Draw(img)
-    x = 9 if left else W - 12
-    y = 36
-    segs = (54, 22, 70, 30, 46, 18, 64, 38, 52)
-    i = 0
-    while y < H - 40:
-        h = segs[i % len(segs)]
-        k = y / (H - 1)
-        col = tuple(int(top[j] * (1 - k) + bottom[j] * k) for j in range(3))
-        d.rectangle((x, y, x + 2, min(H - 40, y + h)), fill=tuple(min(255, int(v * 0.6 + 100)) for v in col) + (200,))
-        y += h + 14
-        i += 1
     # Les icones en file montante : chaque effet a COPIES icones, espacees regulierement ; d'une image a la
     # suivante elles montent d'un cran, et au bout de la boucle chacune a pris la place de la suivante.
     stream = []
-    for n, (e, color) in enumerate(zip(effects, colors)):
-        for k in range(COPIES):
-            # Avec deux effets, leurs icones alternent dans la file.
-            t = ((k + n / len(effects)) / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
-            stream.append((t, k % STEP, e, color))
+    for j in range(COPIES):
+        # Avec deux effets, leurs icones alternent dans la file : il y a toujours COPIES icones en tout.
+        n = j % len(effects)
+        t = (j / COPIES + frame * STEP / (FRAMES * COPIES)) % 1.0
+        stream.append((t, j % STEP, effects[n], colors[n]))
     for t, lane, e, color in sorted(stream):
         fade = min(1.0, (1 - t) / 0.42)
         size = int(58 * (1.05 - 0.32 * t))
         b = sprite(e, color, size)
         b.putalpha(b.getchannel("A").point(lambda v: int(v * fade)))
-        # Deux files qui ondulent, l'une plus pres du bord que l'autre.
-        off = (34 if lane else 84) + int(12 * math.sin(t * math.pi * 2 + lane * 2.1))
+        # Des files qui ondulent, de plus en plus loin du bord.
+        off = LANES[lane % len(LANES)] + int(10 * math.sin(t * math.pi * 2 + lane * 2.1))
         cx = off if left else W - off
         cy = int(RISE[0] + (RISE[1] - RISE[0]) * t)
         img.alpha_composite(b, (cx - b.width // 2, cy - b.height // 2))
