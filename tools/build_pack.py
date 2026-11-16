@@ -248,7 +248,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms, private_loops = set(), {}, {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _, private_loops = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE) | fonts(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}

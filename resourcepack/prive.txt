@@ -8,6 +8,7 @@ ability.corrin_sang
 ability.corrin_sang_eau
 ability.corrin_ult
 ability.corrin_ult_dragon
+ability.espace_blanc
 ability.marth_contre
 ability.marth_contre_hit
 ability.marth_ult_charge
@@ -30,6 +31,7 @@ ability.omori_poignarde
 ability.omori_porte
 ability.omori_rafale
 ability.omori_vaincu
+font.espace_blanc
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon

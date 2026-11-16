@@ -183,7 +183,7 @@ public final class Omori implements Listener {
     private List<Player> fighters() {
         List<Player> out = new ArrayList<>();
         World w = Bukkit.getWorld(WORLD);
-        if (w != null) for (Player p : w.getPlayers()) if (!p.isDead() && p.getGameMode() != GameMode.SPECTATOR) out.add(p);
+        if (w != null) for (Player p : w.getPlayers()) if (!p.isDead() && p.getGameMode() != GameMode.SPECTATOR && !watching.contains(p.getUniqueId())) out.add(p);
         return out;
     }
 
@@ -264,6 +264,7 @@ public final class Omori implements Listener {
         over = false;
         exit = null;
         winners.clear();
+        welcomed.clear();
         floor(Material.WHITE_CONCRETE);
         phase = 0;
         hits = 0;
@@ -460,8 +461,54 @@ public final class Omori implements Listener {
         p.teleport(at);
         p.setFallDistance(0);
         Effects.invincible(p, 2000);
+        if (welcome(p)) return;
         Msg.send(p, "<white>Tu es dans l'Espace Blanc. <gray>Omori attend.");
         p.playSound(at, Sound.AMBIENT_CAVE, 1f, 0.6f);
+    }
+
+    /** Ceux qui regardent la video d'entree : le combat ne commence pour eux qu'apres. */
+    private final Set<UUID> watching = new HashSet<>(), welcomed = new HashSet<>();
+    /** Images de la video d'entree (dix par seconde) : tools/build_intro.py. */
+    private static final int WELCOME_FRAMES = 300;
+
+    /**
+     * "Welcome to White Space" : la premiere fois qu'un joueur franchit la porte, la video d'entree se joue plein
+     * ecran, avec son son (pack complet : police "espace_blanc", une image par caractere, sur un fond noir). Il ne
+     * bouge pas, ne craint rien, et Omori ne s'occupe pas de lui pendant ce temps ; s'accroupir la passe. Rend faux
+     * si le pack n'a pas la video : on entre alors directement.
+     */
+    private boolean welcome(Player p) {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("font.espace_blanc") || !welcomed.add(p.getUniqueId())) return false;
+        final UUID id = p.getUniqueId();
+        watching.add(id);
+        Effects.root(p, WELCOME_FRAMES * 2 + 20);
+        Effects.invincible(p, WELCOME_FRAMES * 100L + 2000);
+        final String sound = com.kiokouwhite.crossfight.util.Sounds.NS + ":ability.espace_blanc";
+        p.playSound(p, sound, org.bukkit.SoundCategory.MASTER, 1f, 1f);
+        final net.kyori.adventure.key.Key font = net.kyori.adventure.key.Key.key("crossfight", "espace_blanc");
+        final net.kyori.adventure.text.Component black = net.kyori.adventure.text.Component.text("\ue000").font(font);
+        final var times = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ZERO, java.time.Duration.ofMillis(500), java.time.Duration.ZERO);
+        new BukkitRunnable() {
+            int frame = 0;
+            @Override public void run() {
+                boolean skip = frame > 10 && p.isSneaking();
+                if (!p.isOnline() || p.isDead() || !active() || !p.getWorld().getName().equals(WORLD) || frame >= WELCOME_FRAMES || skip) {
+                    cancel();
+                    watching.remove(id);
+                    if (!p.isOnline()) return;
+                    p.clearTitle();
+                    if (skip) p.stopSound(sound, org.bukkit.SoundCategory.MASTER);
+                    Effects.unroot(p);
+                    Effects.invincible(p, 2000);
+                    if (active() && p.getWorld().getName().equals(WORLD)) Msg.send(p, "<white>Tu es dans l'Espace Blanc. <gray>Omori attend.");
+                    return;
+                }
+                p.showTitle(net.kyori.adventure.title.Title.title(black, net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE001 + frame))).font(font), times));
+                if (frame == 0) Msg.actionBar(p, "<dark_gray>S'accroupir pour passer");
+                frame++;
+            }
+        }.runTaskTimer(plugin, 1L, 2L);
+        return true;
     }
 
     // ------------------------------------------------------------------ les coups portes a Omori

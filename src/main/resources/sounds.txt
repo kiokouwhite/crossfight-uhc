@@ -59,6 +59,7 @@ ability.eren_t_feminin
 ability.eren_t_machoire
 ability.eren_t_marteau
 ability.eren_ult
+ability.espace_blanc
 ability.gv_cerbere
 ability.gv_champ
 ability.gv_dash
@@ -266,6 +267,7 @@ ability.yuki_insaisissable
 ability.yuki_insatiable
 ability.yuki_snow
 ability.yuki_ult
+font.espace_blanc
 font.logo
 glyph.flaque_noire
 glyph.kunai
