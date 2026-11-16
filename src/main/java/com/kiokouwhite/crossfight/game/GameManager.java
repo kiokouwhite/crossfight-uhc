@@ -105,6 +105,7 @@ public final class GameManager {
         plugin.getConfig().set("world.name", name);
         plugin.saveConfig();
         prepareWorld();
+        plugin.ferox().build();
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.isDead() || (plugin.testMode().isTester(p) && !p.getWorld().equals(old))) continue;
             p.teleport(lobbySpot());
@@ -380,7 +381,7 @@ public final class GameManager {
         int pvpMin = plugin.getConfig().getInt("game.pvp-minute", 30);
         if (pvpMin <= 0) pvpEnabled = true;
         Location ferox = plugin.ferox().build();
-        Msg.broadcast("<gold>L'arene de Regna Ferox se dresse en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
+        Msg.broadcast("<gold>L'arene de Regna Ferox se dresse au centre de la map, en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
         Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
     }
 

@@ -140,16 +140,16 @@ public final class RegnaFerox implements Listener {
     // ------------------------------------------------------------------ le combat
 
     /**
-     * L'arene est sur la map des le debut de la partie : une salle massive et fermee (voir raise), posee sur le terrain
-     * a 30 % du rayon de la bordure, a l'est du centre (le centre est garde pour d'autres evenements). Sa hauteur
-     * est retenue par monde dans config.yml, pour la retrouver (et ne pas la rebatir) a la partie suivante.
+     * L'arene est sur la map avant meme le lancement de la partie : une salle massive et fermee (voir raise), au
+     * centre de la map (0, 0), posee sur le terrain. Elle est batie au demarrage du serveur et a chaque nouvelle
+     * map ; sa hauteur est retenue par monde dans config.yml, pour la retrouver sans la rebatir.
      */
     public Location build() {
         World w = plugin.game().world();
-        int cx = (int) Math.round(plugin.game().rules().value("bordure") * 0.3), cz = 0;
+        int cx = 0, cz = 0;
         String key = "ferox.arene-fermee." + w.getName();
         int y = plugin.getConfig().getInt(key, Integer.MIN_VALUE);
-        boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.SMOOTH_SANDSTONE;
+        boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER;
         if (!there) {
             // Le sol de la fosse a la hauteur mediane du terrain sous le colisee : ni perche sur une butte, ni enterre.
             List<Integer> heights = new ArrayList<>();
@@ -414,7 +414,6 @@ public final class RegnaFerox implements Listener {
         modes.clear();
         accepted.clear();
         ready.clear();
-        centre = null;
     }
 
     /** Parti en plein combat : il compte comme a terre. */
