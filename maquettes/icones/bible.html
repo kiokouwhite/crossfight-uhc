@@ -1,0 +1,179 @@
+<title>Bible des icônes Crossfight</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Mise en page : une fiche d'atelier en une colonne, les regles a gauche de leur exemple dessine ; les icones sont
+   toujours montrees sur le gris d'une case d'inventaire, comme en jeu. */
+:root {
+  --bg: #eceaf2; --panel: #f8f7fb; --ink: #1c1a2b; --muted: #5d5a73; --line: #cfcbdc;
+  --accent: #3f5fd0; --good: #2f8a3e; --bad: #c0363f; --slot: #8b8b8b; --slot-edge: #373737; --slot-hi: #ffffff;
+  --display: "Pixelify Sans", "Trebuchet MS", sans-serif; --body: "Inter", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15141f; --panel: #1e1c2b; --ink: #ecebf5; --muted: #a09db8; --line: #35324a;
+  --accent: #8ea6ff; --good: #6fd07c; --bad: #ff7a82; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #15141f; --panel: #1e1c2b; --ink: #ecebf5; --muted: #a09db8; --line: #35324a;
+  --accent: #8ea6ff; --good: #6fd07c; --bad: #ff7a82; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: 38px; font-weight: 700; }
+h2 { font-size: 24px; font-weight: 700; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+h3 { font-size: 17px; font-weight: 500; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 16px; }
+header { display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: center; justify-content: space-between; }
+header > div { min-width: 0; flex: 1 1 320px; display: flex; flex-direction: column; gap: 8px; }
+section { display: flex; flex-direction: column; gap: 16px; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.slot { background: var(--slot); padding: 6px; display: inline-flex; box-shadow: inset 3px 3px 0 var(--slot-edge), inset -3px -3px 0 var(--slot-hi); }
+.row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.fig { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.fig figcaption, .cap { font-size: 12.5px; color: var(--muted); max-width: 22ch; line-height: 1.35; }
+figure { margin: 0; }
+.rule { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px 28px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.rule > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.rule:last-child { border-bottom: 0; }
+@media (max-width: 640px) { .rule { grid-template-columns: minmax(0, 1fr); } h1 { font-size: 30px; } }
+.num { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .06em; }
+.ramps { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ramp { background: var(--panel); border: 1px solid var(--line); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ramp b { font-weight: 600; font-size: 13px; }
+.sw { display: flex; }
+.sw i { flex: 1; height: 34px; }
+.hex { font: 11px var(--mono); color: var(--muted); display: flex; justify-content: space-between; gap: 4px; }
+.pair { display: flex; flex-wrap: wrap; gap: 14px 22px; }
+.tag { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.tag.ok { color: var(--good); } .tag.no { color: var(--bad); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.scroll { overflow-x: auto; }
+ul.check { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px 24px; }
+ul.check li { padding-left: 26px; position: relative; }
+ul.check li::before { content: ""; position: absolute; left: 0; top: 4px; width: 14px; height: 14px; border: 2px solid var(--accent); }
+code { font: 13px var(--mono); background: var(--panel); border: 1px solid var(--line); padding: 1px 5px; }
+.dot { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Bible des icônes Crossfight</h1>
+      <p class="lede">Les règles pour dessiner les icônes des capacités, afin que les 215 se ressemblent quel que soit le personnage. Tout est en 16 × 16 pixels, comme les objets de Minecraft.</p>
+    </div>
+    <div class="row" id="hero" aria-label="Quatre icônes d'exemple"></div>
+  </header>
+
+  <section>
+    <h2>Les six règles</h2>
+    <div>
+      <div class="rule"><div><span class="num">RÈGLE 1</span><h3>16 × 16, une marge d'un pixel</h3><p>L'icône tient dans 14 × 14 au centre. Seule une pointe (lame, éclat) peut toucher le bord. Aucun fond : le reste est transparent.</p></div><div class="row" id="r1"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 2</span><h3>Un contour sombre d'un pixel, partout</h3><p>Toujours la même couleur de contour, un bleu nuit presque noir, jamais du noir pur. C'est lui qui détache l'icône du gris de l'inventaire. Les effets (éclats, traits de vitesse) n'ont pas de contour.</p></div><div class="row" id="r2"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 3</span><h3>La lumière vient d'en haut à gauche</h3><p>Chaque matière a trois tons : clair, base, sombre. Le clair se pose en haut et à gauche des formes, le sombre en bas et à droite. Pas de dégradé lissé, pas de pixel semi-transparent.</p></div><div class="row" id="r3"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 4</span><h3>Un objet, sur la diagonale</h3><p>Un seul sujet par icône, posé de bas-gauche vers haut-droite comme une épée de Minecraft. Deux éléments au plus : le sujet et son effet. Une silhouette qu'on reconnaît même remplie en noir.</p></div><div class="row" id="r4"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 5</span><h3>Deux familles de couleur, pas plus</h3><p>Une couleur dominante pour le sujet (souvent celle du personnage), une couleur d'accent pour l'effet. Le contour et l'éclat blanc ne comptent pas. On reste dans la palette commune ci-dessous.</p></div><div class="row" id="r5"></div></div>
+      <div class="rule"><div><span class="num">RÈGLE 6</span><h3>Le type de capacité se lit d'un coup d'œil</h3><p>Une capacité active montre du mouvement (arc, traits, éclats). Un passif est posé, immobile. Un ultime porte toujours l'étoile blanche à quatre branches.</p></div><div class="row" id="r6"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>La palette commune</h2>
+    <p>34 couleurs : le contour, l'éclat, et dix matières en trois tons, plus deux gris d'ombre. Elle est fournie en fichier pour Aseprite, GIMP, Krita ou Piskel (<code>palette_crossfight.gpl</code>, <code>.hex</code>, <code>.png</code>).</p>
+    <div class="ramps" id="ramps"></div>
+  </section>
+
+  <section>
+    <h2>À faire, à éviter</h2>
+    <div class="pair" id="dos"></div>
+  </section>
+
+  <section>
+    <h2>Quelle couleur pour quoi</h2>
+    <p>Pour que deux personnages différents restent cohérents, une même idée garde toujours la même couleur d'accent.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>Idée</th><th>Couleur d'accent</th><th>Signe à dessiner</th></tr></thead>
+      <tbody id="meanings"></tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Avant d'enregistrer une icône</h2>
+    <ul class="check">
+      <li>16 × 16, fond transparent, PNG</li>
+      <li>Contour d'un pixel, couleur de contour de la palette</li>
+      <li>Clair en haut à gauche, sombre en bas à droite</li>
+      <li>Uniquement des couleurs de la palette</li>
+      <li>Un sujet, un effet au plus</li>
+      <li>Lisible à taille réelle, sur le gris de l'inventaire</li>
+      <li>Étoile blanche si c'est un ultime, rien sinon</li>
+      <li>Nom du fichier : l'identifiant de la capacité, par exemple <code>marth_contre.png</code></li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const PAL = { k: "#181628", w: "#fafaff", s: "#ced8e8", a: "#92a0bc", d: "#5c688a", y: "#fff096", g: "#ffd04a", o: "#d69426",
+  c: "#78b0ff", b: "#4070dc", n: "#223c8c", p: "#ff9696", r: "#e23e46", m: "#961e34", t: "#8a5a34", e: "#58d8f0", f: "#ff8a1e", v: "#9a50e0" };
+const ICONS = {
+  contre: ["..............kk",".............kwk","....c.......kwsk","...ccc.....kwsk.","..cc.cc...kwsk..",".cc...c..kwsk...",".c......kwsk....",".c.....kwsk.....",".cc...kwsk......","..c..ksak.......","..okkkak...c....",".kgogkk...cc....","..kogok.ccc.....",".ktkkgk.........","ktk..k..........","kk.............."],
+  charisme: ["..kk............",".kyyk...........",".kggkkkkkkkk....","..ktkccccccbkk..","..ktkcbbbbbbbbk.","..ktkbbgbbbbnk..","..ktkbgggbbnk...","..ktkbbgbbbbnk..","..ktkbbbbbbbbnk.","..ktknnnnnnnnk..","..ktkkkkkkkkk...","..ktk...........","..ktk...........","..ktk...........","..ktk...........","..kkk..........."],
+  leader: ["................","................","................","................","................","................","..k....kk....k..",".kgk..kyyk..kgk.",".kgokkkggkkkogk.",".kggggkbbkggggk.",".kgyggkcbkggogk.",".kgggggkkgggogk.",".koggggggggoook.","..kkkkkkkkkkkk..","................","................"],
+  ult: ["...........w....","...........w....","........w.kwk.w.",".........kywyk..","........wwwwwww.",".........kywyk..","........wkswk.w.",".......ksakw....","......ksak.w....",".r...ksak.......","..r.ksak........",".okkkak..r......","kgogkk..r.......",".kogok.r........","ktkkgk..........","kk..k..........."],
+  epee: ["..............kk",".............kwk","............kwsk","...........kwsk.","..........kwsk..",".........kwsk...","........kwsk....",".......kwsk.....","......kwsk......",".....ksak.......","..okkkak........",".kgogkk.........","..kogok.........",".ktkkgk.........","ktk..k..........","kk.............."],
+};
+function draw(rows, zoom, opts = {}) {
+  const c = document.createElement("canvas"); c.width = 16; c.height = 16;
+  c.style.width = c.style.height = 16 * zoom + "px";
+  const x = c.getContext("2d");
+  rows.forEach((row, y) => [...row].forEach((ch, i) => {
+    if (ch === "." || (opts.noOutline && ch === "k")) return;
+    x.fillStyle = opts.flat ? (ch === "k" ? PAL.k : opts.flat) : opts.map ? (opts.map[ch] || PAL[ch]) : PAL[ch];
+    x.fillRect(i, y, 1, 1);
+  }));
+  if (opts.margin) { x.strokeStyle = "rgba(255,0,80,.55)"; x.lineWidth = 1; x.strokeRect(.5, .5, 15, 15); }
+  if (opts.blur) c.style.imageRendering = "auto";
+  return c;
+}
+function fig(parent, rows, caption, zoom = 5, opts = {}) {
+  const f = document.createElement("figure"); f.className = "fig";
+  const s = document.createElement("span"); s.className = "slot"; s.append(draw(rows, zoom, opts)); f.append(s);
+  if (opts.tag) { const t = document.createElement("span"); t.className = "tag " + (opts.ok ? "ok" : "no"); t.textContent = opts.tag; f.append(t); }
+  if (caption) { const c = document.createElement("figcaption"); c.textContent = caption; f.append(c); }
+  document.getElementById(parent).append(f);
+}
+["contre", "charisme", "leader", "ult"].forEach(n => fig("hero", ICONS[n], "", 5));
+fig("r1", ICONS.epee, "La marge en rouge", 6, { margin: true });
+fig("r1", ICONS.epee, "Taille réelle ×2", 2);
+fig("r2", ICONS.epee, "Avec contour", 5);
+fig("r2", ICONS.epee, "Sans : elle se noie", 5, { noOutline: true });
+fig("r3", ICONS.leader, "Clair à gauche, sombre à droite", 6);
+fig("r4", ICONS.epee, "Le sujet", 5);
+fig("r4", ICONS.epee, "Sa silhouette", 5, { flat: "#181628" });
+fig("r5", ICONS.charisme, "Bleu + or", 5);
+fig("r6", ICONS.contre, "Active : l'arc de parade", 5);
+fig("r6", ICONS.leader, "Passif : posé", 5);
+fig("r6", ICONS.ult, "Ultime : l'étoile", 5);
+
+const RAMPS = [["Contour et éclat", ["#181628", "#fafaff"]], ["Acier", ["#ced8e8", "#92a0bc", "#5c688a"]], ["Or", ["#fff096", "#ffd04a", "#d69426"]],
+  ["Bleu", ["#78b0ff", "#4070dc", "#223c8c"]], ["Rouge", ["#ff9696", "#e23e46", "#961e34"]], ["Vert", ["#b4f078", "#58b83c", "#2a7030"]],
+  ["Violet", ["#d8a0ff", "#9a50e0", "#54288c"]], ["Foudre", ["#c8f8ff", "#58d8f0", "#2088b0"]], ["Feu", ["#ffd070", "#ff8a1e", "#c04410"]],
+  ["Bois", ["#c89a64", "#8a5a34", "#54341e"]], ["Os, peau", ["#fff0dc", "#e8c8a0", "#b08a68"]], ["Ombre", ["#686878", "#3c3c50"]]];
+for (const [name, cols] of RAMPS) {
+  const d = document.createElement("div"); d.className = "ramp";
+  d.innerHTML = `<b>${name}</b><div class="sw">${cols.map(c => `<i style="background:${c}"></i>`).join("")}</div><div class="hex">${cols.map(c => `<span>${c.slice(1)}</span>`).join("")}</div>`;
+  document.getElementById("ramps").append(d);
+}
+fig("dos", ICONS.ult, "Contour, trois tons, deux couleurs, étoile d'ultime.", 6, { tag: "À faire", ok: true });
+fig("dos", ICONS.ult, "Sans contour : illisible sur le gris.", 6, { tag: "À éviter", noOutline: true });
+fig("dos", ICONS.ult, "Agrandie puis lissée : les pixels bavent.", 6, { tag: "À éviter", blur: true });
+fig("dos", ICONS.ult, "Hors palette : elle jure à côté des autres.", 6, { tag: "À éviter", map: { s: "#b6ff3c", a: "#3cff9a", g: "#ff3cf0", o: "#7a3cff", w: "#ffe23c", r: "#3cf0ff" } });
+fig("dos", ICONS.contre, "Trois couleurs d'effet en plus du sujet : trop.", 6, { tag: "À éviter", map: { c: "#e23e46", s: "#58b83c", a: "#9a50e0" } });
+
+const MEANINGS = [["Attaque, dégâts", "#e23e46", "Rouge", "Éclats rouges, lame"], ["Défense, parade, résistance", "#4070dc", "Bleu", "Arc ou bouclier"],
+  ["Vitesse, déplacement", "#fafaff", "Blanc", "Chevrons ou traits derrière le sujet"], ["Soin, régénération", "#58b83c", "Vert", "Croix ou cœur"],
+  ["Force, bonus d'équipe", "#ffd04a", "Or", "Couronne, bannière, flèche vers le haut"], ["Foudre, électricité", "#58d8f0", "Cyan", "Éclair en zigzag"],
+  ["Feu, explosion", "#ff8a1e", "Orange", "Flamme en goutte"], ["Magie, vol de vie, ombre", "#9a50e0", "Violet", "Volutes, orbe"], ["Ultime", "#fafaff", "Blanc", "Étoile à quatre branches, 7 × 7"]];
+document.getElementById("meanings").innerHTML = MEANINGS.map(([a, c, n, s]) => `<tr><td>${a}</td><td><span class="dot" style="background:${c};outline:1px solid var(--line)"></span>${n}</td><td>${s}</td></tr>`).join("");
+</script>
