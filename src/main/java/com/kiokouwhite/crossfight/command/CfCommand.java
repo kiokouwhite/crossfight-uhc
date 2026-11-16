@@ -129,62 +129,70 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
-                    case "structure", "structures" -> {
-                        // Les structures posees au hasard sur la map : les lister, en exporter une depuis le monde ou elle est batie, en poser.
+                    case "structure", "structures", "lieu", "lieux" -> {
+                        // Les lieux poses au hasard sur la map : les lister, visiter leur monde d'origine, ecrire leur fiche, en poser.
                         var st = plugin.structures();
                         String what = args.length > 1 ? args[1].toLowerCase() : "liste";
                         switch (what) {
                             case "liste" -> {
                                 var sheets = st.sheets();
-                                Msg.send(sender, "<gold>" + sheets.size() + " structure(s) dans plugins/CrossfightUHC/structures/" + (st.working() ? " <yellow>(une pose ou un export est en cours)" : ""));
+                                int share = st.share(plugin.game().world());
+                                Msg.send(sender, "<gold>" + sheets.size() + " lieu(x) dans plugins/CrossfightUHC/structures/ <gray>; avec cette bordure, chacun occupe au plus <white>" + share + " x " + share + "</white> blocs" + (st.working() ? " <yellow>(une pose est en cours)" : ""));
                                 for (var s : sheets) {
-                                    String where = "<gray>pas encore posee";
-                                    for (var p : st.placed(plugin.game().world())) if (p.name().equals(s.name())) where = "<green>en " + (p.x() + p.sx() / 2) + " " + (p.y() + s.ground()) + " " + (p.z() + p.sz() / 2);
-                                    Msg.send(sender, "<white>" + s.name() + " <gray>" + s.sx() + " x " + s.sy() + " x " + s.sz() + ", " + s.tiles().size() + " tuiles" + (s.author().isEmpty() ? "" : ", par " + s.author()) + " : " + where);
+                                    String where = "<gray>pas encore pose";
+                                    for (var p : st.placed(plugin.game().world())) if (p.name().equals(s.name())) where = "<green>en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2) + " (" + p.sx() + " x " + p.sz() + ")";
+                                    Msg.send(sender, "<white>" + s.name() + " <gray>" + s.sx() + " x " + s.sy() + " x " + s.sz() + (s.author().isEmpty() ? "" : ", par " + s.author()) + " : " + where);
                                 }
-                                Msg.send(sender, "<gray>/cf structure exporter <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse] [auteur], placer <nom> [x z], disperser, monde <dossier>");
+                                Msg.send(sender, "<gray>/cf structure monde <nom>, fiche <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse], placer <nom> [x z] [cote], disperser");
                             }
-                            case "exporter" -> {
+                            case "monde" -> {
+                                // Charge le monde d'origine d'un lieu (structures/<nom>/monde) et y emmene, en spectateur : pour reperer sa boite.
+                                if (!(sender instanceof Player sp) || args.length < 3) { Msg.send(sender, "<yellow>/cf structure monde <nom>"); return true; }
+                                String name = args[2].toLowerCase();
+                                java.io.File dir = new java.io.File(plugin.getDataFolder(), "structures/" + name + "/monde");
+                                if (!name.matches("[a-z0-9_]+") || !new java.io.File(dir, "level.dat").isFile()) { Msg.send(sender, "<red>Aucun monde dans plugins/CrossfightUHC/structures/" + name + "/monde."); return true; }
+                                var sheet = st.sheet(name);
+                                org.bukkit.World w;
+                                if (sheet != null) w = st.source(sheet);
+                                else {
+                                    String rel = Bukkit.getWorldContainer().getAbsoluteFile().toPath().normalize().relativize(dir.getAbsoluteFile().toPath().normalize()).toString().replace('\\', '/');
+                                    w = Bukkit.getWorld(rel);
+                                    if (w == null) w = new org.bukkit.WorldCreator(rel).generator(new com.kiokouwhite.crossfight.util.ArenaWorlds.VoidGenerator()).createWorld();
+                                }
+                                if (w == null) { Msg.send(sender, "<red>Ce monde n'a pas pu etre charge."); return true; }
+                                sp.setGameMode(org.bukkit.GameMode.SPECTATOR);
+                                sp.teleport(sheet != null ? new org.bukkit.Location(w, sheet.heartX() + 0.5, sheet.ground() + 20, sheet.heartZ() + 0.5) : w.getSpawnLocation());
+                                Msg.send(sender, "<green>Monde de " + name + " charge : tu y es, en spectateur" + (sheet != null ? ", au-dessus de son coeur." : ", a son point d'apparition."));
+                            }
+                            case "fiche" -> {
+                                // Ecrit la fiche d'un lieu : sa boite et la hauteur de son sol, dans son monde ; son coeur est la ou l'on se tient.
                                 if (!(sender instanceof Player sp)) return true;
-                                if (args.length < 10) { Msg.send(sender, "<yellow>/cf structure exporter <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse] [auteur]"); return true; }
+                                if (args.length < 10) { Msg.send(sender, "<yellow>/cf structure fiche <nom> <x1> <y1> <z1> <x2> <y2> <z2> <sol> [creuse]"); return true; }
                                 try {
                                     int[] v = new int[7];
                                     for (int i = 0; i < 7; i++) v[i] = Integer.parseInt(args[3 + i]);
                                     boolean carve = args.length > 10 && args[10].equalsIgnoreCase("creuse");
-                                    String author = String.join(" ", java.util.Arrays.copyOfRange(args, Math.min(args.length, carve ? 11 : 10), args.length));
-                                    st.export(sender, args[2].toLowerCase(), sp.getWorld(), v[0], v[1], v[2], v[3], v[4], v[5], v[6], carve, author, "");
+                                    boolean ok = st.define(args[2].toLowerCase(), v[0], v[1], v[2], v[3], v[4], v[5], v[6], sp.getLocation().getBlockX(), sp.getLocation().getBlockZ(), carve, "");
+                                    Msg.send(sender, ok ? "<green>Fiche de " + args[2].toLowerCase() + " ecrite (coeur : ta position)." : "<red>Aucun monde dans plugins/CrossfightUHC/structures/" + args[2].toLowerCase() + "/monde.");
                                 } catch (NumberFormatException ex) { Msg.send(sender, "<red>Les coordonnees et le niveau du sol sont des nombres entiers."); }
                             }
                             case "placer" -> {
                                 var s = args.length > 2 ? st.sheet(args[2].toLowerCase()) : null;
-                                if (s == null) { Msg.send(sender, "<red>Structure inconnue. <gray>/cf structure liste"); return true; }
+                                if (s == null) { Msg.send(sender, "<red>Lieu inconnu. <gray>/cf structure liste"); return true; }
                                 try {
-                                    org.bukkit.World w = sender instanceof Player sp ? sp.getWorld() : plugin.game().world();
+                                    org.bukkit.World w = sender instanceof Player sp && sp.getWorld().equals(plugin.game().world()) ? sp.getWorld() : plugin.game().world();
                                     int x = args.length > 4 ? Integer.parseInt(args[3]) : sender instanceof Player sp ? sp.getLocation().getBlockX() : 0;
                                     int z = args.length > 4 ? Integer.parseInt(args[4]) : sender instanceof Player sp ? sp.getLocation().getBlockZ() : 0;
-                                    st.place(sender, s, w, x, z, null);
-                                } catch (NumberFormatException ex) { Msg.send(sender, "<red>x et z sont des nombres entiers."); }
+                                    int side = args.length > 5 ? Integer.parseInt(args[5]) : st.share(w);
+                                    st.place(sender, s, w, x, z, side, null);
+                                } catch (NumberFormatException ex) { Msg.send(sender, "<red>x, z et le cote sont des nombres entiers."); }
                             }
                             case "disperser" -> {
-                                if (st.working()) { Msg.send(sender, "<red>Une pose ou un export est deja en cours."); return true; }
+                                if (st.working()) { Msg.send(sender, "<red>Une pose est deja en cours."); return true; }
                                 st.scatter(plugin.game().world());
-                                Msg.send(sender, "<yellow>Les structures qui manquent a cette map sont posees l'une apres l'autre (suivi dans la console).");
+                                Msg.send(sender, "<yellow>Les lieux qui manquent a cette map sont poses l'un apres l'autre (suivi dans la console).");
                             }
-                            case "monde" -> {
-                                // Charge un monde telecharge (son dossier, depose a cote de ceux du serveur) pour y exporter une construction.
-                                if (!(sender instanceof Player sp) || args.length < 3) { Msg.send(sender, "<yellow>/cf structure monde <dossier>"); return true; }
-                                if (!args[2].matches("[A-Za-z0-9_.-]+") || !new java.io.File(Bukkit.getWorldContainer(), args[2] + "/level.dat").isFile()) { Msg.send(sender, "<red>Aucun monde dans le dossier " + args[2] + " du serveur."); return true; }
-                                org.bukkit.World w = Bukkit.getWorld(args[2]);
-                                if (w == null) w = new org.bukkit.WorldCreator(args[2]).generator(new com.kiokouwhite.crossfight.util.ArenaWorlds.VoidGenerator()).createWorld();
-                                if (w == null) { Msg.send(sender, "<red>Ce monde n'a pas pu etre charge."); return true; }
-                                w.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
-                                w.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
-                                w.setGameRule(org.bukkit.GameRule.RANDOM_TICK_SPEED, 0);
-                                sp.setGameMode(org.bukkit.GameMode.SPECTATOR);
-                                sp.teleport(w.getSpawnLocation());
-                                Msg.send(sender, "<green>Monde " + args[2] + " charge : tu es a son point d'apparition, en spectateur.");
-                            }
-                            default -> Msg.send(sender, "<yellow>/cf structure liste|exporter|placer|disperser|monde");
+                            default -> Msg.send(sender, "<yellow>/cf structure liste|monde|fiche|placer|disperser");
                         }
                     }
                     case "omori" -> {
@@ -795,7 +803,7 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
-                case "structure", "structures" -> out.addAll(List.of("liste", "exporter", "placer", "disperser", "monde"));
+                case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

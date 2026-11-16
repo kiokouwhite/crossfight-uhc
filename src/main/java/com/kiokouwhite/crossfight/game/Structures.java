@@ -1,21 +1,26 @@
 package com.kiokouwhite.crossfight.game;
 
 import com.kiokouwhite.crossfight.CrossfightPlugin;
+import com.kiokouwhite.crossfight.util.ArenaWorlds;
 import com.kiokouwhite.crossfight.util.Msg;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
+import org.bukkit.ChunkSnapshot;
+import org.bukkit.GameRule;
 import org.bukkit.HeightMap;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
-import org.bukkit.block.structure.Mirror;
-import org.bukkit.block.structure.StructureRotation;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Hanging;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -27,47 +32,55 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.structure.Structure;
-import org.bukkit.util.BlockTransformer;
-import org.bukkit.util.BlockVector;
-import org.bukkit.util.EntityTransformer;
+import org.bukkit.util.BoundingBox;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Les structures : de grandes constructions (des maps de la communaute, une ville, une academie...) posees a des
- * endroits tires au sort sur la map de jeu, avant la partie, comme l'arene de Ferox l'est en son centre.
+ * Les lieux : de grandes constructions (des maps de la communaute, une ville, une academie...) posees a des endroits
+ * tires au sort sur la map de jeu, avant la partie. Un lieu est toujours au centre ; l'arene de Ferox est ailleurs.
  *
- * Une structure est un dossier de plugins/CrossfightUHC/structures/ : une fiche (structure.yml : taille, niveau du
- * sol, auteur) et des tuiles d'un chunk de cote et de 64 blocs de haut (des fichiers de structure de Minecraft,
- * blocs, coffres, cadres et porte-armures compris). On la fabrique avec /cf structure exporter, depuis le monde ou elle est batie ; les
- * tuiles vides ne sont pas gardees. Ces dossiers ne sont pas dans le depot : ce sont les oeuvres de leurs auteurs.
- * Chaque tuile reprend aussi la derniere couche de celles qui la precedent (un bloc de debord, vers le bas de
- * chaque axe) : ce qui tient a un bloc d'a cote (une torche sur un mur, un lit a cheval sur deux tuiles) est
- * repose avec son appui. Une tuile ne depasse pas un chunk et ce debord : c'est ce que l'API laisse poser d'un coup.
+ * Un lieu est un dossier de plugins/CrossfightUHC/structures/ : son monde d'origine (le dossier "monde" : la map
+ * telle qu'on la telecharge, de n'importe quelle version, le serveur la met a jour en la lisant) et sa fiche
+ * (structure.yml : la boite a prendre dans ce monde, la hauteur de son sol, son coeur, son auteur). Ces dossiers ne
+ * sont pas dans le depot : ce sont les oeuvres de leurs auteurs.
  *
- * La pose se fait par tranches (quatre colonnes de tuiles a la fois, leurs chunks charges sans figer le serveur) :
- * le terrain est degage au-dessus du niveau du sol, la structure posee, et le dessous comble jusqu'au terrain.
- * L'endroit et l'avancement sont retenus par monde dans config.yml : une structure n'est posee qu'une fois par map,
- * et une pose interrompue par un arret du serveur reprend au demarrage.
+ * Les lieux s'adaptent a la bordure : a la creation d'une map, la place de chacun est comptee d'apres le rayon de la
+ * bordure et le nombre de lieux. Un lieu plus grand que sa part est recadre autour de son coeur : petite bordure,
+ * des morceaux de monde ; grande bordure, des lieux entiers.
+ *
+ * La pose copie le monde d'origine dans la map, chunk par chunk, sans figer le serveur : le terrain est degage
+ * au-dessus du niveau du sol, les blocs copies tels quels (sans mise a jour : rien ne tombe ni ne se casse), avec ce
+ * que contiennent les panneaux et les bannieres (les coffres arrivent vides) et le decor (cadres, tableaux,
+ * porte-armures, affichages ; pas les animaux ni les villageois), puis le dessous est comble jusqu'au terrain.
+ * Un lieu pose est indestructible, et son decor ne se pille pas (structures.protegees).
+ * L'endroit, la decoupe et l'avancement sont retenus par monde dans config.yml : un lieu n'est pose qu'une fois par
+ * map, et une pose interrompue par un arret du serveur reprend au demarrage.
  */
 public final class Structures implements Listener {
 
-    /** Cote d'une tuile, en blocs : un chunk (avec son debord d'un bloc, c'est ce que l'API pose d'un coup) ; sa hauteur. */
-    private static final int TILE = 16, TALL = 64;
-    /** Colonnes de tuiles posees par tranche. */
-    private static final int BATCH = 4;
+    /** Chunks de la map traites par tranche. */
+    private static final int BATCH = 2;
 
-    /** Une structure disponible : sa fiche. */
-    public record Sheet(String name, File folder, int sx, int sy, int sz, int ground, boolean carve, String author, String source, List<String> tiles) {}
+    /** Un lieu disponible : sa fiche (la boite, le sol et le coeur sont dans les coordonnees de son monde d'origine). */
+    public record Sheet(String name, File folder, String world, int x1, int y1, int z1, int x2, int y2, int z2, int ground, int heartX, int heartZ,
+                        boolean carve, String title, String author, String source) {
+        public int sx() { return x2 - x1 + 1; }
+        public int sy() { return y2 - y1 + 1; }
+        public int sz() { return z2 - z1 + 1; }
+    }
 
-    /** Une structure posee sur une map : son coin bas, sa taille. */
+    /** Un lieu pose sur une map : son coin bas, sa taille (celle de sa decoupe). */
     public record Placed(String name, String world, int x, int y, int z, int sx, int sy, int sz) {
         boolean contains(Location l) {
             return l.getWorld().getName().equals(world) && l.getBlockX() >= x && l.getBlockX() < x + sx && l.getBlockZ() >= z && l.getBlockZ() < z + sz
@@ -77,10 +90,8 @@ public final class Structures implements Listener {
 
     private final CrossfightPlugin plugin;
     private final List<Placed> placed = new ArrayList<>();
-    /** Une pose ou un export est en cours : un seul a la fois. */
+    /** Une pose est en cours : une seule a la fois. */
     private boolean working;
-    /** La structure en cours de pose : ce qui tombe de ses blocs pendant ce temps (une torche sans mur) ne laisse pas d'objet. */
-    private Placed pasting;
     /** Change quand on abandonne ce qui est en cours (une nouvelle map) : les poses lancees avant s'arretent. */
     private int run;
 
@@ -100,16 +111,17 @@ public final class Structures implements Listener {
     public void abort() {
         run++;
         working = false;
-        pasting = null;
     }
 
-    /** Le nom d'une structure tel qu'on l'annonce : "beacon_academy" -> "Beacon academy". */
-    public static String title(String name) {
+    /** Le nom d'un lieu tel qu'on l'annonce : son titre, ou "beacon_academy" -> "Beacon academy". */
+    public String title(String name) {
+        Sheet s = sheet(name);
+        if (s != null && !s.title().isEmpty()) return s.title();
         String t = name.replace('_', ' ');
         return t.isEmpty() ? t : Character.toUpperCase(t.charAt(0)) + t.substring(1);
     }
 
-    /** Les structures entierement posees sur cette map. */
+    /** Les lieux entierement poses sur cette map. */
     public List<Placed> finished(World w) {
         List<Placed> out = new ArrayList<>();
         for (Placed p : placed(w)) if (plugin.getConfig().getBoolean(key(w, p.name()) + ".finie", false)) out.add(p);
@@ -118,7 +130,7 @@ public final class Structures implements Listener {
 
     // ------------------------------------------------------------------ les fiches
 
-    /** Les structures disponibles sur ce serveur (un dossier et sa fiche chacune). */
+    /** Les lieux disponibles sur ce serveur (un dossier et sa fiche chacun). */
     public List<Sheet> sheets() {
         List<Sheet> out = new ArrayList<>();
         File[] dirs = folder().listFiles(File::isDirectory);
@@ -136,13 +148,53 @@ public final class Structures implements Listener {
         File index = new File(dir, "structure.yml");
         if (!name.matches("[a-z0-9_]+") || !index.isFile()) return null;
         YamlConfiguration y = YamlConfiguration.loadConfiguration(index);
-        List<Integer> size = y.getIntegerList("taille");
-        if (size.size() != 3) return null;
-        return new Sheet(name, dir, size.get(0), size.get(1), size.get(2), y.getInt("sol", 0), y.getString("sous-sol", "garde").equals("creuse"),
-                y.getString("auteur", ""), y.getString("source", ""), y.getStringList("tuiles"));
+        List<Integer> b = y.getIntegerList("boite");
+        if (b.size() != 6) return null;
+        int x1 = Math.min(b.get(0), b.get(3)), y1 = Math.min(b.get(1), b.get(4)), z1 = Math.min(b.get(2), b.get(5));
+        int x2 = Math.max(b.get(0), b.get(3)), y2 = Math.max(b.get(1), b.get(4)), z2 = Math.max(b.get(2), b.get(5));
+        List<Integer> heart = y.getIntegerList("coeur");
+        return new Sheet(name, dir, sourceName(dir, y.getString("monde", "monde")), x1, y1, z1, x2, y2, z2, y.getInt("sol", y1),
+                heart.size() == 2 ? heart.get(0) : (x1 + x2) / 2, heart.size() == 2 ? heart.get(1) : (z1 + z2) / 2,
+                y.getString("sous-sol", "garde").equals("creuse"), y.getString("titre", ""), y.getString("auteur", ""), y.getString("source", ""));
     }
 
-    /** Les structures posees sur les maps (lues dans config.yml). */
+    /** Le nom, pour le serveur, du monde d'origine d'un lieu : son dossier, vu depuis celui des mondes du serveur. */
+    private static String sourceName(File dir, String sub) {
+        return Bukkit.getWorldContainer().getAbsoluteFile().toPath().normalize().relativize(new File(dir, sub).getAbsoluteFile().toPath().normalize()).toString().replace('\\', '/');
+    }
+
+    /** Charge le monde d'origine d'un lieu (ou le rend, s'il l'est deja) : rien n'y vit, rien n'y pousse. */
+    public World source(Sheet s) {
+        World w = Bukkit.getWorld(s.world());
+        if (w != null) return w;
+        if (!new File(Bukkit.getWorldContainer(), s.world() + "/level.dat").isFile()) return null;
+        w = new WorldCreator(s.world()).generator(new ArenaWorlds.VoidGenerator()).keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE).createWorld();
+        if (w == null) return null;
+        w.setGameRule(GameRule.DO_MOB_SPAWNING, false);
+        w.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
+        w.setGameRule(GameRule.DO_WEATHER_CYCLE, false);
+        w.setGameRule(GameRule.DO_FIRE_TICK, false);
+        w.setGameRule(GameRule.RANDOM_TICK_SPEED, 0);
+        w.setGameRule(GameRule.MOB_GRIEFING, false);
+        return w;
+    }
+
+    /** Ecrit (ou reecrit) la fiche d'un lieu dont le monde est deja dans son dossier. */
+    public boolean define(String name, int x1, int y1, int z1, int x2, int y2, int z2, int ground, int heartX, int heartZ, boolean carve, String title) {
+        File dir = new File(folder(), name);
+        if (!name.matches("[a-z0-9_]+") || !new File(dir, "monde/level.dat").isFile()) return false;
+        File index = new File(dir, "structure.yml");
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(index);
+        y.set("boite", List.of(x1, y1, z1, x2, y2, z2));
+        y.set("sol", ground);
+        y.set("coeur", List.of(heartX, heartZ));
+        y.set("sous-sol", carve ? "creuse" : "garde");
+        if (!title.isEmpty()) y.set("titre", title);
+        try { y.save(index); } catch (IOException ex) { plugin.getLogger().warning("Fiche de " + name + " non ecrite : " + ex); return false; }
+        return true;
+    }
+
+    /** Les lieux poses sur les maps (lus dans config.yml). */
     private void reload() {
         placed.clear();
         var worlds = plugin.getConfig().getConfigurationSection("structures.posees");
@@ -170,84 +222,54 @@ public final class Structures implements Listener {
 
     private String key(World w, String name) { return "structures.posees." + w.getName() + "." + name; }
 
-    // ------------------------------------------------------------------ l'export
+    // ------------------------------------------------------------------ la part de chaque lieu
 
     /**
-     * Fabrique une structure a partir d'une boite du monde : ses tuiles et sa fiche. {@code ground} est la hauteur,
-     * dans ce monde, du premier niveau au-dessus du sol (celui qui se posera au niveau du terrain) ; {@code carve}
-     * garde les vides de ses sous-sols (caves, egouts) au lieu de laisser le terrain les remplir.
+     * Le plus grand cote qu'un lieu peut occuper sur cette map : structures.taille-max si elle est reglee, sinon une
+     * part comptee d'apres la bordure. Les lieux se partagent trois dixiemes de la surface de la map (au-dela, ils
+     * ne trouveraient plus tous une place sans se toucher), a parts egales ; un multiple de 16, 64 au moins.
      */
-    public void export(CommandSender to, String name, World w, int x1, int y1, int z1, int x2, int y2, int z2, int ground, boolean carve, String author, String source) {
-        if (working) { Msg.send(to, "<red>Une pose ou un export est deja en cours."); return; }
-        if (!name.matches("[a-z0-9_]+")) { Msg.send(to, "<red>Nom : des minuscules, des chiffres et des _ seulement."); return; }
-        final int ox = Math.min(x1, x2), oy = Math.max(w.getMinHeight(), Math.min(y1, y2)), oz = Math.min(z1, z2);
-        final int sx = Math.abs(x2 - x1) + 1, sy = Math.min(w.getMaxHeight() - 1, Math.max(y1, y2)) - oy + 1, sz = Math.abs(z2 - z1) + 1;
-        final File dir = new File(folder(), name);
-        if (dir.isDirectory()) { File[] old = dir.listFiles(); if (old != null) for (File f : old) f.delete(); }
-        dir.mkdirs();
-        working = true;
-        final int nx = (sx + TILE - 1) / TILE, ny = (sy + TALL - 1) / TALL, nz = (sz + TILE - 1) / TILE;
-        final List<String> tiles = new ArrayList<>();
-        Msg.send(to, "<yellow>Export de <white>" + name + "</white> : " + sx + " x " + sy + " x " + sz + " blocs, " + (nx * ny * nz) + " tuiles a examiner...");
-        new BukkitRunnable() {
-            int i = 0;
-            @Override public void run() {
-                long until = System.currentTimeMillis() + 35;
-                while (i < nx * ny * nz && System.currentTimeMillis() < until) {
-                    int ix = i / (ny * nz), iy = (i / nz) % ny, iz = i % nz;
-                    i++;
-                    int x0 = ox + ix * TILE, y0 = oy + iy * TALL, z0 = oz + iz * TILE;
-                    int w0 = Math.min(TILE, ox + sx - x0), h0 = Math.min(TALL, oy + sy - y0), l0 = Math.min(TILE, oz + sz - z0);
-                    if (empty(w, x0, y0, z0, w0, h0, l0)) continue;
-                    // La tuile reprend la derniere couche de celles qui la precedent (un bloc, vers le bas de chaque axe).
-                    int lowX = ix > 0 ? 1 : 0, lowY = iy > 0 ? 1 : 0, lowZ = iz > 0 ? 1 : 0;
-                    Structure s = Bukkit.getStructureManager().createStructure();
-                    s.fill(new Location(w, x0 - lowX, y0 - lowY, z0 - lowZ), new BlockVector(w0 + lowX, h0 + lowY, l0 + lowZ), true);
-                    String id = ix + "_" + iy + "_" + iz;
-                    try {
-                        Bukkit.getStructureManager().saveStructure(new File(dir, id + ".nbt"), s);
-                        tiles.add(id);
-                    } catch (IOException ex) {
-                        plugin.getLogger().warning("Structure " + name + " : tuile " + id + " non ecrite : " + ex);
-                    }
-                }
-                if (i < nx * ny * nz) return;
-                cancel();
-                YamlConfiguration y = new YamlConfiguration();
-                y.set("taille", List.of(sx, sy, sz));
-                y.set("sol", Math.max(0, Math.min(sy, ground - oy)));
-                y.set("sous-sol", carve ? "creuse" : "garde");
-                y.set("auteur", author);
-                y.set("source", source);
-                y.set("tuiles", tiles);
-                try { y.save(new File(dir, "structure.yml")); } catch (IOException ex) { plugin.getLogger().warning("Fiche de " + name + " non ecrite : " + ex); }
-                working = false;
-                Msg.send(to, "<green>Structure <white>" + name + "</white> exportee : " + tiles.size() + " tuiles gardees sur " + (nx * ny * nz) + " (" + dir.getPath() + ").");
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
+    public int share(World w) {
+        int fixed = plugin.getConfig().getInt("structures.taille-max", 0);
+        if (fixed > 0) return Math.max(32, fixed);
+        int border = plugin.game().rules().value("bordure"), margin = plugin.getConfig().getInt("structures.marge", 60);
+        int count = Math.max(1, sheets().size());
+        double side = (2.0 * border - 2 * margin) * Math.sqrt(0.30 / count);
+        return Math.max(64, (int) side / 16 * 16);
     }
 
-    private static boolean empty(World w, int x0, int y0, int z0, int sx, int sy, int sz) {
-        for (int x = x0; x < x0 + sx; x++) for (int z = z0; z < z0 + sz; z++) for (int y = y0; y < y0 + sy; y++) if (!w.getBlockAt(x, y, z).getType().isAir()) return false;
-        return true;
+    /** La decoupe d'un lieu : le rectangle de son monde d'origine qui sera pose, de cote {@code max} au plus, autour de son coeur. */
+    private static int[] cut(Sheet s, int max) {
+        int wide = Math.min(s.sx(), max), deep = Math.min(s.sz(), max);
+        int x = Math.max(s.x1(), Math.min(s.x2() - wide + 1, s.heartX() - wide / 2));
+        int z = Math.max(s.z1(), Math.min(s.z2() - deep + 1, s.heartZ() - deep / 2));
+        return new int[]{x, z, wide, deep};
     }
 
     // ------------------------------------------------------------------ la pose
 
     /**
-     * Pose une structure, son coin (x, z) aligne sur les chunks, son niveau du sol a la hauteur mediane du terrain.
-     * Reprend la ou elle s'etait arretee si la pose avait ete interrompue. {@code done} est appele a la fin.
+     * Pose un lieu, recadre a {@code max} blocs de cote au plus, son coin (x, z) aligne sur les chunks, son niveau du
+     * sol a la hauteur mediane du terrain. Reprend la ou elle s'etait arretee si la pose avait ete interrompue.
+     * {@code done} est appele a la fin.
      */
-    public void place(CommandSender to, Sheet s, World w, int atX, int atZ, Runnable done) {
-        if (working) { Msg.send(to, "<red>Une pose ou un export est deja en cours."); return; }
+    public void place(CommandSender to, Sheet s, World w, int atX, int atZ, int max, Runnable done) {
+        if (working) { Msg.send(to, "<red>Une pose est deja en cours."); return; }
+        final World from = source(s);
+        if (from == null) { Msg.send(to, "<red>Le monde de " + s.name() + " est introuvable (" + s.world() + ")."); if (done != null) done.run(); return; }
         working = true;
         final int mine = run;
         final int x0 = Math.floorDiv(atX, 16) * 16, z0 = Math.floorDiv(atZ, 16) * 16;
         Placed before = find(w, s.name());
-        if (before != null && before.x() == x0 && before.z() == z0) { paste(to, s, w, before, plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), done); return; }
-        // Le niveau du terrain : la mediane de vingt-cinq hauteurs prises sous la structure, chunks charges sans attendre.
+        List<Integer> saved = plugin.getConfig().getIntegerList(key(w, s.name()) + ".decoupe");
+        if (before != null && before.x() == x0 && before.z() == z0 && saved.size() == 2) {
+            paste(to, s, from, w, before, saved.get(0), saved.get(1), plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), done);
+            return;
+        }
+        final int[] cut = cut(s, max);
+        // Le niveau du terrain : la mediane de vingt-cinq hauteurs prises sous le lieu, chunks charges sans attendre.
         List<int[]> points = new ArrayList<>();
-        for (int i = 0; i < 5; i++) for (int j = 0; j < 5; j++) points.add(new int[]{x0 + (int) ((i + 0.5) * s.sx() / 5.0), z0 + (int) ((j + 0.5) * s.sz() / 5.0)});
+        for (int i = 0; i < 5; i++) for (int j = 0; j < 5; j++) points.add(new int[]{x0 + (int) ((i + 0.5) * cut[2] / 5.0), z0 + (int) ((j + 0.5) * cut[3] / 5.0)});
         List<CompletableFuture<?>> loads = new ArrayList<>();
         for (int[] p : points) loads.add(w.getChunkAtAsync(p[0] >> 4, p[1] >> 4));
         CompletableFuture.allOf(loads.toArray(new CompletableFuture[0])).whenComplete((v, error) -> Bukkit.getScheduler().runTask(plugin, () -> {
@@ -255,92 +277,149 @@ public final class Structures implements Listener {
             List<Integer> heights = new ArrayList<>();
             for (int[] p : points) heights.add(w.getHighestBlockYAt(p[0], p[1], HeightMap.MOTION_BLOCKING_NO_LEAVES) + 1);
             Collections.sort(heights);
-            int level = Math.max(w.getMinHeight() + s.ground() + 2, Math.min(w.getMaxHeight() - (s.sy() - s.ground()) - 2, heights.get(heights.size() / 2)));
-            Placed box = new Placed(s.name(), w.getName(), x0, level - s.ground(), z0, s.sx(), s.sy(), s.sz());
+            int under = s.ground() - s.y1(), over = s.y2() - s.ground() + 1;
+            int level = Math.max(w.getMinHeight() + under + 2, Math.min(w.getMaxHeight() - over - 2, heights.get(heights.size() / 2)));
+            Placed box = new Placed(s.name(), w.getName(), x0, level - under, z0, cut[2], s.sy(), cut[3]);
             placed.removeIf(p -> p.world().equals(w.getName()) && p.name().equals(s.name()));
             placed.add(box);
             plugin.getConfig().set(key(w, s.name()) + ".boite", List.of(box.x(), box.y(), box.z(), box.sx(), box.sy(), box.sz()));
+            plugin.getConfig().set(key(w, s.name()) + ".decoupe", List.of(cut[0], cut[1]));
             plugin.getConfig().set(key(w, s.name()) + ".avancement", 0);
             plugin.getConfig().set(key(w, s.name()) + ".finie", false);
             plugin.saveConfig();
-            paste(to, s, w, box, 0, done);
+            paste(to, s, from, w, box, cut[0], cut[1], 0, done);
         }));
     }
 
-    /** Pose les colonnes de tuiles, quatre par tranche, a partir de la {@code from}-ieme. */
-    private void paste(CommandSender to, Sheet s, World w, Placed box, int from, Runnable done) {
-        final int nx = (s.sx() + TILE - 1) / TILE, ny = (s.sy() + TALL - 1) / TALL, nz = (s.sz() + TILE - 1) / TILE;
-        final int level = box.y() + s.ground();
-        final java.util.Set<String> kept = new java.util.HashSet<>(s.tiles());
-        final Random random = new Random(w.getSeed() ^ s.name().hashCode());
+    /**
+     * Copie le lieu dans la map, chunk par chunk, a partir du {@code start}-ieme. ({@code srcX}, {@code srcZ}) est le
+     * coin, dans le monde d'origine, de la decoupe posee.
+     */
+    private void paste(CommandSender to, Sheet s, World from, World w, Placed box, int srcX, int srcZ, int start, Runnable done) {
+        final int level = box.y() + (s.ground() - s.y1());
+        final int cx0 = box.x() >> 4, cz0 = box.z() >> 4, nx = ((box.x() + box.sx() - 1) >> 4) - cx0 + 1, nz = ((box.z() + box.sz() - 1) >> 4) - cz0 + 1;
         final int mine = run;
-        // Les blocs que la structure pose sous le niveau du sol, dans la colonne en cours : le comblement n'y touche pas.
-        final java.util.Set<Long> own = new java.util.HashSet<>();
-        // Ce que la structure laisse vide ne remplace rien (le terrain a deja ete degage au-dessus du sol), sauf dans
-        // ses sous-sols quand elle les creuse ; les coffres arrivent vides.
-        final BlockTransformer blocks = (region, x, y, z, current, state) -> {
-            if (current.getType().isAir() && !(s.carve() && y < level)) return w.getBlockAt(x, y, z).getState();
-            if (y < level) own.add(pack(x, y, z));
-            if (current instanceof Container c) c.getSnapshotInventory().clear();
-            return current;
-        };
-        // Le decor seulement : cadres, tableaux, porte-armures, affichages. Pas d'animaux ni de villageois ; et seulement
-        // ce qui est dans le coeur de la tuile (son debord appartient aux tuiles d'avant, qui l'ont deja apporte).
-        final int[] core = new int[6];
-        final EntityTransformer entities = (region, x, y, z, entity, allowed) -> allowed
-                && (entity instanceof Hanging || entity instanceof ArmorStand || entity instanceof Display)
-                && x >= core[0] && x < core[3] && y >= core[1] && y < core[4] && z >= core[2] && z < core[5];
-        pasting = box;
-        Msg.send(to, "<yellow>Pose de <white>" + s.name() + "</white> en " + box.x() + " " + level + " " + box.z() + " (" + s.sx() + " x " + s.sz() + " blocs)...");
+        final boolean whole = box.sx() == s.sx() && box.sz() == s.sz();
+        Msg.send(to, "<yellow>Pose de <white>" + s.name() + "</white> en " + box.x() + " " + level + " " + box.z() + " : " + box.sx() + " x " + box.sz() + " blocs"
+                + (whole ? "" : " (recadre, sur " + s.sx() + " x " + s.sz() + ")") + ", " + (nx * nz) + " chunks...");
         new Object() {
-            int column = from;
+            int column = start, waited = 0;
+            /** Les chunks du monde d'origine gardes charges (avec leurs entites) tant qu'on en a besoin. */
+            final Map<Long, Chunk> held = new HashMap<>();
+            /** Les blocs que le lieu pose sous le niveau du sol, dans le chunk en cours : le comblement n'y touche pas. */
+            final Set<Long> own = new HashSet<>();
+
             void next() {
-                if (!plugin.isEnabled() || mine != run) return;
+                if (!plugin.isEnabled() || mine != run) { release(Integer.MAX_VALUE); return; }
                 if (column >= nx * nz) { finish(); return; }
                 final int first = column, last = Math.min(nx * nz, column + BATCH);
+                List<CompletableFuture<Chunk>> sources = new ArrayList<>();
                 List<CompletableFuture<?>> loads = new ArrayList<>();
-                for (int c = first; c < last; c++) loads.add(w.getChunkAtAsync((box.x() >> 4) + c / nz, (box.z() >> 4) + c % nz));
+                for (int c = first; c < last; c++) {
+                    int tx = (cx0 + c / nz) << 4, tz = (cz0 + c % nz) << 4;
+                    loads.add(w.getChunkAtAsync(tx >> 4, tz >> 4));
+                    int ax = srcX + Math.max(tx, box.x()) - box.x(), bx = srcX + Math.min(tx + 15, box.x() + box.sx() - 1) - box.x();
+                    int az = srcZ + Math.max(tz, box.z()) - box.z(), bz = srcZ + Math.min(tz + 15, box.z() + box.sz() - 1) - box.z();
+                    for (int sx = ax >> 4; sx <= bx >> 4; sx++) for (int sz = az >> 4; sz <= bz >> 4; sz++) {
+                        CompletableFuture<Chunk> f = from.getChunkAtAsync(sx, sz);
+                        sources.add(f);
+                        loads.add(f);
+                    }
+                }
                 CompletableFuture.allOf(loads.toArray(new CompletableFuture[0])).whenComplete((v, error) -> Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (!plugin.isEnabled() || mine != run) return;
-                    for (int c = first; c < last; c++) column(c / nz, c % nz);
+                    if (!plugin.isEnabled() || mine != run) { release(Integer.MAX_VALUE); return; }
+                    // Les chunks d'origine restent charges, et l'on attend leurs entites (le decor) : deux secondes au plus.
+                    boolean ready = true;
+                    for (CompletableFuture<Chunk> f : sources) {
+                        Chunk c = f.getNow(null);
+                        if (c == null) continue;
+                        if (held.putIfAbsent(Chunk.getChunkKey(c.getX(), c.getZ()), c) == null) c.addPluginChunkTicket(plugin);
+                        if (!c.isEntitiesLoaded()) ready = false;
+                    }
+                    if (!ready && waited++ < 20) { Bukkit.getScheduler().runTaskLater(plugin, this::next, 2L); return; }
+                    waited = 0;
+                    Map<Long, ChunkSnapshot> snapshots = new HashMap<>();
+                    for (int c = first; c < last; c++) chunk(cx0 + c / nz, cz0 + c % nz, snapshots);
                     column = last;
                     if (column % 32 < BATCH || column == nx * nz) { plugin.getConfig().set(key(w, s.name()) + ".avancement", column); plugin.saveConfig(); }
+                    release((srcX + (((cx0 + column / nz) << 4) - box.x()) >> 4) - 2);
                     Bukkit.getScheduler().runTaskLater(plugin, this::next, 1L);
                 }));
             }
-            /** Une colonne de tuiles : un chunk de la structure, de bas en haut. */
-            void column(int ix, int iz) {
-                final int cx = box.x() + ix * TILE, cz = box.z() + iz * TILE;
-                final int wide = Math.min(TILE, box.x() + s.sx() - cx), deep = Math.min(TILE, box.z() + s.sz() - cz);
-                // 1. Le terrain est degage au-dessus du niveau du sol : buttes, arbres. Le decor d'une pose precedente
-                // au meme endroit (une pose interrompue, puis reprise) est retire : il ne doit pas se dedoubler.
-                for (var e : w.getNearbyEntities(new org.bukkit.util.BoundingBox(cx, box.y(), cz, cx + wide, box.y() + s.sy(), cz + deep)))
-                    if (e instanceof Hanging || e instanceof ArmorStand || e instanceof Display) e.remove();
-                for (int x = cx; x < cx + wide; x++) for (int z = cz; z < cz + deep; z++) {
+
+            /** Relache les chunks d'origine dont on n'a plus besoin (ceux a l'ouest de {@code before}). */
+            void release(int before) {
+                held.values().removeIf(c -> {
+                    if (c.getX() >= before) return false;
+                    c.removePluginChunkTicket(plugin);
+                    return true;
+                });
+            }
+
+            /** Un chunk de la map : la part du lieu qui y tombe. */
+            void chunk(int tcx, int tcz, Map<Long, ChunkSnapshot> snapshots) {
+                final int xa = Math.max(tcx << 4, box.x()), xb = Math.min((tcx << 4) + 15, box.x() + box.sx() - 1);
+                final int za = Math.max(tcz << 4, box.z()), zb = Math.min((tcz << 4) + 15, box.z() + box.sz() - 1);
+                final int dx = box.x() - srcX, dy = box.y() - s.y1(), dz = box.z() - srcZ;
+                // 1. Le decor d'une pose precedente au meme endroit (une pose interrompue, puis reprise) est retire ; le
+                // terrain est degage au-dessus du niveau du sol : buttes, arbres.
+                for (Entity e : w.getNearbyEntities(new BoundingBox(xa, box.y(), za, xb + 1, box.y() + box.sy(), zb + 1))) if (decor(e)) e.remove();
+                for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
                     int top = w.getHighestBlockYAt(x, z);
                     for (int y = level; y <= top; y++) { Block b = w.getBlockAt(x, y, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
                 }
-                // 2. Ses tuiles, de bas en haut, chacune avec la derniere couche des tuiles d'avant.
+                // 2. Les blocs, copies tels quels, sans mise a jour. Ce que le lieu laisse vide ne remplace rien, sauf
+                // dans ses sous-sols quand il les creuse.
                 own.clear();
-                for (int iy = 0; iy < ny; iy++) {
-                    String id = ix + "_" + iy + "_" + iz;
-                    if (!kept.contains(id)) continue;
-                    int cy = box.y() + iy * TALL;
-                    core[0] = cx; core[1] = cy; core[2] = cz;
-                    core[3] = cx + wide; core[4] = Math.min(cy + TALL, box.y() + s.sy()); core[5] = cz + deep;
-                    try {
-                        Structure tile = Bukkit.getStructureManager().loadStructure(new File(s.folder(), id + ".nbt"));
-                        tile.place(new Location(w, cx - (ix > 0 ? 1 : 0), cy - (iy > 0 ? 1 : 0), cz - (iz > 0 ? 1 : 0)), true, StructureRotation.NONE, Mirror.NONE, 0, 1f, random,
-                                List.of(blocks), List.of(entities));
-                    } catch (IOException | RuntimeException ex) {
-                        plugin.getLogger().warning("Structure " + s.name() + " : tuile " + id + " non posee : " + ex);
+                final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
+                for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
+                    final int sx = x - dx, sz = z - dz;
+                    ChunkSnapshot snap = snapshots.computeIfAbsent(Chunk.getChunkKey(sx >> 4, sz >> 4), k -> from.getChunkAt(sx >> 4, sz >> 4).getChunkSnapshot(false, false, false, false));
+                    for (int y = minY; y <= maxY; y++) {
+                        // Une tranche de seize blocs entierement vide est sautee d'un coup.
+                        if ((y & 15) == 0 && y + 15 <= maxY && snap.isSectionEmpty((y - from.getMinHeight()) >> 4) && !(s.carve() && y + dy < level)) { y += 15; continue; }
+                        BlockData data = snap.getBlockData(sx & 15, y, sz & 15);
+                        int ty = y + dy;
+                        if (ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
+                        if (data.getMaterial().isAir()) {
+                            if (s.carve() && ty < level) { Block b = w.getBlockAt(x, ty, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
+                            continue;
+                        }
+                        w.getBlockAt(x, ty, z).setBlockData(data, false);
+                        if (ty < level) own.add(pack(x, ty, z));
                     }
                 }
-                // 3. Le dessous est comble jusqu'au terrain. On descend depuis le niveau du sol : ce que la structure
-                // a pose reste tel quel, les vides sont remplis (de l'herbe a l'air libre, de la terre, puis de la
-                // pierre) ; une fois sous la structure, on s'arrete au premier bloc du terrain.
+                // 3. Ce que contiennent les blocs (panneaux, bannieres, tetes...) ; les coffres arrivent vides. Puis le decor.
+                Set<Long> seen = new HashSet<>();
+                for (int sx = (xa - dx) >> 4; sx <= (xb - dx) >> 4; sx++) for (int sz = (za - dz) >> 4; sz <= (zb - dz) >> 4; sz++) {
+                    if (!seen.add(Chunk.getChunkKey(sx, sz))) continue;
+                    Chunk c = from.getChunkAt(sx, sz);
+                    for (BlockState st : c.getTileEntities(b -> b.getX() + dx >= xa && b.getX() + dx <= xb && b.getZ() + dz >= za && b.getZ() + dz <= zb
+                            && b.getY() >= minY && b.getY() <= maxY, false)) {
+                        try {
+                            BlockState copy = st.copy(new Location(w, st.getX() + dx, st.getY() + dy, st.getZ() + dz));
+                            if (copy instanceof Container box2) box2.getSnapshotInventory().clear();
+                            copy.update(true, false);
+                        } catch (RuntimeException ex) {
+                            plugin.getLogger().warning("Lieu " + s.name() + " : bloc non copie en " + st.getX() + " " + st.getY() + " " + st.getZ() + " : " + ex);
+                        }
+                    }
+                    for (Entity e : c.getEntities()) {
+                        Location l = e.getLocation();
+                        if (!decor(e) || l.getBlockX() + dx < xa || l.getBlockX() + dx > xb || l.getBlockZ() + dz < za || l.getBlockZ() + dz > zb
+                                || l.getBlockY() < minY || l.getBlockY() > maxY) continue;
+                        try {
+                            e.copy(new Location(w, l.getX() + dx, l.getY() + dy, l.getZ() + dz, l.getYaw(), l.getPitch()));
+                        } catch (RuntimeException ex) {
+                            plugin.getLogger().warning("Lieu " + s.name() + " : decor non copie (" + e.getType() + ") : " + ex);
+                        }
+                    }
+                }
+                // 4. Le dessous est comble jusqu'au terrain. On descend depuis le niveau du sol : ce que le lieu a pose
+                // reste tel quel, les vides sont remplis (de l'herbe a l'air libre, de la terre, puis de la pierre) ;
+                // une fois sous le lieu, on s'arrete au premier bloc du terrain.
                 int under = s.carve() ? box.y() - 1 : level - 1;
-                for (int x = cx; x < cx + wide; x++) for (int z = cz; z < cz + deep; z++) {
+                for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
                     int filled = 0;
                     for (int y = under; y > w.getMinHeight() && filled < 96; y--) {
                         Block b = w.getBlockAt(x, y, z);
@@ -355,17 +434,24 @@ public final class Structures implements Listener {
                     }
                 }
             }
+
             void finish() {
+                release(Integer.MAX_VALUE);
                 plugin.getConfig().set(key(w, s.name()) + ".finie", true);
                 plugin.saveConfig();
                 working = false;
-                // Un instant encore sans objets tombes : les derniers blocs sans appui finissent de se detacher.
-                Bukkit.getScheduler().runTaskLater(plugin, () -> { if (pasting == box) pasting = null; }, 40L);
-                Msg.send(to, "<green>Structure <white>" + s.name() + "</white> posee en <white>" + (box.x() + s.sx() / 2) + " " + level + " " + (box.z() + s.sz() / 2) + "</white>.");
+                // Le monde d'origine n'a plus a rester en memoire (sauf si quelqu'un le visite).
+                if (from.getPlayers().isEmpty()) Bukkit.unloadWorld(from, true);
+                Msg.send(to, "<green>Lieu <white>" + s.name() + "</white> pose en <white>" + (box.x() + box.sx() / 2) + " " + level + " " + (box.z() + box.sz() / 2) + "</white>.");
                 tear(w, box);
                 if (done != null) done.run();
             }
         }.next();
+    }
+
+    /** Le decor qu'on copie : cadres, tableaux, porte-armures, affichages. Pas d'animaux ni de villageois. */
+    private static boolean decor(Entity e) {
+        return e instanceof Hanging || e instanceof ArmorStand || e instanceof Display;
     }
 
     /**
@@ -420,7 +506,7 @@ public final class Structures implements Listener {
         return ((long) (x & 0x3FFFFFF) << 38) | ((long) (z & 0x3FFFFFF) << 12) | (y & 0xFFF);
     }
 
-    /** Ce que le comblement remplace sous une structure : l'air, l'eau, la lave, les plantes, les feuilles. */
+    /** Ce que le comblement remplace sous un lieu : l'air, l'eau, la lave, les plantes, les feuilles. */
     private static boolean fillable(Material m) {
         return m.isAir() || m == Material.WATER || m == Material.LAVA || !m.isSolid() || org.bukkit.Tag.LEAVES.isTagged(m);
     }
@@ -428,51 +514,52 @@ public final class Structures implements Listener {
     // ------------------------------------------------------------------ le tirage des emplacements
 
     /**
-     * Pose sur la map, l'une apres l'autre, les structures qui n'y sont pas encore (ou dont la pose a ete
-     * interrompue), chacune a un endroit tire au sort : dans la bordure, loin de l'arene du centre et des autres
-     * structures, de preference hors de l'eau.
+     * Pose sur la map, l'un apres l'autre, les lieux qui n'y sont pas encore (ou dont la pose a ete interrompue).
+     * Celui du centre (structures.centre) d'abord, au milieu de la map ; les autres a un endroit tire au sort : dans
+     * la bordure, loin de l'arene et des autres lieux, de preference hors de l'eau. Chacun est recadre a la part que
+     * la bordure lui laisse ({@link #share}).
      */
     public void scatter(World w) {
         if (!enabled() || working) return;
-        // Le lieu du centre (structures.centre) d'abord : il est toujours au milieu de la map, les autres s'ecartent de lui.
         String middle = plugin.getConfig().getString("structures.centre", "jouki");
         List<Sheet> all = sheets();
         all.sort(java.util.Comparator.comparing(s -> !s.name().equals(middle)));
+        final int max = share(w);
         for (Sheet s : all) {
             Placed before = find(w, s.name());
             if (before != null && plugin.getConfig().getBoolean(key(w, s.name()) + ".finie", false)) continue;
-            int[] at = before != null ? new int[]{before.x(), before.z()} : s.name().equals(middle) ? new int[]{-s.sx() / 2, -s.sz() / 2} : spot(w, s);
-            if (at == null) { plugin.getLogger().warning("Structure " + s.name() + " : aucun emplacement libre sur cette map (" + s.sx() + " x " + s.sz() + " blocs)."); continue; }
-            place(Bukkit.getConsoleSender(), s, w, at[0], at[1], () -> scatter(w));
+            int[] cut = cut(s, max);
+            int[] at = before != null ? new int[]{before.x(), before.z()} : s.name().equals(middle) ? new int[]{-cut[2] / 2, -cut[3] / 2} : spot(w, s.name(), cut[2], cut[3]);
+            if (at == null) { plugin.getLogger().warning("Lieu " + s.name() + " : aucun emplacement libre sur cette map (" + cut[2] + " x " + cut[3] + " blocs)."); continue; }
+            place(Bukkit.getConsoleSender(), s, w, at[0], at[1], max, () -> scatter(w));
             return;
         }
     }
 
-    /** Un emplacement libre pour cette structure (son coin, aligne sur les chunks), ou null. */
-    private int[] spot(World w, Sheet s) {
+    /** Un emplacement libre pour un lieu de cette taille (son coin, aligne sur les chunks), ou null. */
+    private int[] spot(World w, String name, int wide, int deep) {
         int border = plugin.game().rules().value("bordure"), margin = plugin.getConfig().getInt("structures.marge", 60);
         int keepOut = plugin.getConfig().getInt("structures.arene", 160);
-        Random r = new Random(w.getSeed() * 31 + s.name().hashCode());
-        int roomX = border - margin - s.sx(), roomZ = border - margin - s.sz();
-        if (roomX < -border + margin || roomZ < -border + margin) return null;
+        Random r = new Random(w.getSeed() * 31 + name.hashCode());
+        int low = -border + margin, highX = border - margin - wide, highZ = border - margin - deep;
+        if (highX < low || highZ < low) return null;
+        Location arena = plugin.ferox().centre();
         int[] wet = null;
-        for (int attempt = 0; attempt < 400; attempt++) {
-            int x = Math.floorDiv(-border + margin + r.nextInt(Math.max(1, roomX + border - margin + 1)), 16) * 16;
-            int z = Math.floorDiv(-border + margin + r.nextInt(Math.max(1, roomZ + border - margin + 1)), 16) * 16;
-            // Loin de l'arene de Ferox : le rectangle de la structure ne touche pas le disque garde autour d'elle.
-            Location arena = plugin.ferox().centre();
-            double nearX = Math.max(x, Math.min(arena.getX(), x + s.sx())), nearZ = Math.max(z, Math.min(arena.getZ(), z + s.sz()));
+        for (int attempt = 0; attempt < 6000; attempt++) {
+            int x = Math.floorDiv(low + r.nextInt(highX - low + 1), 16) * 16, z = Math.floorDiv(low + r.nextInt(highZ - low + 1), 16) * 16;
+            // Loin de l'arene de Ferox : le rectangle du lieu ne touche pas le disque garde autour d'elle.
+            double nearX = Math.max(x, Math.min(arena.getX(), x + wide)), nearZ = Math.max(z, Math.min(arena.getZ(), z + deep));
             if (Math.hypot(nearX - arena.getX(), nearZ - arena.getZ()) < keepOut) continue;
             boolean free = true;
             for (Placed p : placed(w)) {
-                if (p.name().equals(s.name())) continue;
-                if (x < p.x() + p.sx() + margin && x + s.sx() + margin > p.x() && z < p.z() + p.sz() + margin && z + s.sz() + margin > p.z()) { free = false; break; }
+                if (p.name().equals(name)) continue;
+                if (x < p.x() + p.sx() + margin && x + wide + margin > p.x() && z < p.z() + p.sz() + margin && z + deep + margin > p.z()) { free = false; break; }
             }
             if (!free) continue;
             // Hors de l'eau, si possible : le biome, lu sans generer le terrain.
             int water = 0;
             for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) {
-                String biome = w.getBiome(x + (int) ((i + 0.5) * s.sx() / 3.0), 64, z + (int) ((j + 0.5) * s.sz() / 3.0)).getKey().getKey();
+                String biome = w.getBiome(x + (int) ((i + 0.5) * wide / 3.0), 64, z + (int) ((j + 0.5) * deep / 3.0)).getKey().getKey();
                 if (biome.contains("ocean") || biome.contains("river")) water++;
             }
             if (water <= 1) return new int[]{x, z};
@@ -489,7 +576,7 @@ public final class Structures implements Listener {
         return false;
     }
 
-    /** Les structures ne se cassent pas, ne se completent pas, n'explosent pas et ne brulent pas (structures.protegees). */
+    /** Les lieux ne se cassent pas, ne se completent pas, n'explosent pas et ne brulent pas (structures.protegees). */
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent e) {
         if (guarded(e.getBlock().getLocation())) { e.setCancelled(true); Msg.actionBar(e.getPlayer(), "<red>Ce lieu est indestructible."); }
@@ -525,11 +612,33 @@ public final class Structures implements Listener {
         if (guarded(e.getBlock().getLocation())) e.setCancelled(true);
     }
 
-    /** Pendant la pose, ce qui se detache de la structure (un bloc dont l'appui n'est pas encore pose) ne laisse pas d'objet au sol. */
+    /**
+     * Le decor d'un lieu ne tombe pas et ne se pille pas : un cadre ne se decroche pas (ni tout seul, quand son mur
+     * n'est pas encore pose, ni sous les coups), on ne prend pas ce que portent les cadres et les porte-armures.
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onHangingBreak(org.bukkit.event.hanging.HangingBreakEvent e) {
+        if (guarded(e.getEntity().getLocation())) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDecorHit(org.bukkit.event.entity.EntityDamageEvent e) {
+        if (decor(e.getEntity()) && guarded(e.getEntity().getLocation())) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStand(org.bukkit.event.player.PlayerArmorStandManipulateEvent e) {
+        if (guarded(e.getRightClicked().getLocation())) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFrame(org.bukkit.event.player.PlayerInteractEntityEvent e) {
+        if (e.getRightClicked() instanceof Hanging && guarded(e.getRightClicked().getLocation())) e.setCancelled(true);
+    }
+
+    /** Pendant qu'un lieu se pose, rien ne tombe au sol dans sa boite (un objet qui se detacherait malgre tout). */
     @EventHandler(ignoreCancelled = true)
     public void onDrop(org.bukkit.event.entity.ItemSpawnEvent e) {
-        Placed p = pasting;
-        Location l = e.getLocation();
-        if (p != null && l.getWorld().getName().equals(p.world()) && l.getX() >= p.x() - 2 && l.getX() < p.x() + p.sx() + 2 && l.getZ() >= p.z() - 2 && l.getZ() < p.z() + p.sz() + 2) e.setCancelled(true);
+        if (working && guarded(e.getLocation())) e.setCancelled(true);
     }
 }

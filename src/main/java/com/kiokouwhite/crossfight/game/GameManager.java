@@ -387,7 +387,7 @@ public final class GameManager {
         Msg.broadcast("<gold>L'arene de Regna Ferox se dresse en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
         // Les lieux poses sur la map, avec leurs coordonnees.
         List<String> places = new ArrayList<>();
-        for (var p : plugin.structures().finished(world())) places.add("<white>" + Structures.title(p.name()) + "</white> en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2));
+        for (var p : plugin.structures().finished(world())) places.add("<white>" + plugin.structures().title(p.name()) + "</white> en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2));
         if (!places.isEmpty()) Msg.broadcast("<gold>Sur la map : <gray>" + String.join("<gold>, <gray>", places) + "<gold>.");
         Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
     }

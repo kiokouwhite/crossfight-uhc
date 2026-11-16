@@ -111,6 +111,9 @@ structures:
   marge: 60
   # Rayon garde libre autour de l'arene de Regna Ferox
   arene: 160
+  # Cote maximal d'un lieu, en blocs. 0 : compte d'apres la bordure (les lieux se partagent trois dixiemes de la map) ;
+  # un lieu plus grand est recadre autour de son coeur
+  taille-max: 0
   # La structure toujours posee au centre de la map (le nom de son dossier) ; les autres sont tirees au sort
   centre: jouki
   # Le sol se fend autour de chaque lieu pose, comme un bout de monde enfonce la de force
