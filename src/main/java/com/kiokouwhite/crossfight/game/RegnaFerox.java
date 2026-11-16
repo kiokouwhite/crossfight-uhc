@@ -148,8 +148,18 @@ public final class RegnaFerox implements Listener {
      */
     public Location build() {
         World w = plugin.game().world();
-        int cx = 0, cz = 0;
         String key = "ferox.arene-ouverte." + w.getName();
+        // L'arene n'est plus au centre de la map (un autre lieu l'occupe) : sur une map neuve, elle est batie a un
+        // endroit tire de la graine, a 450-650 blocs du centre. Une map qui a deja la sienne la garde ou elle est.
+        int cx, cz;
+        if (plugin.getConfig().isSet(key + "-x")) { cx = plugin.getConfig().getInt(key + "-x"); cz = plugin.getConfig().getInt(key + "-z", 0); }
+        else {
+            java.util.Random r = new java.util.Random(w.getSeed() ^ 0xFE40L);
+            int border = plugin.game().rules().value("bordure");
+            double far = Math.max(0, Math.min(450 + r.nextInt(200), border - 220)), a = r.nextDouble() * Math.PI * 2;
+            cx = far < 250 ? 0 : (int) Math.round(Math.cos(a) * far);
+            cz = far < 250 ? 0 : (int) Math.round(Math.sin(a) * far);
+        }
         int y = plugin.getConfig().getInt(key, Integer.MIN_VALUE);
         // Une arene d'une version precedente (sans galeries) : on la refait sur place, a la meme hauteur.
         int before = plugin.getConfig().getInt("ferox.arene-fermee." + w.getName(), Integer.MIN_VALUE);
@@ -170,6 +180,7 @@ public final class RegnaFerox implements Listener {
             raise(w, cx, y, cz);
             plugin.getConfig().set(key, y);
             plugin.getConfig().set(key + "-x", cx);
+            plugin.getConfig().set(key + "-z", cz);
             plugin.saveConfig();
         }
         centre = new Location(w, cx + 0.5, y + 1, cz + 0.5);

@@ -384,7 +384,7 @@ public final class GameManager {
         int pvpMin = plugin.getConfig().getInt("game.pvp-minute", 30);
         if (pvpMin <= 0) pvpEnabled = true;
         Location ferox = plugin.ferox().build();
-        Msg.broadcast("<gold>L'arene de Regna Ferox se dresse au centre de la map, en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
+        Msg.broadcast("<gold>L'arene de Regna Ferox se dresse en <white>" + ferox.getBlockX() + " " + ferox.getBlockY() + " " + ferox.getBlockZ() + "<gold>.");
         // Les lieux poses sur la map, avec leurs coordonnees.
         List<String> places = new ArrayList<>();
         for (var p : plugin.structures().finished(world())) places.add("<white>" + Structures.title(p.name()) + "</white> en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2));

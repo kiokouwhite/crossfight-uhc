@@ -109,8 +109,12 @@ structures:
   protegees: true
   # Blocs laisses libres entre deux structures, et entre une structure et la bordure
   marge: 60
-  # Rayon garde libre autour de l'arene du centre de la map
+  # Rayon garde libre autour de l'arene de Regna Ferox
   arene: 160
+  # La structure toujours posee au centre de la map (le nom de son dossier) ; les autres sont tirees au sort
+  centre: jouki
+  # Le sol se fend autour de chaque lieu pose, comme un bout de monde enfonce la de force
+  dechirure: true
 
 music:
   # Musiques de combat : la piste depend des deux licences qui s'affrontent

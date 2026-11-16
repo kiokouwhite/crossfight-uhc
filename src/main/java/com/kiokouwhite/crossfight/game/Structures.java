@@ -362,9 +362,58 @@ public final class Structures implements Listener {
                 // Un instant encore sans objets tombes : les derniers blocs sans appui finissent de se detacher.
                 Bukkit.getScheduler().runTaskLater(plugin, () -> { if (pasting == box) pasting = null; }, 40L);
                 Msg.send(to, "<green>Structure <white>" + s.name() + "</white> posee en <white>" + (box.x() + s.sx() / 2) + " " + level + " " + (box.z() + s.sz() / 2) + "</white>.");
+                tear(w, box);
                 if (done != null) done.run();
             }
         }.next();
+    }
+
+    /**
+     * Le monde a l'air dechire : autour d'un lieu pose, le sol se fend. Une faille irreguliere (large de 2 a 9 blocs,
+     * profonde de 12 a 40) court le long de son bord, comme si ce bout de monde avait ete arrache d'ailleurs et
+     * enfonce ici de force ; elle s'interrompt par endroits, pour qu'on puisse passer, et des eclats de terrain y
+     * restent suspendus. Elle ne touche ni aux autres lieux ni a l'arene (structures.dechirure).
+     */
+    private void tear(World w, Placed box) {
+        if (!plugin.getConfig().getBoolean("structures.dechirure", true)) return;
+        final double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
+        final Location arena = plugin.ferox().centre();
+        final List<int[]> columns = new ArrayList<>();
+        for (int x = box.x() - 10; x < box.x() + box.sx() + 10; x++) for (int z = box.z() - 10; z < box.z() + box.sz() + 10; z++) {
+            int dx = Math.max(box.x() - x, x - (box.x() + box.sx() - 1)), dz = Math.max(box.z() - z, z - (box.z() + box.sz() - 1));
+            int d = Math.max(dx, dz);
+            if (d < 1) continue;
+            double t = x * 0.9 + z * 1.1;
+            // Des passages restent : la faille s'efface sur un bon tiers du tour.
+            if (Math.sin(t * 0.021 + seed) + 0.5 * Math.sin(t * 0.057 + seed * 2) < -0.25) continue;
+            double width = 2 + 7 * (0.5 + 0.5 * Math.sin(t * 0.11 + seed * 3));
+            if (d > width) continue;
+            if (Math.hypot(x - arena.getX(), z - arena.getZ()) < 110) continue;
+            int depth = (int) (12 + 28 * Math.abs(Math.sin(t * 0.17 + d * 0.6 + seed)) * (1 - (d - 1) / (width + 1)));
+            columns.add(new int[]{x, z, depth});
+        }
+        final int mine = run;
+        new BukkitRunnable() {
+            int i = 0;
+            final Random r = new Random(w.getSeed() ^ box.name().hashCode());
+            @Override public void run() {
+                if (mine != run) { cancel(); return; }
+                for (int n = 0; n < 120 && i < columns.size(); n++, i++) {
+                    int[] c = columns.get(i);
+                    Location at = new Location(w, c[0], 0, c[1]);
+                    int top = w.getHighestBlockYAt(c[0], c[1]);
+                    for (int y = top; y > Math.max(w.getMinHeight() + 4, top - c[2]); y--) {
+                        at.setY(y);
+                        if (guarded(at)) break;
+                        // Un eclat reste parfois suspendu dans la faille.
+                        if (y < top - 3 && r.nextInt(90) == 0) { y -= 2; continue; }
+                        Block b = w.getBlockAt(c[0], y, c[1]);
+                        if (!b.getType().isAir()) b.setType(Material.AIR, false);
+                    }
+                }
+                if (i >= columns.size()) cancel();
+            }
+        }.runTaskTimer(plugin, 20L, 1L);
     }
 
     private static long pack(int x, int y, int z) {
@@ -385,10 +434,14 @@ public final class Structures implements Listener {
      */
     public void scatter(World w) {
         if (!enabled() || working) return;
-        for (Sheet s : sheets()) {
+        // Le lieu du centre (structures.centre) d'abord : il est toujours au milieu de la map, les autres s'ecartent de lui.
+        String middle = plugin.getConfig().getString("structures.centre", "jouki");
+        List<Sheet> all = sheets();
+        all.sort(java.util.Comparator.comparing(s -> !s.name().equals(middle)));
+        for (Sheet s : all) {
             Placed before = find(w, s.name());
             if (before != null && plugin.getConfig().getBoolean(key(w, s.name()) + ".finie", false)) continue;
-            int[] at = before != null ? new int[]{before.x(), before.z()} : spot(w, s);
+            int[] at = before != null ? new int[]{before.x(), before.z()} : s.name().equals(middle) ? new int[]{-s.sx() / 2, -s.sz() / 2} : spot(w, s);
             if (at == null) { plugin.getLogger().warning("Structure " + s.name() + " : aucun emplacement libre sur cette map (" + s.sx() + " x " + s.sz() + " blocs)."); continue; }
             place(Bukkit.getConsoleSender(), s, w, at[0], at[1], () -> scatter(w));
             return;
@@ -406,9 +459,10 @@ public final class Structures implements Listener {
         for (int attempt = 0; attempt < 400; attempt++) {
             int x = Math.floorDiv(-border + margin + r.nextInt(Math.max(1, roomX + border - margin + 1)), 16) * 16;
             int z = Math.floorDiv(-border + margin + r.nextInt(Math.max(1, roomZ + border - margin + 1)), 16) * 16;
-            // Loin de l'arene : le rectangle de la structure, elargi, ne touche pas le disque du centre.
-            double nearX = Math.max(x, Math.min(0, x + s.sx())), nearZ = Math.max(z, Math.min(0, z + s.sz()));
-            if (Math.hypot(nearX, nearZ) < keepOut) continue;
+            // Loin de l'arene de Ferox : le rectangle de la structure ne touche pas le disque garde autour d'elle.
+            Location arena = plugin.ferox().centre();
+            double nearX = Math.max(x, Math.min(arena.getX(), x + s.sx())), nearZ = Math.max(z, Math.min(arena.getZ(), z + s.sz()));
+            if (Math.hypot(nearX - arena.getX(), nearZ - arena.getZ()) < keepOut) continue;
             boolean free = true;
             for (Placed p : placed(w)) {
                 if (p.name().equals(s.name())) continue;
