@@ -589,7 +589,57 @@ public final class Omori implements Listener {
         sfx(boss.getLocation(), "phase", Sound.ENTITY_WARDEN_HEARTBEAT, 2f, 0.6f);
         w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 60, 1.2, 1.2, 1.2, 0, phase == HITS.length - 1 ? RED : INK);
         for (Player p : fighters()) Msg.send(p, phase == HITS.length - 1 ? "<dark_red><bold>Omori : cinquieme phase.</bold> <gray>Tout devient noir." : "<white><bold>Omori : phase " + (phase + 1) + ".");
+        panel();
         updateBar();
+    }
+
+    /** Le panneau du jeu ("OMORI did not succumb.") : l'image a montrer a chaque tick, lue dans intro.txt. */
+    private int[] panelTable;
+
+    private int[] panelTable() {
+        if (panelTable != null) return panelTable;
+        panelTable = new int[0];
+        try (var in = plugin.getResource("intro.txt")) {
+            if (in != null) for (String line : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).split("\n")) {
+                String[] p = line.trim().split("\\s+");
+                if (p.length < 2 || !p[0].equals("panneau_omori")) continue;
+                panelTable = new int[p.length - 1];
+                for (int i = 1; i < p.length; i++) panelTable[i - 1] = Integer.parseInt(p[i]);
+            }
+        } catch (Exception ex) { plugin.getLogger().warning("intro.txt illisible : " + ex); }
+        return panelTable;
+    }
+
+    /**
+     * A chaque changement de phase, le panneau du jeu s'ecrit au-dessus de la barre d'objets de ceux qui combattent :
+     * "OMORI did not succumb.", lettre a lettre, avec le bip des dialogues. Ses images sont dans une police du pack
+     * complet (tools/build_panneau.py) ; sans elle, il n'y a que le message du chat.
+     */
+    private void panel() {
+        final int[] table = panelTable();
+        if (table.length == 0 || !com.kiokouwhite.crossfight.util.Sounds.has("font.panneau_omori")) return;
+        final net.kyori.adventure.key.Key font = net.kyori.adventure.key.Key.key("crossfight", "panneau_omori");
+        final String blip = com.kiokouwhite.crossfight.util.Sounds.NS + ":ability.omori_texte";
+        final boolean sound = com.kiokouwhite.crossfight.util.Sounds.has("ability.omori_texte");
+        final int mine = phase;
+        new BukkitRunnable() {
+            int tick = 0, shown = -1, quiet = 0;
+            @Override public void run() {
+                // Trois secondes et demie, ou jusqu'a la phase suivante.
+                if (boss == null || over || phase != mine || tick >= 70) { cancel(); return; }
+                int image = table[Math.min(tick, table.length - 1)];
+                tick++;
+                String text = "" + (char) (0xE200 + image * 3) + '\ue100' + (char) (0xE201 + image * 3) + '\ue100' + (char) (0xE202 + image * 3);
+                // Le bip : a chaque lettre qui s'ecrit (les images d'apres ne sont que la main qui bouge), un tick sur deux au plus.
+                boolean typed = image != shown && image <= 22 && quiet-- <= 0;
+                if (typed) quiet = 1;
+                shown = image;
+                for (Player p : fighters()) {
+                    p.sendActionBar(net.kyori.adventure.text.Component.text(text).font(font));
+                    if (typed && sound) p.playSound(p, blip, org.bukkit.SoundCategory.MASTER, 0.8f, 1f);
+                }
+            }
+        }.runTaskTimer(plugin, 4L, 1L);
     }
 
     // ------------------------------------------------------------------ les attaques

@@ -168,6 +168,7 @@ ability.omori_phase
 ability.omori_poignarde
 ability.omori_porte
 ability.omori_rafale
+ability.omori_texte
 ability.omori_vaincu
 ability.pinkou_cocon
 ability.pinkou_ronces
@@ -269,6 +270,7 @@ ability.yuki_snow
 ability.yuki_ult
 font.espace_blanc
 font.logo
+font.panneau_omori
 glyph.flaque_noire
 glyph.kunai
 glyph.orbe

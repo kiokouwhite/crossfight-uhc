@@ -34,6 +34,7 @@ SOUNDS = {
     "cheveux": "BA_tangle",                   # "Je ne peux pas le faire" : les cheveux tombent
     "vaincu": "SE_enemy_defeat1",             # Omori est vaincu
     "pardon": "GEN_complete",                 # on se pardonne
+    "texte": "SYS_text",                      # le panneau des changements de phase : le bip des dialogues
 }
 
 

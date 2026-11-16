@@ -30,8 +30,10 @@ ability.omori_phase
 ability.omori_poignarde
 ability.omori_porte
 ability.omori_rafale
+ability.omori_texte
 ability.omori_vaincu
 font.espace_blanc
+font.panneau_omori
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon
