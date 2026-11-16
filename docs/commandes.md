@@ -9,7 +9,8 @@
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
-| `/cf setsize SOLO|DUO|TRIO` | Format des équipes créées au lancement pour les joueurs qui n'ont pas choisi (admin) |
+| `/cf setsize SOLO|DUO|TRIO` | Format des équipes tirées au sort (admin) |
+| `/cf desactiver <nom>` / `/cf activer <nom>` | Désactiver ou réactiver un personnage, une licence ou un format (`solo`, `duo`, `trio`) ; sans nom : ce qui est désactivé (admin) |
 | `/cf setborder <rayon>` | Taille de la map (admin) |
 | `/cf setpvp <minute>` | Minute d'activation du PvP (admin) |
 | `/cf team create [solo\|duo\|trio]\|join <id>\|leave\|list` | Choisir son équipe dans le lobby (comme la bannière « Choisir son équipe ») |

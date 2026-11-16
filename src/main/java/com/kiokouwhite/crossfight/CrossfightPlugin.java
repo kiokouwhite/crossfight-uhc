@@ -51,6 +51,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         abilityEngine = new AbilityEngine(this);
         livesManager = new LivesManager(this);
         gameManager = new GameManager(this);
+        roster = new com.kiokouwhite.crossfight.game.Roster(this);
         gameManager.loadWorld();
         scoreboardManager = new ScoreboardManager(this);
         testMode = new com.kiokouwhite.crossfight.game.TestMode(this);
@@ -144,6 +145,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.TestMode testMode() { return testMode; }
     private com.kiokouwhite.crossfight.game.Ores ores;
     private com.kiokouwhite.crossfight.game.HostTools hostTools;
+    private com.kiokouwhite.crossfight.game.Roster roster;
+    public com.kiokouwhite.crossfight.game.Roster roster() { return roster; }
     private com.kiokouwhite.crossfight.game.Scenarios scenarios;
     public com.kiokouwhite.crossfight.game.Scenarios scenarios() { return scenarios; }
     public com.kiokouwhite.crossfight.game.HostTools hostTools() { return hostTools; }

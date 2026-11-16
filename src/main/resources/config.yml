@@ -1,6 +1,6 @@
 # Configuration de Crossfight UHC
 game:
-  # Taille des equipes : SOLO, DUO ou TRIO
+  # Format des equipes tirees au sort (et de /cf team create sans format) : SOLO, DUO ou TRIO
   team-size: TRIO
   # Vies par joueur
   lives: 3
@@ -14,6 +14,10 @@ game:
   border-final-radius: 100
   # Points d'attaque par niveau de Force, potion comprise (Minecraft : 3)
   strength-damage: 1
+  # Doublons : deux equipes peuvent avoir la meme licence, deux solitaires le meme personnage
+  duplicates: true
+  # Equipes tirees au sort au lancement (format : team-size) au lieu d'etre choisies par les joueurs
+  random-teams: false
   # Regeneration naturelle de la vie ; jour permanent
   natural-regeneration: false
   eternal-day: false
@@ -25,6 +29,13 @@ game:
     match-found: 40
     judgement: 50
     omori: 60
+
+# Ce que l'administrateur a desactive pour la partie (objet "Personnages et licences", ou /cf desactiver <nom>)
+desactives:
+  personnages: []
+  licences: []
+  # SOLO, DUO, TRIO
+  formats: []
 
 # Scenarios UHC de confort (a cocher en jeu : objet "Scenarios" de l'administrateur, ou /cf scenario <nom>)
 scenarios:

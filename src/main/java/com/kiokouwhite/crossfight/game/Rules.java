@@ -42,6 +42,8 @@ public final class Rules {
         add("reapparition", "lives.respawn-radius", 500, 20, 10000, "blocs", "Rayon dans lequel on reapparait apres une mort");
         add("force", "game.strength-damage", 1, 0, 3, "pt", "Points d'attaque par niveau de Force (3 : comme dans Minecraft)");
         add("minerais", "world.ore-multiplier", 5, 1, 10, "x", "Minerais multiplies sous terre (zones pas encore enrichies ; 1 : comme dans Minecraft)");
+        toggle("equipes-aleatoires", "game.random-teams", false, "Les equipes sont tirees au sort au lancement (format : /cf setsize)");
+        toggle("doublons", "game.duplicates", true, "Deux equipes peuvent avoir la meme licence (et deux solitaires le meme personnage)");
         toggle("regeneration", "game.natural-regeneration", false, "Regeneration naturelle de la vie");
         toggle("jour-permanent", "game.eternal-day", false, "Il fait toujours jour");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");

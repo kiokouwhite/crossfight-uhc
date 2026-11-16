@@ -101,6 +101,23 @@ public final class CfCommand implements TabExecutor {
                         plugin.scenarios().set(s, on);
                         Msg.broadcast("<light_purple>Scenario <white>" + s.label() + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "desactiver", "desactive", "activer", "active" -> {
+                        // /cf desactiver <personnage|licence|solo|duo|trio> (et /cf activer) ; sans rien : ce qui est desactive.
+                        var roster = plugin.roster();
+                        if (args.length < 2) { Msg.send(sender, roster.summary()); return true; }
+                        boolean on = sub.startsWith("activ");
+                        String id = args[1];
+                        TeamSize kind = TeamSize.parse(id);
+                        var licence = plugin.characters().licence(id.toLowerCase(java.util.Locale.ROOT));
+                        var character = plugin.characters().character(id);
+                        String what;
+                        if (kind != null) { plugin.hostTools().setFormat(kind, on); what = "format " + kind.label(); }
+                        else if (licence != null) { roster.set(licence, on); what = "licence " + licence.name(); }
+                        else if (character != null) { roster.set(character, on); what = character.name(); }
+                        else { Msg.send(sender, "<red>Ni un personnage, ni une licence, ni un format (solo, duo, trio) : " + id); return true; }
+                        plugin.hostTools().refreshTeamMenus();
+                        Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
+                    }
                     case "outils", "outil", "tools" -> {
                         // Redonne les outils d'administrateur (apres un /op, un inventaire vide...).
                         if (!(sender instanceof Player p)) { Msg.send(sender, "<red>En jeu seulement."); return true; }
@@ -113,7 +130,7 @@ public final class CfCommand implements TabExecutor {
                         var rules = plugin.game().rules();
                         if (args.length < 2) {
                             Msg.raw(sender, "<gold><bold>Regles de la partie</bold> <gray>(/cf regle <nom> <valeur>)");
-                            Msg.raw(sender, "<yellow>equipes <white>" + plugin.teams().teamSize().label() + " <dark_gray>- <gray>Format des equipes creees au lancement pour ceux qui n'ont rien choisi (/cf setsize)");
+                            Msg.raw(sender, "<yellow>equipes <white>" + plugin.teams().teamSize().label() + " <dark_gray>- <gray>Format des equipes tirees au sort (/cf setsize)");
                             for (var r : com.kiokouwhite.crossfight.game.Rules.all()) Msg.raw(sender, "<yellow>" + r.name() + " <white>" + rules.shown(r) + " <dark_gray>- <gray>" + r.help());
                             return true;
                         }
@@ -125,8 +142,14 @@ public final class CfCommand implements TabExecutor {
                         Msg.broadcast("<yellow>Regle : <gold>" + r.help().toLowerCase(java.util.Locale.ROOT) + " <white>" + rules.shown(r) + " <gray>(" + sender.getName() + ")");
                     }
                     case "start" -> {
-                        if (plugin.game().start()) Msg.send(sender, "<green>Lancement de la partie.");
-                        else Msg.send(sender, "<red>Impossible de lancer (deja en cours ou aucun joueur).");
+                        String why = plugin.game().startProblem();
+                        if (why == null && plugin.game().start()) { Msg.send(sender, "<green>Lancement de la partie."); return true; }
+                        Msg.send(sender, "<red>Impossible de lancer : " + (why == null ? "aucune equipe" : why) + ".");
+                        // Ceux qui n'ont pas choisi sont prevenus.
+                        for (Player late : plugin.teams().undecided()) {
+                            Msg.send(late, "<yellow>La partie attend que tu choisisses ton equipe : la banniere dans ta barre <gray>(solitaire, duo, equipe de trois, ou regarder).");
+                            late.playSound(late.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, 0.8f);
+                        }
                     }
                     case "stop" -> {
                         plugin.game().stop();
@@ -174,7 +197,7 @@ public final class CfCommand implements TabExecutor {
                         if (size == null) { Msg.send(sender, "<red>Usage : /cf setsize <SOLO|DUO|TRIO>"); return true; }
                         if (!plugin.game().isLobby()) { Msg.send(sender, "<red>Impossible en cours de partie."); return true; }
                         plugin.teams().setTeamSize(size);
-                        Msg.broadcast("<yellow>Equipes par defaut : <gold>" + size.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
+                        Msg.broadcast("<yellow>Format des equipes tirees au sort : <gold>" + size.label());
                         plugin.hostTools().refreshAll();
                     }
                     case "setborder" -> {
@@ -499,7 +522,7 @@ public final class CfCommand implements TabExecutor {
 
     /** Ce qu'un administrateur de partie (/cf admin) peut faire sans etre operateur. */
     private static final java.util.Set<String> HOST_COMMANDS = java.util.Set.of("start", "stop", "lobby", "setsize", "setborder", "setpvp",
-            "regenere", "regenerer", "regen", "newmap", "outils", "outil", "tools", "scenario", "scenarios", "regle", "regles", "rule", "rules", "config");
+            "regenere", "regenerer", "regen", "newmap", "outils", "outil", "tools", "desactiver", "desactive", "activer", "active", "scenario", "scenarios", "regle", "regles", "rule", "rules", "config");
 
     private boolean isHost(CommandSender s) {
         return s instanceof Player p && plugin.game().rules().isHost(p.getUniqueId());
@@ -634,8 +657,8 @@ public final class CfCommand implements TabExecutor {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "choose", "pack", "scenario"));
-            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "outils", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -655,6 +678,10 @@ public final class CfCommand implements TabExecutor {
                 case "regle", "regles", "rule", "rules", "config" -> { for (var r : com.kiokouwhite.crossfight.game.Rules.all()) out.add(r.name()); }
                 case "admin", "admins" -> { for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName()); }
                 case "scenario", "scenarios" -> { for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) out.add(s.id()); }
+                case "desactiver", "activer" -> {
+                    out.addAll(List.of("solo", "duo", "trio"));
+                    for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }
+                }
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre"));
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }

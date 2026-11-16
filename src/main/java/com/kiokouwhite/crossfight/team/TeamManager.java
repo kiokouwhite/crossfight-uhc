@@ -16,8 +16,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Gere les equipes, leur remplissage et l'attribution des licences. Chaque equipe a son format (solitaire, duo,
- * trio) : les joueurs choisissent le leur dans le lobby ; "teamSize" est le format par defaut, celui des equipes
- * creees au lancement pour les joueurs qui n'ont rien choisi.
+ * trio) : les joueurs choisissent le leur dans le lobby, et la partie ne se lance que quand chacun a choisi ;
+ * "teamSize" n'est plus que le format par defaut de /cf team create et du mode test.
  */
 public final class TeamManager {
 
@@ -112,23 +112,36 @@ public final class TeamManager {
         for (CfPlayer cp : plugin.players().all()) cp.setTeam(null);
     }
 
-    /** Place tous les joueurs en ligne sans equipe dans des equipes, en completant celles qui existent. */
-    public void autoFill() {
-        List<Player> free = new ArrayList<>();
+    /** Les joueurs en ligne qui jouent (ceux qui n'ont pas choisi de regarder). */
+    public List<Player> playing() {
+        List<Player> out = new ArrayList<>();
+        for (Player p : Bukkit.getOnlinePlayers()) if (!plugin.players().get(p).isSpectatorOnly()) out.add(p);
+        return out;
+    }
+
+    /** Equipes aleatoires : tout le monde est melange et reparti dans les equipes de ce tirage. */
+    public void shuffle(List<TeamSize> plan) {
+        clear();
+        List<Player> players = playing();
+        Collections.shuffle(players, ThreadLocalRandom.current());
+        int next = 0;
+        for (TeamSize kind : plan) {
+            Team t = create(kind);
+            for (int i = 0; i < kind.size() && next < players.size(); i++) join(players.get(next++), t);
+        }
+        // Une equipe incomplete du format principal accueille ceux qui restent.
+        Team last = teams.isEmpty() ? null : get(nextId - 1);
+        while (next < players.size() && last != null) forceJoin(players.get(next++), last);
+        prune();
+    }
+
+    /** Les joueurs en ligne qui n'ont ni equipe ni choisi de regarder : la partie ne se lance pas sans eux. */
+    public List<Player> undecided() {
+        List<Player> out = new ArrayList<>();
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (teamOf(p) == null && !plugin.players().get(p).isSpectatorOnly()) free.add(p);
+            if (teamOf(p) == null && !plugin.players().get(p).isSpectatorOnly()) out.add(p);
         }
-        Collections.shuffle(free, ThreadLocalRandom.current());
-        for (Player p : free) {
-            Team target = null;
-            for (Team t : teams.values()) {
-                if (!t.isFull()) { target = t; break; }
-            }
-            if (target == null) target = create();
-            join(p, target);
-        }
-        // Supprime les equipes vides
-        teams.values().removeIf(t -> t.size() == 0);
+        return out;
     }
 
     /** Tire une licence au sort pour chaque equipe, sans doublon tant que c'est possible. */
@@ -138,7 +151,7 @@ public final class TeamManager {
         for (Team t : teams.values()) {
             List<Licence> bag = bags.computeIfAbsent(t.kind(), k -> new ArrayList<>());
             if (bag.isEmpty()) {
-                bag.addAll(plugin.characters().licencesFor(t.kind()));
+                bag.addAll(plugin.roster().licences(t.kind()));
                 if (bag.isEmpty()) {
                     plugin.getLogger().warning("Aucune licence disponible pour le format " + t.kind());
                     continue;

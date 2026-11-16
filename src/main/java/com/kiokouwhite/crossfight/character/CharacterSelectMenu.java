@@ -49,25 +49,26 @@ public final class CharacterSelectMenu implements Listener {
             return;
         }
         Licence licence = team.licence();
-        if (licence.characters().isEmpty()) {
+        List<Character> playable = plugin.roster().characters(licence);
+        if (playable.isEmpty()) {
             Msg.send(p, "<yellow>La licence <white>" + licence.name() + "</white> n'a pas encore de personnage.");
             return;
         }
         Holder holder = new Holder();
-        int rows = Math.max(1, (licence.characters().size() + 8) / 9);
+        int rows = Math.max(1, (playable.size() + 8) / 9);
         Inventory inv = Bukkit.createInventory(holder, rows * 9, Msg.mm("<dark_gray>Choix : <gold>" + licence.name()));
         holder.inv = inv;
 
         List<String> taken = takenIn(team);
         int slot = 0;
-        for (Character c : licence.characters()) {
+        for (Character c : playable) {
             boolean isTaken = taken.contains(c.id());
             List<String> lore = new ArrayList<>();
             lore.add("<" + c.voie().color() + ">" + c.voie().label());
             lore.add("");
             lore.addAll(c.summary());
             lore.add("");
-            lore.add(isTaken ? "<red>Deja choisi par un allie" : "<green>Clique pour choisir");
+            lore.add(isTaken ? "<red>Deja choisi" : "<green>Clique pour choisir");
             ItemStack item = isTaken ? Items.of(Material.BARRIER, "<gold><bold>" + c.name(), lore)
                     : com.kiokouwhite.crossfight.util.Skins.icon(c, c.icon(), "<gold><bold>" + c.name(), lore);
             if (!isTaken) Items.tag(item, CHAR_KEY, c.id());
@@ -76,11 +77,19 @@ public final class CharacterSelectMenu implements Listener {
         p.openInventory(inv);
     }
 
-    private List<String> takenIn(Team team) {
+    /**
+     * Les personnages deja pris pour cette equipe : ceux de ses membres, et, sans doublons, ceux des autres
+     * equipes qui ont la meme licence (les solitaires la partagent tous).
+     */
+    public List<String> takenIn(Team team) {
         List<String> ids = new ArrayList<>();
-        for (UUID u : team.members()) {
-            CfPlayer other = plugin.players().get(u);
-            if (other != null && other.character() != null) ids.add(other.character().id());
+        boolean unique = !plugin.roster().duplicates() && plugin.game().state() != com.kiokouwhite.crossfight.game.GameState.TEST;
+        for (Team t : unique ? plugin.teams().all() : List.of(team)) {
+            if (t != team && t.licence() != team.licence()) continue;
+            for (UUID u : t.members()) {
+                CfPlayer other = plugin.players().get(u);
+                if (other != null && other.character() != null) ids.add(other.character().id());
+            }
         }
         return ids;
     }
@@ -90,7 +99,7 @@ public final class CharacterSelectMenu implements Listener {
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
         if (team == null || team.licence() == null || team.licence().character(c.id()) == null) return false;
-        if (takenIn(team).contains(c.id())) return false;
+        if (takenIn(team).contains(c.id()) || !plugin.roster().characters(team.licence()).contains(c)) return false;
         cf.setCharacter(c);
         Msg.send(p, "<green>Tu incarnes <gold><bold>" + c.name() + "</bold></gold> <gray>(" + c.voie().label() + ")");
         com.kiokouwhite.crossfight.util.Sounds.selection(p, c.id());
@@ -114,14 +123,16 @@ public final class CharacterSelectMenu implements Listener {
     /** Attribue un personnage libre au hasard a ceux qui n'ont pas choisi. */
     public void autoAssign(Team team) {
         Licence licence = team.licence();
-        if (licence == null || licence.characters().isEmpty()) return;
+        if (licence == null) return;
+        List<Character> playable = plugin.roster().characters(licence);
+        if (playable.isEmpty()) return;
         for (Player p : team.onlineMembers()) {
             CfPlayer cf = plugin.players().get(p);
             if (cf.character() != null) continue;
             List<String> taken = takenIn(team);
             List<Character> free = new ArrayList<>();
-            for (Character c : licence.characters()) if (!taken.contains(c.id())) free.add(c);
-            if (free.isEmpty()) free.addAll(licence.characters());
+            for (Character c : playable) if (!taken.contains(c.id())) free.add(c);
+            if (free.isEmpty()) free.addAll(playable);
             Character pick = free.get((int) (Math.random() * free.size()));
             choose(p, pick);
             p.closeInventory();

@@ -31,7 +31,8 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf outils` | Remettre dans sa barre les outils d'administrateur (admin, hors partie) |
 | `/cf admin [pseudo]` | Nommer (ou retirer) un administrateur de partie ; sans pseudo, la liste (opérateur) |
 | `/cf regle [nom] [valeur]` | Voir toutes les règles de la partie, ou en changer une (admin) |
-| `/cf setsize SOLO|DUO|TRIO` | Format des équipes créées au lancement pour les joueurs qui n'ont pas choisi (admin) |
+| `/cf setsize SOLO|DUO|TRIO` | Format des équipes tirées au sort (admin) |
+| `/cf desactiver <nom>` / `/cf activer <nom>` | Désactiver ou réactiver un personnage, une licence ou un format (`solo`, `duo`, `trio`) ; sans nom : ce qui est désactivé (admin) |
 | `/cf setborder <rayon>` | Taille de la map (admin) |
 | `/cf setpvp <minute>` | Minute d'activation du PvP (admin) |
 | `/cf team create [solo\|duo\|trio]\|join <id>\|leave\|list` | Choisir son équipe dans le lobby (comme la bannière « Choisir son équipe ») |
@@ -74,7 +75,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 
 Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plateforme de verre de 43 blocs de côté, à 250 blocs de haut, au-dessus du point d'apparition du monde. Pour patienter, chaque bloc de verre change de couleur (avec une petite note) quand un joueur marche dessus. Des murs et un plafond invisibles empêchent d'en tomber. On y arrive en se connectant, en quittant le mode test, après `/cf stop`, et avec `/cf lobby`, qui y envoie tous les joueurs ; elle disparaît du ciel quand la partie démarre et revient au retour au lobby. Réglages dans `config.yml` : `lobby.plateforme` (false : on reste au point d'apparition), `lobby.hauteur`, `lobby.rayon`.
 
-1. **Lobby** : les joueurs choisissent leur équipe (solitaire, duo ou équipe de trois) ; ceux qui n'ont rien choisi sont répartis automatiquement au lancement.
+1. **Lobby** : les joueurs choisissent leur équipe (solitaire, duo ou équipe de trois), ou de regarder ; la partie ne se lance que quand tous ont choisi. Avec la règle `equipes-aleatoires`, les équipes sont tirées au sort au lancement.
 2. **Sélection** : une licence est tirée au sort par équipe, parmi celles de son format, chacun choisit un personnage (60 s, puis attribution automatique).
 3. **Lancement** : téléportation par équipe, armes et items de capacités donnés.
 4. **Partie** : PvP à 30 min, événements à 20 / 30 / 40 / 50 / 60 min, 3 vies par joueur.
@@ -84,7 +85,21 @@ Avant le lancement, les joueurs attendent dans un lobby dans les airs : une plat
 
 Dans le lobby, chaque joueur a une bannière « Choisir son équipe » dans sa barre (clic droit). Le menu propose de jouer en solitaire, de créer un duo ou de créer une équipe de trois, et montre les équipes déjà formées (un bloc de laine à leur couleur, avec leurs membres et leurs places libres) : un clic sur une équipe incomplète la rejoint, « Quitter mon équipe » la quitte. Une équipe que tout le monde a quittée disparaît, et un joueur qui se déconnecte du lobby libère sa place.
 
-Les formats se mélangent dans une même partie : chaque équipe tire sa licence parmi celles de son format (Personnage Solitaire, Groupe Duo, Équipe de Trois). Au lancement, les joueurs sans équipe complètent d'abord les équipes incomplètes, puis forment de nouvelles équipes au format par défaut, que l'administrateur règle avec son casque « Équipes par défaut » ou `/cf setsize`.
+Les formats se mélangent dans une même partie : chaque équipe tire sa licence parmi celles de son format (Personnage Solitaire, Groupe Duo, Équipe de Trois). L'œil « Regarder la partie » du même menu fait du joueur un spectateur.
+
+La partie ne se lance pas tant qu'un joueur n'a ni équipe ni choisi de regarder : `/cf start` répond qui manque, et ces joueurs sont prévenus. Une équipe incomplète (un trio à deux) peut jouer.
+
+### Personnages, licences, formats, doublons
+
+L'objet « Personnages et licences » de l'administrateur (ou les commandes) règle ce qui est jouable :
+
+- **Formats** : désactiver les solitaires, les duos ou les équipes de trois (`/cf desactiver duo`). Le bouton correspondant se ferme dans le menu des équipes, et les équipes de ce format déjà formées sont dissoutes.
+- **Licences** : clic gauche sur une licence pour la désactiver (`/cf desactiver rwby`) ; elle n'est plus tirée.
+- **Personnages** : clic droit sur une licence pour ouvrir ses personnages, clic pour en désactiver un (`/cf desactiver weiss`) ; il n'apparaît plus à la sélection. Une licence à qui il ne reste pas assez de personnages pour une équipe de son format n'est plus tirée.
+- **Doublons** (règle `doublons`, autorisés par défaut) : autorisés, deux équipes peuvent recevoir la même licence quand il n'y en a plus de libre, et deux solitaires le même personnage. Interdits, il y a une équipe par licence et un solitaire par personnage : le menu des équipes ferme un format quand il est plein, et la partie refuse de se lancer s'il y a trop d'équipes.
+- **Équipes aléatoires** (règle `equipes-aleatoires`) : les joueurs ne choisissent plus, tout le monde est mélangé au lancement dans des équipes du format choisi (« Format du tirage », ou `/cf setsize`) ; ceux qui restent forment une équipe plus petite (un duo, un solitaire) si ce format est permis.
+
+À la sortie du menu, une annonce résume les réglages. Le mode test ignore ces réglages : on y essaie tout.
 
 ### Administrateurs de partie et règles
 
@@ -96,7 +111,7 @@ Pas besoin de commandes : dans le lobby, les opérateurs et les administrateurs 
 |---|---|
 | Comparateur « Règles de la partie » | Ouvre le menu des règles : un objet par règle, avec sa valeur. Clic gauche : plus ; clic droit : moins ; Maj + clic : cinq crans d'un coup ; un clic bascule les règles oui / non et la taille des équipes. À la fermeture, une seule annonce dit à tous ce qui a changé. |
 | Livre enchanté « Scénarios » | Ouvre le menu des scénarios : un clic coche ou décoche chacun ; une annonce à la fermeture |
-| Casque « Équipes par défaut » | Format des équipes créées au lancement pour ceux qui n'ont pas choisi : solitaire, duo, puis trio |
+| Porte-armure « Personnages et licences » | Ouvre le menu des formats, licences et personnages jouables, des doublons et des équipes aléatoires |
 | Bloc d'herbe « Nouvelle map » | Crée une nouvelle map (deux clics en moins de cinq secondes) |
 | Boussole « Rappeler au lobby » | Ramène tous les joueurs sur la plateforme |
 | Teinture verte « Lancer la partie » | Lance la partie (deux clics en moins de cinq secondes) |
@@ -118,6 +133,8 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `reapparition` | 500 blocs | Rayon dans lequel on réapparaît après une mort |
 | `force` | 1 pt | Points d'attaque par niveau de Force, potion comprise (3 : comme dans Minecraft) |
 | `minerais` | 5 x | Minerais multipliés sous terre (1 : comme dans Minecraft) |
+| `doublons` | oui | Deux équipes peuvent avoir la même licence (et deux solitaires le même personnage) |
+| `equipes-aleatoires` | non | Les équipes sont tirées au sort au lancement |
 | `regeneration` | non | Régénération naturelle de la vie |
 | `jour-permanent` | non | Il fait toujours jour |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |

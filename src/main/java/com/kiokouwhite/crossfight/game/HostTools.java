@@ -45,7 +45,7 @@ public final class HostTools implements Listener {
 
     private static final List<Tool> TOOLS = List.of(
             new Tool("regles", 0, Material.COMPARATOR, "<gold><bold>Regles de la partie", List.of("Bordure, PvP, vies, minerais, evenements...", "", "<yellow>Clic droit <gray>: ouvrir le menu")),
-            new Tool("equipes", 1, Material.LEATHER_HELMET, "<aqua><bold>Equipes par defaut", List.of("Le format des equipes creees au lancement", "pour ceux qui n'ont pas choisi", "", "<yellow>Clic droit <gray>: solitaire, duo, trio")),
+            new Tool("roster", 1, Material.ARMOR_STAND, "<aqua><bold>Personnages et licences", List.of("Desactiver des personnages, des licences,", "des formats d'equipe ; autoriser les doublons", "", "<yellow>Clic droit <gray>: ouvrir")),
             new Tool("map", 2, Material.GRASS_BLOCK, "<green><bold>Nouvelle map", List.of("Cree un monde tout neuf et y amene tout le monde", "", "<yellow>Deux clics droits <gray>: creer la map")),
             new Tool("rappel", 3, Material.COMPASS, "<white><bold>Rappeler au lobby", List.of("Ramene tous les joueurs sur la plateforme", "", "<yellow>Clic droit <gray>: rappeler")),
             new Tool("scenarios", 4, Material.ENCHANTED_BOOK, "<light_purple><bold>Scenarios", List.of("CutClean, Hasty Boys, Timber...", "", "<yellow>Clic droit <gray>: choisir les scenarios")),
@@ -61,7 +61,7 @@ public final class HostTools implements Listener {
     private static final Map<String, Dial> DIALS = new LinkedHashMap<>();
     /** La place de chaque regle dans le menu (5 rangees). */
     private static final Map<String, Integer> PLACES = new LinkedHashMap<>();
-    private static final int TEAM_PLACE = 25, MENU_SIZE = 45;
+    private static final int MENU_SIZE = 45;
 
     private static void dial(String rule, int place, Material icon, int step) {
         DIALS.put(rule, new Dial(icon, step));
@@ -82,6 +82,7 @@ public final class HostTools implements Listener {
         dial("minerais", 22, Material.DIAMOND_ORE, 1);
         dial("regeneration", 23, Material.GOLDEN_APPLE, 1);
         dial("jour-permanent", 24, Material.SUNFLOWER, 1);
+        dial("doublons", 25, Material.ARMOR_STAND, 1);
         dial("lootbox", 29, Material.CHEST, 5);
         dial("regna-ferox", 30, Material.GOLDEN_SWORD, 5);
         dial("match-found", 31, Material.BELL, 5);
@@ -140,7 +141,6 @@ public final class HostTools implements Listener {
 
     private ItemStack item(Tool t) {
         List<String> lore = new ArrayList<>(t.lore());
-        if (t.id().equals("equipes")) lore.add(0, "<white>" + plugin.teams().teamSize().label());
         ItemStack it = Items.of(t.icon(), t.name(), lore);
         it.editMeta(m -> m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_DYE));
         return Items.tag(it, key, t.id());
@@ -168,14 +168,7 @@ public final class HostTools implements Listener {
         switch (tool) {
             case "regles" -> openRules(p);
             case "scenarios" -> openScenarios(p);
-            case "equipes" -> {
-                if (!plugin.game().isLobby()) { Msg.actionBar(p, "<red>Impossible pendant un mode test."); return; }
-                TeamSize next = TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length];
-                plugin.teams().setTeamSize(next);
-                Msg.broadcast("<yellow>Equipes par defaut : <gold>" + next.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
-                p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.2f);
-                refreshAll();
-            }
+            case "roster" -> openRoster(p);
             case "rappel" -> p.performCommand("cf lobby");
             case "map" -> { if (confirmed(p, tool, "creer une nouvelle map")) p.performCommand("cf regenere"); }
             case "lancer" -> { if (confirmed(p, tool, "lancer la partie")) p.performCommand("cf start"); }
@@ -244,8 +237,6 @@ public final class HostTools implements Listener {
             });
             menu.inv.setItem(place, it);
         }
-        menu.inv.setItem(TEAM_PLACE, Items.of(Material.LEATHER_HELMET, "<gold>equipes <white><bold>" + plugin.teams().teamSize().label(),
-                List.of("Format des equipes creees au lancement", "pour ceux qui n'ont pas choisi", "", "<yellow>Clic <gray>: solitaire, duo, trio")));
     }
 
     // ------------------------------------------------------------------ le menu des equipes
@@ -257,7 +248,7 @@ public final class HostTools implements Listener {
     }
 
     /** Places des boutons du haut (jouer seul, creer un duo, creer un trio, quitter) et de la premiere equipe. */
-    private static final int SOLO_PLACE = 1, DUO_PLACE = 3, TRIO_PLACE = 5, LEAVE_PLACE = 7, TEAMS_FIRST = 18, TEAM_MENU_SIZE = 54;
+    private static final int SOLO_PLACE = 1, DUO_PLACE = 3, TRIO_PLACE = 5, LEAVE_PLACE = 7, WATCH_PLACE = 8, RANDOM_PLACE = 4, TEAMS_FIRST = 18, TEAM_MENU_SIZE = 54;
 
     private static final Map<String, Material> WOOL = Map.ofEntries(
             Map.entry("red", Material.RED_WOOL), Map.entry("blue", Material.BLUE_WOOL), Map.entry("green", Material.LIME_WOOL),
@@ -295,10 +286,21 @@ public final class HostTools implements Listener {
         menu.inv.clear();
         ItemStack pane = Items.of(Material.GRAY_STAINED_GLASS_PANE, "<gray> ", null);
         for (int i = 0; i < TEAMS_FIRST; i++) menu.inv.setItem(i, pane);
+        boolean watching = plugin.players().get(p).isSpectatorOnly();
+        ItemStack watch = Items.of(Material.ENDER_EYE, watching ? "<green><bold>Tu regardes la partie" : "<gray>Regarder la partie",
+                List.of("Spectateur : tu ne joues pas cette partie", "", "<yellow>Clic <gray>: " + (watching ? "jouer finalement" : "regarder")));
+        watch.editMeta(m -> m.setEnchantmentGlintOverride(watching));
+        menu.inv.setItem(WATCH_PLACE, watch);
+        if (plugin.roster().randomTeams()) {
+            // Equipes tirees au sort : rien a choisir, sinon de regarder.
+            menu.inv.setItem(RANDOM_PLACE, Items.of(Material.ENDER_CHEST, "<gold><bold>Equipes aleatoires",
+                    List.of("Les equipes sont tirees au sort au lancement", "<white>" + plugin.teams().teamSize().label())));
+            return;
+        }
         menu.inv.setItem(SOLO_PLACE, create(TeamSize.SOLO, "<gold><bold>Jouer en solitaire", "Seul contre tous, avec un Personnage Solitaire", "jouer seul"));
         menu.inv.setItem(DUO_PLACE, create(TeamSize.DUO, "<gold><bold>Creer un duo", "Une equipe de deux, avec une licence de Groupe Duo", "creer un duo"));
         menu.inv.setItem(TRIO_PLACE, create(TeamSize.TRIO, "<gold><bold>Creer une equipe de trois", "Une equipe de trois, avec une licence d'Equipe de Trois", "creer une equipe de trois"));
-        menu.inv.setItem(LEAVE_PLACE, mine == null ? Items.of(Material.LIGHT_GRAY_DYE, "<gray>Aucune equipe", List.of("Sans equipe au lancement, tu es place", "dans une equipe au hasard (" + plugin.teams().teamSize().label() + ")"))
+        menu.inv.setItem(LEAVE_PLACE, mine == null ? Items.of(Material.LIGHT_GRAY_DYE, watching ? "<gray>Aucune equipe" : "<red>Aucune equipe", List.of(watching ? "Tu regardes la partie" : "La partie ne se lance pas tant que", watching ? "" : "tu n'as pas choisi"))
                 : Items.of(Material.BARRIER, "<red><bold>Quitter mon equipe", List.of(mine.name() + " (" + mine.kind().shortLabel() + ")", "", "<yellow>Clic <gray>: quitter")));
         int place = TEAMS_FIRST;
         for (var t : shownTeams()) {
@@ -318,9 +320,20 @@ public final class HostTools implements Listener {
     }
 
     private ItemStack create(TeamSize kind, String name, String what, String action) {
-        ItemStack it = Items.of(Material.PLAYER_HEAD, name, List.of(what, "", "<yellow>Clic <gray>: " + action));
+        String closed = closed(kind);
+        ItemStack it = closed != null ? Items.of(Material.BARRIER, "<red>" + kind.label(), List.of(closed))
+                : Items.of(Material.PLAYER_HEAD, name, List.of(what, "", "<yellow>Clic <gray>: " + action));
         it.setAmount(kind.size());
         return it;
+    }
+
+    /** Pourquoi on ne peut pas (ou plus) creer d'equipe de ce format, ou null. */
+    private String closed(TeamSize kind) {
+        if (!plugin.roster().on(kind)) return "Format desactive pour cette partie";
+        int room = plugin.roster().room(kind), taken = 0;
+        if (room == 0) return "Aucune licence jouable dans ce format";
+        for (var t : plugin.teams().all()) if (t.size() > 0 && t.kind() == kind) taken++;
+        return taken >= room ? "Complet : plus de licence libre sans doublons (" + room + " au plus)" : null;
     }
 
     @EventHandler
@@ -332,11 +345,24 @@ public final class HostTools implements Listener {
         var teams = plugin.teams();
         var mine = teams.teamOf(p);
         int slot = e.getRawSlot();
+        var cf = plugin.players().get(p);
+        if (slot == WATCH_PLACE) {
+            boolean watch = !cf.isSpectatorOnly();
+            cf.setSpectatorOnly(watch);
+            if (watch) leaveTeam(p, mine);
+            Msg.send(p, watch ? "<yellow>Tu regarderas la partie en spectateur." : "<green>Tu joues : choisis ton equipe.");
+            p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, watch ? 0.9f : 1.3f);
+            refreshTeamMenus();
+            return;
+        }
+        if (plugin.roster().randomTeams()) return;
         TeamSize kind = slot == SOLO_PLACE ? TeamSize.SOLO : slot == DUO_PLACE ? TeamSize.DUO : slot == TRIO_PLACE ? TeamSize.TRIO : null;
         if (kind != null) {
-            // Deja seul dans une equipe de ce format : rien a refaire.
+            // Deja seul dans une equipe de ce format : rien a refaire. Format ferme : refuse.
             if (mine != null && mine.kind() == kind && mine.size() == 1) { deny(p); return; }
+            if (closed(kind) != null) { deny(p); Msg.actionBar(p, "<red>" + closed(kind) + "."); return; }
             leaveTeam(p, mine);
+            cf.setSpectatorOnly(false);
             var t = teams.create(kind);
             teams.join(p, t);
             Msg.send(p, kind == TeamSize.SOLO ? "<green>Tu joues en solitaire <gray>(" + t.coloredName() + "<gray>)."
@@ -354,6 +380,7 @@ public final class HostTools implements Listener {
             var t = shown.get(i);
             if (t == mine || t.isFull()) { deny(p); return; }
             leaveTeam(p, mine);
+            cf.setSpectatorOnly(false);
             teams.join(p, t);
             for (Player member : t.onlineMembers()) Msg.send(member, member == p ? "<green>Tu as rejoint " + t.coloredName() + "<green>." : "<green>" + p.getName() + " a rejoint ton equipe.");
             p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
@@ -370,6 +397,167 @@ public final class HostTools implements Listener {
 
     private void deny(Player p) {
         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.6f, 0.7f);
+    }
+
+    // ------------------------------------------------------------------ le menu des personnages et licences
+
+    /** Le menu des licences (licence == null) ou celui des personnages d'une licence. */
+    private static final class RosterMenu implements InventoryHolder {
+        Inventory inv;
+        com.kiokouwhite.crossfight.character.Licence licence;
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    private static final int FORMAT_FIRST = 1, DUPLICATES_PLACE = 5, RANDOM_TOGGLE = 7, RANDOM_FORMAT = 8, LICENCES_FIRST = 19, BACK_PLACE = 22;
+    /** Ceux qui ont change quelque chose dans ces menus : une annonce a la fermeture. */
+    private final java.util.Set<UUID> rosterChanged = new java.util.HashSet<>();
+
+    private void openRoster(Player p) {
+        RosterMenu menu = new RosterMenu();
+        menu.inv = Bukkit.createInventory(menu, 45, Msg.mm("<dark_gray>Personnages et licences"));
+        fill(menu);
+        p.openInventory(menu.inv);
+        p.playSound(p.getLocation(), Sound.BLOCK_CHEST_OPEN, 0.5f, 1.3f);
+    }
+
+    private void openLicence(Player p, com.kiokouwhite.crossfight.character.Licence licence) {
+        RosterMenu menu = new RosterMenu();
+        menu.licence = licence;
+        menu.inv = Bukkit.createInventory(menu, 27, Msg.mm("<dark_gray>" + licence.name()));
+        fill(menu);
+        p.openInventory(menu.inv);
+    }
+
+    private List<com.kiokouwhite.crossfight.character.Licence> shownLicences() {
+        return new ArrayList<>(plugin.characters().licences());
+    }
+
+    private ItemStack toggle(Material icon, boolean on, String name, List<String> lore, int amount) {
+        ItemStack it = Items.of(on ? icon : Material.GRAY_DYE, (on ? "<green><bold>" : "<red>") + name + (on ? "" : " <dark_gray>(desactive)"), lore);
+        it.setAmount(amount);
+        it.editMeta(m -> m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES));
+        return it;
+    }
+
+    private void fill(RosterMenu menu) {
+        Roster roster = plugin.roster();
+        menu.inv.clear();
+        ItemStack pane = Items.of(Material.GRAY_STAINED_GLASS_PANE, "<gray> ", null);
+        if (menu.licence != null) {
+            // Les personnages d'une licence.
+            int place = 0;
+            for (var c : menu.licence.characters()) {
+                boolean on = roster.on(c);
+                List<String> lore = List.of(on ? "<green>Jouable" : "<red>Desactive", "", "<yellow>Clic <gray>: " + (on ? "desactiver" : "activer"));
+                menu.inv.setItem(place++, on ? com.kiokouwhite.crossfight.util.Skins.icon(c, c.icon(), "<green><bold>" + c.name(), lore)
+                        : Items.of(Material.GRAY_DYE, "<red>" + c.name() + " <dark_gray>(desactive)", lore));
+            }
+            for (int i = 18; i < 27; i++) menu.inv.setItem(i, pane);
+            menu.inv.setItem(BACK_PLACE, Items.of(Material.ARROW, "<white>Retour aux licences", null));
+            return;
+        }
+        for (int i = 0; i < 45; i++) if (i < 9 || i >= 36 || i % 9 == 0 || i % 9 == 8) menu.inv.setItem(i, pane);
+        for (TeamSize kind : TeamSize.values()) {
+            boolean on = roster.on(kind);
+            menu.inv.setItem(FORMAT_FIRST + kind.ordinal(), toggle(Material.PLAYER_HEAD, on, kind.label(),
+                    List.of("Format d'equipe", "", "<yellow>Clic <gray>: " + (on ? "desactiver" : "activer")), kind.size()));
+        }
+        boolean dup = roster.duplicates();
+        menu.inv.setItem(DUPLICATES_PLACE, toggle(Material.ARMOR_STAND, dup, "Doublons " + (dup ? "autorises" : "interdits"),
+                List.of("Autorises : deux equipes peuvent avoir la meme licence,", "deux solitaires le meme personnage", "Interdits : une equipe par licence, un solitaire par personnage", "", "<yellow>Clic <gray>: " + (dup ? "interdire" : "autoriser")), 2));
+        boolean random = roster.randomTeams();
+        menu.inv.setItem(RANDOM_TOGGLE, toggle(Material.ENDER_CHEST, random, "Equipes aleatoires",
+                List.of(random ? "Les equipes sont tirees au sort au lancement" : "Les joueurs choisissent leur equipe", "", "<yellow>Clic <gray>: " + (random ? "laisser choisir" : "tirer au sort")), 1));
+        menu.inv.setItem(RANDOM_FORMAT, Items.of(Material.LEATHER_HELMET, "<gold>Format du tirage <white><bold>" + plugin.teams().teamSize().label(),
+                List.of("Le format des equipes tirees au sort", "(ceux qui restent forment une equipe plus petite)", "", "<yellow>Clic <gray>: solitaire, duo, trio")));
+        int place = LICENCES_FIRST;
+        for (var l : shownLicences()) {
+            boolean on = roster.on(l);
+            List<String> lore = new ArrayList<>();
+            lore.add(l.teamSize().label());
+            for (var c : l.characters()) lore.add((roster.on(c) ? "<green>✔ <white>" : "<red>✘ <gray>") + c.name());
+            if (on && !roster.playable(l)) lore.add("<red>Pas assez de personnages actifs : elle ne sera pas tiree");
+            lore.add("");
+            lore.add("<yellow>Clic gauche <gray>: " + (on ? "desactiver" : "activer") + " la licence");
+            lore.add("<yellow>Clic droit <gray>: choisir ses personnages");
+            var first = l.characters().isEmpty() ? null : l.characters().get(0);
+            ItemStack it = !on || first == null ? Items.of(Material.GRAY_DYE, "<red>" + l.name() + (on ? "" : " <dark_gray>(desactivee)"), lore)
+                    : com.kiokouwhite.crossfight.util.Skins.icon(first, first.icon(), "<green><bold>" + l.name(), lore);
+            it.editMeta(m -> m.addItemFlags(ItemFlag.HIDE_ATTRIBUTES));
+            if (place % 9 == 8) place += 2;
+            menu.inv.setItem(place++, it);
+        }
+    }
+
+    @EventHandler
+    public void onRosterClick(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof RosterMenu menu) || !(e.getWhoClicked() instanceof Player p)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != menu.inv) return;
+        if (!waiting() || !canHost(p)) { p.closeInventory(); return; }
+        Roster roster = plugin.roster();
+        int slot = e.getRawSlot();
+        if (menu.licence != null) {
+            if (slot == BACK_PLACE) { openRoster(p); return; }
+            if (slot < 0 || slot >= menu.licence.characters().size()) return;
+            var c = menu.licence.characters().get(slot);
+            roster.set(c, !roster.on(c));
+        } else if (slot >= FORMAT_FIRST && slot < FORMAT_FIRST + TeamSize.values().length) {
+            TeamSize kind = TeamSize.values()[slot - FORMAT_FIRST];
+            setFormat(kind, !roster.on(kind));
+        } else if (slot == DUPLICATES_PLACE) {
+            plugin.game().rules().set(Rules.rule("doublons"), roster.duplicates() ? "non" : "oui");
+        } else if (slot == RANDOM_TOGGLE) {
+            setRandomTeams(!roster.randomTeams());
+        } else if (slot == RANDOM_FORMAT) {
+            plugin.teams().setTeamSize(TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length]);
+        } else {
+            com.kiokouwhite.crossfight.character.Licence licence = null;
+            int place = LICENCES_FIRST;
+            for (var l : shownLicences()) {
+                if (place % 9 == 8) place += 2;
+                if (place++ == slot) licence = l;
+            }
+            if (licence == null) return;
+            if (e.isRightClick()) { rosterChanged.add(p.getUniqueId()); openLicence(p, licence); return; }
+            roster.set(licence, !roster.on(licence));
+        }
+        rosterChanged.add(p.getUniqueId());
+        fill(menu);
+        refreshTeamMenus();
+        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.1f);
+    }
+
+    /** Un format desactive : les equipes du lobby qui l'avaient sont dissoutes. */
+    public void setFormat(TeamSize kind, boolean on) {
+        plugin.roster().set(kind, on);
+        if (on || !plugin.game().isLobby()) return;
+        for (var t : plugin.teams().all()) {
+            if (t.kind() != kind) continue;
+            for (Player member : t.onlineMembers()) {
+                plugin.teams().leave(member);
+                Msg.send(member, "<yellow>Le format " + kind.label() + " est desactive : ton equipe est dissoute, choisis-en une autre.");
+            }
+        }
+        plugin.teams().prune();
+        refreshTeamMenus();
+    }
+
+    /** Equipes tirees au sort : celles que les joueurs avaient formees n'ont plus lieu d'etre. */
+    public void setRandomTeams(boolean on) {
+        plugin.game().rules().set(Rules.rule("equipes-aleatoires"), on ? "oui" : "non");
+        if (on && plugin.game().isLobby()) plugin.teams().clear();
+        refreshTeamMenus();
+    }
+
+    /** Sorti des menus des personnages (et pas pour passer de l'un a l'autre) : une annonce de ce qui est regle. */
+    @EventHandler
+    public void onRosterClose(InventoryCloseEvent e) {
+        if (!(e.getInventory().getHolder() instanceof RosterMenu) || !(e.getPlayer() instanceof Player p)) return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (p.getOpenInventory().getTopInventory().getHolder() instanceof RosterMenu) return;
+            if (rosterChanged.remove(p.getUniqueId())) Msg.broadcast("<aqua>Partie reglee par " + p.getName() + " <dark_gray>: " + plugin.roster().summary());
+        });
     }
 
     // ------------------------------------------------------------------ le menu des scenarios
@@ -434,7 +622,7 @@ public final class HostTools implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
-        if (e.getInventory().getHolder() instanceof ScenarioMenu || e.getInventory().getHolder() instanceof TeamMenu) return;
+        if (e.getInventory().getHolder() instanceof ScenarioMenu || e.getInventory().getHolder() instanceof TeamMenu || e.getInventory().getHolder() instanceof RosterMenu) return;
         if (!(e.getInventory().getHolder() instanceof Menu menu)) {
             // Dans son propre inventaire : les outils restent a leur place.
             if (toolOf(e.getCurrentItem()) != null || toolOf(e.getCursor()) != null
@@ -445,13 +633,7 @@ public final class HostTools implements Listener {
         if (e.getClickedInventory() != menu.inv) return;
         if (!waiting() || !canHost(p)) { p.closeInventory(); return; }
         Rules rules = plugin.game().rules();
-        if (e.getRawSlot() == TEAM_PLACE) {
-            if (!plugin.game().isLobby()) return;
-            TeamSize next = TeamSize.values()[(plugin.teams().teamSize().ordinal() + 1) % TeamSize.values().length];
-            plugin.teams().setTeamSize(next);
-            Msg.broadcast("<yellow>Equipes par defaut : <gold>" + next.label() + " <gray>(pour ceux qui n'ont pas choisi d'equipe au lancement)");
-            refreshAll();
-        } else {
+        {
             Rules.Rule rule = null;
             for (var en : PLACES.entrySet()) if (en.getValue() == e.getRawSlot()) rule = Rules.rule(en.getKey());
             if (rule == null) return;

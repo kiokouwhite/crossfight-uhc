@@ -20,6 +20,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -219,13 +220,30 @@ public final class GameManager {
     // ----------------------------------------------------------------- start
 
     /** Lance la sequence de depart : equipes, licences, choix de personnage. */
-    public boolean start() {
-        if (!isLobby()) return false;
-        plugin.teams().autoFill();
-        if (plugin.teams().all().isEmpty()) {
-            Msg.broadcast("<red>Aucun joueur pour lancer la partie.");
-            return false;
+    /**
+     * Ce qui empeche de lancer la partie, ou null : tous les joueurs doivent avoir choisi une equipe (ou de
+     * regarder), et les equipes doivent tenir dans les formats et les licences actives.
+     */
+    public String startProblem() {
+        if (!isLobby()) return "une partie est deja en cours";
+        if (plugin.roster().randomTeams()) {
+            int players = plugin.teams().playing().size();
+            return players == 0 ? "aucun joueur" : plugin.roster().problemFor(plugin.roster().randomPlan(players));
         }
+        plugin.teams().prune();
+        List<Player> undecided = plugin.teams().undecided();
+        if (!undecided.isEmpty()) {
+            List<String> names = new ArrayList<>();
+            for (Player p : undecided) names.add(p.getName());
+            return (names.size() == 1 ? names.get(0) + " n'a pas choisi d'equipe" : String.join(", ", names) + " n'ont pas choisi d'equipe");
+        }
+        if (plugin.teams().all().isEmpty()) return "aucun joueur dans une equipe";
+        return plugin.roster().problem(plugin.teams().all());
+    }
+
+    public boolean start() {
+        if (startProblem() != null) return false;
+        if (plugin.roster().randomTeams()) plugin.teams().shuffle(plugin.roster().randomPlan(plugin.teams().playing().size()));
         int lives = plugin.getConfig().getInt("game.lives", 3);
         for (Team t : plugin.teams().all()) t.setEliminated(false);
         com.kiokouwhite.crossfight.util.Boosts.clearAll();
@@ -312,7 +330,7 @@ public final class GameManager {
         for (Team t : plugin.teams().all()) {
             for (Player p : t.onlineMembers()) {
                 if (plugin.players().get(p).character() == null
-                        && t.licence() != null && !t.licence().characters().isEmpty()) {
+                        && t.licence() != null && !plugin.roster().characters(t.licence()).isEmpty()) {
                     everyoneChose = false;
                 }
             }

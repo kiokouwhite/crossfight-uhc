@@ -151,7 +151,8 @@ public final class SelectionStage implements Listener {
             this.licence = licence;
             this.origin = origin;
             this.preview = preview;
-            this.characters = List.copyOf(licence.characters());
+            // En partie : les personnages actifs seulement (un apercu de test les montre tous).
+            this.characters = List.copyOf(preview ? licence.characters() : plugin.roster().characters(licence));
             this.dist = dist();
             this.cy = height();
             build();
@@ -284,7 +285,7 @@ public final class SelectionStage implements Listener {
     public void open(Player p) {
         CfPlayer cf = plugin.players().get(p);
         Team team = cf.team();
-        if (!enabled() || team == null || team.licence() == null || team.licence().characters().isEmpty()) {
+        if (!enabled() || team == null || team.licence() == null || plugin.roster().characters(team.licence()).isEmpty()) {
             plugin.characters().selectMenu(plugin).open(p);
             return;
         }
@@ -292,6 +293,10 @@ public final class SelectionStage implements Listener {
         for (Player mate : team.onlineMembers()) {
             CfPlayer mcf = plugin.players().get(mate);
             if (mcf.character() != null) stage.picks.putIfAbsent(mcf.character().id(), mate.getUniqueId());
+        }
+        // Sans doublons : les personnages deja pris par une autre equipe de la meme licence le sont ici aussi.
+        if (!plugin.roster().duplicates()) {
+            for (Stage other : stages.values()) if (other != stage && !other.preview && other.licence == stage.licence) other.picks.forEach(stage.picks::putIfAbsent);
         }
         show(p, stage);
     }
@@ -791,6 +796,14 @@ public final class SelectionStage implements Listener {
         }
         if (stage == null) return;
         stage.picks.put(c.id(), p.getUniqueId());
+        // Sans doublons : le personnage devient pris aussi sur l'ecran des autres equipes de la meme licence.
+        if (!stage.preview && !plugin.roster().duplicates()) {
+            for (Stage other : stages.values()) {
+                if (other == stage || other.preview || other.licence != stage.licence) continue;
+                other.picks.putIfAbsent(c.id(), p.getUniqueId());
+                for (Viewer v : other.viewers()) refresh(v);
+            }
+        }
         for (Viewer v : stage.viewers()) {
             refresh(v);
             if (v == pv) {
