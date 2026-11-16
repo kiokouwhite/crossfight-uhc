@@ -407,7 +407,14 @@ public final class Omori implements Listener {
     private void music() {
         if (over) return;
         List<Player> in = fighters();
-        for (Player p : in) if (listeners.add(p.getUniqueId())) plugin.music().hold(p, "omori");
+        // Le cote calme du morceau tourne jusqu'a la derniere phase ; la, la musique repart de sa montee et glisse
+        // d'elle-meme vers son cote violent, qui tourne ensuite. Le changement se fait en fondu (deux secondes).
+        final String track = phase == HITS.length - 1 ? "omori_violent" : "omori_calme";
+        for (Player p : in) {
+            boolean fresh = listeners.add(p.getUniqueId());
+            if (fresh || !track.equals(heard)) { if (fresh) plugin.music().hold(p, track); else plugin.music().blend(p, track, 40); }
+        }
+        heard = track;
         listeners.removeIf(id -> {
             Player p = Bukkit.getPlayer(id);
             if (p != null && in.contains(p)) return false;
@@ -417,6 +424,8 @@ public final class Omori implements Listener {
     }
 
     private final java.util.Set<UUID> listeners = new java.util.HashSet<>();
+    /** La piste que les combattants entendent en ce moment. */
+    private String heard;
 
     /** Un clic droit sur la porte blanche : elle s'ouvre, et l'on passe dans l'Espace Blanc. */
     @EventHandler
@@ -590,7 +599,22 @@ public final class Omori implements Listener {
         w.spawnParticle(Particle.DUST, boss.getLocation().add(0, 1, 0), 60, 1.2, 1.2, 1.2, 0, phase == HITS.length - 1 ? RED : INK);
         for (Player p : fighters()) Msg.send(p, phase == HITS.length - 1 ? "<dark_red><bold>Omori : cinquieme phase.</bold> <gray>Tout devient noir." : "<white><bold>Omori : phase " + (phase + 1) + ".");
         panel();
+        negative();
         updateBar();
+    }
+
+    /**
+     * Entre deux phases, le temps du panneau, Omori est en negatif : son skin aux couleurs inversees ("skin.omori_negatif"
+     * dans le pack complet, tools/add_skin.py sur l'image inversee). Il retrouve ses couleurs quand le combat reprend.
+     */
+    private void negative() {
+        if (puppet == null || !com.kiokouwhite.crossfight.util.Puppet.available("omori_negatif")) return;
+        final var mine = puppet;
+        final int at = phase;
+        mine.look(null, "omori_negatif");
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (puppet == mine && !over && dying == null && phase == at) mine.look(null, plugin.getConfig().getString("omori.skin", "omori"));
+        }, 70L);
     }
 
     /** Le panneau du jeu ("OMORI did not succumb.") : l'image a montrer a chaque tick, lue dans intro.txt. */

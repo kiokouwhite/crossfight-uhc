@@ -1,3 +1,5 @@
 # Genere par tools/build_pack.py
-track omori 606006 605756 omori_boucle
-track omori_boucle 167776 167526 omori_boucle
+track omori_calme 262104 261854 omori_calme_boucle
+track omori_calme_boucle 172250 172000 omori_calme_boucle
+track omori_violent 391622 391372 omori_violent_boucle
+track omori_violent_boucle 167776 167526 omori_violent_boucle

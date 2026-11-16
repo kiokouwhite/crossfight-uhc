@@ -137,6 +137,16 @@ public final class Music implements Listener {
         return true;
     }
 
+    /** Les joueurs dont le prochain changement de piste se fait en fondu : pendant combien de ticks l'ancienne joue encore. */
+    private final Map<UUID, Integer> blends = new java.util.HashMap<>();
+
+    /** Comme {@link #hold}, mais l'ancienne piste tenue joue encore {@code ticks} ticks sous la nouvelle. */
+    public boolean blend(Player p, String track, int ticks) {
+        if (!enabled() || !DURATION.containsKey(track)) return false;
+        if (!track.equals(held.get(p.getUniqueId()))) blends.put(p.getUniqueId(), ticks);
+        return hold(p, track);
+    }
+
     /** Relache la piste tenue pour ce joueur : sa musique s'arrete (ou celle de son combat reprend). */
     public void release(Player p) {
         if (held.remove(p.getUniqueId()) != null) refresh(p);
@@ -179,7 +189,18 @@ public final class Music implements Listener {
             }
             return;
         }
-        if (now != null) stop(p);
+        // D'une piste tenue a une autre, en fondu (blend) : la nouvelle part tout de suite, l'ancienne ne se tait
+        // qu'un peu apres, le temps que la nouvelle (qui commence en fondu entrant) ait pris sa place.
+        Integer lap = blends.remove(p.getUniqueId());
+        if (now != null && lap != null) {
+            final String old = now.file, older = now.before;
+            playing.remove(p.getUniqueId());
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!p.isOnline()) return;
+                p.stopSound(Sounds.NS + ":music." + old, SoundCategory.RECORDS);
+                if (older != null) p.stopSound(Sounds.NS + ":music." + older, SoundCategory.RECORDS);
+            }, lap);
+        } else if (now != null) stop(p);
         playing.put(p.getUniqueId(), new Playing(want));
         p.stopSound(SoundCategory.MUSIC);
         play(p, want);

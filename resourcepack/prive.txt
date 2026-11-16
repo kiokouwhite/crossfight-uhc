@@ -39,8 +39,10 @@ glyph.schnee_cercle
 glyph.schnee_flocon
 model.falchion
 model.yumi_fujin
-music.omori 606006 605756 omori_boucle
-music.omori_boucle 167776 167526 omori_boucle
+music.omori_calme 262104 261854 omori_calme_boucle
+music.omori_calme_boucle 172250 172000 omori_calme_boucle
+music.omori_violent 391622 391372 omori_violent_boucle
+music.omori_violent_boucle 167776 167526 omori_violent_boucle
 overlay.minecraft
 select.card.byleth
 select.card.corrin
@@ -70,6 +72,7 @@ skin.marth
 skin.mikasa
 skin.neon
 skin.omori
+skin.omori_negatif
 skin.remi
 skin.ruby
 skin.sage

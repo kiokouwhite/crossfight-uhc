@@ -5,7 +5,7 @@ Usage :
   python3 tools/boucle_musique.py analyse <fichier>
       cherche ou la piste se repete (le meme enregistrement, rejoue plus loin) et propose un point de boucle
   python3 tools/boucle_musique.py <fichier> <piste> --debut <secondes> --longueur <echantillons>
-                                  [--tours 8] [--suite 4] [--fondu 300] [--relais 250] [--prive]
+                                  [--tours 8] [--suite 4] [--fondu 300] [--relais 250] [--niveau -16] [--prive]
       ecrit la piste en deux fichiers, dans sounds/music/ :
         <piste>.ogg          l'introduction (tout ce qui precede --debut), puis <tours> tours de boucle
         <piste>_boucle.ogg   <suite> tours de boucle, pour continuer apres le premier fichier, autant de fois qu'il faut
@@ -24,6 +24,10 @@ chaque fichier, le debut du tour suivant est ajoute en fondu sortant (--relais m
 fondu entrant : meme si le relais tombe 50 ms trop tot ou trop tard, il n'y a ni blanc ni claquement.
 Chaque fichier dit lui-meme quand et par quoi il est relaye (etiquettes CROSSFIGHT_RELAIS et CROSSFIGHT_SUITE, lues par
 tools/build_pack.py) : le plugin n'a rien a savoir de plus.
+
+--niveau est le niveau vise, en LUFS : une piste calme qui en precede une autre se regle plus bas qu'elle. Une section
+qui n'est pas rejouee a l'identique peut tourner quand meme, avec un long --fondu (plusieurs secondes) : sa fin se fond
+dans ce qui precede son debut.
 
 Avec --prive, les fichiers vont dans resourcepack-prive/ (musiques sous droits, jamais sur le depot).
 Demande numpy et ffmpeg. Ensuite : python3 tools/build_pack.py
@@ -271,6 +275,7 @@ def build(argv) -> int:
     after = int(option(argv, "--suite", 4))
     fade = int(int(option(argv, "--fondu", 300)) * SR / 1000)
     relay = int(int(option(argv, "--relais", 250)) * SR / 1000)
+    level = float(option(argv, "--niveau", -16))
     if len(argv) != 3 or start_s is None or length is None:
         print(__doc__)
         return 1
@@ -311,7 +316,7 @@ def build(argv) -> int:
     measure = loudness(np.concatenate([intro, lap]))
     gain = 1.0
     if measure:
-        db = min(-16.0 - measure[0], -1.5 - measure[1])
+        db = min(level - measure[0], -1.5 - measure[1])
         gain = 10 ** (db / 20)
         print(f"niveau : {measure[0]:.1f} LUFS, crete {measure[1]:.1f} dB -> gain de {db:+.1f} dB")
     sounds = ROOT / ("resourcepack-prive" if private else "resourcepack") / "assets" / "crossfight" / "sounds" / "music"
