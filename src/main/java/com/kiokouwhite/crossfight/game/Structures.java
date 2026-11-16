@@ -856,7 +856,13 @@ public final class Structures implements Listener {
             int[] cut = cut(s, max);
             int[] at = before != null ? new int[]{before.x(), before.z()} : s.name().equals(middle) ? new int[]{-cut[2] / 2, -cut[3] / 2} : spot(w, s.name(), cut[2], cut[3]);
             if (at == null) { plugin.getLogger().warning("Lieu " + s.name() + " : aucun emplacement libre sur cette map (" + cut[2] + " x " + cut[3] + " blocs)."); continue; }
-            if (place(Bukkit.getConsoleSender(), s, w, at[0], at[1], max, () -> scatter(w))) return;
+            if (place(Bukkit.getConsoleSender(), s, w, at[0], at[1], max, () -> scatter(w))) {
+                // Les admins en ligne suivent la pose : les lieux arrivent l'un apres l'autre, une minute chacun environ.
+                int done = finished(w).size();
+                for (org.bukkit.entity.Player pl : Bukkit.getOnlinePlayers()) if (pl.hasPermission("crossfight.admin"))
+                    Msg.send(pl, "<gray>Lieux : pose de <white>" + title(s.name()) + "<gray> (" + (done + 1) + " sur " + all.size() + "). Ils arrivent l'un apres l'autre, une minute chacun environ.");
+                return;
+            }
             skipped.add(s.name());
         }
     }
