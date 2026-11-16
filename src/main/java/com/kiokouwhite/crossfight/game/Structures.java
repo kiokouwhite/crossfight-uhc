@@ -612,37 +612,55 @@ public final class Structures implements Listener {
         return !ragged(w, box) || edge(w, box, x, z) > 0;
     }
 
-    /** La profondeur de la faille d'un lieu dans cette colonne, ou 0 si elle n'y passe pas. */
-    private int rift(World w, Placed box, int x, int z) {
-        if (x < box.x() - 10 || z < box.z() - 10 || x >= box.x() + box.sx() + 10 || z >= box.z() + box.sz() + 10) return 0;
+    /**
+     * La faille d'un lieu dans cette colonne : ou l'on est dans sa largeur, de 0 (son milieu) a 1 (son bord), ou -1 si
+     * elle n'y passe pas. Elle longe le contour du lieu, large de 9 a 18 blocs, et s'interrompt par endroits.
+     */
+    private double rift(World w, Placed box, int x, int z) {
+        if (x < box.x() - REACH || z < box.z() - REACH || x >= box.x() + box.sx() + REACH || z >= box.z() + box.sz() + REACH) return -1;
         double e = edge(w, box, x, z);
-        if (e > 0) return 0;
-        int d = (int) Math.floor(1 - e);
-        if (d > 9) return 0;
+        if (e > 0) return -1;
+        double d = 1 - e;
+        if (d > REACH - 1) return -1;
         double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
         double t = x * 0.9 + z * 1.1;
-        // Des passages restent : la faille s'efface sur un bon tiers du tour.
-        if (Math.sin(t * 0.021 + seed) + 0.5 * Math.sin(t * 0.057 + seed * 2) < -0.25) return 0;
-        double width = 2 + 7 * (0.5 + 0.5 * Math.sin(t * 0.11 + seed * 3));
-        if (d > width) return 0;
+        // Des passages restent : la faille s'efface sur un quart du tour.
+        if (Math.sin(t * 0.021 + seed) + 0.5 * Math.sin(t * 0.057 + seed * 2) < -0.55) return -1;
+        double width = 9 + 9 * (0.5 + 0.5 * Math.sin(t * 0.07 + seed * 3));
+        if (d > width) return -1;
         Location arena = plugin.ferox().centre();
-        if (Math.hypot(x - arena.getX(), z - arena.getZ()) < 110) return 0;
-        return (int) (12 + 28 * Math.abs(Math.sin(t * 0.17 + d * 0.6 + seed)) * (1 - (d - 1) / (width + 1)));
+        if (Math.hypot(x - arena.getX(), z - arena.getZ()) < 110) return -1;
+        return Math.min(1, Math.abs(d - width / 2) / (width / 2));
     }
 
+    /** Jusqu'ou la faille s'ecarte du bord d'un lieu, en blocs. */
+    private static final int REACH = 20;
+    private static final Material[] GLASS = {Material.MAGENTA_STAINED_GLASS, Material.PURPLE_STAINED_GLASS, Material.BLUE_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS,
+            Material.CYAN_STAINED_GLASS, Material.LIME_STAINED_GLASS, Material.YELLOW_STAINED_GLASS, Material.ORANGE_STAINED_GLASS, Material.RED_STAINED_GLASS,
+            Material.PINK_STAINED_GLASS, Material.WHITE_STAINED_GLASS, Material.GREEN_STAINED_GLASS};
+    private static final Material[] CRUST = {Material.OBSIDIAN, Material.OBSIDIAN, Material.CRYING_OBSIDIAN, Material.BLACKSTONE, Material.CRYING_OBSIDIAN};
+    private static final Set<Material> GLASS_SET = Set.of(GLASS);
+
     /**
-     * Fend le sol autour d'un lieu, et fait luire le fond de la faille (structures.lueur) : le lieu a ete arrache a son
-     * monde, et la lumiere de ce monde filtre encore par la dechirure. {@code dig} faux : la faille existe deja (une
-     * map d'avant la lueur), seul son fond est change.
+     * Fend le monde autour d'un lieu (structures.dechirure) : le lieu a ete arrache a son monde et enfonce dans celui-ci,
+     * et par la dechirure on voit le coeur du monde. Une large faille au bord d'obsidienne ; dedans, un lit de verre de
+     * toutes les couleurs, en creux, eclaire par-dessous (structures.lueur) ; par endroits, au milieu, le verre manque
+     * et c'est le vide, un puits de cinquante blocs. {@code fresh} faux : le lieu a deja une faille d'avant (plus
+     * etroite, creusee profond) ; la nouvelle est batie par-dessus, d'apres la hauteur du terrain alentour.
      */
-    private void tear(World w, Placed box, boolean dig) {
-        if (!plugin.getConfig().getBoolean("structures.dechirure", true)) return;
+    private void tear(World w, Placed box, boolean fresh) {
+        tear(w, box, fresh, null);
+    }
+
+    private void tear(World w, Placed box, boolean fresh, Runnable after) {
+        if (!plugin.getConfig().getBoolean("structures.dechirure", true)) { if (after != null) after.run(); return; }
         final boolean shine = plugin.getConfig().getBoolean("structures.lueur", true);
         final Material light = glow(box);
+        final double seed = (w.getSeed() ^ box.name().hashCode()) % 1000 / 7.0;
         final List<int[]> columns = new ArrayList<>();
-        for (int x = box.x() - 10; x < box.x() + box.sx() + 10; x++) for (int z = box.z() - 10; z < box.z() + box.sz() + 10; z++) {
-            int depth = rift(w, box, x, z);
-            if (depth > 0) columns.add(new int[]{x, z, depth});
+        for (int x = box.x() - REACH; x < box.x() + box.sx() + REACH; x++) for (int z = box.z() - REACH; z < box.z() + box.sz() + REACH; z++) {
+            double c = rift(w, box, x, z);
+            if (c >= 0) columns.add(new int[]{x, z, (int) (c * 1000)});
         }
         final int mine = run;
         new BukkitRunnable() {
@@ -650,38 +668,50 @@ public final class Structures implements Listener {
             final Random r = new Random(w.getSeed() ^ box.name().hashCode());
             @Override public void run() {
                 if (mine != run) { cancel(); return; }
-                for (int n = 0; n < 120 && i < columns.size(); n++, i++) {
-                    int[] c = columns.get(i);
-                    Location at = new Location(w, c[0], 0, c[1]);
-                    int top = w.getHighestBlockYAt(c[0], c[1]);
-                    int y = top;
-                    if (dig) for (; y > Math.max(w.getMinHeight() + 4, top - c[2]); y--) {
+                // Peu de colonnes par tick : chacune peut demander au serveur de charger un chunk.
+                for (int n = 0; n < (fresh ? 90 : 30) && i < columns.size(); n++, i++) {
+                    int[] col = columns.get(i);
+                    int x = col[0], z = col[1];
+                    double c = col[2] / 1000.0;
+                    int top = w.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                    // Une colonne deja creusee par l'ancienne faille : on repart de la hauteur du terrain alentour.
+                    int around = fresh ? top : rim(w, box, x, z);
+                    int s = top < around - 8 ? around : top;
+                    Location at = new Location(w, x, s, z);
+                    if (s <= w.getMinHeight() + 8 || held(at)) continue;
+                    // Ce qui depasse (arbres, herbes) est retire.
+                    for (int y = w.getHighestBlockYAt(x, z); y > s; y--) { at.setY(y); if (held(at)) break; w.getBlockAt(x, y, z).setType(Material.AIR, false); }
+                    if (c > 0.8) {
+                        // Le bord : une croute d'obsidienne, qui pleure par endroits.
+                        w.getBlockAt(x, s, z).setType(CRUST[r.nextInt(CRUST.length)], false);
+                        continue;
+                    }
+                    double in = 1 - c / 0.8;
+                    // Le vide : au milieu de la faille, par taches.
+                    boolean hole = in > 0.45 && Math.sin(x * 0.19 + seed) * Math.sin(z * 0.23 + seed * 1.3) + 0.4 * Math.sin((x - z) * 0.11) > 0.55;
+                    int bottom = hole ? Math.max(w.getMinHeight() + 2, s - 50) : s - 2 - (int) Math.round(4 * in);
+                    for (int y = s; y > bottom; y--) {
                         at.setY(y);
                         if (held(at)) break;
-                        // Un eclat reste parfois suspendu dans la faille.
-                        if (y < top - 3 && r.nextInt(90) == 0) { y -= 2; continue; }
-                        Block b = w.getBlockAt(c[0], y, c[1]);
+                        Block b = w.getBlockAt(x, y, z);
                         if (!b.getType().isAir()) b.setType(Material.AIR, false);
                     }
-                    // Le fond luit (sauf si rien n'a ete creuse : la colonne touche un lieu).
-                    at.setY(y);
-                    if (shine && (!dig || y < top) && y > w.getMinHeight() && !held(at)) {
-                        w.getBlockAt(c[0], y, c[1]).setType(light, false);
-                        // Le fond est trop bas pour eclairer la surface : presque partout, la lumiere affleure
-                        // juste sous le bord, a un ou deux blocs. Vue d'en haut, la faille est une fissure qui brille.
-                        if (r.nextInt(8) < 7) {
-                            int rim = dig ? top : rim(w, box, c[0], c[1]);
-                            int high = rim - 1 - r.nextInt(2);
-                            Block shard = w.getBlockAt(c[0], high, c[1]);
-                            at.setY(high);
-                            if (high > y + 1 && shard.getType().isAir() && !held(at)) shard.setType(light, false);
-                        }
-                    }
+                    if (hole) continue;
+                    // Le lit de verre : une lumiere au fond, du verre par-dessus, en creux vers le milieu. Les couleurs
+                    // vont par taches de quelques blocs.
+                    w.getBlockAt(x, bottom, z).setType(shine ? light : Material.OBSIDIAN, false);
+                    int surface = s - 1 - (int) Math.round(2 * in);
+                    int tone = Math.floorMod((int) Math.floor(3 * Math.sin(x * 0.31 + seed) + 3 * Math.sin(z * 0.27 + seed * 2) + (x + z) * 0.08) + r.nextInt(2), GLASS.length);
+                    int high = Math.max(bottom + 1, surface);
+                    for (int y = bottom + 1; y <= high; y++) w.getBlockAt(x, y, z).setType(GLASS[tone], false);
+                    // Une lumiere invisible juste au-dessus du verre : il brille de jour comme de nuit, et la neige ne s'y pose pas.
+                    if (shine) w.getBlockAt(x, high + 1, z).setType(Material.LIGHT, false);
                 }
                 if (i >= columns.size()) {
                     cancel();
-                    plugin.getConfig().set(key(w, box.name()) + ".lueur", shine ? 4 : 0);
+                    plugin.getConfig().set(key(w, box.name()) + ".lueur", 6);
                     plugin.saveConfig();
+                    if (after != null) after.run();
                 }
             }
         }.runTaskTimer(plugin, 20L, 1L);
@@ -691,43 +721,61 @@ public final class Structures implements Listener {
     private static int rim(World w, Placed box, int x, int z) {
         int ox = x < box.x() ? -1 : x >= box.x() + box.sx() ? 1 : 0, oz = z < box.z() ? -1 : z >= box.z() + box.sz() ? 1 : 0;
         int dx = Math.max(box.x() - x, x - (box.x() + box.sx() - 1)), dz = Math.max(box.z() - z, z - (box.z() + box.sz() - 1));
-        // Onze blocs au-dela du lieu : plus loin que la faille la plus large.
-        return w.getHighestBlockYAt(x + ox * (11 - Math.max(dx, 0)), z + oz * (11 - Math.max(dz, 0)), HeightMap.MOTION_BLOCKING_NO_LEAVES);
+        // Vingt blocs au-dela du lieu : plus loin que la faille la plus large.
+        return w.getHighestBlockYAt(x + ox * (REACH + 2 - Math.max(dx, 0)), z + oz * (REACH + 2 - Math.max(dz, 0)), HeightMap.MOTION_BLOCKING_NO_LEAVES);
     }
 
     /** Les lieux deja poses dont la faille ne luit pas encore (une map d'avant la lueur) : son fond est eclaire. */
     public void shine(World w) {
-        if (!enabled() || !plugin.getConfig().getBoolean("structures.lueur", true)) return;
-        for (Placed p : finished(w)) if (plugin.getConfig().getInt(key(w, p.name()) + ".lueur", 0) < 4) tear(w, p, false);
+        if (!enabled()) return;
+        // L'une apres l'autre : refaire une faille charge des chunks, et le serveur ne doit pas en patir.
+        for (Placed p : finished(w)) if (plugin.getConfig().getInt(key(w, p.name()) + ".lueur", 0) < 6) { tear(w, p, false, () -> shine(w)); return; }
     }
 
     /** Le lieu dont la faille passe par cette colonne, ou null. */
     private Placed riftOf(World w, int x, int z) {
-        for (Placed p : placed) if (p.world().equals(w.getName()) && rift(w, p, x, z) > 0) return p;
+        for (Placed p : placed) if (p.world().equals(w.getName()) && rift(w, p, x, z) >= 0) return p;
         return null;
     }
 
-    /** Des etincelles montent des failles, pres des joueurs (toutes les 5 ticks). */
+    /**
+     * Le coeur du monde bat dans les failles (toutes les 5 ticks, pres des joueurs) : des etincelles en montent, le verre
+     * change de couleur par vagues (un changement montre au joueur seulement : les blocs, eux, ne bougent pas), et un
+     * battement sourd s'entend toutes les deux secondes.
+     */
     public void sparkle() {
         if (!enabled() || !plugin.getConfig().getBoolean("structures.lueur", true) || !plugin.getConfig().getBoolean("structures.dechirure", true)) return;
         java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
+        beat++;
+        // La couleur de la vague du moment : elle fait le tour des verres en une minute.
+        int wave = beat / 6;
         for (org.bukkit.entity.Player pl : Bukkit.getOnlinePlayers()) {
             World w = pl.getWorld();
             Location at = pl.getLocation();
             boolean near = false;
-            for (Placed p : placed) if (p.world().equals(w.getName()) && at.getX() > p.x() - 50 && at.getX() < p.x() + p.sx() + 50 && at.getZ() > p.z() - 50 && at.getZ() < p.z() + p.sz() + 50) { near = true; break; }
+            for (Placed p : placed) if (p.world().equals(w.getName()) && at.getX() > p.x() - 60 && at.getX() < p.x() + p.sx() + 60 && at.getZ() > p.z() - 60 && at.getZ() < p.z() + p.sz() + 60) { near = true; break; }
             if (!near) continue;
-            for (int n = 0; n < 160; n++) {
-                int x = at.getBlockX() + r.nextInt(-36, 37), z = at.getBlockZ() + r.nextInt(-36, 37);
+            Map<Location, BlockData> change = new HashMap<>();
+            double closest = Double.MAX_VALUE;
+            for (int n = 0; n < 260; n++) {
+                int x = at.getBlockX() + r.nextInt(-40, 41), z = at.getBlockZ() + r.nextInt(-40, 41);
                 if (!w.isChunkLoaded(x >> 4, z >> 4) || riftOf(w, x, z) == null) continue;
                 int y = w.getHighestBlockYAt(x, z);
-                if (!GLOW_SET.contains(w.getBlockAt(x, y, z).getType())) continue;
-                pl.spawnParticle(org.bukkit.Particle.END_ROD, x + r.nextDouble(), y + 1.1, z + r.nextDouble(), 0, 0, 1, 0, 0.05 + r.nextDouble() * 0.2);
+                if (w.getBlockAt(x, y, z).getType() == Material.LIGHT) y--;
+                if (!GLASS_SET.contains(w.getBlockAt(x, y, z).getType())) continue;
+                closest = Math.min(closest, at.distanceSquared(new Location(w, x, y, z)));
+                // Un bloc sur trois prend la couleur de la vague, les autres une couleur voisine.
+                change.put(new Location(w, x, y, z), GLASS[Math.floorMod(wave + (x + z) / 5 + r.nextInt(3), GLASS.length)].createBlockData());
+                if (n % 3 == 0) pl.spawnParticle(org.bukkit.Particle.END_ROD, x + r.nextDouble(), y + 1.1, z + r.nextDouble(), 0, 0, 1, 0, 0.05 + r.nextDouble() * 0.2);
                 // De temps en temps, un trait de lumiere jaillit de la faille.
-                if (r.nextInt(40) == 0) for (int k = 0; k < 24; k++) pl.spawnParticle(org.bukkit.Particle.END_ROD, x + 0.5, y + 1 + k * 0.7, z + 0.5, 0, 0, 1, 0, 0.3);
+                if (r.nextInt(60) == 0) for (int k = 0; k < 24; k++) pl.spawnParticle(org.bukkit.Particle.END_ROD, x + 0.5, y + 1 + k * 0.7, z + 0.5, 0, 0, 1, 0, 0.3);
             }
+            if (!change.isEmpty()) pl.sendMultiBlockChange(change);
+            if (beat % 8 == 0 && closest < 28 * 28) pl.playSound(pl.getLocation(), org.bukkit.Sound.ENTITY_WARDEN_HEARTBEAT, org.bukkit.SoundCategory.AMBIENT, (float) Math.max(0.15, 1 - Math.sqrt(closest) / 28), 0.6f);
         }
     }
+
+    private int beat;
 
     private static final Set<Material> GLOW_SET = Set.of(GLOWS);
 
@@ -832,7 +880,7 @@ public final class Structures implements Listener {
     public void onBreak(BlockBreakEvent e) {
         if (guarded(e.getBlock().getLocation())) { e.setCancelled(true); Msg.actionBar(e.getPlayer(), "<red>Ce lieu est indestructible."); }
         // Le fond lumineux des failles ne se ramasse pas.
-        else if (GLOW_SET.contains(e.getBlock().getType()) && plugin.getConfig().getBoolean("structures.protegees", true)
+        else if ((GLOW_SET.contains(e.getBlock().getType()) || GLASS_SET.contains(e.getBlock().getType())) && plugin.getConfig().getBoolean("structures.protegees", true)
                 && riftOf(e.getBlock().getWorld(), e.getBlock().getX(), e.getBlock().getZ()) != null) e.setCancelled(true);
     }
 
