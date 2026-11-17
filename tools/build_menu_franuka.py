@@ -116,7 +116,7 @@ def main():
         im.alpha_composite(sprite("Mini icons", name), (18 + 18 * k, 22))
     write(im, 44, 41, "ANNA", title, (236, 170, 60, 255), BROWN)
     im.alpha_composite(sprite("Dividers", "Divider_05"), (20, 56))
-    write(im, 44, 74, "Enchantements", text, BROWN)
+    write(im, 44, 74, "Enchants.", text, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 58), (15, 94))
     write(im, 44, 96, "1 - 5 niv.", text, BROWN)
     write(im, 124, 26, "Pose ton", text, NAVY)
