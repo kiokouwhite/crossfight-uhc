@@ -27,7 +27,7 @@ BROWN = (92, 58, 64, 255)
 
 
 BIG = False                      # « QUÊTE » deux fois plus gros, sur une grande banniere (essaye, puis remis a la taille d'origine)
-TOP = 14 if BIG else 2           # rangs ajoutes en haut de l'image : pour la grande banniere, ou pour monter le mot de deux pixels
+TOP = 14 if BIG else 4           # rangs ajoutes en haut de l'image : pour la grande banniere, ou pour monter le mot de quatre pixels
 NAVY = (44, 48, 92, 255)
 
 
