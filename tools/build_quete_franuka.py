@@ -26,7 +26,8 @@ W, H, LIFT = base.W, base.H, base.LIFT
 BROWN = (92, 58, 64, 255)
 
 
-TOP = 14                         # rangs ajoutes en haut de l'image, pour la grande banniere
+BIG = False                      # « QUÊTE » deux fois plus gros, sur une grande banniere (essaye, puis remis a la taille d'origine)
+TOP = 14 if BIG else 0           # rangs ajoutes en haut de l'image, pour la grande banniere
 NAVY = (44, 48, 92, 255)
 
 
@@ -52,9 +53,9 @@ def panel(title):
     im = Image.new("RGBA", (W, TOP + H + LIFT), (0, 0, 0, 0))
     # le cadre du pack a six pixels vides autour de lui : on le compose plus grand, et on les rogne
     im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), W + 12, H - 6 + 12).crop((6, 6, W + 6, H)), (0, TOP + 6))
-    banner = wide(sprite("Title banners", "BannerMedium_02B"), 156)
+    banner = wide(sprite("Title banners", "BannerMedium_02B"), 156) if BIG else wide(sprite("Title banners", "BannerSmall_02B"), 92)
     im.alpha_composite(banner, ((W - banner.width) // 2, 0))
-    big = word("QUÊTE", title, 2, (255, 244, 226, 255), NAVY)
+    big = word("QUÊTE", title, 2 if BIG else 1, (255, 244, 226, 255), NAVY)
     im.alpha_composite(big, ((W - big.width) // 2, 0))
     line = sprite("Dividers", "Divider_02")
     for x in range(14, W - 14, 48):
