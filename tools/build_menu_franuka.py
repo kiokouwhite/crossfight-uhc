@@ -9,7 +9,7 @@ remplace, dans le pack complet, la carte dessinée par tools/build_menu_anna.py 
 le plugin n'a rien à savoir). Sans les fichiers du pack, ce script ne fait rien et le pack garde la carte publique.
 
 Deux images de 176 x 222, la taille d'un coffre de six rangées, sur une fenêtre lavande. La première : à gauche la
-couverture (« ANNA », les prix), au milieu la case où poser l'objet, à droite les quatre pièces d'armure portées. La
+couverture (« ANNA », les prix), à droite la case où poser l'objet. La
 seconde : l'objet en haut, et dessous les trois niveaux proposés, chacun avec son prix. En bas, l'inventaire.
 """
 import sys
@@ -93,7 +93,7 @@ def main():
     slot, mine = sprite("Item slots", "Slot_01_Empty"), sprite("Item slots", "Slot_02_Empty")
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
-    # 1. Poser l'objet : la couverture a gauche, la case au milieu de la page, les pieces portees a droite.
+    # 1. Poser l'objet : la couverture a gauche, la case a droite.
     im = window(mine)
     im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 78, 114), (5, 13))
     for k, name in enumerate(("Icon_09", "Icon_13", "Icon_10")):          # une epee, une baguette, un bouclier
@@ -103,14 +103,9 @@ def main():
     write(im, 44, 74, "Enchantements", text, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 58), (15, 94))
     write(im, 44, 96, "1 - 5 niv.", text, BROWN)
-    write(im, 106, 22, "Pose ton", text, NAVY)
-    write(im, 106, 32, "objet ici", text, NAVY)
-    framed(im, slot, 5, 2)                                                 # la case 23 du coffre
-    write(im, 106, 92, "ou clique", text, NAVY)
-    write(im, 106, 102, "une pièce", text, NAVY)
-    write(im, 106, 112, "portée ->", text, NAVY)
-    for row in range(1, 5):                                                # les quatre pieces d'armure portees
-        im.alpha_composite(slot, (8 + 18 * 7, 18 + 18 * row))
+    write(im, 124, 26, "Pose ton", text, NAVY)
+    write(im, 124, 36, "objet ici", text, NAVY)
+    framed(im, slot, 6, 3)                                                 # la case 33 du coffre
     im.save(OUT)
 
     # 2. Choisir le niveau : l'objet en haut, trois niveaux dessous, chacun avec son prix.

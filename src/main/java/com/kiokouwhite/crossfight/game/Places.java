@@ -586,23 +586,18 @@ public final class Places implements Listener {
         return it;
     }
 
-    /** Les cases du premier menu : celle ou poser l'objet, et les quatre pieces d'armure portees (casque, plastron, jambieres, bottes). */
-    private static final int PLACE = 23;
-    private static final int[] WORN = {16, 25, 34, 43};
+    /** La case du premier menu ou l'objet se pose. */
+    private static final int PLACE = 33;
 
     /**
-     * Le premier menu d'Anna au monastere : une case ou poser l'objet a enchanter (un clic sur l'objet, dans son
-     * inventaire, l'y pose), et a cote les pieces d'armure portees, qu'on ne voit pas dans un coffre.
+     * Le premier menu d'Anna au monastere : une seule case, ou poser l'objet a enchanter (un clic sur l'objet, dans
+     * son inventaire, l'y pose). Une piece d'armure portee doit d'abord etre retiree.
      */
     private final class Enchants implements InventoryHolder {
         final Inventory inv;
 
         Enchants(Player p) {
             inv = Bukkit.createInventory(this, 54, dressed(p, '', "Anna - clique l'objet à enchanter"));
-            for (int k = 0; k < 4; k++) {
-                ItemStack worn = p.getInventory().getItem(39 - k);
-                if (enchantFor(worn) != null) inv.setItem(WORN[k], named(worn.clone(), "<white>Porté", "<light_purple>Clic : choisir son enchantement"));
-            }
         }
 
         @Override public Inventory getInventory() { return inv; }
@@ -652,11 +647,9 @@ public final class Places implements Listener {
         if (!(e.getWhoClicked() instanceof Player p)) return;
         if (e.getInventory().getHolder() instanceof Enchants menu) {
             e.setCancelled(true);
-            // L'objet a enchanter : un clic dessus dans l'inventaire, ou sur une piece portee montree dans le menu.
-            int slot = -1;
-            if (e.getClickedInventory() == menu.inv) { for (int k = 0; k < 4; k++) if (e.getSlot() == WORN[k]) slot = 39 - k; }
-            else if (e.getClickedInventory() == p.getInventory()) slot = e.getSlot();
-            if (slot < 0) return;
+            // L'objet a enchanter : un clic dessus, dans l'inventaire du joueur.
+            if (e.getClickedInventory() != p.getInventory()) return;
+            int slot = e.getSlot();
             ItemStack it = p.getInventory().getItem(slot);
             if (it == null || it.getType().isAir()) return;
             if (enchantFor(it) == null) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Anna n'enchante pas cet objet."); return; }
