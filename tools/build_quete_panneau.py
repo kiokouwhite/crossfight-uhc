@@ -11,7 +11,9 @@ porte un point presque invisible dans sa sixieme colonne : toutes les lettres av
 plugin sait reculer d'autant (game/ScoreboardManager.java).
 
 Ecrit dans resourcepack/assets/crossfight/ : textures/font/quete_panneau.png, textures/font/quete_lettres.png,
-font/quete.json (le panneau, les espaces, la premiere ligne), font/quete2.json (la deuxieme ligne).
+font/quete.json (le panneau, les espaces, la premiere ligne), font/quete2.json (la deuxieme ligne),
+font/quete_recul.json (les memes caracteres, sans image : chacun recule de sa propre largeur ; le plugin reecrit le
+texte dans cette police pour revenir au debut de la ligne, sans avoir a connaitre la largeur des lettres).
 """
 import json
 from pathlib import Path
@@ -98,6 +100,8 @@ def main():
                                line(LINE1)]}
     (ROOT / "font" / "quete.json").write_text(json.dumps(main_font, ensure_ascii=True, indent=1), encoding="utf-8")
     (ROOT / "font" / "quete2.json").write_text(json.dumps({"providers": [line(LINE2)]}, ensure_ascii=True, indent=1), encoding="utf-8")
+    back = {c: -7 for row in rows for c in row if c != "\u0000"}
+    (ROOT / "font" / "quete_recul.json").write_text(json.dumps({"providers": [{"type": "space", "advances": back}]}, ensure_ascii=True, indent=1), encoding="utf-8")
     print("panneau", (W, H + LIFT), "lettres", atlas.size)
 
 

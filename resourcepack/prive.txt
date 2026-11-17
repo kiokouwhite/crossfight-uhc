@@ -34,6 +34,9 @@ ability.omori_texte
 ability.omori_vaincu
 font.espace_blanc
 font.panneau_omori
+font.quete
+font.quete2
+font.quete_recul
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon

@@ -92,8 +92,10 @@ public final class ScoreboardManager {
     // quete et son etat ecrits dessus. C'est un caractere du titre : on recule avant de le dessiner pour le centrer sur le
     // logo, on recule encore pour ecrire chaque ligne, puis on revient ou l'on etait, pour que le titre garde sa largeur.
     private static final net.kyori.adventure.key.Key QUEST_FONT = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete"),
-            QUEST_FONT_2 = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete2");
-    private static final int PANEL_WIDTH = 172, LOGO_WIDTH = 53, LETTER = 7, MARGIN = 8;
+            QUEST_FONT_2 = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete2"),
+            // les memes caracteres, sans image : chacun recule de sa largeur (les lettres peuvent donc etre de largeurs inegales)
+            QUEST_BACK = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete_recul");
+    private static final int PANEL_WIDTH = 172, LOGO_WIDTH = 53, LETTER = 7, MARGIN = 12;
 
     private boolean showsPanel(Player p) {
         return com.kiokouwhite.crossfight.util.Sounds.has("font.quete");
@@ -123,9 +125,10 @@ public final class ScoreboardManager {
         var white = net.kyori.adventure.text.format.NamedTextColor.WHITE;
         return net.kyori.adventure.text.Component.text("\uE100" + shift(-(PANEL_WIDTH + 1) + MARGIN)).font(QUEST_FONT).color(white)
                 .append(net.kyori.adventure.text.Component.text(name).font(QUEST_FONT).color(net.kyori.adventure.text.format.TextColor.fromHexString("#4a2c0a")))
-                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * name.length())).font(QUEST_FONT).color(white))
+                .append(net.kyori.adventure.text.Component.text(name).font(QUEST_BACK).color(white))
                 .append(net.kyori.adventure.text.Component.text(state).font(QUEST_FONT_2).color(net.kyori.adventure.text.format.TextColor.fromHexString(quest[2])))
-                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * state.length() - MARGIN + side)).font(QUEST_FONT).color(white))
+                .append(net.kyori.adventure.text.Component.text(state).font(QUEST_BACK).color(white))
+                .append(net.kyori.adventure.text.Component.text(shift(-MARGIN + side)).font(QUEST_FONT).color(white))
                 .append(LOGO)
                 .append(net.kyori.adventure.text.Component.text(shift(PANEL_WIDTH + 1 - side - LOGO_WIDTH)).font(QUEST_FONT).color(white));
     }
