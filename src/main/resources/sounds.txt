@@ -271,6 +271,7 @@ ability.yuki_ult
 font.espace_blanc
 font.logo
 font.panneau_omori
+font.peche
 font.quete
 font.quete2
 glyph.flaque_noire

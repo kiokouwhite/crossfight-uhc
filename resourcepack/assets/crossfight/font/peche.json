@@ -1,0 +1,157 @@
+{
+ "providers": [
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_00.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue200"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_01.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue201"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_02.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue202"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_03.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue203"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_04.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue204"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_05.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue205"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_06.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue206"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_07.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue207"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_08.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue208"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_09.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue209"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_10.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20a"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_11.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_12.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_13.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20d"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_14.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20e"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_15.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue20f"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_16.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue210"
+   ]
+  }
+ ]
+}

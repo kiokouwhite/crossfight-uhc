@@ -560,7 +560,16 @@ public final class Quests implements Listener {
             // Le cercle : deux crochets qui se rapprochent du centre, puis s'en ecartent si l'on tarde trop.
             int gap = Math.abs(c.ring / 2);
             String color = gap <= 1 ? "<gold>" : gap <= 3 ? "<yellow>" : "<white>";
-            Msg.actionBar(p, "<aqua>Ça mord ! " + color + "❯" + " ".repeat(gap) + "<gold>◉" + color + " ".repeat(gap) + "❮");
+            if (com.kiokouwhite.crossfight.util.Sounds.has("font.peche") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p)) {
+                // Avec le pack : un vrai cercle qui se referme sur la cible, au milieu de l'ecran (tools/build_peche.py).
+                int frame = Math.max(0, Math.min(16, RING - c.ring / 2));
+                var tint = gap <= 1 ? net.kyori.adventure.text.format.NamedTextColor.GREEN : gap <= 3 ? net.kyori.adventure.text.format.NamedTextColor.YELLOW : net.kyori.adventure.text.format.NamedTextColor.WHITE;
+                p.showTitle(net.kyori.adventure.title.Title.title(
+                        net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE200 + frame))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "peche")).color(tint),
+                        net.kyori.adventure.text.Component.empty(),
+                        net.kyori.adventure.title.Title.Times.times(java.time.Duration.ZERO, java.time.Duration.ofMillis(250), java.time.Duration.ZERO)));
+                Msg.actionBar(p, "<aqua>Ça mord ! <white>Clic droit quand le cercle touche la cible.");
+            } else Msg.actionBar(p, "<aqua>Ça mord ! " + color + "❯" + " ".repeat(gap) + "<gold>◉" + color + " ".repeat(gap) + "❮");
             if (--c.ring < -8) {
                 c.misses++;
                 c.bite = false;
