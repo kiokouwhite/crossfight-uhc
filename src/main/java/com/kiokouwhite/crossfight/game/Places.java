@@ -410,6 +410,24 @@ public final class Places implements Listener {
         return null;
     }
 
+    /**
+     * Un endroit ou poser un objet de quete : dans le contour du lieu, sur un sol dur, sous le ciel, a hauteur du sol du
+     * lieu (ni dans l'eau, ni dans un sous-sol, ni sur un toit eleve). Charge le chunk s'il le faut.
+     */
+    Location questSpot(World w, Structures.Placed p) {
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        int level = plugin.structures().level(p);
+        for (int n = 0; n < 300; n++) {
+            int x = p.x() + 8 + r.nextInt(Math.max(1, p.sx() - 16)), z = p.z() + 8 + r.nextInt(Math.max(1, p.sz() - 16));
+            if (plugin.structures().at(new Location(w, x, 0, z)) == null) continue;
+            Block b = plugin.worldMap().standAt(w, x, z);
+            if (b == null || b.isLiquid() || !b.getType().isSolid() || b.getY() < level - 1 || b.getY() > level + 24) continue;
+            if (b.getRelative(org.bukkit.block.BlockFace.UP).getLightFromSky() == 0) continue;
+            return new Location(w, x + 0.5, b.getY() + 1, z + 0.5);
+        }
+        return hide(w, p);
+    }
+
     /** Chaque seconde, pour le lieu de la chasse : les pieces se cachent, se montrent a qui s'approche, et se ramassent. */
     private void hunt(World w, Structures.Placed p, boolean running) {
         Piece[] all = pieces.computeIfAbsent(w.getName() + "/" + p.name(), k -> { Piece[] a = new Piece[PARTS.length]; for (int i = 0; i < a.length; i++) a[i] = new Piece(); return a; });

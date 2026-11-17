@@ -133,6 +133,10 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "pearl" -> {
+                        // Raccourci : /cf pearl glowing = /cf quete montrer pearl
+                        if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
+                    }
                     case "quete", "quetes", "quest" -> {
                         // Essayer les quetes des lieux : /cf quete [liste | tp | lancer | finir | oublier] [lieu]
                         if (!(sender instanceof Player sp)) return true;
@@ -155,8 +159,14 @@ public final class CfCommand implements TabExecutor {
                             case "tp" -> { if (npc == null) Msg.send(sender, "<red>Ce lieu n'est pas pose sur cette map."); else { sp.teleport(npc.clone().add(1.5, 0, 1.5)); Msg.send(sender, "<green>Te voila pres du personnage de <white>" + place + "<green> : clic droit sur lui."); } }
                             case "lancer" -> { qs.forget(sp, place); Msg.send(sender, npc != null && qs.start(sp, place, npc) ? "<green>Quete lancee." : "<red>Ce lieu n'est pas pose sur cette map."); }
                             case "finir" -> { qs.force(sp, place); }
+                            case "montrer", "glowing", "briller" -> {
+                                Msg.send(sender, "<gold>Ce qu'il reste a trouver a <white>" + place + " <gray>(colonnes de lumiere pendant une minute) :");
+                                int n = qs.reveal(sp, place);
+                                if (n < 0) Msg.send(sender, "<red>Cette quete n'est pas en cours : parle au personnage, ou /cf quete lancer " + place + ".");
+                                else if (n == 0) Msg.send(sender, "<gray>Rien a montrer pour cette quete.");
+                            }
                             case "oublier" -> { qs.forget(sp, place); Msg.send(sender, "<green>Quete oubliee : <white>" + place); }
-                            default -> Msg.send(sender, "<yellow>/cf quete liste | tp | lancer | finir | oublier [lieu]");
+                            default -> Msg.send(sender, "<yellow>/cf quete liste | tp | lancer | montrer | finir | oublier [lieu]");
                         }
                     }
                     case "structure", "structures", "lieu", "lieux" -> {
@@ -817,7 +827,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -841,7 +851,8 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
-                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "finir", "oublier"));
+                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "oublier"));
+                case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));

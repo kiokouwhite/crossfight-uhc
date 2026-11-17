@@ -75,7 +75,9 @@ public final class Quests implements Listener {
         final String team, place;
         int done;
         boolean finished;
-        final List<Entity> things = new ArrayList<>();          // les objets a ramasser, les monstres, le repere du sommet
+        final List<Entity> things = new ArrayList<>();          // les monstres
+        /** Les objets a ramasser (ou le repere du sommet) : ou ils sont, et ce qui les montre quand un joueur est pres. */
+        final Map<Location, Entity> spots = new java.util.LinkedHashMap<>();
         Location target, home;
         UUID carrier;
         Location carriedFrom;
@@ -164,14 +166,14 @@ public final class Quests implements Listener {
                     Location at = null;
                     // Les modules : un par quart du lieu. Le reste : au hasard.
                     for (int tries = 0; tries < 40 && at == null; tries++) {
-                        Location c = plugin.places().hide(w, box);
+                        Location c = plugin.places().questSpot(w, box);
                         if (c == null) continue;
                         boolean east = c.getX() >= box.x() + box.sx() / 2.0, south = c.getZ() >= box.z() + box.sz() / 2.0;
                         if (q.count() != 4 || tries > 30 || (east ? 1 : 0) + (south ? 2 : 0) == i) at = c;
                     }
-                    if (at != null) r.things.add(item(at, q.icon()));
+                    if (at != null) r.spots.put(at, null);
                 }
-                if (r.things.isEmpty()) { finish(r, q); return true; }
+                if (r.spots.isEmpty()) { finish(r, q); return true; }
             }
             case KILL -> {
                 for (int i = 0; i < q.count(); i++) {
@@ -210,7 +212,7 @@ public final class Quests implements Listener {
                     if (y > best) { best = y; bx = x; bz = z; }
                 }
                 r.target = new Location(w, bx + 0.5, best + 1, bz + 0.5);
-                r.things.add(item(r.target.clone().add(0, 0.5, 0), q.icon()));
+                r.spots.put(r.target.clone(), null);
             }
         }
         for (Player m : members(r.team)) {
@@ -228,7 +230,9 @@ public final class Quests implements Listener {
             d.setBillboard(Display.Billboard.VERTICAL);
             d.setBrightness(new Display.Brightness(15, 15));
             d.setGlowing(true);
-            d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.8f, 0.8f, 0.8f), new Quaternionf()));
+            d.setGlowColorOverride(org.bukkit.Color.YELLOW);
+            d.setViewRange(8f);
+            d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(1.1f, 1.1f, 1.1f), new Quaternionf()));
         });
     }
 
@@ -252,7 +256,7 @@ public final class Quests implements Listener {
                     Player carrier = r.carrier == null ? null : Bukkit.getPlayer(r.carrier);
                     if (r.carrier != null && (carrier == null || carrier.isDead() || carrier.getGameMode() == GameMode.SPECTATOR)) {
                         // Le porteur est tombe : la piece retourne ou elle etait.
-                        r.things.add(item(r.carriedFrom, q.icon()));
+                        r.spots.put(r.carriedFrom, null);
                         r.carrier = null;
                         carrier = null;
                     }
@@ -262,15 +266,15 @@ public final class Quests implements Listener {
                         if (carrier.getLocation().distanceSquared(r.home) < 16) deliver(r, q, carrier);
                         continue;
                     }
-                    for (Entity e : new ArrayList<>(r.things)) {
-                        if (!e.isValid()) { r.things.remove(e); r.things.add(item(e.getLocation().subtract(0, 0.6, 0), q.icon())); continue; }
+                    show(r, q);
+                    for (Location at : new ArrayList<>(r.spots.keySet())) {
                         for (Player p : team) {
-                            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || !p.getWorld().equals(e.getWorld()) || p.getLocation().distanceSquared(e.getLocation()) > 4) continue;
-                            r.things.remove(e);
-                            e.remove();
+                            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || !p.getWorld().equals(at.getWorld()) || p.getLocation().distanceSquared(at) > 4) continue;
+                            Entity e = r.spots.remove(at);
+                            if (e != null) e.remove();
                             p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1.2f);
-                            if (q.kind() == Kind.CARRY) { r.carrier = p.getUniqueId(); r.carriedFrom = e.getLocation().subtract(0, 0.6, 0); }
-                            else { r.done++; tell(r, q); if (r.done >= q.count() || r.things.isEmpty()) finish(r, q); }
+                            if (q.kind() == Kind.CARRY) { r.carrier = p.getUniqueId(); r.carriedFrom = at; }
+                            else { r.done++; tell(r, q); if (r.done >= q.count() || r.spots.isEmpty()) finish(r, q); }
                             break;
                         }
                         if (r.finished || r.carrier != null) break;
@@ -305,11 +309,32 @@ public final class Quests implements Listener {
                     }
                 }
                 case REACH -> {
-                    if (beat % 8 == 0 && !r.things.isEmpty()) r.target.getWorld().spawnParticle(Particle.END_ROD, r.target.clone().add(0, 1, 0), 6, 0.3, 1.2, 0.3, 0.01);
+                    show(r, q);
+                    if (beat % 8 == 0) r.target.getWorld().spawnParticle(Particle.END_ROD, r.target.clone().add(0, 1, 0), 6, 0.3, 1.2, 0.3, 0.01);
                     for (Player p : team) if (!p.isDead() && p.getGameMode() != GameMode.SPECTATOR && p.getWorld().equals(r.target.getWorld()) && p.getLocation().distanceSquared(r.target) < 16) { finish(r, q); break; }
                 }
             }
         }
+    }
+
+    /** Les objets d'une quete ne sont montres que pres d'un joueur : ailleurs, le monde n'est pas charge et ils disparaitraient. */
+    private void show(Run r, Quest q) {
+        if (beat % 4 != 0) return;
+        for (Map.Entry<Location, Entity> e : r.spots.entrySet()) {
+            Location at = e.getKey();
+            boolean near = false;
+            if (at.getWorld().isChunkLoaded(at.getBlockX() >> 4, at.getBlockZ() >> 4)) for (Player p : at.getWorld().getPlayers()) if (p.getLocation().distanceSquared(at) < 96 * 96) { near = true; break; }
+            Entity shown = e.getValue();
+            if (shown != null && (!near || !shown.isValid())) { shown.remove(); e.setValue(null); shown = null; }
+            if (near && shown == null) e.setValue(item(at, q.icon()));
+        }
+    }
+
+    private void clear(Run r) {
+        r.things.forEach(Entity::remove);
+        r.things.clear();
+        for (Entity e : r.spots.values()) if (e != null) e.remove();
+        r.spots.clear();
     }
 
     private void deliver(Run r, Quest q, Player p) {
@@ -318,7 +343,7 @@ public final class Quests implements Listener {
         p.removePotionEffect(PotionEffectType.SLOWNESS);
         p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.6f, 1.4f);
         tell(r, q);
-        if (r.done >= q.count() || r.things.isEmpty()) finish(r, q);
+        if (r.done >= q.count() || r.spots.isEmpty()) finish(r, q);
     }
 
     private void tell(Run r, Quest q) {
@@ -327,8 +352,7 @@ public final class Quests implements Listener {
 
     private void finish(Run r, Quest q) {
         r.finished = true;
-        r.things.forEach(Entity::remove);
-        r.things.clear();
+        clear(r);
         String use = plugin.places().label(r.place);
         for (Player m : members(r.team)) {
             m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quete terminee"), Msg.mm("<white>" + q.title())));
@@ -363,6 +387,27 @@ public final class Quests implements Listener {
 
     // ------------------------------------------------------------------ les essais (/cf quete)
 
+    /**
+     * Montre a ce joueur ce qu'il reste a trouver dans la quete d'un lieu : les coordonnees dans le chat, et une colonne
+     * de lumiere sur chaque objet pendant une minute. Rend le nombre d'objets, ou -1 si la quete n'est pas en cours.
+     */
+    public int reveal(Player p, String place) {
+        Run r = run(p, place);
+        if (r == null || r.finished) return -1;
+        List<Location> at = new ArrayList<>();
+        at.addAll(r.spots.keySet());
+        for (Entity e : r.things) if (e.isValid()) at.add(e.getLocation());
+        for (Location l : at) Msg.raw(p, "<gray>- <white>" + l.getBlockX() + " " + l.getBlockY() + " " + l.getBlockZ() + " <gray>(a " + (int) l.distance(p.getLocation()) + " blocs) <click:run_command:'/tp " + l.getBlockX() + " " + l.getBlockY() + " " + l.getBlockZ() + "'><yellow>[y aller]</click>");
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int n = 0;
+            @Override public void run() {
+                if (n++ >= 120 || !p.isOnline()) { cancel(); return; }
+                for (Location l : at) for (int y = 0; y < 40; y += 2) p.spawnParticle(Particle.END_ROD, l.clone().add(0, y, 0), 1, 0, 0, 0, 0, null, true);
+            }
+        }.runTaskTimer(plugin, 0L, 10L);
+        return at.size();
+    }
+
     /** Termine d'office la quete d'un lieu pour l'equipe de ce joueur. */
     public boolean force(Player p, String place) {
         Quest q = QUESTS.get(place);
@@ -377,7 +422,7 @@ public final class Quests implements Listener {
     public void forget(Player p, String place) {
         Map<String, Run> m = runs.get(teamOf(p));
         if (m == null) return;
-        for (Run r : new ArrayList<>(m.values())) if (place == null || r.place.equals(place)) { r.things.forEach(Entity::remove); m.remove(r.place); }
+        for (Run r : new ArrayList<>(m.values())) if (place == null || r.place.equals(place)) { clear(r); m.remove(r.place); }
     }
 
     /** Ou en est ce joueur, lieu par lieu. */
@@ -388,7 +433,7 @@ public final class Quests implements Listener {
 
     /** Une partie commence, ou la map change : tout repart de zero. */
     public void reset() {
-        for (Map<String, Run> m : runs.values()) for (Run r : m.values()) r.things.forEach(Entity::remove);
+        for (Map<String, Run> m : runs.values()) for (Run r : m.values()) clear(r);
         runs.clear();
     }
 }
