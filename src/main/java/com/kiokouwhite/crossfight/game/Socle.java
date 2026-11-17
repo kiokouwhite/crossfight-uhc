@@ -136,7 +136,8 @@ final class Socle {
                     if (!plugin.isEnabled() || !alive.getAsBoolean()) return;
                     final List<ChunkSnapshot> snaps = new ArrayList<>();
                     for (CompletableFuture<Chunk> f : loads) {
-                        Chunk c = f.getNow(null);
+                        Chunk c;
+                        try { c = f.getNow(null); } catch (RuntimeException ex) { c = null; }
                         if (c != null) snaps.add(c.getChunkSnapshot(false, false, false, false));
                     }
                     Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {

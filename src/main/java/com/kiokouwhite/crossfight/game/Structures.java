@@ -380,6 +380,7 @@ public final class Structures implements Listener {
         final Placed outline = new Placed(s.name(), w.getName(), x0, 0, z0, cut[2], s.sy(), cut[3]);
         final int minY = Math.max(s.y1(), from.getMinHeight()), maxY = Math.min(s.y2(), from.getMaxHeight() - 1);
         Msg.send(to, "<gray>Lecture de <white>" + s.name() + "</white> : " + cut[2] + " x " + (maxY - minY + 1) + " x " + cut[3] + " blocs...");
+        if (maxY < minY) { working = false; Msg.send(to, "<red>Le lieu " + s.name() + " est hors de son monde d'origine."); return false; }
         Socle.kinds();
         Socle.scan(plugin, from, cut[0], cut[1], cut[2], cut[3], minY, maxY, () -> mine == run, volume -> {
             final boolean[] inside = new boolean[cut[2] * cut[3]];
@@ -390,14 +391,22 @@ public final class Structures implements Listener {
                 try {
                     dec = Socle.decide(volume, inside, s.ground() - minY);
                     Socle.dump(s.name(), volume, inside, dec, cut[0], cut[1], minY, s.ground() - minY);
-                } catch (RuntimeException ex) {
+                } catch (Throwable ex) {
                     plugin.getLogger().log(java.util.logging.Level.SEVERE, "Lieu " + s.name() + " : socle non calcule", ex);
-                    Bukkit.getScheduler().runTask(plugin, () -> { if (mine == run) { working = false; Msg.send(to, "<red>Le lieu " + s.name() + " n'a pas pu etre lu (voir la console)."); } });
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (mine != run) return;
+                        working = false;
+                        skipped.add(s.name());
+                        Msg.send(to, "<red>Le lieu " + s.name() + " n'a pas pu etre lu (voir la console).");
+                        if (done != null) done.run();
+                    });
                     return;
                 }
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (mine != run) return;
-                    if (resume) {
+                    // Une pose ne reprend la ou elle s'etait arretee que si le socle retient le meme sol qu'alors ; sinon
+                    // (pose commencee par une ancienne version) elle recommence, au meme endroit.
+                    if (resume && plugin.getConfig().getInt(key(w, s.name()) + ".sol", Integer.MIN_VALUE) == minY + dec.sol) {
                         // Une pose reprise garde le niveau deja retenu.
                         int level = plugin.getConfig().getInt(key(w, s.name()) + ".niveau", before.y() + (s.ground() - s.y1()));
                         paste(to, s, from, w, before, cut[0], cut[1], plugin.getConfig().getInt(key(w, s.name()) + ".avancement", 0), level, minY, volume.h, dec, done);
@@ -432,6 +441,7 @@ public final class Structures implements Listener {
             plugin.getConfig().set(key(w, s.name()) + ".boite", List.of(box.x(), box.y(), box.z(), box.sx(), box.sy(), box.sz()));
             plugin.getConfig().set(key(w, s.name()) + ".decoupe", List.of(cut[0], cut[1]));
             plugin.getConfig().set(key(w, s.name()) + ".niveau", level);
+            plugin.getConfig().set(key(w, s.name()) + ".sol", sol);
             plugin.getConfig().set(key(w, s.name()) + ".avancement", 0);
             plugin.getConfig().set(key(w, s.name()) + ".contour", rag);
             plugin.getConfig().set(key(w, s.name()) + ".finie", false);
@@ -549,9 +559,10 @@ public final class Structures implements Listener {
                     for (int y = minY; y <= maxY; y++) {
                         int ty = y + dy;
                         // Plus bas que douze blocs sous le niveau, c'est le sol de la map : on n'y copie rien.
-                        if (ty < level - DEPTH || ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
+                        // (sauf le fond d'un creux, juste dessous).
+                        if ((ty < level - DEPTH && ty != dig - 1) || ty <= w.getMinHeight() || ty >= w.getMaxHeight()) continue;
                         // Au-dessus du niveau, une tranche de seize blocs entierement vide est sautee d'un coup.
-                        if (ty >= level && (y & 15) == 0 && y + 15 <= maxY && snap.isSectionEmpty((y - from.getMinHeight()) >> 4)) { y += 15; continue; }
+                        if (ty >= level && (y & 15) == 0 && y + 15 <= maxY && (cap < ty || cap > ty + 15) && snap.isSectionEmpty((y - from.getMinHeight()) >> 4)) { y += 15; continue; }
                         if (ty == cap) {
                             w.getBlockAt(x, ty, z).setBlockData(floor(dec.capId[n]), false);
                             if (ty < level) own.add(pack(x, ty, z));
