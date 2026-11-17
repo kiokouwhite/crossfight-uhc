@@ -183,7 +183,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 
 ## Le détail des quêtes
 
-**La pêche (Garreg Mach).** Anna te donne une canne. Clic droit en visant l'eau pour lancer la ligne. Quand « ÇA MORD ! » s'affiche, fais clic droit le plus vite possible. Une barre apparaît en haut de l'écran : la résistance du poisson. Ensuite, un cercle se resserre sur une cible au milieu de l'écran : clic droit pour l'arrêter. Plus il est près du centre (Bien, Très bien, Parfait), plus la barre descend. Tu ne peux pas rater : un mauvais clic fatigue seulement le poisson moins vite. Quand la barre est vide, il est pris ; il en faut dix.
+**La pêche (Garreg Mach).** Anna te donne une canne, et le bord de l'étang se met à scintiller pour ton équipe. Clic droit pour lancer la ligne dans l'eau. Quand « ÇA MORD ! » s'affiche, fais clic droit le plus vite possible. Une barre apparaît en haut de l'écran : la résistance du poisson. Ensuite, un cercle se resserre sur une cible au milieu de l'écran : clic droit pour l'arrêter. Plus il est près du centre (Bien, Très bien, Parfait), plus la barre descend. Tu ne peux pas rater : un mauvais clic fatigue seulement le poisson moins vite. Quand la barre est vide, il est pris ; il en faut dix.
 
 **Le Titan (Shiganshina).** Il se tourne lentement vers le joueur le plus proche et écrase ceux qui restent à ses pieds. Frappe-le de dos, ou d'en haut : de face, tes coups ne comptent pas. À plusieurs, l'un attire son regard pendant que l'autre frappe.
 

@@ -24,13 +24,15 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   bot.chat(`/tp @s ${water.position.x + 0.5} ${water.position.y + 4} ${water.position.z + 0.5}`); await sleep(1500);
   bot.creative.startFlying(); await sleep(300);
   const mode = process.argv[3] || 'parfait';
+  let hooks = 0; bot._client.on('spawn_entity', d => { const n = bot.registry.entities[d.type]; if (n && n.name === 'fishing_bobber') hooks++; });
+  let sparks = 0, where = new Set(); bot._client.on('world_particles', d => { const n = d.particle && d.particle.type || d.particleId; if (d.y > 0) { sparks++; where.add(Math.floor(d.x) + ',' + Math.floor(d.z)); } });
   let bossbar = 0, lowest = 1, titles = [];
   bot._client.on('boss_bar', d => { bossbar++; if (d.health !== undefined) lowest = Math.min(lowest, d.health); });
   bot._client.on('set_title_text', d => { const t = flat(d.text); if (t && !titles.includes(t)) titles.push(t); });
   const t0 = Date.now(); let caught = 0, done = false;
   while (Date.now() - t0 < 150000 && !done) {
     await bot.look(0, -Math.PI / 2, true); bar = ''; bot.activateItem(); await sleep(200);
-    if (/Vise l'eau/.test(bar)) { console.log('ne voit pas l\'eau'); break; }
+    if (/Lance ta ligne/.test(bar)) { console.log('ne voit pas l\'eau'); break; }
     const t1 = Date.now();
     while (Date.now() - t1 < 60000) {
       await sleep(25);
@@ -44,6 +46,6 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
     if (said.some(t => /garreg_mach.*termin/.test(t))) { console.log('quete terminee apres', caught, 'prises'); done = true; }
     said = [];
   }
-  console.log('mode', mode, '| paquets barre de boss :', bossbar, '| titres :', titles.join(' / '));
+  console.log('mode', mode, '| paquets barre de boss :', bossbar, '| etincelles :', sparks, 'sur', where.size, 'cases | bouchons :', hooks, '| titres :', titles.join(' / '));
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();

@@ -82,6 +82,8 @@ public final class Quests implements Listener {
         Location target, home;
         UUID carrier;
         Location carriedFrom;
+        /** Le bord de l'etang (peche) : les cases d'eau qui touchent la berge. Cherche une fois, pres d'Anna. */
+        List<Location> shore;
         Run(String team, String place) { this.team = team; this.place = place; }
     }
 
@@ -369,13 +371,63 @@ public final class Quests implements Listener {
                         g.getWorld().playSound(g.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.4f, 0.5f);
                     }
                 }
-                case PUZZLE, FISH -> { }
+                case PUZZLE -> { }
+                case FISH -> shore(r, team);
                 case REACH -> {
                     show(r, q);
                     if (beat % 8 == 0) r.target.getWorld().spawnParticle(Particle.END_ROD, r.target.clone().add(0, 1, 0), 6, 0.3, 1.2, 0.3, 0.01);
                     for (Player p : team) if (!p.isDead() && p.getGameMode() != GameMode.SPECTATOR && p.getWorld().equals(r.target.getWorld()) && p.getLocation().distanceSquared(r.target) < 16) { finish(r, q); break; }
                 }
             }
+        }
+    }
+
+    /**
+     * Le bord de l'etang brille pour l'equipe qui a la quete de peche : des etincelles le long de la berge, visibles
+     * d'elle seule. L'etang est l'eau la plus proche d'Anna (a 48 blocs au plus), suivie de proche en proche.
+     */
+    private void shore(Run r, List<Player> team) {
+        World w = r.home.getWorld();
+        if (r.shore == null) {
+            boolean near = false;
+            for (Player p : team) if (p.getWorld().equals(w) && p.getLocation().distanceSquared(r.home) < 48 * 48) { near = true; break; }
+            if (!near) return;
+            r.shore = new ArrayList<>();
+            // L'eau a ciel ouvert la plus proche d'Anna.
+            org.bukkit.block.Block start = null;
+            int hx = r.home.getBlockX(), hy = r.home.getBlockY(), hz = r.home.getBlockZ();
+            double best = Double.MAX_VALUE;
+            for (int dx = -48; dx <= 48; dx++) for (int dz = -48; dz <= 48; dz++) {
+                if (dx * dx + dz * dz >= best || !w.isChunkLoaded((hx + dx) >> 4, (hz + dz) >> 4)) continue;
+                for (int dy = 6; dy >= -12; dy--) {
+                    org.bukkit.block.Block b = w.getBlockAt(hx + dx, hy + dy, hz + dz);
+                    if (b.getType() == Material.WATER && b.getRelative(0, 1, 0).getType().isAir()) { start = b; best = dx * dx + dz * dz; break; }
+                }
+            }
+            if (start == null) return;
+            // De proche en proche, a la surface : tout l'etang, et son bord.
+            java.util.ArrayDeque<org.bukkit.block.Block> todo = new java.util.ArrayDeque<>(List.of(start));
+            java.util.Set<Long> seen = new java.util.HashSet<>(List.of(((long) start.getX() << 32) ^ (start.getZ() & 0xffffffffL)));
+            int[][] sides = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+            while (!todo.isEmpty() && seen.size() < 6000) {
+                org.bukkit.block.Block b = todo.poll();
+                boolean edge = false;
+                for (int[] d : sides) {
+                    int x = b.getX() + d[0], z = b.getZ() + d[1];
+                    if (!w.isChunkLoaded(x >> 4, z >> 4)) continue;
+                    org.bukkit.block.Block n = w.getBlockAt(x, b.getY(), z);
+                    if (n.getType() != Material.WATER) { edge = true; continue; }
+                    if (n.getRelative(0, 1, 0).getType().isAir() && seen.add(((long) x << 32) ^ (z & 0xffffffffL))) todo.add(n);
+                }
+                if (edge) r.shore.add(b.getLocation().add(0.5, 1.15, 0.5));
+            }
+        }
+        if (beat % 2 != 0 || r.shore.isEmpty()) return;
+        var random = java.util.concurrent.ThreadLocalRandom.current();
+        for (Player p : team) {
+            if (!p.getWorld().equals(w)) continue;
+            for (Location at : r.shore) if (random.nextInt(3) == 0 && p.getLocation().distanceSquared(at) < 64 * 64)
+                p.spawnParticle(Particle.END_ROD, at.getX() + random.nextDouble(-0.4, 0.4), at.getY(), at.getZ() + random.nextDouble(-0.4, 0.4), 1, 0, 0, 0, 0.005);
         }
     }
 
@@ -450,6 +502,8 @@ public final class Quests implements Listener {
         static final int WAIT = 0, BITE = 1, RING = 2, PAUSE = 3;
         final String place;
         Location water;
+        org.bukkit.entity.FishHook hook;
+        int air;
         int state = WAIT, timer, stamina, max, combo;
         String fish;
         net.kyori.adventure.bossbar.BossBar bar;
@@ -496,38 +550,50 @@ public final class Quests implements Listener {
     private void drop(Player p, Catch c) {
         if (p != null && c.bar != null) p.hideBossBar(c.bar);
         if (p != null) p.clearTitle();
+        if (c.hook != null && c.hook.isValid()) c.hook.remove();
     }
 
-    /** Un clic droit avec la canne d'Anna : lancer la ligne, ferrer, ou arreter le cercle. La vraie peche du jeu n'a pas lieu. */
+    /**
+     * La canne d'Anna lance une vraie ligne : le bouchon part, tombe a l'eau et y reste. Mais ce n'est pas la peche du jeu :
+     * rien ne mord tout seul, et tant qu'une prise est en cours, le clic droit qui remonterait la ligne sert a ferrer ou
+     * a arreter le cercle.
+     */
     @EventHandler
-    public void onRod(org.bukkit.event.player.PlayerInteractEvent e) {
-        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR && e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
-        if (!isRod(e.getItem())) return;
-        e.setCancelled(true);
-        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+    public void onCast(org.bukkit.event.player.PlayerFishEvent e) {
         Player p = e.getPlayer();
-        Structures.Placed here = plugin.structures().at(p.getLocation());
-        Run r = here == null ? null : run(p, here.name());
-        if (r == null || r.finished || QUESTS.get(r.place).kind() != Kind.FISH) { Msg.actionBar(p, "<gray>Cette canne ne sert que pour la quête d'Anna, au monastère."); return; }
-        var random = java.util.concurrent.ThreadLocalRandom.current();
+        if (!isRod(p.getInventory().getItemInMainHand()) && !isRod(p.getInventory().getItemInOffHand())) return;
         Catch c = catches.get(p.getUniqueId());
-        if (c == null) {
-            // Lancer : il faut viser de l'eau, a moins de vingt blocs.
-            org.bukkit.block.Block aim = p.getTargetBlockExact(20, org.bukkit.FluidCollisionMode.ALWAYS);
-            if (aim == null || aim.getType() != Material.WATER) { Msg.actionBar(p, "<red>Vise l'eau de l'étang."); return; }
+        if (e.getState() == org.bukkit.event.player.PlayerFishEvent.State.FISHING) {
+            // Lancer.
+            Structures.Placed here = plugin.structures().at(p.getLocation());
+            Run r = here == null ? null : run(p, here.name());
+            if (r == null || r.finished || QUESTS.get(r.place).kind() != Kind.FISH) { e.setCancelled(true); Msg.actionBar(p, "<gray>Cette canne ne sert que pour la quête d'Anna, au monastère."); return; }
+            if (c != null) { catches.remove(p.getUniqueId()); c.hook = null; drop(p, c); }
+            var random = java.util.concurrent.ThreadLocalRandom.current();
             c = new Catch(r.place);
-            c.water = aim.getLocation().add(0.5, 1, 0.5);
+            c.hook = e.getHook();
+            c.hook.setMaxWaitTime(2_000_000);
+            c.hook.setMinWaitTime(1_000_000);
+            c.water = c.hook.getLocation();
             c.timer = 30 + random.nextInt(50);
             c.max = c.stamina = 8 + random.nextInt(5);
             c.fish = FISHES[random.nextInt(FISHES.length)];
             catches.put(p.getUniqueId(), c);
-            p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_THROW, 1f, 1f);
-            c.water.getWorld().spawnParticle(Particle.SPLASH, c.water, 12, 0.2, 0.1, 0.2, 0.05);
-            Msg.actionBar(p, "<gray>La ligne est à l'eau…");
             return;
         }
+        if (c == null) return;                       // une ligne sans prise (reste d'avant) : elle se remonte normalement
+        if (e.getState() == org.bukkit.event.player.PlayerFishEvent.State.BITE || e.getState() == org.bukkit.event.player.PlayerFishEvent.State.LURED) { e.setCancelled(true); return; }
+        if (c.state == Catch.WAIT) {
+            // Rien n'a encore mordu : le joueur remonte sa ligne, pour la relancer ailleurs.
+            catches.remove(p.getUniqueId());
+            c.hook = null;
+            drop(p, c);
+            return;
+        }
+        e.setCancelled(true);                        // la ligne reste a l'eau : ce clic est un coup du jeu
+        Run r = run(p, c.place);
+        if (r == null || r.finished) return;
         switch (c.state) {
-            case Catch.WAIT -> Msg.actionBar(p, "<gray>Patience… rien ne mord encore.");
             case Catch.BITE -> {
                 // Ferre : le combat commence. Un ferrage eclair (moins d'une demi-seconde) entame deja le poisson.
                 boolean quick = c.timer > 30;
@@ -535,7 +601,7 @@ public final class Quests implements Listener {
                         1f, net.kyori.adventure.bossbar.BossBar.Color.BLUE, net.kyori.adventure.bossbar.BossBar.Overlay.NOTCHED_10);
                 p.showBossBar(c.bar);
                 p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 1.2f);
-                if (quick) { hit(p, r, c, 2, "<aqua><bold>FERRAGE ÉCLAIR !", 1.6f); if (c.state != Catch.PAUSE) return; }
+                if (quick) hit(p, r, c, 2, "<aqua><bold>FERRAGE ÉCLAIR !", 1.6f);
                 else { c.state = Catch.PAUSE; c.timer = 10; title(p, Msg.mm("<aqua>Ferré !"), 10); }
             }
             case Catch.RING -> {
@@ -573,25 +639,25 @@ public final class Quests implements Listener {
         if (r.done >= q.count()) finish(r, q);
     }
 
-    /** La vraie ligne ne part jamais avec la canne d'Anna. */
-    @EventHandler
-    public void onCast(org.bukkit.event.player.PlayerFishEvent e) {
-        if (isRod(e.getPlayer().getInventory().getItemInMainHand()) || isRod(e.getPlayer().getInventory().getItemInOffHand())) e.setCancelled(true);
-    }
-
     /** A chaque tick : l'attente de la touche, la touche, le cercle qui se resserre. */
     private void fish() {
         var random = java.util.concurrent.ThreadLocalRandom.current();
-        for (var it = catches.entrySet().iterator(); it.hasNext(); ) {
-            var e = it.next();
+        for (var e : new ArrayList<>(catches.entrySet())) {
             Player p = Bukkit.getPlayer(e.getKey());
             Catch c = e.getValue();
-            if (p == null || p.isDead() || !isRod(p.getInventory().getItemInMainHand()) || p.getLocation().distanceSquared(c.water) > 30 * 30) { drop(p, c); it.remove(); continue; }
+            if (p == null || p.isDead() || c.hook == null || !c.hook.isValid()) { drop(p, c); catches.remove(e.getKey()); continue; }
+            c.water = c.hook.getLocation();
             Run r = run(p, c.place);
-            if (r == null || r.finished) { drop(p, c); it.remove(); continue; }
+            if (r == null || r.finished) { drop(p, c); catches.remove(e.getKey()); continue; }
             switch (c.state) {
                 case Catch.WAIT -> {
+                    if (c.hook.getState() != org.bukkit.entity.FishHook.HookState.BOBBING) {
+                        // Le bouchon vole encore, ou il est tombe ailleurs que dans l'eau.
+                        if (++c.air > 60 || c.hook.isOnGround()) { Msg.actionBar(p, "<red>Lance ta ligne dans l'eau de l'étang."); drop(p, c); catches.remove(e.getKey()); }
+                        break;
+                    }
                     if (--c.timer > 0) { if (c.timer % 20 == 0) Msg.actionBar(p, "<gray>La ligne est à l'eau…"); break; }
+                    c.hook.setVelocity(new org.bukkit.util.Vector(0, -0.25, 0));
                     c.state = Catch.BITE;
                     c.timer = 40;
                     p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_SPLASH, 1f, 1f);
