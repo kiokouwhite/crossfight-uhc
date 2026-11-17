@@ -156,6 +156,12 @@ public final class Places implements Listener {
             Location spot = spot(w, p);
             boolean near = false;
             if (spot != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(spot) < 72 * 72) { near = true; break; }
+            // Qui a fini la quete voit la bulle de la recompense a la place de celle de l'accueil.
+            List<Entity> said = bubbles.get(key);
+            if (said != null && said.size() == 3) for (Player pl : w.getPlayers()) {
+                if (plugin.quests().finished(pl, p.name())) { pl.hideEntity(plugin, said.get(0)); pl.showEntity(plugin, said.get(2)); }
+                else { pl.showEntity(plugin, said.get(0)); pl.hideEntity(plugin, said.get(2)); }
+            }
             Entity have = guides.get(key);
             if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; List<Entity> b = bubbles.remove(key); if (b != null) b.forEach(Entity::remove); }
             if (!near || have != null) continue;
@@ -190,6 +196,18 @@ public final class Places implements Listener {
                 d.setShadowed(true);
                 d.setViewRange(0.2f);
                 d.text(Msg.mm("<white>▼"));
+            }));
+            // La meme bulle, pour qui a fini la quete : ce qu'il a gagne. Chaque joueur ne voit que la sienne.
+            bubble.add(w.spawn(over.clone().add(0, 3.05, 0), TextDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setVisibleByDefault(false);
+                d.setBillboard(Display.Billboard.CENTER);
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setLineWidth(190);
+                d.setBackgroundColor(org.bukkit.Color.fromARGB(255, 250, 250, 255));
+                d.setShadowed(false);
+                d.setViewRange(0.2f);
+                d.text(Msg.mm("<black>" + q.thanks()));
             }));
             bubbles.put(key, bubble);
             // Un mannequin a l'image d'un joueur, au skin des personnages de quete ("pnj" dans skins.txt).

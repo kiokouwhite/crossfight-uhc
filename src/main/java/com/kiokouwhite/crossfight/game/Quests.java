@@ -57,19 +57,19 @@ public final class Quests implements Listener {
     public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
-    public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing) {}
+    public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
 
     // Le personnage est partout le meme : Anna, la marchande, venue faire des affaires par la Fissure Temporelle.
     public static final Map<String, Quest> QUESTS = Map.ofEntries(
-            Map.entry("garreg_mach", new Quest("Le cours du professeur", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves refusent de m'ouvrir leur bibliothèque tant que personne n'a fait ses preuves… Bats les cinq adversaires de la cour, et ses secrets seront à toi !", Kind.KILL, 5, Material.IRON_SWORD, "adversaires")),
-            Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan")),
-            Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles")),
-            Map.entry("central_town", new Quest("Les quatre modules", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : il lui manque ses quatre modules, tombés aux quatre coins de la place. Rapporte-les, et ma boutique t'ouvre ses portes !", Kind.COLLECT, 4, Material.AMETHYST_SHARD, "modules")),
-            Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits")),
-            Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet")),
-            Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques")),
-            Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces")),
-            Map.entry("jouki", new Quest("Le sommet de la pagode", "Anna", "Bonjour, Héros ! Je suis Anna. Ici, je n'ai rien à vendre… mais on raconte que la vue, tout en haut de la pagode, vaut tous les trésors. Monte, et dis-moi si c'est vrai !", Kind.REACH, 1, Material.BELL, "sommet")));
+            Map.entry("garreg_mach", new Quest("Le cours du professeur", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves refusent de m'ouvrir leur bibliothèque tant que personne n'a fait ses preuves… Bats les cinq adversaires de la cour, et ses secrets seront à toi !", Kind.KILL, 5, Material.IRON_SWORD, "adversaires", "Bravo, Héros ! Les élèves t'ouvrent leur bibliothèque : la borne d'enchantement, juste à côté, enchante l'objet que tu tiens contre 5 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
+            Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan", "Tu l'as terrassé ! La forge du quartier rouvre : la borne, juste à côté, répare l'objet que tu tiens contre 2 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
+            Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
+            Map.entry("central_town", new Quest("Les quatre modules", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : il lui manque ses quatre modules, tombés aux quatre coins de la place. Rapporte-les, et ma boutique t'ouvre ses portes !", Kind.COLLECT, 4, Material.AMETHYST_SHARD, "modules", "La ville se réveille, merci ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
+            Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
+            Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
+            Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
+            Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces", "Mon vaisseau est sauvé, merci ! En échange, les trésors de ce bois sont à ton équipe : cinq pièces y sont cachées, trouve-les pour gagner tes récompenses !")),
+            Map.entry("jouki", new Quest("Le sommet de la pagode", "Anna", "Bonjour, Héros ! Je suis Anna. Ici, je n'ai rien à vendre… mais on raconte que la vue, tout en haut de la pagode, vaut tous les trésors. Monte, et dis-moi si c'est vrai !", Kind.REACH, 1, Material.BELL, "sommet", "Alors, cette vue ? Je te l'avais dit : elle vaut tous les trésors… et c'est bien le seul que j'aie à t'offrir ici !")));
 
     /** Ou en est une equipe dans la quete d'un lieu. */
     private static final class Run {
@@ -139,6 +139,12 @@ public final class Quests implements Listener {
         return new String[]{q.title(), q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
     }
 
+    /** Vrai si l'equipe de ce joueur a fini la quete de ce lieu. */
+    public boolean finished(Player p, String place) {
+        Run r = run(p, place);
+        return r != null && r.finished;
+    }
+
     /** Les lignes du tableau de bord pour un joueur dans ce lieu. */
     public List<String> lines(Player p, String place) {
         Quest q = QUESTS.get(place);
@@ -159,7 +165,7 @@ public final class Quests implements Listener {
         if (r != null && r.finished) {
             // La quete faite, Anna tient boutique la ou le lieu offre des potions.
             if ("potions".equals(plugin.places().useOf(place))) plugin.places().openBrews(p);
-            else Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Tu as fait tes preuves, Héros. Ce lieu est à toi !");
+            else Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.thanks());
             return;
         }
         if (r == null) { start(p, place, npc); return; }
@@ -385,6 +391,7 @@ public final class Quests implements Listener {
         for (Player m : members(r.team)) {
             m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quête terminée"), Msg.mm("<white>" + q.title())));
             m.playSound(m.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            Msg.send(m, "<yellow>" + q.giver() + " <gray>: <white>" + q.thanks());
             Msg.send(m, use == null ? "<green>Quête terminée : <white>" + q.title() + "<green>." : "<green>Quête terminée : <white>" + q.title() + "<green>. <gold>" + use + " <green>est débloqué pour ton équipe jusqu'à la fin de la partie.");
         }
     }
