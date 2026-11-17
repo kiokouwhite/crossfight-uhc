@@ -23,20 +23,27 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   if (!water) { console.log('pas d\'eau a portee'); bot.quit(); return process.exit(0); }
   bot.chat(`/tp @s ${water.position.x + 0.5} ${water.position.y + 4} ${water.position.z + 0.5}`); await sleep(1500);
   bot.creative.startFlying(); await sleep(300);
-  const t0 = Date.now(); let caught = 0;
-  while (Date.now() - t0 < 100000) {
-    await bot.look(0, -Math.PI / 2, true); bot.activateItem(); await sleep(200);
+  const mode = process.argv[3] || 'parfait';
+  let bossbar = 0, lowest = 1, titles = [];
+  bot._client.on('boss_bar', d => { bossbar++; if (d.health !== undefined) lowest = Math.min(lowest, d.health); });
+  bot._client.on('set_title_text', d => { const t = flat(d.text); if (t && !titles.includes(t)) titles.push(t); });
+  const t0 = Date.now(); let caught = 0, done = false;
+  while (Date.now() - t0 < 150000 && !done) {
+    await bot.look(0, -Math.PI / 2, true); bar = ''; bot.activateItem(); await sleep(200);
     if (/Vise l'eau/.test(bar)) { console.log('ne voit pas l\'eau'); break; }
-    // attendre la touche, puis ferrer quand les crochets touchent le centre
-    for (let i = 0; i < 400; i++) {
+    const t1 = Date.now();
+    while (Date.now() - t1 < 60000) {
       await sleep(25);
-      const m = bar.match(/❯( *)◉/);
-      if (/décroché|Relance/.test(bar)) break;
-      if (/Ça mord/.test(bar) && m && m[1].length <= 1) { bar = ''; bot.activateItem(); await sleep(300); if (said.some(t => /Tu as pris/.test(t))) { caught++; console.log(said.find(t => /Tu as pris/.test(t))); said = []; break; } }
+      if (/Clic droit, vite/.test(bar)) { bar = ''; if (mode !== 'lent') await sleep(100); else await sleep(1200); bot.activateItem(); }
+      if (mode === 'parfait' && /PARFAIT/.test(bar)) { bar = ''; bot.activateItem(); }
+      if (mode === 'tot' && /attends/.test(bar)) { bar = ''; bot.activateItem(); await sleep(400); }
+      const got = said.find(t => /Tu as pris/.test(t));
+      if (got) { caught++; console.log(got, '| ' + ((Date.now() - t1) / 1000).toFixed(1) + ' s'); said = said.filter(t => !/Tu as pris/.test(t)); break; }
     }
-    said = []; bot.chat('/cf quete liste'); await sleep(600);
-    if (said.some(t => /garreg_mach.*termin/.test(t))) { console.log('quete terminee apres', caught, 'prises'); break; }
+    await sleep(400); said = []; bot.chat('/cf quete liste'); await sleep(600);
+    if (said.some(t => /garreg_mach.*termin/.test(t))) { console.log('quete terminee apres', caught, 'prises'); done = true; }
     said = [];
   }
+  console.log('mode', mode, '| paquets barre de boss :', bossbar, '| titres :', titles.join(' / '));
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();

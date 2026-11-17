@@ -152,6 +152,42 @@
    "chars": [
     "\ue210"
    ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_17.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue211"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_18.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue212"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_19.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue213"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/peche_20.png",
+   "height": 24,
+   "ascent": 9,
+   "chars": [
+    "\ue214"
+   ]
   }
  ]
 }
