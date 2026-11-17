@@ -47,7 +47,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * son combat, et l'on s'y croise. Au milieu de chaque lieu qui a un service, une borne (un objet qui flotte sous son
  * nom) : un clic droit dessus, pendant la partie, rend le service.
  *
- *   enchantement  l'objet tenu recoit un enchantement de niveau 30, contre 5 niveaux
+ *   enchantement  Anna enchante une piece d'equipement au choix dans un menu, contre 5 niveaux (pas de borne)
  *   forge         l'objet tenu est repare, contre 2 niveaux
  *   potions       une potion tiree au sort, toutes les 8 minutes
  *   marchand      des echanges (fer, or, diamants, charbon contre fleches, pomme doree, experience, perle, viande)
@@ -69,7 +69,7 @@ public final class Places implements Listener {
     private record Use(String title, Material icon, String hint) {}
 
     private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
-            Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "enchante l'objet tenu (5 niveaux)")),
+            Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "Anna enchante ton équipement (5 niveaux la pièce)")),
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
@@ -348,7 +348,7 @@ public final class Places implements Listener {
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
             // (les potions n'ont pas de borne : c'est Anna qui tient boutique)
-            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions");
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement");
             if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {
@@ -541,6 +541,102 @@ public final class Places implements Listener {
         p.getInventory().addItem(brew(e.getSlot() / 2)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
         p.closeInventory();
         done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[e.getSlot() / 2][0] + " : cadeau d'Anna. La prochaine dans 10 minutes.");
+    }
+
+    // ------------------------------------------------------------------ les enchantements d'Anna
+
+    private static final int ENCHANT_COST = 5;
+
+    /** Ce qu'Anna met sur cet objet : {enchantement, niveau}, ou null s'il ne s'enchante pas chez elle. Diamant et netherite : un niveau de moins. */
+    private static Object[] enchantFor(ItemStack it) {
+        if (it == null || it.getType().isAir()) return null;
+        ItemMeta meta = it.getItemMeta();
+        if (meta == null || !meta.getPersistentDataContainer().isEmpty() || meta.isUnbreakable()) return null;   // armes de personnage, objets du plugin
+        String n = it.getType().name();
+        boolean rich = n.startsWith("DIAMOND_") || n.startsWith("NETHERITE_");
+        if (n.endsWith("_HELMET") || n.endsWith("_CHESTPLATE") || n.endsWith("_LEGGINGS") || n.endsWith("_BOOTS")) return new Object[]{org.bukkit.enchantments.Enchantment.PROTECTION, rich ? 2 : 3};
+        if (n.endsWith("_SWORD") || n.endsWith("_AXE")) return new Object[]{org.bukkit.enchantments.Enchantment.SHARPNESS, rich ? 2 : 3};
+        if (n.endsWith("_PICKAXE") || n.endsWith("_SHOVEL")) return new Object[]{org.bukkit.enchantments.Enchantment.EFFICIENCY, 3};
+        if (it.getType() == Material.BOW) return new Object[]{org.bukkit.enchantments.Enchantment.POWER, 2};
+        return null;
+    }
+
+    private static final String[] ROMAN = {"", "I", "II", "III", "IV", "V"};
+
+    private static String enchantName(org.bukkit.enchantments.Enchantment e) {
+        return e == org.bukkit.enchantments.Enchantment.PROTECTION ? "Protection" : e == org.bukkit.enchantments.Enchantment.SHARPNESS ? "Tranchant"
+                : e == org.bukkit.enchantments.Enchantment.EFFICIENCY ? "Efficacité" : "Puissance";
+    }
+
+    /** Le menu d'Anna au monastere : tout l'equipement du joueur qu'elle peut enchanter ; un clic, et c'est fait. */
+    private final class Enchants implements InventoryHolder {
+        final Inventory inv = Bukkit.createInventory(this, 54, Component.text("Anna - enchanter (5 niveaux)"));
+        /** Pour chaque case du menu, la case de l'inventaire du joueur qu'elle montre (-1 : rien). */
+        final int[] from = new int[54];
+
+        Enchants(Player p) { fill(p); }
+
+        void fill(Player p) {
+            inv.clear();
+            java.util.Arrays.fill(from, -1);
+            int at = 0;
+            // L'armure portee d'abord (cases 36 a 39), la main gauche, puis le reste.
+            int[] order = new int[41];
+            for (int i = 0; i < 4; i++) order[i] = 39 - i;
+            order[4] = 40;
+            for (int i = 0; i < 36; i++) order[5 + i] = i;
+            for (int slot : order) {
+                ItemStack it = p.getInventory().getItem(slot);
+                Object[] e = enchantFor(it);
+                if (e == null || at >= 45) continue;
+                org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) e[0];
+                int level = (int) e[1];
+                boolean has = it.getEnchantmentLevel(ench) >= level;
+                ItemStack shown = it.clone();
+                ItemMeta meta = shown.getItemMeta();
+                meta.lore(List.of(Msg.mm(has ? "<gray>Déjà enchanté : " + enchantName(ench) + " " + ROMAN[level] : "<light_purple>Clic : " + enchantName(ench) + " " + ROMAN[level]).decoration(TextDecoration.ITALIC, false),
+                        Msg.mm(has ? "<dark_gray>Rien à faire" : p.getLevel() >= ENCHANT_COST ? "<green>Prix : " + ENCHANT_COST + " niveaux" : "<red>Prix : " + ENCHANT_COST + " niveaux (tu en as " + p.getLevel() + ")").decoration(TextDecoration.ITALIC, false)));
+                shown.setItemMeta(meta);
+                from[at] = slot;
+                inv.setItem(at++, shown);
+            }
+            ItemStack info = new ItemStack(at == 0 ? Material.BARRIER : Material.ENCHANTING_TABLE);
+            ItemMeta meta = info.getItemMeta();
+            meta.displayName(Msg.mm(at == 0 ? "<red>Rien à enchanter sur toi" : "<light_purple>Clique une pièce pour l'enchanter").decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(Msg.mm("<gray>Armure : Protection III (II en diamant)").decoration(TextDecoration.ITALIC, false),
+                    Msg.mm("<gray>Épée, hache : Tranchant III (II en diamant)").decoration(TextDecoration.ITALIC, false),
+                    Msg.mm("<gray>Arc : Puissance II - Pioche, pelle : Efficacité III").decoration(TextDecoration.ITALIC, false),
+                    Msg.mm("<white>" + ENCHANT_COST + " niveaux la pièce <gray>- tu en as " + p.getLevel()).decoration(TextDecoration.ITALIC, false)));
+            info.setItemMeta(meta);
+            inv.setItem(49, info);
+        }
+
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Ouvre le menu d'enchantement d'Anna a ce joueur. */
+    public void openEnchants(Player p) {
+        p.openInventory(new Enchants(p).inv);
+    }
+
+    @EventHandler
+    public void onEnchant(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof Enchants menu)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != menu.inv || e.getSlot() < 0 || e.getSlot() >= 54 || menu.from[e.getSlot()] < 0 || !(e.getWhoClicked() instanceof Player p)) return;
+        int slot = menu.from[e.getSlot()];
+        ItemStack it = p.getInventory().getItem(slot);
+        Object[] found = enchantFor(it);
+        if (found == null) { menu.fill(p); return; }
+        org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) found[0];
+        int level = (int) found[1];
+        if (it.getEnchantmentLevel(ench) >= level) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
+        if (p.getLevel() < ENCHANT_COST) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Il faut " + ENCHANT_COST + " niveaux."); return; }
+        p.setLevel(p.getLevel() - ENCHANT_COST);
+        it.addUnsafeEnchantment(ench, level);
+        p.getInventory().setItem(slot, it);
+        done(p, Sound.BLOCK_ENCHANTMENT_TABLE_USE, "<light_purple>" + enchantName(ench) + " " + ROMAN[level] + " <gray>(-" + ENCHANT_COST + " niveaux)");
+        menu.fill(p);
     }
 
     /** Le menu du marchand : un objet par echange, son prix en description. */

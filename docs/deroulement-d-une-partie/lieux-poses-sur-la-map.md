@@ -31,7 +31,7 @@ La map n'est pas un simple monde de Minecraft : elle rassemble des lieux venus d
 
   | Service | Lieu par défaut | Ce qu'il fait |
   |---|---|---|
-  | `enchantement` | Garreg Mach | l'objet tenu (arme, outil, armure ou livre sans enchantement) reçoit un enchantement de niveau 30, contre 5 niveaux |
+  | `enchantement` | Garreg Mach | pas de borne : la quête faite, parler à Anna ouvre un menu qui montre tout l'équipement du joueur qu'elle peut enchanter (armure portée d'abord) ; un clic sur une pièce l'enchante, contre 5 niveaux. Armure : Protection III (II en diamant ou netherite) ; épée et hache : Tranchant III (II en diamant ou netherite) ; arc : Puissance II ; pioche et pelle : Efficacité III. Les armes de personnage et les objets du plugin n'y passent pas |
   | `forge` | Shiganshina | l'objet tenu est réparé, contre 2 niveaux |
   | `potions` | Pearl | une potion tirée au sort (rapidité, résistance au feu, saut, chute lente, vision nocturne, respiration, plus rarement force), toutes les 8 minutes |
   | `marchand` | Central Town | des échanges : 8 fers contre 16 flèches, 6 ors contre une pomme dorée, 2 diamants contre 8 fioles d'expérience, 4 diamants contre une perle, 16 charbons contre 6 steaks |
