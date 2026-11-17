@@ -6,8 +6,8 @@ Usage : python3 tools/build_quete_franuka.py
 Même principe que tools/build_menu_franuka.py : les fichiers du « RPG UI pack » de Franuka restent dans
 resourcepack-prive/ui-franuka/, et les deux images composées ici vont dans resourcepack-prive/assets/, où elles
 remplacent dans le pack complet celles de tools/build_quete_panneau.py (mêmes noms, mêmes tailles, mêmes cases de
-lettres : la police et le plugin ne changent pas). Le panneau : un cadre pêche, une bannière lavande « QUÊTE » à cheval
-sur son bord, un filet en bas. Les lettres : une police libre et grasse (la police de
+lettres : la police et le plugin ne changent pas). Le panneau : un cadre pêche, une grande bannière lavande à cheval
+sur son bord, où « QUÊTE » est écrit en grand avec un contour bleu foncé, un filet en bas. Les lettres : une police libre et grasse (la police de
 texte du pack, toute petite, se lisait mal), chacune à sa largeur (font/quete_recul.json dit de combien reculer pour
 chacune). Les polices du pack public sont recopiées avec les lignes à la hauteur de ce cadre.
 """
@@ -26,15 +26,39 @@ W, H, LIFT = base.W, base.H, base.LIFT
 BROWN = (92, 58, 64, 255)
 
 
+TOP = 14                         # rangs ajoutes en haut de l'image, pour la grande banniere
+NAVY = (44, 48, 92, 255)
+
+
+def word(text, font, scale, fill, edge):
+    """Un mot en grand : la police de titre du pack agrandie sans lissage, cernee d'un contour de `scale` pixels."""
+    probe = ImageDraw.Draw(Image.new("L", (1, 1)))
+    w = int(probe.textlength(text, font=font)) + 2
+    mask = Image.new("L", (w, 24), 0)
+    pen = ImageDraw.Draw(mask)
+    pen.fontmode = "1"
+    pen.text((1, 2), text, font=font, fill=255)
+    mask = mask.crop(mask.getbbox()).resize((mask.getbbox()[2] - mask.getbbox()[0]) * scale and ((mask.getbbox()[2] - mask.getbbox()[0]) * scale, (mask.getbbox()[3] - mask.getbbox()[1]) * scale), Image.NEAREST)
+    out = Image.new("RGBA", (mask.width + 2 * scale, mask.height + 2 * scale), (0, 0, 0, 0))
+    ink = Image.new("RGBA", mask.size, edge)
+    for dx in range(-scale, scale + 1):                                    # le contour : le mot decale dans toutes les directions
+        for dy in range(-scale, scale + 1):
+            out.paste(ink, (scale + dx, scale + dy), mask)
+    out.paste(Image.new("RGBA", mask.size, fill), (scale, scale), mask)
+    return out
+
+
 def panel(title):
-    im = Image.new("RGBA", (W, H + LIFT), (0, 0, 0, 0))
+    im = Image.new("RGBA", (W, TOP + H + LIFT), (0, 0, 0, 0))
     # le cadre du pack a six pixels vides autour de lui : on le compose plus grand, et on les rogne
-    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), W + 12, H - 6 + 12).crop((6, 6, W + 6, H)), (0, 6))
-    im.alpha_composite(wide(sprite("Title banners", "BannerSmall_02B"), 84), ((W - 84) // 2, 0))
-    write(im, W // 2, 0, "QUÊTE", title, (255, 244, 226, 255), (62, 66, 110, 255))
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), W + 12, H - 6 + 12).crop((6, 6, W + 6, H)), (0, TOP + 6))
+    banner = wide(sprite("Title banners", "BannerMedium_02B"), 156)
+    im.alpha_composite(banner, ((W - banner.width) // 2, 0))
+    big = word("QUÊTE", title, 2, (255, 244, 226, 255), NAVY)
+    im.alpha_composite(big, ((W - big.width) // 2, 0))
     line = sprite("Dividers", "Divider_02")
     for x in range(14, W - 14, 48):
-        im.alpha_composite(line.crop((0, 0, min(48, W - 14 - x), 16)), (x, 40))
+        im.alpha_composite(line.crop((0, 0, min(48, W - 14 - x), 16)), (x, TOP + 40))
     return im
 
 
@@ -90,10 +114,12 @@ def main():
         for provider in font["providers"]:
             if provider.get("file", "").endswith("quete_lettres.png"):
                 provider["ascent"] = ascent
+            if provider.get("file", "").endswith("quete_panneau.png"):           # l'image est plus haute : la banniere depasse en haut
+                provider["height"] = provider["ascent"] = TOP + H + LIFT
         (fonts / (name + ".json")).write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
     back = {"providers": [{"type": "space", "advances": {c: -w for c, w in advances.items()}}]}
     (fonts / "quete_recul.json").write_text(json.dumps(back, ensure_ascii=True, indent=1), encoding="utf-8")
-    print("panneau", (W, H + LIFT), "lettres", atlas.size)
+    print("panneau", (W, TOP + H + LIFT), "lettres", atlas.size)
     return 0
 
 
