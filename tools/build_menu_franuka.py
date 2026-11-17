@@ -120,16 +120,17 @@ def main():
 
     # 1. Poser l'objet : la couverture a gauche, la case a droite.
     im = window(mine)
-    # la carte d'Anna : 84 x 110 a l'ecran (le cadre du pack a six pixels vides autour de lui), centree sur x = 54
-    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 96, 122), (6, 8))
+    # la carte d'Anna : 92 x 110 a l'ecran (le cadre du pack a six pixels vides autour de lui), centree sur x = 66.
+    # Avec la case a droite, l'ensemble est au milieu de la fenetre : 17 pixels de marge a gauche, 16 a droite, 16 entre les deux.
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 104, 122), (14, 8))
     for k, name in enumerate(("Icon_09", "Icon_13", "Icon_10")):          # une epee, une baguette, un bouclier
-        im.alpha_composite(sprite("Mini icons", name), (24 + 22 * k, 24))
-    write(im, 54, 46, "ANNA", title, (236, 170, 60, 255), BROWN)
-    im.alpha_composite(sprite("Dividers", "Divider_05"), (30, 62))
-    write(im, 54, 82, "Enchants.", text, BROWN)
-    im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (21, 100))
-    write(im, 54, 102, "1 - 5 niv.", text, BROWN)
-    # la case et son texte, a droite : a la meme distance du bord que la carte a gauche
+        im.alpha_composite(sprite("Mini icons", name), (36 + 22 * k, 24))
+    write(im, 66, 46, "ANNA", title, (236, 170, 60, 255), BROWN)
+    im.alpha_composite(sprite("Dividers", "Divider_05"), (42, 62))
+    write(im, 66, 82, "Enchants.", text, BROWN)
+    im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 70), (31, 100))
+    write(im, 66, 102, "1 - 5 niv.", text, BROWN)
+    # la case et son texte, a droite
     write(im, 142, 41, "Pose ton", text, NAVY)
     write(im, 142, 51, "objet ici", text, NAVY)
     framed(im, slot, 7, 3)                                                 # la case 34 du coffre
