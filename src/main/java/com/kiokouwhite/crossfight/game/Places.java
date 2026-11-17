@@ -85,12 +85,20 @@ public final class Places implements Listener {
             PotionType.SLOW_FALLING, PotionType.NIGHT_VISION, PotionType.WATER_BREATHING, PotionType.STRENGTH};
     private static final long WAIT = 8 * 60 * 1000L;
 
+    /**
+     * Ou se tient Anna dans les lieux ou sa place est choisie : coordonnees dans la map d'origine du lieu (x, y, z), et
+     * le sens ou elle regarde. Garreg Mach : sur le quai, devant le ponton de l'etang, face a l'eau.
+     */
+    private static final Map<String, double[]> GUIDES = Map.of("garreg_mach", new double[]{43.5, 41, 62.5, 180});
+
     private final CrossfightPlugin plugin;
     private final NamespacedKey mark, guide;
     /** Le lieu ou se trouve chaque joueur (son dossier), pour annoncer son nom quand il y entre. */
     private final Map<UUID, String> zone = new HashMap<>();
     /** Le personnage de quete de chaque lieu, tant que quelqu'un est pres. */
     private final Map<String, Entity> guides = new HashMap<>();
+    /** La place d'Anna dans chaque lieu, cherchee une fois. */
+    private final Map<String, Location> guideSpots = new HashMap<>();
     /** La bulle de dialogue au-dessus de chaque personnage de quete (le texte, et sa pointe). */
     private final Map<String, List<Entity>> bubbles = new HashMap<>();
     /** Les bornes : par lieu ("monde/nom"), ou elle est, et les entites qui la montrent tant qu'un joueur est pres. */
@@ -128,9 +136,12 @@ public final class Places implements Listener {
     public String moveGuide(Location l, boolean here) {
         Structures.Placed p = plugin.structures().at(l);
         if (p == null) return null;
-        plugin.getConfig().set("structures.anna." + p.name(), here ? List.of(l.getX() - p.x(), l.getY() - plugin.structures().level(p), l.getZ() - p.z(), (double) l.getYaw()) : null);
+        // (note dans la map d'origine du lieu : l'endroit vaut quelle que soit la map et la decoupe)
+        double[] src = plugin.structures().toSource(p, l);
+        plugin.getConfig().set("structures.anna-origine." + p.name(), here ? List.of(src[0], src[1], src[2], (double) l.getYaw()) : null);
         plugin.saveConfig();
         String key = l.getWorld().getName() + "/" + p.name();
+        guideSpots.remove(key);
         Entity g = guides.remove(key);
         if (g != null) g.remove();
         List<Entity> b = bubbles.remove(key);
@@ -138,11 +149,39 @@ public final class Places implements Listener {
         return p.name();
     }
 
-    /** Ou se tient le personnage de quete d'un lieu (ou sa borne s'il n'est pas apparu), pour s'y teleporter. */
+    /** Ou se tient Anna dans ce lieu : la place qu'un admin lui a donnee, sa place choisie, sinon pres de la borne. */
+    private Location guideAt(World w, Structures.Placed p) {
+        Location known0 = guideSpots.get(w.getName() + "/" + p.name());
+        if (known0 != null) return known0.clone();
+        Location spot = spot(w, p);
+        if (spot == null) return null;
+        // Pres de la borne, sur un sol dur a la meme hauteur ; a defaut, tout contre elle.
+        Location at = spot.clone().add(0.45, 0, 0.45);
+        for (int[] o : new int[][]{{3, 0}, {-3, 0}, {0, 3}, {0, -3}, {2, 2}, {-2, -2}, {2, 0}, {0, 2}}) {
+            Block b = plugin.worldMap().standAt(w, spot.getBlockX() + o[0], spot.getBlockZ() + o[1]);
+            if (b == null || b.isLiquid() || !b.getType().isSolid() || Math.abs(b.getY() + 1 - spot.getBlockY()) > 1) continue;
+            at = new Location(w, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5);
+            break;
+        }
+        at.setYaw(90f);
+        // Sauf si un admin l'a placee lui-meme (/cf quete placer) : l'endroit est note par rapport au coin et au
+        // niveau du lieu, pour valoir aussi sur une autre map.
+        List<Double> fixed = plugin.getConfig().getDoubleList("structures.anna-origine." + p.name());
+        double[] known = fixed.size() == 4 ? new double[]{fixed.get(0), fixed.get(1), fixed.get(2), fixed.get(3)} : GUIDES.get(p.name());
+        if (known != null) {
+            Location to = plugin.structures().fromSource(w, p, known[0], known[1], known[2]);
+            // (seulement si cet endroit du lieu a bien ete pose sur cette map)
+            if (to.getX() >= p.x() && to.getX() < p.x() + p.sx() && to.getZ() >= p.z() && to.getZ() < p.z() + p.sz()) { to.setYaw((float) known[3]); at = to; }
+        }
+        guideSpots.put(w.getName() + "/" + p.name(), at.clone());
+        return at;
+    }
+
+    /** Ou se tient le personnage de quete d'un lieu, pour s'y teleporter. */
     public Location guideOf(World w, String place) {
         Entity g = guides.get(w.getName() + "/" + place);
         if (g != null && g.isValid()) return g.getLocation();
-        for (Structures.Placed p : plugin.structures().finished(w)) if (p.name().equals(place)) return spot(w, p);
+        for (Structures.Placed p : plugin.structures().finished(w)) if (p.name().equals(place)) return guideAt(w, p);
         return null;
     }
 
@@ -173,9 +212,11 @@ public final class Places implements Listener {
             Quests.Quest q = Quests.QUESTS.get(p.name());
             if (q == null) continue;
             String key = w.getName() + "/" + p.name();
-            Location spot = spot(w, p);
+            // Elle n'apparait que quand un joueur est pres de SA place (pas de la borne) : ailleurs, le monde n'est pas
+            // charge et elle disparaitrait aussitot.
+            Location where = guideAt(w, p);
             boolean near = false;
-            if (spot != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(spot) < 72 * 72) { near = true; break; }
+            if (where != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(where) < 72 * 72) { near = true; break; }
             // Qui a fini la quete voit la bulle de la recompense a la place de celle de l'accueil.
             List<Entity> said = bubbles.get(key);
             if (said != null && said.size() == 3) for (Player pl : w.getPlayers()) {
@@ -185,19 +226,7 @@ public final class Places implements Listener {
             Entity have = guides.get(key);
             if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; List<Entity> b = bubbles.remove(key); if (b != null) b.forEach(Entity::remove); }
             if (!near || have != null) continue;
-            // Pres de la borne, sur un sol dur a la meme hauteur ; a defaut, tout contre elle.
-            Location at = spot.clone().add(0.45, 0, 0.45);
-            for (int[] o : new int[][]{{3, 0}, {-3, 0}, {0, 3}, {0, -3}, {2, 2}, {-2, -2}, {2, 0}, {0, 2}}) {
-                Block b = plugin.worldMap().standAt(w, spot.getBlockX() + o[0], spot.getBlockZ() + o[1]);
-                if (b == null || b.isLiquid() || !b.getType().isSolid() || Math.abs(b.getY() + 1 - spot.getBlockY()) > 1) continue;
-                at = new Location(w, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5);
-                break;
-            }
-            at.setYaw(90f);
-            // Sauf si un admin l'a placee lui-meme (/cf quete placer) : l'endroit est note par rapport au coin et au
-            // niveau du lieu, pour valoir aussi sur une autre map.
-            List<Double> fixed = plugin.getConfig().getDoubleList("structures.anna." + p.name());
-            if (fixed.size() == 4) at = new Location(w, p.x() + fixed.get(0), plugin.structures().level(p) + fixed.get(1), p.z() + fixed.get(2), fixed.get(3).floatValue(), 0f);
+            Location at = where;
             // Sa bulle : ce qu'elle a a dire, noir sur blanc, au-dessus de son nom ; on ne la voit que de pres (une
             // douzaine de blocs), pour ne pas couvrir le lieu de texte.
             final Location over = at.clone();
@@ -650,6 +679,7 @@ public final class Places implements Listener {
         guides.clear();
         bubbles.values().forEach(l -> l.forEach(Entity::remove));
         bubbles.clear();
+        guideSpots.clear();
         zone.clear();
         plugin.quests().reset();
         spots.clear();

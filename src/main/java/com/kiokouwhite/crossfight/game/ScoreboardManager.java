@@ -85,7 +85,7 @@ public final class ScoreboardManager {
     private net.kyori.adventure.text.Component title(Player p) {
         if (!showsLogo(p)) return Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
         String[] quest = showsPanel(p) ? plugin.places().questPanel(p) : null;
-        return quest == null ? LOGO : panel(quest).append(LOGO);
+        return quest == null ? LOGO : panel(quest);
     }
 
     // Le panneau de quete (tools/build_quete_panneau.py) : un parchemin dessine au-dessus du tableau, avec le nom de la
@@ -117,13 +117,17 @@ public final class ScoreboardManager {
 
     private net.kyori.adventure.text.Component panel(String[] quest) {
         String name = plain(quest[0]), state = plain(quest[1]);
-        int left = -(PANEL_WIDTH - LOGO_WIDTH) / 2;
+        // Le titre garde la largeur du panneau : le tableau s'elargit donc a sa mesure, et le panneau, centre comme tout
+        // titre, tient dans l'ecran. Le logo est ensuite dessine au milieu de cette largeur.
+        int side = (PANEL_WIDTH + 1 - LOGO_WIDTH) / 2;
         var white = net.kyori.adventure.text.format.NamedTextColor.WHITE;
-        return net.kyori.adventure.text.Component.text(shift(left) + "\uE100" + shift(-(PANEL_WIDTH + 1) + MARGIN)).font(QUEST_FONT).color(white)
+        return net.kyori.adventure.text.Component.text("\uE100" + shift(-(PANEL_WIDTH + 1) + MARGIN)).font(QUEST_FONT).color(white)
                 .append(net.kyori.adventure.text.Component.text(name).font(QUEST_FONT).color(net.kyori.adventure.text.format.TextColor.fromHexString("#4a2c0a")))
                 .append(net.kyori.adventure.text.Component.text(shift(-LETTER * name.length())).font(QUEST_FONT).color(white))
                 .append(net.kyori.adventure.text.Component.text(state).font(QUEST_FONT_2).color(net.kyori.adventure.text.format.TextColor.fromHexString(quest[2])))
-                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * state.length() - MARGIN - left)).font(QUEST_FONT).color(white));
+                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * state.length() - MARGIN + side)).font(QUEST_FONT).color(white))
+                .append(LOGO)
+                .append(net.kyori.adventure.text.Component.text(shift(PANEL_WIDTH + 1 - side - LOGO_WIDTH)).font(QUEST_FONT).color(white));
     }
 
     /** Lignes vides sous le titre, pour la hauteur du logo (30 pixels : la ligne du titre et trois autres de 9). */
@@ -150,8 +154,6 @@ public final class ScoreboardManager {
         // Dans un lieu : sa quete, tout en haut.
         // (sans le pack, qui dessine le panneau de quete au-dessus du tableau, elle s'ecrit ici)
         if (!showsLogo(p) || !showsPanel(p)) lines.addAll(plugin.places().questOf(p));
-        // Le panneau est centre sur le tableau : une ligne d'espaces donne au tableau sa largeur, pour qu'il ne deborde pas de l'ecran.
-        else if (plugin.places().questPanel(p) != null) lines.add(" ".repeat(PANEL_WIDTH / 4 + 1));
         switch (game.state()) {
             case LOBBY, ENDED -> {
                 lines.add("<white>Etat : <yellow>Lobby");

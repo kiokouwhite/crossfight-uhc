@@ -1029,6 +1029,27 @@ public final class Structures implements Listener {
         }.next();
     }
 
+    /**
+     * Un endroit de la map d'origine d'un lieu (ses coordonnees la-bas), la ou il se trouve une fois le lieu pose. Ne
+     * depend ni de l'endroit ou le lieu est pose, ni de la facon dont il est decoupe.
+     */
+    public Location fromSource(World w, Placed p, double sx, double sy, double sz) {
+        Sheet s = sheet(p.name());
+        List<Integer> cut = plugin.getConfig().getIntegerList(key(w, p.name()) + ".decoupe");
+        int cx = cut.size() == 2 ? cut.get(0) : s != null ? s.x1() : 0, cz = cut.size() == 2 ? cut.get(1) : s != null ? s.z1() : 0;
+        int sol = plugin.getConfig().getInt(key(w, p.name()) + ".sol", s != null ? s.ground() : 0);
+        return new Location(w, p.x() + (sx - cx), level(p) + (sy - sol), p.z() + (sz - cz));
+    }
+
+    /** L'inverse : les coordonnees, dans la map d'origine du lieu, d'un endroit de la map de jeu. */
+    public double[] toSource(Placed p, Location l) {
+        Sheet s = sheet(p.name());
+        List<Integer> cut = plugin.getConfig().getIntegerList(key(l.getWorld(), p.name()) + ".decoupe");
+        int cx = cut.size() == 2 ? cut.get(0) : s != null ? s.x1() : 0, cz = cut.size() == 2 ? cut.get(1) : s != null ? s.z1() : 0;
+        int sol = plugin.getConfig().getInt(key(l.getWorld(), p.name()) + ".sol", s != null ? s.ground() : 0);
+        return new double[]{l.getX() - p.x() + cx, l.getY() - level(p) + sol, l.getZ() - p.z() + cz};
+    }
+
     /** Le lieu pose dans lequel se trouve cet endroit (a l'interieur de son contour), ou null. */
     public Placed at(Location l) {
         for (Placed p : finished(l.getWorld())) {
