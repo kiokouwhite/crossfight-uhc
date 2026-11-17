@@ -83,7 +83,46 @@ public final class ScoreboardManager {
      * scoreboard.logo dans config.yml : auto (selon le pack), toujours (le pack est installe a la main), jamais.
      */
     private net.kyori.adventure.text.Component title(Player p) {
-        return showsLogo(p) ? LOGO : Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
+        if (!showsLogo(p)) return Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT UHC");
+        String[] quest = showsPanel(p) ? plugin.places().questPanel(p) : null;
+        return quest == null ? LOGO : panel(quest).append(LOGO);
+    }
+
+    // Le panneau de quete (tools/build_quete_panneau.py) : un parchemin dessine au-dessus du tableau, avec le nom de la
+    // quete et son etat ecrits dessus. C'est un caractere du titre : on recule avant de le dessiner pour le centrer sur le
+    // logo, on recule encore pour ecrire chaque ligne, puis on revient ou l'on etait, pour que le titre garde sa largeur.
+    private static final net.kyori.adventure.key.Key QUEST_FONT = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete"),
+            QUEST_FONT_2 = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete2");
+    private static final int PANEL_WIDTH = 172, LOGO_WIDTH = 53, LETTER = 7, MARGIN = 10;
+
+    private boolean showsPanel(Player p) {
+        return com.kiokouwhite.crossfight.util.Sounds.has("font.quete");
+    }
+
+    /** Un deplacement du curseur, en pixels (les caracteres d'espace de la police du panneau : puissances de deux). */
+    private static String shift(int pixels) {
+        StringBuilder b = new StringBuilder();
+        int n = Math.abs(pixels);
+        for (int k = 8; k >= 0; k--) if ((n & (1 << k)) != 0) b.append((char) ((pixels < 0 ? 0xE101 : 0xE111) + k));
+        return b.toString();
+    }
+
+    /** Ce que la police du panneau sait ecrire : les caracteres simples, sans accent, et pas plus que la largeur du parchemin. */
+    private static String plain(String text) {
+        String t = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("[^\\x20-\\x7E]", "");
+        int max = (PANEL_WIDTH - 2 * MARGIN) / LETTER;
+        return t.length() > max ? t.substring(0, max) : t;
+    }
+
+    private net.kyori.adventure.text.Component panel(String[] quest) {
+        String name = plain(quest[0]), state = plain(quest[1]);
+        int left = -(PANEL_WIDTH - LOGO_WIDTH) / 2;
+        var white = net.kyori.adventure.text.format.NamedTextColor.WHITE;
+        return net.kyori.adventure.text.Component.text(shift(left) + "\uE100" + shift(-(PANEL_WIDTH + 1) + MARGIN)).font(QUEST_FONT).color(white)
+                .append(net.kyori.adventure.text.Component.text(name).font(QUEST_FONT).color(net.kyori.adventure.text.format.TextColor.fromHexString("#4a2c0a")))
+                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * name.length())).font(QUEST_FONT).color(white))
+                .append(net.kyori.adventure.text.Component.text(state).font(QUEST_FONT_2).color(net.kyori.adventure.text.format.TextColor.fromHexString(quest[2])))
+                .append(net.kyori.adventure.text.Component.text(shift(-LETTER * state.length() - MARGIN - left)).font(QUEST_FONT).color(white));
     }
 
     /** Lignes vides sous le titre, pour la hauteur du logo (30 pixels : la ligne du titre et trois autres de 9). */
@@ -108,7 +147,8 @@ public final class ScoreboardManager {
         List<String> lines = new ArrayList<>();
         lines.add("<dark_gray>" + "━".repeat(18));
         // Dans un lieu : sa quete, tout en haut.
-        lines.addAll(plugin.places().questOf(p));
+        // (sans le pack, qui dessine le panneau de quete au-dessus du tableau, elle s'ecrit ici)
+        if (!showsLogo(p) || !showsPanel(p)) lines.addAll(plugin.places().questOf(p));
         switch (game.state()) {
             case LOBBY, ENDED -> {
                 lines.add("<white>Etat : <yellow>Lobby");

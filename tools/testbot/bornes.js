@@ -8,7 +8,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   bot.chat('/execute in minecraft:' + process.argv[2] + ' run tp @s 0 200 0'); await sleep(1500); bot.chat('/gamemode creative');
   for (const place of ['garreg_mach', 'shiganshina', 'pearl', 'central_town', 'arcadia', 'terrace', 'beacon', 'forest_of_hope', 'jouki']) {
     bot.chat('/cf quete tp ' + place); await sleep(5000);
-    const npc = Object.values(bot.entities).find(e => e.name === 'villager' && e.position.distanceTo(bot.entity.position) < 8);
+    const npc = Object.values(bot.entities).find(e => (e.name === 'mannequin' || e.name === 'villager') && e.position.distanceTo(bot.entity.position) < 8);
     if (!npc) { console.log(place, ': pas de personnage'); continue; }
     const at = npc.position.floored();
     const col = []; for (let dy = -1; dy <= 12; dy++) { const b = bot.blockAt(at.offset(0, dy, 0)); col.push(b ? b.name : '?'); }

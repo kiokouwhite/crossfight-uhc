@@ -572,7 +572,8 @@ public final class Structures implements Listener {
                         }
                         if (dec.fill.get((y - volY) * cells + n)) continue;
                         BlockData data = snap.getBlockData(sx & 15, y, sz & 15);
-                        if (data.getMaterial().isAir()) {
+                        // Les barrieres invisibles d'une map (ses murs de jeu) ne sont pas copiees : elles comptent pour du vide.
+                        if (data.getMaterial().isAir() || data.getMaterial() == Material.BARRIER) {
                             if (ty < level && ty >= dig) {
                                 Block b = w.getBlockAt(x, ty, z);
                                 if (!b.getType().isAir()) b.setType(Material.AIR, false);
@@ -999,6 +1000,34 @@ public final class Structures implements Listener {
     }
 
     // ------------------------------------------------------------------ la protection
+
+    /**
+     * Retire les barrieres invisibles des lieux deja poses sur cette map (les murs de jeu de leur map d'origine), chunk
+     * par chunk, sans figer le serveur. Dit a la fin combien il en a retire.
+     */
+    public void unbar(CommandSender to, World w) {
+        final List<int[]> chunks = new ArrayList<>();
+        for (Placed p : finished(w)) for (int cx = p.x() >> 4; cx <= (p.x() + p.sx() - 1) >> 4; cx++) for (int cz = p.z() >> 4; cz <= (p.z() + p.sz() - 1) >> 4; cz++) chunks.add(new int[]{cx, cz});
+        Msg.send(to, "<gray>Recherche des barrieres invisibles dans " + chunks.size() + " chunks...");
+        final BlockData barrier = Material.BARRIER.createBlockData();
+        new Object() {
+            int i = 0, removed = 0;
+
+            void next() {
+                if (!plugin.isEnabled()) return;
+                if (i >= chunks.size()) { Msg.send(to, "<green>" + removed + " barriere(s) invisible(s) retiree(s) des lieux."); return; }
+                int[] c = chunks.get(i++);
+                w.getChunkAtAsync(c[0], c[1]).thenAccept(chunk -> Bukkit.getScheduler().runTask(plugin, () -> {
+                    ChunkSnapshot snap = chunk.getChunkSnapshot(false, false, false, false);
+                    if (snap.contains(barrier)) for (int y = w.getMinHeight(); y < w.getMaxHeight(); y++) {
+                        if (snap.isSectionEmpty((y - w.getMinHeight()) >> 4)) { y |= 15; continue; }
+                        for (int x = 0; x < 16; x++) for (int z = 0; z < 16; z++) if (snap.getBlockType(x, y, z) == Material.BARRIER) { chunk.getBlock(x, y, z).setType(Material.AIR, false); removed++; }
+                    }
+                    next();
+                }));
+            }
+        }.next();
+    }
 
     /** Le lieu pose dans lequel se trouve cet endroit (a l'interieur de son contour), ou null. */
     public Placed at(Location l) {

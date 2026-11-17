@@ -125,6 +125,12 @@ public final class Places implements Listener {
     }
 
     /** La quete du lieu ou se trouve ce joueur (son nom), ou null. Pour le tableau de bord. */
+    /** Le panneau de quete du lieu ou se trouve ce joueur (nom, etat, couleur), ou null. */
+    public String[] questPanel(Player p) {
+        String place = zone.get(p.getUniqueId());
+        return place == null ? null : plugin.quests().panel(p, place);
+    }
+
     public List<String> questOf(Player p) {
         String place = zone.get(p.getUniqueId());
         return place == null ? List.of() : plugin.quests().lines(p, place);
@@ -160,14 +166,16 @@ public final class Places implements Listener {
                 break;
             }
             at.setYaw(90f);
-            guides.put(key, w.spawn(at, org.bukkit.entity.Villager.class, v -> {
+            // Un mannequin a l'image d'un joueur, au skin des personnages de quete ("pnj" dans skins.txt).
+            guides.put(key, w.spawn(at, org.bukkit.entity.Mannequin.class, v -> {
                 v.setPersistent(false);
-                v.setAI(false);
+                v.setImmovable(true);
                 v.setInvulnerable(true);
                 v.setSilent(true);
                 v.setGlowing(true);
                 v.setCollidable(false);
-                v.setRemoveWhenFarAway(false);
+                var skin = com.kiokouwhite.crossfight.util.Skins.profile("pnj");
+                if (skin != null) v.setProfile(skin);
                 v.customName(Msg.mm("<yellow><bold>!</bold> <white>" + q.giver() + " <gray>- " + q.title()));
                 v.setCustomNameVisible(true);
                 v.getPersistentDataContainer().set(guide, PersistentDataType.STRING, p.name());
@@ -260,7 +268,7 @@ public final class Places implements Listener {
             e.setCancelled(true);
             if (e.getHand() == EquipmentSlot.HAND) {
                 plugin.quests().talk(e.getPlayer(), asked, e.getRightClicked().getLocation());
-                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_AMBIENT, 1f, 1f);
+                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.2f);
             }
             return;
         }

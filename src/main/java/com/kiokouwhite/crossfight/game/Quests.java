@@ -128,6 +128,16 @@ public final class Quests implements Listener {
         return false;
     }
 
+    /** Pour le panneau de quete : le nom de la quete, ou elle en est, et la couleur de cet etat ; null s'il n'y a rien a montrer. */
+    public String[] panel(Player p, String place) {
+        Quest q = QUESTS.get(place);
+        if (q == null || !on()) return null;
+        Run r = run(p, place);
+        if (r == null) return new String[]{q.title(), "parle au personnage", "#7a4a12"};
+        if (r.finished) return new String[]{q.title(), "terminee", "#2e6b1f"};
+        return new String[]{q.title(), q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
+    }
+
     /** Les lignes du tableau de bord pour un joueur dans ce lieu. */
     public List<String> lines(Player p, String place) {
         Quest q = QUESTS.get(place);

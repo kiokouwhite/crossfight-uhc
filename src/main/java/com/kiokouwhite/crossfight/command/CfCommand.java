@@ -232,6 +232,7 @@ public final class CfCommand implements TabExecutor {
                                     st.place(sender, s, w, x, z, side, null);
                                 } catch (NumberFormatException ex) { Msg.send(sender, "<red>x, z et le cote sont des nombres entiers."); }
                             }
+                            case "barrieres", "barriere", "barrier" -> st.unbar(sender, plugin.game().world());
                             case "disperser" -> {
                                 if (st.working()) { Msg.send(sender, "<red>Une pose est deja en cours."); return true; }
                                 if (st.sheets().isEmpty()) { Msg.send(sender, "<red>Rien a poser : <gray>" + st.advice(plugin.game().world())); return true; }
@@ -853,7 +854,7 @@ public final class CfCommand implements TabExecutor {
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
                 case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "oublier"));
                 case "pearl" -> out.add("glowing");
-                case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser"));
+                case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));
                     for (Licence l : plugin.characters().licences()) { out.add(l.id()); for (Character c : l.characters()) out.add(c.id()); }

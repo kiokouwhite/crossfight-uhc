@@ -16,7 +16,7 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   await sleep(6000);
   console.log('titres :', JSON.stringify(seen.titles));
   console.log('tableau :', [...seen.board].filter(t => /uete|cours|professeur/i.test(t)));
-  const npc = Object.values(bot.entities).find(e => e.name === 'villager');
+  const npc = Object.values(bot.entities).find(e => (e.name === 'mannequin' || e.name === 'villager'));
   console.log('personnage :', npc ? `${npc.position} nom ${flat(npc.metadata && npc.metadata[2])}` : 'aucun');
   if (npc) { seen.said.length = 0; await bot.lookAt(npc.position.offset(0, 1, 0)); bot.useOn(npc); await sleep(1500); console.log('dit :', seen.said.join(' | ')); }
   bot.quit(); setTimeout(() => process.exit(0), 400);

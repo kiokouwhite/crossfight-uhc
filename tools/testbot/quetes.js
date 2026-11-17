@@ -21,7 +21,7 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
     // la borne, verrouillee
     const station = Object.values(bot.entities).find(e => e.name === 'interaction' && e.position.distanceTo(bot.entity.position) < 8);
     if (station) { bar = ''; bot.useOn(station); await sleep(800); console.log('   borne avant :', bar); }
-    const npc = Object.values(bot.entities).find(e => e.name === 'villager' && e.position.distanceTo(bot.entity.position) < 8);
+    const npc = Object.values(bot.entities).find(e => (e.name === 'mannequin' || e.name === 'villager') && e.position.distanceTo(bot.entity.position) < 8);
     if (!npc) { console.log('   pas de personnage'); continue; }
     said = []; bot.useOn(npc); await sleep(1500);
     console.log('   personnage :', said.join(' | '));

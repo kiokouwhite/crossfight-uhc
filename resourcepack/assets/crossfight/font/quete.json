@@ -1,0 +1,50 @@
+{
+ "providers": [
+  {
+   "type": "space",
+   "advances": {
+    "\ue101": -1,
+    "\ue111": 1,
+    "\ue102": -2,
+    "\ue112": 2,
+    "\ue103": -4,
+    "\ue113": 4,
+    "\ue104": -8,
+    "\ue114": 8,
+    "\ue105": -16,
+    "\ue115": 16,
+    "\ue106": -32,
+    "\ue116": 32,
+    "\ue107": -64,
+    "\ue117": 64,
+    "\ue108": -128,
+    "\ue118": 128,
+    "\ue109": -256,
+    "\ue119": 256
+   }
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/quete_panneau.png",
+   "height": 66,
+   "ascent": 66,
+   "chars": [
+    "\ue100"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/quete_lettres.png",
+   "height": 64,
+   "ascent": 41,
+   "chars": [
+    " !\"#$%&'()*+,-./",
+    "0123456789:;<=>?",
+    "@ABCDEFGHIJKLMNO",
+    "PQRSTUVWXYZ[\\]^_",
+    "`abcdefghijklmno",
+    "pqrstuvwxyz{|}~\u0000"
+   ]
+  }
+ ]
+}
