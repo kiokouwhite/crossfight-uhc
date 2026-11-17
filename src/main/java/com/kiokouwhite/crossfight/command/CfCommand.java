@@ -152,6 +152,12 @@ public final class CfCommand implements TabExecutor {
                             }
                             return true;
                         }
+                        if (what.equals("placer") || what.equals("replacer")) {
+                            // Anna vient la ou se tient l'admin (ou retourne a sa place d'origine).
+                            String moved = plugin.places().moveGuide(sp, what.equals("placer"));
+                            Msg.send(sender, moved == null ? "<red>Place-toi dans un lieu." : what.equals("placer") ? "<green>Anna se tiendra ici pour <white>" + moved + "<green>, sur cette map et les suivantes. <gray>/cf quete replacer pour annuler." : "<green>Anna retourne a sa place d'origine pour <white>" + moved + "<green>.");
+                            return true;
+                        }
                         if (what.equals("oublier") && place == null) { qs.forget(sp, null); Msg.send(sender, "<green>Toutes tes quetes sont oubliees."); return true; }
                         if (place == null || !com.kiokouwhite.crossfight.game.Quests.QUESTS.containsKey(place)) { Msg.send(sender, "<yellow>/cf quete " + what + " <lieu> <gray>(ou place-toi dans un lieu)"); return true; }
                         org.bukkit.Location npc = plugin.places().guideOf(plugin.game().world(), place);
@@ -852,7 +858,7 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
-                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "oublier"));
+                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "oublier", "placer", "replacer"));
                 case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {

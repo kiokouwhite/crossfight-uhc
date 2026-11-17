@@ -118,6 +118,24 @@ public final class Places implements Listener {
         return use == null ? null : USES.get(use).title();
     }
 
+    /**
+     * Place Anna la ou se tient ce joueur, pour le lieu ou il se trouve (ou la remet a sa place d'origine si {@code here}
+     * est faux). Rend le nom du lieu, ou null si le joueur n'est dans aucun lieu.
+     */
+    public String moveGuide(Player pl, boolean here) {
+        Structures.Placed p = plugin.structures().at(pl.getLocation());
+        if (p == null) return null;
+        Location l = pl.getLocation();
+        plugin.getConfig().set("structures.anna." + p.name(), here ? List.of(l.getX() - p.x(), l.getY() - plugin.structures().level(p), l.getZ() - p.z(), (double) l.getYaw()) : null);
+        plugin.saveConfig();
+        String key = pl.getWorld().getName() + "/" + p.name();
+        Entity g = guides.remove(key);
+        if (g != null) g.remove();
+        List<Entity> b = bubbles.remove(key);
+        if (b != null) b.forEach(Entity::remove);
+        return p.name();
+    }
+
     /** Ou se tient le personnage de quete d'un lieu (ou sa borne s'il n'est pas apparu), pour s'y teleporter. */
     public Location guideOf(World w, String place) {
         Entity g = guides.get(w.getName() + "/" + place);
@@ -174,6 +192,10 @@ public final class Places implements Listener {
                 break;
             }
             at.setYaw(90f);
+            // Sauf si un admin l'a placee lui-meme (/cf quete placer) : l'endroit est note par rapport au coin et au
+            // niveau du lieu, pour valoir aussi sur une autre map.
+            List<Double> fixed = plugin.getConfig().getDoubleList("structures.anna." + p.name());
+            if (fixed.size() == 4) at = new Location(w, p.x() + fixed.get(0), plugin.structures().level(p) + fixed.get(1), p.z() + fixed.get(2), fixed.get(3).floatValue(), 0f);
             // Sa bulle : ce qu'elle a a dire, noir sur blanc, au-dessus de son nom ; on ne la voit que de pres (une
             // douzaine de blocs), pour ne pas couvrir le lieu de texte.
             final Location over = at.clone();
