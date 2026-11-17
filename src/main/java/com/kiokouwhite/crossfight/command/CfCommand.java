@@ -138,14 +138,14 @@ public final class CfCommand implements TabExecutor {
                         if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
                     }
                     case "quete", "quetes", "quest" -> {
-                        // Essayer les quetes des lieux : /cf quete [liste | tp | lancer | finir | oublier] [lieu]
+                        // Essayer les quetes des lieux : /cf quete [liste | tp | lancer | finir | parler | oublier] [lieu]
                         if (!(sender instanceof Player sp)) return true;
                         var qs = plugin.quests();
                         String what = args.length > 1 ? args[1].toLowerCase() : "liste";
                         String place = args.length > 2 ? args[2].toLowerCase() : null;
                         if (place == null) { var here = plugin.structures().at(sp.getLocation()); if (here != null) place = here.name(); }
                         if (what.equals("liste")) {
-                            Msg.send(sender, "<gold>Quetes des lieux <gray>(/cf quete tp|lancer|finir|oublier <lieu>)");
+                            Msg.send(sender, "<gold>Quetes des lieux <gray>(/cf quete tp|lancer|finir|parler|oublier <lieu>)");
                             for (var pl : plugin.structures().finished(plugin.game().world())) {
                                 var q = com.kiokouwhite.crossfight.game.Quests.QUESTS.get(pl.name());
                                 if (q != null) Msg.raw(sender, "<white>" + pl.name() + " <gray>: <gold>" + q.title() + " <gray>- " + qs.state(sp, pl.name()));
@@ -172,6 +172,7 @@ public final class CfCommand implements TabExecutor {
                             case "tp" -> { if (npc == null) Msg.send(sender, "<red>Ce lieu n'est pas pose sur cette map."); else { sp.teleport(npc.clone().add(1.5, 0, 1.5)); Msg.send(sender, "<green>Te voila pres du personnage de <white>" + place + "<green> : clic droit sur lui."); } }
                             case "lancer" -> { qs.forget(sp, place); Msg.send(sender, npc != null && qs.start(sp, place, npc) ? "<green>Quete lancee." : "<red>Ce lieu n'est pas pose sur cette map."); }
                             case "finir" -> { qs.force(sp, place); }
+                            case "parler" -> { qs.talk(sp, place, npc); }
                             case "montrer", "glowing", "briller" -> {
                                 Msg.send(sender, "<gold>Ce qu'il reste a trouver a <white>" + place + " <gray>(colonnes de lumiere pendant une minute) :");
                                 int n = qs.reveal(sp, place);
@@ -865,7 +866,7 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
-                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "oublier", "placer", "replacer"));
+                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "parler", "oublier", "placer", "replacer"));
                 case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {

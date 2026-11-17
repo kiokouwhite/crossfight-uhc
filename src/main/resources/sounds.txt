@@ -270,6 +270,7 @@ ability.yuki_snow
 ability.yuki_ult
 font.espace_blanc
 font.logo
+font.menu
 font.panneau_omori
 font.peche
 font.quete

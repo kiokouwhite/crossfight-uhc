@@ -1,0 +1,19 @@
+{
+ "providers": [
+  {
+   "type": "space",
+   "advances": {
+    "\ue100": -8
+   }
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/menu_anna.png",
+   "height": 222,
+   "ascent": 13,
+   "chars": [
+    "\ue000"
+   ]
+  }
+ ]
+}
