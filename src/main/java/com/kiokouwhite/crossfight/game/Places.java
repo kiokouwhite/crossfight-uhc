@@ -71,7 +71,7 @@ public final class Places implements Listener {
     private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
             Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "enchante l'objet tenu (5 niveaux)")),
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
-            Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion, toutes les 8 minutes")),
+            Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
             Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),
             Map.entry("experience", new Use("Experience", Material.EXPERIENCE_BOTTLE, "de l'experience tant qu'on y reste")),
@@ -145,7 +145,7 @@ public final class Places implements Listener {
             String now = p == null ? null : p.name(), before = now == null ? zone.remove(pl.getUniqueId()) : zone.put(pl.getUniqueId(), now);
             if (now == null || now.equals(before)) continue;
             Quests.Quest q = Quests.QUESTS.get(now);
-            pl.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<gold><bold>" + plugin.structures().title(now)), Msg.mm(q == null ? "" : "<gray>Quete : <white>" + q.title()),
+            pl.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<gold><bold>" + plugin.structures().title(now)), Msg.mm(q == null ? "" : "<gray>Quête : <white>" + q.title()),
                     net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(400), java.time.Duration.ofMillis(2500), java.time.Duration.ofMillis(800))));
             pl.playSound(pl.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 0.7f);
         }
@@ -244,7 +244,8 @@ public final class Places implements Listener {
             String use = useOf(p.name());
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
-            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse");
+            // (les potions n'ont pas de borne : c'est Anna qui tient boutique)
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions");
             if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {
@@ -309,7 +310,7 @@ public final class Places implements Listener {
         // Le service d'un lieu se merite : la quete du lieu d'abord.
         Structures.Placed here = plugin.structures().at(e.getRightClicked().getLocation());
         if (here != null && !plugin.quests().unlocked(p, here.name())) {
-            Msg.actionBar(p, "<red>Verrouille : termine d'abord la quete <white>" + Quests.QUESTS.get(here.name()).title() + "<red>.");
+            Msg.actionBar(p, "<red>Verrouillé : termine d'abord la quête <white>" + Quests.QUESTS.get(here.name()).title() + "<red>.");
             p.playSound(p.getLocation(), Sound.BLOCK_CHEST_LOCKED, 1f, 1f);
             return;
         }
@@ -379,6 +380,66 @@ public final class Places implements Listener {
         done(p, Sound.BLOCK_ANVIL_USE, "<green>Repare.");
     }
 
+    // ------------------------------------------------------------------ les potions d'Anna
+
+    /** Les potions qu'Anna offre : le nom, la potion, et si elle se lance (les mauvaises) ou se boit (les bonnes). */
+    private static final Object[][] BREWS = {
+            {"Force", PotionType.STRENGTH, false}, {"Vitesse", PotionType.SWIFTNESS, false},
+            {"Poison", PotionType.POISON, true}, {"Faiblesse", PotionType.WEAKNESS, true}, {"Lenteur", PotionType.SLOWNESS, true}};
+    private static final long BREW_WAIT = 10 * 60 * 1000L;
+
+    private static ItemStack brew(int i) {
+        ItemStack it = new ItemStack((boolean) BREWS[i][2] ? Material.SPLASH_POTION : Material.POTION);
+        PotionMeta meta = (PotionMeta) it.getItemMeta();
+        meta.setBasePotionType((PotionType) BREWS[i][1]);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    /** La boutique d'Anna : cinq potions, gratuites, une toutes les dix minutes par joueur. */
+    private final class Brews implements InventoryHolder {
+        final Inventory inv = Bukkit.createInventory(this, 9, Component.text("Anna - une potion offerte"));
+
+        Brews(Player p) {
+            Long last = taken.get(p.getUniqueId() + "/potions");
+            long left = last == null ? 0 : BREW_WAIT - (System.currentTimeMillis() - last);
+            for (int i = 0; i < BREWS.length; i++) {
+                ItemStack it = brew(i);
+                ItemMeta meta = it.getItemMeta();
+                meta.lore(List.of(Msg.mm(left > 0 ? "<red>Reviens dans " + Msg.time((int) (left / 1000)) : "<green>Gratuit <gray>- une toutes les 10 minutes").decoration(TextDecoration.ITALIC, false),
+                        Msg.mm((boolean) BREWS[i][2] ? "<gray>A lancer sur un adversaire" : "<gray>A boire").decoration(TextDecoration.ITALIC, false)));
+                it.setItemMeta(meta);
+                inv.setItem(i * 2, it);
+            }
+        }
+
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Ouvre la boutique de potions d'Anna a ce joueur. */
+    public void openBrews(Player p) {
+        p.openInventory(new Brews(p).inv);
+    }
+
+    @EventHandler
+    public void onBrew(InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof Brews shop)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != shop.inv || e.getSlot() % 2 != 0 || e.getSlot() / 2 >= BREWS.length || !(e.getWhoClicked() instanceof Player p)) return;
+        long now = System.currentTimeMillis();
+        Long last = taken.get(p.getUniqueId() + "/potions");
+        if (last != null && now - last < BREW_WAIT) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            Msg.actionBar(p, "<red>Anna n'a plus rien pour toi : reviens dans " + Msg.time((int) ((BREW_WAIT - (now - last)) / 1000)) + ".");
+            p.closeInventory();
+            return;
+        }
+        taken.put(p.getUniqueId() + "/potions", now);
+        p.getInventory().addItem(brew(e.getSlot() / 2)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        p.closeInventory();
+        done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[e.getSlot() / 2][0] + " : cadeau d'Anna. La prochaine dans 10 minutes.");
+    }
+
     /** Le menu du marchand : un objet par echange, son prix en description. */
     private final class Shop implements InventoryHolder {
         final Inventory inv = Bukkit.createInventory(this, 9, Component.text("Marchand"));
@@ -415,7 +476,7 @@ public final class Places implements Listener {
 
     @EventHandler
     public void onDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() instanceof Shop) e.setCancelled(true);
+        if (e.getInventory().getHolder() instanceof Shop || e.getInventory().getHolder() instanceof Brews) e.setCancelled(true);
     }
 
     // ------------------------------------------------------------------ la chasse aux pieces

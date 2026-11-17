@@ -20,6 +20,8 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent / "resourcepack" / "assets" / "crossfight"
 W, H, LIFT = 172, 58, 8          # le parchemin, et les rangs vides dessous
 CELL_W, CELL_H = 8, 64
+FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"   # une police libre, a chasse fixe, qui connait les accents
+ACCENTS = "éèêëàâçùûîïôœÉÈÊÀÇ’…"            # ce que le français demande en plus (game/ScoreboardManager.java a la même liste)
 LINE1, LINE2 = 41, 30            # hauteur du haut de chaque ligne au-dessus de la ligne de base du titre
 
 
@@ -46,18 +48,19 @@ def panel():
     # le bandeau du haut, avec le mot QUETE
     d.rectangle([34, 4, W - 35, 15], fill=(120, 78, 22, 255), outline=dark)
     d.rectangle([35, 5, W - 36, 5], fill=gold)
-    font = ImageFont.load_default()
-    word = "QUETE"
+    font = ImageFont.truetype(FONT, 10)
+    d.fontmode = "1"                                          # des pixels nets, sans lissage
+    word = "QUÊTE"
     tw = d.textlength(word, font=font)
-    d.text(((W - tw) / 2, 4), word, font=font, fill=(250, 226, 150, 255))
+    d.text(((W - tw) / 2, 3), word, font=font, fill=(250, 226, 150, 255))
     # un filet sous les deux lignes d'ecriture
     d.line([10, H - 6, W - 11, H - 6], fill=(150, 110, 50, 255))
     return im
 
 
 def letters():
-    font = ImageFont.load_default()
-    chars = [chr(c) for c in range(32, 127)] + [" "]
+    font = ImageFont.truetype(FONT, 10)
+    chars = [chr(c) for c in range(32, 127)] + list(ACCENTS)
     cols = 16
     rows = (len(chars) + cols - 1) // cols
     im = Image.new("RGBA", (cols * CELL_W, rows * CELL_H), (0, 0, 0, 0))
@@ -65,10 +68,12 @@ def letters():
     table = []
     for i in range(rows):
         table.append("".join(chars[i * cols:(i + 1) * cols]).ljust(cols, "\u0000"))
-    for i, c in enumerate(chars[:95]):
+    for i, c in enumerate(chars):
         x, y = (i % cols) * CELL_W, (i // cols) * CELL_H
         cell = Image.new("RGBA", (CELL_W, 12), (0, 0, 0, 0))
-        ImageDraw.Draw(cell).text((0, 0), c, font=font, fill=(255, 255, 255, 255))
+        pen = ImageDraw.Draw(cell)
+        pen.fontmode = "1"
+        pen.text((0, 0), c, font=font, fill=(255, 255, 255, 255))
         cell = cell.crop((0, 0, 6, 12))                       # six colonnes d'encre au plus
         im.alpha_composite(cell, (x, y))
         im.putpixel((x + 5, y + 11), (255, 255, 255, max(1, im.getpixel((x + 5, y + 11))[3])))   # le point qui fixe l'avance a 7
@@ -81,8 +86,7 @@ def main():
     panel().save(ROOT / "textures" / "font" / "quete_panneau.png")
     atlas, table = letters()
     atlas.save(ROOT / "textures" / "font" / "quete_lettres.png")
-    rows = [r.replace("\u0000", "\u0000") for r in table]
-    rows[5] = rows[5][:15] + "\u0000"                           # la 96e case est vide
+    rows = table
     spaces = {}
     for k in range(9):
         spaces[chr(0xE101 + k)] = -(1 << k)

@@ -20,7 +20,7 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
     bot.chat(`/tp @s ${it.position.x.toFixed(1)} ${(it.position.y - 0.5).toFixed(1)} ${it.position.z.toFixed(1)}`); await sleep(1800);
     said = []; bot.chat('/cf quete liste'); await sleep(700);
     console.log((said.join(' | ').split(' | ').find(t => t.includes(place)) || '?'));
-    if (said.join(' ').includes(place) && /terminee/.test(said.join(' | ').split(' | ').find(t => t.includes(place)) || '')) break;
+    if (said.join(' ').includes(place) && /termin/.test(said.join(' | ').split(' | ').find(t => t.includes(place)) || '')) break;
   }
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();

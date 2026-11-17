@@ -62,13 +62,13 @@ public final class Quests implements Listener {
     // Le personnage est partout le meme : Anna, la marchande, venue faire des affaires par la Fissure Temporelle.
     public static final Map<String, Quest> QUESTS = Map.ofEntries(
             Map.entry("garreg_mach", new Quest("Le cours du professeur", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves refusent de m'ouvrir leur bibliothèque tant que personne n'a fait ses preuves… Bats les cinq adversaires de la cour, et ses secrets seront à toi !", Kind.KILL, 5, Material.IRON_SWORD, "adversaires")),
-            Map.entry("shiganshina", new Quest("Reboucher la breche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan")),
+            Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles")),
             Map.entry("central_town", new Quest("Les quatre modules", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : il lui manque ses quatre modules, tombés aux quatre coins de la place. Rapporte-les, et ma boutique t'ouvre ses portes !", Kind.COLLECT, 4, Material.AMETHYST_SHARD, "modules")),
-            Map.entry("arcadia", new Quest("La recolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits")),
+            Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits")),
             Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques")),
-            Map.entry("forest_of_hope", new Quest("Les pieces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pieces")),
+            Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces")),
             Map.entry("jouki", new Quest("Le sommet de la pagode", "Anna", "Bonjour, Héros ! Je suis Anna. Ici, je n'ai rien à vendre… mais on raconte que la vue, tout en haut de la pagode, vaut tous les trésors. Monte, et dis-moi si c'est vrai !", Kind.REACH, 1, Material.BELL, "sommet")));
 
     /** Ou en est une equipe dans la quete d'un lieu. */
@@ -134,8 +134,8 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null || !on()) return null;
         Run r = run(p, place);
-        if (r == null) return new String[]{q.title(), "parle au personnage", "#7a4a12"};
-        if (r.finished) return new String[]{q.title(), "terminee", "#2e6b1f"};
+        if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12"};
+        if (r.finished) return new String[]{q.title(), "terminée", "#2e6b1f"};
         return new String[]{q.title(), q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
     }
 
@@ -144,8 +144,8 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null || !on()) return List.of();
         Run r = run(p, place);
-        String state = r == null ? "<gray>parle au personnage" : r.finished ? "<green>terminee" : q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "<yellow>en cours" : "<yellow>" + r.done + " / " + q.count() + " " + q.thing();
-        return List.of("<yellow><bold>!</bold> <white>Quete", "<gold>" + q.title(), state, "");
+        String state = r == null ? "<gray>parle au personnage" : r.finished ? "<green>terminée" : q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "<yellow>en cours" : "<yellow>" + r.done + " / " + q.count() + " " + q.thing();
+        return List.of("<yellow><bold>!</bold> <white>Quête", "<gold>" + q.title(), state, "");
     }
 
     // ------------------------------------------------------------------ parler au personnage
@@ -156,7 +156,12 @@ public final class Quests implements Listener {
         if (q == null) return;
         if (!plugin.game().isRunning() && !p.hasPermission("crossfight.admin")) { Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Revenez pendant la partie."); return; }
         Run r = run(p, place);
-        if (r != null && r.finished) { Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Vous avez fait vos preuves. Ce lieu est a vous."); return; }
+        if (r != null && r.finished) {
+            // La quete faite, Anna tient boutique la ou le lieu offre des potions.
+            if ("potions".equals(plugin.places().useOf(place))) plugin.places().openBrews(p);
+            else Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Tu as fait tes preuves, Héros. Ce lieu est à toi !");
+            return;
+        }
         if (r == null) { start(p, place, npc); return; }
         if (q.kind() == Kind.CARRY && p.getUniqueId().equals(r.carrier)) { deliver(r, q, p); return; }
         Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
@@ -378,9 +383,9 @@ public final class Quests implements Listener {
         clear(r);
         String use = plugin.places().label(r.place);
         for (Player m : members(r.team)) {
-            m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quete terminee"), Msg.mm("<white>" + q.title())));
+            m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quête terminée"), Msg.mm("<white>" + q.title())));
             m.playSound(m.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
-            Msg.send(m, use == null ? "<green>Quete terminee : <white>" + q.title() + "<green>." : "<green>Quete terminee : <white>" + q.title() + "<green>. <gold>" + use + " <green>est debloque pour ton equipe jusqu'a la fin de la partie.");
+            Msg.send(m, use == null ? "<green>Quête terminée : <white>" + q.title() + "<green>." : "<green>Quête terminée : <white>" + q.title() + "<green>. <gold>" + use + " <green>est débloqué pour ton équipe jusqu'à la fin de la partie.");
         }
     }
 
@@ -451,7 +456,7 @@ public final class Quests implements Listener {
     /** Ou en est ce joueur, lieu par lieu. */
     public String state(Player p, String place) {
         Run r = run(p, place);
-        return r == null ? "<gray>pas commencee" : r.finished ? "<green>terminee" : "<yellow>en cours (" + r.done + " / " + QUESTS.get(place).count() + ")";
+        return r == null ? "<gray>pas commencée" : r.finished ? "<green>terminée" : "<yellow>en cours (" + r.done + " / " + QUESTS.get(place).count() + ")";
     }
 
     /** Une partie commence, ou la map change : tout repart de zero. */

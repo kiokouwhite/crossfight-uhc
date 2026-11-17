@@ -109,7 +109,8 @@ public final class ScoreboardManager {
 
     /** Ce que la police du panneau sait ecrire : les caracteres simples, sans accent, et pas plus que la largeur du parchemin. */
     private static String plain(String text) {
-        String t = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("[^\\x20-\\x7E]", "");
+        // (les lettres que la police du panneau connait : tools/build_quete_panneau.py, ACCENTS)
+        String t = text.replaceAll("[^\\x20-\\x7EéèêëàâçùûîïôœÉÈÊÀÇ’…]", "");
         int max = (PANEL_WIDTH - 2 * MARGIN) / LETTER;
         return t.length() > max ? t.substring(0, max) : t;
     }
@@ -149,6 +150,8 @@ public final class ScoreboardManager {
         // Dans un lieu : sa quete, tout en haut.
         // (sans le pack, qui dessine le panneau de quete au-dessus du tableau, elle s'ecrit ici)
         if (!showsLogo(p) || !showsPanel(p)) lines.addAll(plugin.places().questOf(p));
+        // Le panneau est centre sur le tableau : une ligne d'espaces donne au tableau sa largeur, pour qu'il ne deborde pas de l'ecran.
+        else if (plugin.places().questPanel(p) != null) lines.add(" ".repeat(PANEL_WIDTH / 4 + 1));
         switch (game.state()) {
             case LOBBY, ENDED -> {
                 lines.add("<white>Etat : <yellow>Lobby");
