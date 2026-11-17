@@ -112,6 +112,7 @@ public final class Places implements Listener {
         this.mark = new NamespacedKey(plugin, "borne");
         this.guide = new NamespacedKey(plugin, "quete");
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 20L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::gaze, 100L, 2L);
     }
 
     /** Le service d'un lieu (son nom de dossier), ou null. */
@@ -147,6 +148,37 @@ public final class Places implements Listener {
         List<Entity> b = bubbles.remove(key);
         if (b != null) b.forEach(Entity::remove);
         return p.name();
+    }
+
+    /** Dix fois par seconde : Anna tourne la tete vers le joueur le plus proche (a dix blocs), sinon reprend sa pose. */
+    private void gaze() {
+        for (Map.Entry<String, Entity> e : guides.entrySet()) {
+            Entity g = e.getValue();
+            if (!g.isValid()) continue;
+            Location at = g.getLocation(), eyes = at.clone().add(0, 1.62, 0);
+            Player near = null;
+            double best = 10 * 10;
+            for (Player pl : at.getWorld().getPlayers()) {
+                if (pl.getGameMode() == org.bukkit.GameMode.SPECTATOR) continue;
+                double d = pl.getLocation().distanceSquared(at);
+                if (d < best) { best = d; near = pl; }
+            }
+            float yaw, pitch = 0f;
+            if (near != null) {
+                org.bukkit.util.Vector to = near.getEyeLocation().toVector().subtract(eyes.toVector());
+                yaw = (float) Math.toDegrees(Math.atan2(-to.getX(), to.getZ()));
+                pitch = (float) Math.max(-50, Math.min(50, -Math.toDegrees(Math.atan2(to.getY(), Math.hypot(to.getX(), to.getZ())))));
+            } else {
+                Location home = guideSpots.get(e.getKey());
+                yaw = home != null ? home.getYaw() : at.getYaw();
+            }
+            // Elle tourne en douceur : un quart du chemin a chaque fois.
+            float turn = ((yaw - at.getYaw()) % 360 + 540) % 360 - 180;
+            if (Math.abs(turn) < 0.5f && Math.abs(pitch - at.getPitch()) < 0.5f) continue;
+            float now = at.getYaw() + turn * 0.35f;
+            g.setRotation(now, at.getPitch() + (pitch - at.getPitch()) * 0.35f);
+            if (g instanceof org.bukkit.entity.LivingEntity l) l.setBodyYaw(now);
+        }
     }
 
     /** Ou se tient Anna dans ce lieu : la place qu'un admin lui a donnee, sa place choisie, sinon pres de la borne. */
