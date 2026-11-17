@@ -327,9 +327,18 @@ public final class Quests implements Listener {
             Entity shown = e.getValue();
             if (shown != null && (!near || !shown.isValid())) { shown.remove(); e.setValue(null); shown = null; }
             if (near && shown == null) e.setValue(item(at, q.icon()));
-            // Un petit tintement, toutes les deux secondes, pour qui est a portee d'oreille (24 blocs).
-            if (near && beat % 8 == 0) for (Player p : members(r.team)) if (p.getWorld().equals(at.getWorld()) && p.getLocation().distanceSquared(at) < 24 * 24)
-                p.playSound(at, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.6f, 1.4f);
+            // Un tintement, toutes les deux secondes, pour qui est a portee d'oreille (32 blocs). Le son est joue tout
+            // pres du joueur, dans la direction de l'objet : on l'entend fort, et l'on sait d'ou il vient ; plus on est
+            // pres, plus il est fort.
+            if (near && beat % 8 == 0) for (Player p : members(r.team)) {
+                if (!p.getWorld().equals(at.getWorld())) continue;
+                double far = p.getLocation().distance(at);
+                if (far > 32) continue;
+                Location from = far < 2 ? at : p.getEyeLocation().add(at.toVector().subtract(p.getEyeLocation().toVector()).normalize().multiply(2));
+                float loud = (float) Math.max(0.45, 1.0 - far / 40.0);
+                p.playSound(from, Sound.BLOCK_AMETHYST_BLOCK_CHIME, org.bukkit.SoundCategory.MASTER, loud, 1.4f);
+                p.playSound(from, Sound.BLOCK_NOTE_BLOCK_BELL, org.bukkit.SoundCategory.MASTER, loud, 1.6f);
+            }
         }
     }
 
