@@ -3,10 +3,17 @@ site:
   title: Crossfight UHC
   structure:
     - type: space
-      key: space-docs
-      title: Crossfight UHC
-      path: docs
+      key: space-guide
+      title: Guide du joueur
+      path: guide
       default: true
+      content:
+        directory: ./guide
+        language: fr
+    - type: space
+      key: space-docs
+      title: Documentation technique
+      path: technique
       content:
         directory: ./docs
         language: fr
