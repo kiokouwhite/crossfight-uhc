@@ -159,7 +159,7 @@ def main():
     im.alpha_composite(sprite("Dividers", "Divider_05"), (23, 62))
     write(im, 47, 79, "Potions", bold, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (14, 100))
-    write(im, 47, 102, "1 / 10 min.", text, BROWN)
+    write(im, 47, 103, "1 / 10 min.", text, BROWN)
     for row, (name, good) in enumerate((("Force", True), ("Vitesse", True), ("Poison", False), ("Faiblesse", False), ("Lenteur", False))):
         im.alpha_composite(slot, (8 + 18 * 5, 18 + 18 * row))
         pen = ImageDraw.Draw(im)
