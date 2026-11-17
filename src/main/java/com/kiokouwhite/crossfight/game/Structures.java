@@ -542,7 +542,9 @@ public final class Structures implements Listener {
                 for (Entity e : w.getNearbyEntities(new BoundingBox(xa, box.y(), za, xb + 1, box.y() + box.sy(), zb + 1))) if (decor(e)) e.remove();
                 for (int x = xa; x <= xb; x++) for (int z = za; z <= zb; z++) {
                     if (out(x, z)) continue;
-                    int top = w.getHighestBlockYAt(x, z);
+                    // (la surface du monde, herbes et feuilles mortes comprises : sinon elles restent en l'air ; et une case
+                    // de plus, pour ce qui est pose sur le plus haut bloc)
+                    int top = Math.min(w.getMaxHeight() - 1, w.getHighestBlockYAt(x, z, HeightMap.WORLD_SURFACE) + 1);
                     for (int y = level; y <= top; y++) { Block b = w.getBlockAt(x, y, z); if (!b.getType().isAir()) b.setType(Material.AIR, false); }
                 }
                 // 2. Les blocs, copies tels quels, sans mise a jour. Au-dessus du niveau, tout le lieu, vide compris. Sous
