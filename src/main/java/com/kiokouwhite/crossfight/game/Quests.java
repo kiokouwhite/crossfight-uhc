@@ -54,14 +54,14 @@ import java.util.UUID;
  */
 public final class Quests implements Listener {
 
-    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE }
+    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE, FISH }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
     public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
 
     // Le personnage est partout le meme : Anna, la marchande, venue faire des affaires par la Fissure Temporelle.
     public static final Map<String, Quest> QUESTS = Map.ofEntries(
-            Map.entry("garreg_mach", new Quest("Le cours du professeur", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves refusent de m'ouvrir leur bibliothèque tant que personne n'a fait ses preuves… Bats les cinq adversaires de la cour, et ses secrets seront à toi !", Kind.KILL, 5, Material.IRON_SWORD, "adversaires", "Bravo, Héros ! Les élèves t'ouvrent leur bibliothèque : la borne d'enchantement, juste à côté, enchante l'objet que tu tiens contre 5 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
+            Map.entry("garreg_mach", new Quest("La partie de pêche", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves ne m'ouvriront leur bibliothèque que contre un bon repas… Prends cette canne, vise l'eau de l'étang et pêche-moi cinq poissons : quand ça mord, ferre au moment où le cercle se referme !", Kind.FISH, 5, Material.COD, "poissons", "Quelle pêche, Héros ! Les élèves se régalent et t'ouvrent leur bibliothèque : la borne d'enchantement, juste à côté, enchante l'objet que tu tiens contre 5 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
             Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan", "Tu l'as terrassé ! La forge du quartier rouvre : la borne, juste à côté, répare l'objet que tu tiens contre 2 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
             Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une tablette : reproduis sa figure avec les pièces, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
@@ -86,7 +86,9 @@ public final class Quests implements Listener {
     }
 
     private final CrossfightPlugin plugin;
-    private final NamespacedKey mark, pillar;
+    private final NamespacedKey mark, pillar, rod;
+    /** Les pecheurs : ou en est la prise de chacun. */
+    private final Map<UUID, Catch> catches = new HashMap<>();
     private final Tablet tablet = new Tablet();
     /** Par equipe (ou par joueur sans equipe) puis par lieu. */
     private final Map<String, Map<String, Run>> runs = new HashMap<>();
@@ -95,6 +97,8 @@ public final class Quests implements Listener {
         this.plugin = plugin;
         this.mark = new NamespacedKey(plugin, "quete_cible");
         this.pillar = new NamespacedKey(plugin, "quete_pilier");
+        this.rod = new NamespacedKey(plugin, "quete_canne");
+        Bukkit.getScheduler().runTaskTimer(plugin, this::fish, 100L, 1L);
         Bukkit.getPluginManager().registerEvents(tablet, plugin);
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 5L);
     }
@@ -173,6 +177,7 @@ public final class Quests implements Listener {
         }
         if (r == null) { start(p, place, npc); return; }
         if (q.kind() == Kind.CARRY && p.getUniqueId().equals(r.carrier)) { deliver(r, q, p); return; }
+        if (q.kind() == Kind.FISH) giveRod(p);
         Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
     }
 
@@ -228,6 +233,7 @@ public final class Quests implements Listener {
                     g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + place);
                 }));
             }
+            case FISH -> { for (Player m : members(r.team)) giveRod(m); }
             case PUZZLE -> {
                 // Quatre piliers eteints autour du personnage : chacun ouvre une tablette a qui clique dessus.
                 int[][] around = {{5, 0}, {-5, 0}, {0, 5}, {0, -5}};
@@ -363,7 +369,7 @@ public final class Quests implements Listener {
                         g.getWorld().playSound(g.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.4f, 0.5f);
                     }
                 }
-                case PUZZLE -> { }
+                case PUZZLE, FISH -> { }
                 case REACH -> {
                     show(r, q);
                     if (beat % 8 == 0) r.target.getWorld().spawnParticle(Particle.END_ROD, r.target.clone().add(0, 1, 0), 6, 0.3, 1.2, 0.3, 0.01);
@@ -421,6 +427,7 @@ public final class Quests implements Listener {
     private void finish(Run r, Quest q) {
         r.finished = true;
         clear(r);
+        if (q.kind() == Kind.FISH) for (Player m : members(r.team)) { takeRod(m); catches.remove(m.getUniqueId()); }
         String use = plugin.places().label(r.place);
         for (Player m : members(r.team)) {
             m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quête terminée"), Msg.mm("<white>" + q.title())));
@@ -431,6 +438,137 @@ public final class Quests implements Listener {
     }
 
     // ------------------------------------------------------------------ les monstres des quetes
+
+    // ------------------------------------------------------------------ la peche (Garreg Mach)
+
+    /** Une prise en cours : on attend que ca morde, puis le cercle se referme et il faut ferrer au bon moment. */
+    private static final class Catch {
+        final String place;
+        Location water;
+        int wait, ring, stamina, misses;
+        boolean bite;
+        String fish;
+        Catch(String place) { this.place = place; }
+    }
+
+    private static final String[] FISHES = {"une carpe", "une truite", "un gardon", "une perche", "un brochet", "une anguille", "un silure"};
+    /** Le cercle part de cette distance et se referme d'un cran tous les deux ticks. */
+    private static final int RING = 12;
+
+    private boolean isRod(ItemStack it) {
+        return it != null && it.getType() == Material.FISHING_ROD && it.hasItemMeta() && it.getItemMeta().getPersistentDataContainer().has(rod, PersistentDataType.BYTE);
+    }
+
+    private void giveRod(Player p) {
+        for (ItemStack it : p.getInventory().getContents()) if (isRod(it)) return;
+        ItemStack it = new ItemStack(Material.FISHING_ROD);
+        var meta = it.getItemMeta();
+        meta.displayName(Msg.mm("<aqua>Canne d'Anna").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+        meta.lore(List.of(Msg.mm("<gray>Clic droit en visant l'eau : lancer la ligne.").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false),
+                Msg.mm("<gray>Quand ça mord, clic droit au moment où le cercle se referme.").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false)));
+        meta.setUnbreakable(true);
+        meta.getPersistentDataContainer().set(rod, PersistentDataType.BYTE, (byte) 1);
+        it.setItemMeta(meta);
+        p.getInventory().addItem(it).values().forEach(x -> p.getWorld().dropItem(p.getLocation(), x));
+    }
+
+    private void takeRod(Player p) {
+        for (ItemStack it : p.getInventory().getContents()) if (isRod(it)) p.getInventory().remove(it);
+    }
+
+    /** Un clic droit avec la canne d'Anna : lancer la ligne, ou ferrer. La vraie peche du jeu n'a pas lieu. */
+    @EventHandler
+    public void onRod(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR && e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) return;
+        if (!isRod(e.getItem())) return;
+        e.setCancelled(true);
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        Player p = e.getPlayer();
+        Structures.Placed here = plugin.structures().at(p.getLocation());
+        Run r = here == null ? null : run(p, here.name());
+        if (r == null || r.finished || QUESTS.get(r.place).kind() != Kind.FISH) { Msg.actionBar(p, "<gray>Cette canne ne sert que pour la quête d'Anna, au monastère."); return; }
+        Catch c = catches.get(p.getUniqueId());
+        if (c == null) {
+            // Lancer : il faut viser de l'eau, a moins de vingt blocs.
+            org.bukkit.block.Block aim = p.getTargetBlockExact(20, org.bukkit.FluidCollisionMode.ALWAYS);
+            if (aim == null || aim.getType() != Material.WATER) { Msg.actionBar(p, "<red>Vise l'eau de l'étang."); return; }
+            c = new Catch(r.place);
+            c.water = aim.getLocation().add(0.5, 1, 0.5);
+            c.wait = 30 + java.util.concurrent.ThreadLocalRandom.current().nextInt(50);
+            c.stamina = 2 + java.util.concurrent.ThreadLocalRandom.current().nextInt(3);
+            c.fish = FISHES[java.util.concurrent.ThreadLocalRandom.current().nextInt(FISHES.length)];
+            catches.put(p.getUniqueId(), c);
+            p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_THROW, 1f, 1f);
+            c.water.getWorld().spawnParticle(Particle.SPLASH, c.water, 12, 0.2, 0.1, 0.2, 0.05);
+            return;
+        }
+        if (!c.bite) {
+            // Ferrer trop tot : le poisson s'en va.
+            catches.remove(p.getUniqueId());
+            Msg.actionBar(p, "<red>Trop tôt : rien n'avait mordu. Relance la ligne.");
+            p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.8f);
+            return;
+        }
+        // Ferrer : plus le cercle est referme, mieux c'est.
+        int gap = Math.abs(c.ring / 2);
+        int hit = gap <= 1 ? 2 : gap <= 3 ? 1 : 0;
+        if (hit == 0) {
+            c.misses++;
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);
+            if (c.misses >= 2) { catches.remove(p.getUniqueId()); Msg.actionBar(p, "<red>Raté ! Le poisson s'est décroché. Relance la ligne."); return; }
+            Msg.actionBar(p, "<red>Raté ! Encore une erreur et il se décroche.");
+        } else {
+            c.stamina -= hit;
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, hit == 2 ? 1.8f : 1.3f);
+            c.water.getWorld().spawnParticle(Particle.SPLASH, c.water, 20, 0.3, 0.1, 0.3, 0.1);
+            if (c.stamina <= 0) {
+                catches.remove(p.getUniqueId());
+                r.done++;
+                Quest q = QUESTS.get(r.place);
+                p.playSound(p.getLocation(), Sound.ENTITY_PLAYER_SPLASH_HIGH_SPEED, 0.7f, 1.4f);
+                Msg.send(p, "<aqua>Tu as pris " + c.fish + " ! <gray>(" + r.done + " / " + q.count() + ")");
+                tell(r, q);
+                if (r.done >= q.count()) finish(r, q);
+                return;
+            }
+            Msg.actionBar(p, (hit == 2 ? "<gold>Parfait !" : "<yellow>Bien !") + " <white>Il se débat encore…");
+        }
+        c.bite = false;
+        c.wait = 12 + java.util.concurrent.ThreadLocalRandom.current().nextInt(14);
+    }
+
+    /** La vraie ligne ne part jamais avec la canne d'Anna. */
+    @EventHandler
+    public void onCast(org.bukkit.event.player.PlayerFishEvent e) {
+        if (isRod(e.getPlayer().getInventory().getItemInMainHand()) || isRod(e.getPlayer().getInventory().getItemInOffHand())) e.setCancelled(true);
+    }
+
+    /** A chaque tick : l'attente de la touche, puis le cercle qui se referme. */
+    private void fish() {
+        for (var it = catches.entrySet().iterator(); it.hasNext(); ) {
+            var e = it.next();
+            Player p = Bukkit.getPlayer(e.getKey());
+            Catch c = e.getValue();
+            if (p == null || p.isDead() || !isRod(p.getInventory().getItemInMainHand()) || p.getLocation().distanceSquared(c.water) > 30 * 30) { it.remove(); continue; }
+            if (!c.bite) {
+                if (--c.wait > 0) { if (c.wait % 10 == 0) Msg.actionBar(p, "<gray>La ligne est à l'eau…"); continue; }
+                c.ring = RING * 2;
+                c.bite = true;
+                p.playSound(p.getLocation(), Sound.ENTITY_FISHING_BOBBER_SPLASH, 1f, 1f);
+                c.water.getWorld().spawnParticle(Particle.SPLASH, c.water, 25, 0.3, 0.1, 0.3, 0.1);
+            }
+            // Le cercle : deux crochets qui se rapprochent du centre, puis s'en ecartent si l'on tarde trop.
+            int gap = Math.abs(c.ring / 2);
+            String color = gap <= 1 ? "<gold>" : gap <= 3 ? "<yellow>" : "<white>";
+            Msg.actionBar(p, "<aqua>Ça mord ! " + color + "❯" + " ".repeat(gap) + "<gold>◉" + color + " ".repeat(gap) + "❮");
+            if (--c.ring < -8) {
+                c.misses++;
+                c.bite = false;
+                c.wait = 12;
+                if (c.misses >= 2) { it.remove(); Msg.actionBar(p, "<red>Trop tard ! Le poisson s'est décroché. Relance la ligne."); }
+            }
+        }
+    }
 
     /** Un clic sur un pilier : la tablette s'ouvre, pour un membre de l'equipe a qui il appartient. */
     @EventHandler
@@ -518,7 +656,7 @@ public final class Quests implements Listener {
     public void forget(Player p, String place) {
         Map<String, Run> m = runs.get(teamOf(p));
         if (m == null) return;
-        for (Run r : new ArrayList<>(m.values())) if (place == null || r.place.equals(place)) { clear(r); m.remove(r.place); }
+        for (Run r : new ArrayList<>(m.values())) if (place == null || r.place.equals(place)) { clear(r); m.remove(r.place); if (QUESTS.get(r.place).kind() == Kind.FISH) { takeRod(p); catches.remove(p.getUniqueId()); } }
     }
 
     /** Ou en est ce joueur, lieu par lieu. */
@@ -531,5 +669,7 @@ public final class Quests implements Listener {
     public void reset() {
         for (Map<String, Run> m : runs.values()) for (Run r : m.values()) clear(r);
         runs.clear();
+        catches.clear();
+        for (Player p : Bukkit.getOnlinePlayers()) takeRod(p);
     }
 }
