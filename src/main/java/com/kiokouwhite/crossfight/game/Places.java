@@ -251,9 +251,12 @@ public final class Places implements Listener {
             if (where != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(where) < 72 * 72) { near = true; break; }
             // Qui a fini la quete voit la bulle de la recompense a la place de celle de l'accueil.
             List<Entity> said = bubbles.get(key);
-            if (said != null && said.size() == 3) for (Player pl : w.getPlayers()) {
-                if (plugin.quests().finished(pl, p.name())) { pl.hideEntity(plugin, said.get(0)); pl.showEntity(plugin, said.get(2)); }
-                else { pl.showEntity(plugin, said.get(0)); pl.hideEntity(plugin, said.get(2)); }
+            // Avec le pack, c'est la bulle dessinee (tools/build_bulle.py) ; sans lui, le texte sur fond blanc et sa pointe.
+            if (said != null && said.size() == 5) for (Player pl : w.getPlayers()) {
+                boolean done = plugin.quests().finished(pl, p.name());
+                boolean drawn = com.kiokouwhite.crossfight.util.Sounds.has("font.bulle") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(pl);
+                boolean[] seen = {!drawn && !done, !drawn, !drawn && done, drawn && !done, drawn && done};
+                for (int k = 0; k < 5; k++) { if (seen[k]) pl.showEntity(plugin, said.get(k)); else pl.hideEntity(plugin, said.get(k)); }
             }
             Entity have = guides.get(key);
             if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; List<Entity> b = bubbles.remove(key); if (b != null) b.forEach(Entity::remove); }
@@ -265,6 +268,7 @@ public final class Places implements Listener {
             List<Entity> bubble = new ArrayList<>();
             bubble.add(w.spawn(over.clone().add(0, 3.05, 0), TextDisplay.class, d -> {
                 d.setPersistent(false);
+                d.setVisibleByDefault(false);
                 d.setBillboard(Display.Billboard.CENTER);
                 d.setBrightness(new Display.Brightness(15, 15));
                 d.setLineWidth(190);
@@ -275,6 +279,7 @@ public final class Places implements Listener {
             }));
             bubble.add(w.spawn(over.clone().add(0, 2.82, 0), TextDisplay.class, d -> {
                 d.setPersistent(false);
+                d.setVisibleByDefault(false);
                 d.setBillboard(Display.Billboard.CENTER);
                 d.setBrightness(new Display.Brightness(15, 15));
                 d.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
@@ -293,6 +298,18 @@ public final class Places implements Listener {
                 d.setShadowed(false);
                 d.setViewRange(0.2f);
                 d.text(Msg.mm("<black>" + q.thanks()));
+            }));
+            // Les deux memes, en bulle dessinee, pour qui a le pack.
+            for (String words : new String[]{q.says(), q.thanks()}) bubble.add(w.spawn(over.clone().add(0, 3.25, 0), TextDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setVisibleByDefault(false);
+                d.setBillboard(Display.Billboard.CENTER);
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setLineWidth(1000);                                       // les lignes sont deja coupees : speech()
+                d.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+                d.setShadowed(false);
+                d.setViewRange(0.2f);
+                d.text(speech(words));
             }));
             bubbles.put(key, bubble);
             // Un mannequin a l'image d'un joueur, au skin des personnages de quete ("pnj" dans skins.txt).
@@ -389,6 +406,46 @@ public final class Places implements Listener {
             d.getPersistentDataContainer().set(mark, PersistentDataType.STRING, use);
         }));
         return out;
+    }
+
+    /** La largeur d'un caractere dans la police du jeu, a peu pres (avance comprise) : de quoi couper un texte en lignes. */
+    private static int charWidth(char c) {
+        if ("i!.,:;|'’".indexOf(c) >= 0) return 2;
+        if (c == 'l' || c == 'ì' || c == 'í') return 3;
+        if ("tI[] îï".indexOf(c) >= 0) return 4;
+        if ("fk<>\"()*{}".indexOf(c) >= 0) return 5;
+        if (c == '@' || c == '~' || c == '…') return 7;
+        return 6;
+    }
+
+    /** Le texte coupe en lignes de `max` pixels au plus, entre deux mots. */
+    private static List<String> wrap(String text, int max) {
+        List<String> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        int width = 0;
+        for (String word : text.trim().split("\\s+")) {
+            int w = 0;
+            for (char c : word.toCharArray()) w += charWidth(c);
+            if (line.length() > 0 && width + 4 + w > max) { lines.add(line.toString()); line.setLength(0); width = 0; }
+            if (line.length() > 0) { line.append(' '); width += 4; }
+            line.append(word);
+            width += w;
+        }
+        if (line.length() > 0) lines.add(line.toString());
+        return lines;
+    }
+
+    /**
+     * Ce que dit un personnage, en bulle dessinee (tools/build_bulle.py) : sur la premiere ligne, l'image de la bulle qui
+     * a la hauteur du texte ; dessous, le texte, centre. L'image est la ligne la plus large : tout se centre sur elle.
+     */
+    private static Component speech(String text) {
+        List<String> lines = wrap(text, 176);
+        while (lines.size() > 14) { lines.remove(lines.size() - 1); lines.set(13, lines.get(13) + "…"); }
+        return Component.text(String.valueOf((char) (0xE300 + lines.size()))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "bulle"))
+                .color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                .append(Component.text("\n" + String.join("\n", lines)).font(net.kyori.adventure.key.Key.key("minecraft", "default"))
+                        .color(net.kyori.adventure.text.format.TextColor.fromHexString("#33283c")));
     }
 
     @EventHandler

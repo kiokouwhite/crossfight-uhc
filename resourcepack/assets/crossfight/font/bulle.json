@@ -1,0 +1,130 @@
+{
+ "providers": [
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_01.png",
+   "height": 38,
+   "ascent": 7,
+   "chars": [
+    "\ue301"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_02.png",
+   "height": 48,
+   "ascent": 7,
+   "chars": [
+    "\ue302"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_03.png",
+   "height": 58,
+   "ascent": 7,
+   "chars": [
+    "\ue303"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_04.png",
+   "height": 68,
+   "ascent": 7,
+   "chars": [
+    "\ue304"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_05.png",
+   "height": 78,
+   "ascent": 7,
+   "chars": [
+    "\ue305"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_06.png",
+   "height": 88,
+   "ascent": 7,
+   "chars": [
+    "\ue306"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_07.png",
+   "height": 98,
+   "ascent": 7,
+   "chars": [
+    "\ue307"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_08.png",
+   "height": 108,
+   "ascent": 7,
+   "chars": [
+    "\ue308"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_09.png",
+   "height": 118,
+   "ascent": 7,
+   "chars": [
+    "\ue309"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_10.png",
+   "height": 128,
+   "ascent": 7,
+   "chars": [
+    "\ue30a"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_11.png",
+   "height": 138,
+   "ascent": 7,
+   "chars": [
+    "\ue30b"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_12.png",
+   "height": 148,
+   "ascent": 7,
+   "chars": [
+    "\ue30c"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_13.png",
+   "height": 158,
+   "ascent": 7,
+   "chars": [
+    "\ue30d"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/bulle_14.png",
+   "height": 168,
+   "ascent": 7,
+   "chars": [
+    "\ue30e"
+   ]
+  }
+ ]
+}
