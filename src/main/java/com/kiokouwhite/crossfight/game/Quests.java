@@ -168,7 +168,7 @@ public final class Quests implements Listener {
                     for (int tries = 0; tries < 40 && at == null; tries++) {
                         Location c = plugin.places().questSpot(w, box);
                         if (c == null) continue;
-                        boolean east = c.getX() >= box.x() + box.sx() / 2.0, south = c.getZ() >= box.z() + box.sz() / 2.0;
+                        boolean east = c.getX() >= r.home.getX(), south = c.getZ() >= r.home.getZ();
                         if (q.count() != 4 || tries > 30 || (east ? 1 : 0) + (south ? 2 : 0) == i) at = c;
                     }
                     if (at != null) r.spots.put(at, null);
@@ -327,6 +327,9 @@ public final class Quests implements Listener {
             Entity shown = e.getValue();
             if (shown != null && (!near || !shown.isValid())) { shown.remove(); e.setValue(null); shown = null; }
             if (near && shown == null) e.setValue(item(at, q.icon()));
+            // Un petit tintement, toutes les deux secondes, pour qui est a portee d'oreille (24 blocs).
+            if (near && beat % 8 == 0) for (Player p : members(r.team)) if (p.getWorld().equals(at.getWorld()) && p.getLocation().distanceSquared(at) < 24 * 24)
+                p.playSound(at, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.6f, 1.4f);
         }
     }
 

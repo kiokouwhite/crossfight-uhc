@@ -417,11 +417,16 @@ public final class Places implements Listener {
     Location questSpot(World w, Structures.Placed p) {
         ThreadLocalRandom r = ThreadLocalRandom.current();
         int level = plugin.structures().level(p);
+        // Au coeur du lieu : dans un rayon d'un cinquieme de son cote autour de sa borne, et jamais sur une vitre
+        // (le fond vitre d'un bassin n'est pas un endroit ou chercher).
+        Location heart = spot(w, p);
+        int cx = heart != null ? heart.getBlockX() : p.x() + p.sx() / 2, cz = heart != null ? heart.getBlockZ() : p.z() + p.sz() / 2;
+        int reach = Math.max(40, Math.min(p.sx(), p.sz()) / 5);
         for (int n = 0; n < 300; n++) {
-            int x = p.x() + 8 + r.nextInt(Math.max(1, p.sx() - 16)), z = p.z() + 8 + r.nextInt(Math.max(1, p.sz() - 16));
-            if (plugin.structures().at(new Location(w, x, 0, z)) == null) continue;
+            int x = cx - reach + r.nextInt(2 * reach + 1), z = cz - reach + r.nextInt(2 * reach + 1);
+            if ((x - cx) * (x - cx) + (z - cz) * (z - cz) > reach * reach || plugin.structures().at(new Location(w, x, 0, z)) == null) continue;
             Block b = plugin.worldMap().standAt(w, x, z);
-            if (b == null || b.isLiquid() || !b.getType().isSolid() || b.getY() < level - 1 || b.getY() > level + 24) continue;
+            if (b == null || b.isLiquid() || !b.getType().isSolid() || b.getType().name().contains("GLASS") || b.getY() < level - 1 || b.getY() > level + 24) continue;
             if (b.getRelative(org.bukkit.block.BlockFace.UP).getLightFromSky() == 0) continue;
             return new Location(w, x + 0.5, b.getY() + 1, z + 0.5);
         }
