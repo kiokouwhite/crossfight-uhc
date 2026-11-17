@@ -34,6 +34,9 @@ public final class CfCommand implements TabExecutor {
             help(sender);
             return true;
         }
+        // /cf tp quete <lieu> : la meme chose que /cf quete tp <lieu>
+        if (args.length >= 2 && args[0].equalsIgnoreCase("tp") && (args[1].equalsIgnoreCase("quete") || args[1].equalsIgnoreCase("quetes")))
+            args = args.length > 2 ? new String[]{"quete", "tp", args[2]} : new String[]{"quete", "tp"};
         String sub = args[0].toLowerCase();
         switch (sub) {
             case "status" -> status(sender);
@@ -169,7 +172,7 @@ public final class CfCommand implements TabExecutor {
                         if (place == null || !com.kiokouwhite.crossfight.game.Quests.QUESTS.containsKey(place)) { Msg.send(sender, "<yellow>/cf quete " + what + " <lieu> <gray>(ou place-toi dans un lieu)"); return true; }
                         org.bukkit.Location npc = plugin.places().guideOf(plugin.game().world(), place);
                         switch (what) {
-                            case "tp" -> { if (npc == null) Msg.send(sender, "<red>Ce lieu n'est pas pose sur cette map."); else { sp.teleport(npc.clone().add(1.5, 0, 1.5)); Msg.send(sender, "<green>Te voila pres du personnage de <white>" + place + "<green> : clic droit sur lui."); } }
+                            case "tp" -> { if (npc == null) Msg.send(sender, "<red>Ce lieu n'est pas pose sur cette map."); else { sp.teleport(facing(npc)); Msg.send(sender, "<green>Te voila devant le personnage de <white>" + place + "<green> : clic droit sur lui."); } }
                             case "lancer" -> { qs.forget(sp, place); Msg.send(sender, npc != null && qs.start(sp, place, npc) ? "<green>Quete lancee." : "<red>Ce lieu n'est pas pose sur cette map."); }
                             case "finir" -> { qs.force(sp, place); }
                             case "parler" -> { qs.talk(sp, place, npc); }
@@ -836,13 +839,36 @@ public final class CfCommand implements TabExecutor {
         }
     }
 
+    /**
+     * Ou se tenir pour etre devant ce personnage, tourne vers lui : a deux blocs et demi dans la direction ou il regarde,
+     * si l'on peut s'y tenir (deux blocs libres, du sol dessous) ; sinon tout pres de lui, comme avant.
+     */
+    private static org.bukkit.Location facing(org.bukkit.Location npc) {
+        double rad = Math.toRadians(npc.getYaw());
+        for (double far : new double[]{2.5, 1.5}) {
+            org.bukkit.Location at = npc.clone().add(-Math.sin(rad) * far, 0, Math.cos(rad) * far);
+            for (int dy : new int[]{0, 1, -1}) {
+                org.bukkit.block.Block feet = at.clone().add(0, dy, 0).getBlock();
+                if (feet.isPassable() && !feet.isLiquid() && feet.getRelative(0, 1, 0).isPassable() && feet.getRelative(0, -1, 0).getType().isSolid()) {
+                    org.bukkit.Location stand = new org.bukkit.Location(at.getWorld(), at.getX(), feet.getY(), at.getZ());
+                    stand.setYaw(npc.getYaw() + 180);
+                    stand.setPitch(0);
+                    return stand;
+                }
+            }
+        }
+        org.bukkit.Location near = npc.clone().add(1.5, 0, 1.5);
+        near.setDirection(npc.toVector().subtract(near.toVector()));
+        return near;
+    }
+
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -867,6 +893,7 @@ public final class CfCommand implements TabExecutor {
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
                 case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "parler", "oublier", "placer", "replacer"));
+                case "tp" -> out.add("quete");
                 case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {
@@ -881,6 +908,8 @@ public final class CfCommand implements TabExecutor {
                 case "change" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 default -> { }
             }
+        } else if (args.length == 3 && (args[0].equalsIgnoreCase("quete") || args[0].equalsIgnoreCase("quetes") || args[0].equalsIgnoreCase("tp") && args[1].equalsIgnoreCase("quete"))) {
+            out.addAll(com.kiokouwhite.crossfight.game.Quests.QUESTS.keySet());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && args[1].equalsIgnoreCase("selection")) {
             for (Licence l : plugin.characters().licences()) out.add(l.id());
         } else if (args.length == 3 && args[0].equalsIgnoreCase("test") && isThirdPersonArg(args[1])) {
