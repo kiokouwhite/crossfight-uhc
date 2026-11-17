@@ -76,6 +76,8 @@ public final class Quests implements Listener {
         final String team, place;
         int done;
         boolean finished;
+        /** La quete est faite, mais le lieu est complet : l'equipe doit encore choisir qui en perd le privilege. */
+        boolean pending;
         final List<Entity> things = new ArrayList<>();          // les monstres
         /** Les objets a ramasser (ou le repere du sommet) : ou ils sont, et ce qui les montre quand un joueur est pres. */
         final Map<Location, Entity> spots = new java.util.LinkedHashMap<>();
@@ -128,13 +130,13 @@ public final class Quests implements Listener {
     public boolean unlocked(Player p, String place) {
         if (!on() || !QUESTS.containsKey(place)) return true;
         Run r = run(p, place);
-        return r != null && r.finished;
+        return r != null && r.finished && !r.pending;
     }
 
     /** Vrai si une equipe au moins a fini la quete de ce lieu (pour ce qui profite a tous, comme la caisse garantie). */
     public boolean anyUnlocked(String place) {
         if (!on() || !QUESTS.containsKey(place)) return true;
-        for (Map<String, Run> m : runs.values()) { Run r = m.get(place); if (r != null && r.finished) return true; }
+        for (Map<String, Run> m : runs.values()) { Run r = m.get(place); if (r != null && r.finished && !r.pending) return true; }
         return false;
     }
 
@@ -144,6 +146,7 @@ public final class Quests implements Listener {
         if (q == null || !on()) return null;
         Run r = run(p, place);
         if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12"};
+        if (r.finished && r.pending) return new String[]{q.title(), "choisis qui part", "#a02020"};
         if (r.finished) return new String[]{q.title(), "terminée", "#2e6b1f"};
         return new String[]{q.title(), q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
     }
@@ -171,6 +174,7 @@ public final class Quests implements Listener {
         if (q == null) return;
         if (!plugin.game().isRunning() && !p.hasPermission("crossfight.admin")) { Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Revenez pendant la partie."); return; }
         Run r = run(p, place);
+        if (r != null && r.finished && r.pending) { openEject(p, r); return; }
         if (r != null && r.finished) {
             // La quete faite, Anna tient boutique la ou le lieu offre des potions ou des enchantements.
             if ("potions".equals(plugin.places().useOf(place))) plugin.places().openBrews(p);
@@ -192,6 +196,7 @@ public final class Quests implements Listener {
         Run r = new Run(teamOf(p), place);
         r.home = npc != null ? npc.clone() : p.getLocation();
         runs.computeIfAbsent(r.team, k -> new HashMap<>()).put(place, r);
+        contest(r, q);
         World w = p.getWorld();
         switch (q.kind()) {
             case COLLECT, CARRY -> {
@@ -481,13 +486,170 @@ public final class Quests implements Listener {
         r.finished = true;
         clear(r);
         if (q.kind() == Kind.FISH) for (Player m : members(r.team)) { takeRod(m); Catch c = catches.remove(m.getUniqueId()); if (c != null) drop(m, c); }
-        String use = plugin.places().label(r.place);
+        // Le lieu est-il complet ? Alors l'equipe doit d'abord choisir qui en perd le privilege.
+        int cap = cap();
+        r.pending = true;                                  // le temps de compter : holders() ne compte pas une equipe en attente
+        r.pending = cap > 0 && holders(r.place).size() >= cap;
         for (Player m : members(r.team)) {
             m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<green><bold>Quête terminée"), Msg.mm("<white>" + q.title())));
             m.playSound(m.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        }
+        if (r.pending) {
+            for (Player m : members(r.team)) {
+                Msg.send(m, "<gold>" + placeName(r.place) + " <yellow>est complet : choisis l'équipe qui perd son privilège. <gray>(reparle à " + q.giver() + " si tu fermes le menu)");
+                openEject(m, r);
+            }
+            return;
+        }
+        grant(r, q, null);
+    }
+
+    // ------------------------------------------------------------------ les places d'un lieu
+
+    /** Combien d'equipes peuvent garder le privilege d'un meme lieu (0 : autant qu'on veut). */
+    private int cap() { return Math.max(0, plugin.getConfig().getInt("structures.equipes-par-lieu", 2)); }
+
+    /** Les equipes qui ont le privilege de ce lieu. */
+    private List<String> holders(String place) {
+        List<String> out = new ArrayList<>();
+        for (Map.Entry<String, Map<String, Run>> e : runs.entrySet()) { Run r = e.getValue().get(place); if (r != null && r.finished && !r.pending) out.add(e.getKey()); }
+        return out;
+    }
+
+    /** Le nom d'une equipe, pour les annonces : "Equipe 3" en couleur, ou le nom du joueur seul. */
+    private String teamName(String team) {
+        if (team.startsWith("e")) {
+            try { Team t = plugin.teams().get(Integer.parseInt(team.substring(1))); if (t != null) return t.coloredName(); } catch (NumberFormatException ignored) { }
+        }
+        try { String name = Bukkit.getOfflinePlayer(UUID.fromString(team)).getName(); if (name != null) return "<white>" + name; } catch (IllegalArgumentException ignored) { }
+        return "<white>une équipe";
+    }
+
+    private String placeName(String place) {
+        String title = plugin.structures().title(place);
+        return title == null || title.isBlank() ? place : title;
+    }
+
+    /** Ce qu'on dit des places d'un lieu : "1 place libre sur 2", "complet (2 équipes)". */
+    private String seats(String place) {
+        int cap = cap(), taken = holders(place).size();
+        if (cap == 0) return "<gray>" + taken + (taken > 1 ? " équipes ont" : " équipe a") + " ce privilège";
+        int left = Math.max(0, cap - taken);
+        return left == 0 ? "<red>complet <gray>(" + cap + (cap > 1 ? " équipes)" : " équipe)") : "<green>" + left + (left > 1 ? " places libres" : " place libre") + " <gray>sur " + cap;
+    }
+
+    /** Une equipe se lance dans la quete d'un lieu : on lui dit ce qu'il reste de places ; s'il est complet, ceux qui le tiennent sont prevenus. */
+    private void contest(Run r, Quest q) {
+        int cap = cap();
+        if (cap == 0) return;
+        List<String> held = holders(r.place);
+        for (Player m : members(r.team)) Msg.send(m, "<gold>" + placeName(r.place) + " <gray>: " + seats(r.place) + "<gray>.");
+        if (held.size() < cap) return;
+        for (Player m : members(r.team)) {
+            Msg.send(m, "<red>Ce lieu est complet. <yellow>Les équipes qui le tiennent sont averties de ta quête : si tu la termines, tu choisiras laquelle perd son privilège.");
+            m.playSound(m.getLocation(), Sound.BLOCK_BELL_USE, 1f, 0.7f);
+        }
+        for (String team : held) for (Player m : members(team)) {
+            m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<red><bold>Privilège menacé"), Msg.mm("<white>" + placeName(r.place))));
+            Msg.send(m, teamName(r.team) + " <red>tente la quête de <gold>" + placeName(r.place) + "<red> : si elle la termine, ton équipe peut perdre son privilège. Défends-le !");
+            m.playSound(m.getLocation(), Sound.BLOCK_BELL_USE, 1f, 0.7f);
+        }
+    }
+
+    /** L'equipe gagne le privilege du lieu (apres avoir ecarte `ejected`, s'il etait complet), et tout le monde l'apprend. */
+    private void grant(Run r, Quest q, String ejected) {
+        r.pending = false;
+        String use = plugin.places().label(r.place);
+        for (Player m : members(r.team)) {
             Msg.send(m, "<yellow>" + q.giver() + " <gray>: <white>" + q.thanks());
             Msg.send(m, use == null ? "<green>Quête terminée : <white>" + q.title() + "<green>." : "<green>Quête terminée : <white>" + q.title() + "<green>. <gold>" + use + " <green>est débloqué pour ton équipe jusqu'à la fin de la partie.");
         }
+        // L'annonce a tous les autres.
+        for (Player other : Bukkit.getOnlinePlayers()) {
+            if (teamOf(other).equals(r.team)) continue;
+            Msg.send(other, teamName(r.team) + " <yellow>a terminé la quête de <gold>" + placeName(r.place) + (use == null ? "" : " <gray>(" + use + ")")
+                    + (ejected == null ? "" : " <yellow>et en a écarté " + teamName(ejected)) + "<yellow>. " + seats(r.place) + "<gray>.");
+            other.playSound(other.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.8f, 1.2f);
+        }
+        if (cap() > 0 && holders(r.place).size() >= cap()) for (Player m : members(r.team))
+            Msg.send(m, "<gray>Ce lieu est maintenant complet : une équipe qui terminera sa quête pourra écarter la tienne. Tu seras averti si quelqu'un s'y lance.");
+    }
+
+    /** Le menu qui demande quelle equipe perd son privilege : une tete par equipe qui tient le lieu. */
+    private final class Eject implements org.bukkit.inventory.InventoryHolder {
+        final org.bukkit.inventory.Inventory inv;
+        final Run run;
+        final List<String> teams = new ArrayList<>();
+
+        Eject(Run run) {
+            this.run = run;
+            inv = Bukkit.createInventory(this, 9, net.kyori.adventure.text.Component.text("Quelle équipe perd son privilège ?"));
+            for (String team : holders(run.place)) {
+                if (teams.size() >= 9) break;
+                ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+                org.bukkit.inventory.meta.SkullMeta meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
+                UUID first = null;
+                if (team.startsWith("e")) {
+                    try {
+                        Team t = plugin.teams().get(Integer.parseInt(team.substring(1)));
+                        if (t != null) for (UUID id : t.members()) {
+                            if (first == null) first = id;
+                            String n = Bukkit.getOfflinePlayer(id).getName();
+                            lore.add(Msg.mm("<gray>" + (n == null ? "?" : n)).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+                        }
+                    } catch (NumberFormatException ignored) { }
+                } else {
+                    try { first = UUID.fromString(team); } catch (IllegalArgumentException ignored) { }
+                }
+                if (first != null) meta.setOwningPlayer(Bukkit.getOfflinePlayer(first));
+                meta.displayName(Msg.mm(teamName(team)).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+                lore.add(Msg.mm("<red>Clic : elle perd le privilège de ce lieu").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
+                meta.lore(lore);
+                head.setItemMeta(meta);
+                inv.setItem(teams.size(), head);
+                teams.add(team);
+            }
+        }
+
+        @Override public org.bukkit.inventory.Inventory getInventory() { return inv; }
+    }
+
+    private void closeEject(String team) {
+        for (Player m : members(team)) if (m.getOpenInventory().getTopInventory().getHolder() instanceof Eject) m.closeInventory();
+    }
+
+    private void openEject(Player p, Run r) {
+        // Entre-temps, une place a pu se liberer : alors il n'y a plus personne a ecarter.
+        if (cap() == 0 || holders(r.place).size() < cap()) { closeEject(r.team); grant(r, QUESTS.get(r.place), null); return; }
+        p.openInventory(new Eject(r).inv);
+    }
+
+    @EventHandler
+    public void onEject(org.bukkit.event.inventory.InventoryClickEvent e) {
+        if (!(e.getInventory().getHolder() instanceof Eject menu)) return;
+        e.setCancelled(true);
+        if (e.getClickedInventory() != menu.inv || e.getSlot() < 0 || e.getSlot() >= menu.teams.size() || !(e.getWhoClicked() instanceof Player p)) return;
+        Run r = menu.run;
+        if (!r.pending) { p.closeInventory(); return; }                    // un equipier a deja choisi
+        String out = menu.teams.get(e.getSlot());
+        Map<String, Run> theirs = runs.get(out);
+        Run lost = theirs == null ? null : theirs.get(r.place);
+        boolean ejected = lost != null && lost.finished && !lost.pending;
+        if (ejected) {
+            // L'equipe ecartee repart de zero : elle peut refaire la quete pour reprendre sa place.
+            clear(lost);
+            theirs.remove(r.place);
+            String use = plugin.places().label(r.place);
+            for (Player m : members(out)) {
+                m.closeInventory();                                         // le menu d'Anna, s'il etait ouvert
+                m.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<red><bold>Privilège perdu"), Msg.mm("<white>" + placeName(r.place))));
+                Msg.send(m, teamName(r.team) + " <red>a terminé la quête de <gold>" + placeName(r.place) + " <red>et a écarté ton équipe" + (use == null ? "" : " : <gold>" + use + " <red>ne t'est plus ouvert") + ". <yellow>Refais la quête pour reprendre ta place.");
+                m.playSound(m.getLocation(), Sound.ENTITY_WITHER_HURT, 0.8f, 0.8f);
+            }
+        }
+        closeEject(r.team);
+        grant(r, QUESTS.get(r.place), ejected ? out : null);
     }
 
     // ------------------------------------------------------------------ les monstres des quetes
@@ -787,7 +949,7 @@ public final class Quests implements Listener {
     /** Ou en est ce joueur, lieu par lieu. */
     public String state(Player p, String place) {
         Run r = run(p, place);
-        return r == null ? "<gray>pas commencée" : r.finished ? "<green>terminée" : "<yellow>en cours (" + r.done + " / " + QUESTS.get(place).count() + ")";
+        return r == null ? "<gray>pas commencée" : r.finished && r.pending ? "<red>terminée, une équipe à écarter" : r.finished ? "<green>terminée" : "<yellow>en cours (" + r.done + " / " + QUESTS.get(place).count() + ")";
     }
 
     /** Une partie commence, ou la map change : tout repart de zero. */

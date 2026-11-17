@@ -135,6 +135,10 @@ structures:
   services: true
   # Le nom du lieu s'affiche quand on y entre, avec sa quete et le personnage qui la donne (en surbrillance)
   quetes: true
+  # Combien d'equipes peuvent garder le privilege d'un meme lieu (0 : pas de limite). Quand un lieu est complet, une
+  # equipe qui se lance dans sa quete fait prevenir celles qui le tiennent ; si elle la termine, elle choisit laquelle
+  # perd son privilege (l'equipe ecartee peut refaire la quete).
+  equipes-par-lieu: 2
   # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox, chasse
   utilites:
     garreg_mach: enchantement

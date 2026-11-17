@@ -11,6 +11,8 @@ Des lieux venus d'autres mondes sont posés sur la map, entourés d'une faille l
 
 Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler, mais rien ne l'empêche de venir t'attaquer pendant que tu es occupé.
 
+**Les places sont comptées.** Chaque lieu ne garde le privilège que de deux équipes. Quand une équipe termine une quête, tout le monde l'apprend, avec le nombre de places qui restent. Si le lieu est complet et qu'une autre équipe s'y lance, celles qui le tiennent sont averties : c'est le moment de venir le défendre. Si elle termine quand même, elle choisit laquelle des équipes perd son privilège. L'équipe écartée peut refaire la quête pour reprendre sa place.
+
 `/cf map` te donne une carte de la map, avec les lieux et leur service.
 
 ## Les lieux
