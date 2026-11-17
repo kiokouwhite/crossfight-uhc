@@ -122,13 +122,15 @@ public final class Places implements Listener {
      * Place Anna la ou se tient ce joueur, pour le lieu ou il se trouve (ou la remet a sa place d'origine si {@code here}
      * est faux). Rend le nom du lieu, ou null si le joueur n'est dans aucun lieu.
      */
-    public String moveGuide(Player pl, boolean here) {
-        Structures.Placed p = plugin.structures().at(pl.getLocation());
+    public String moveGuide(Player pl, boolean here) { return moveGuide(pl.getLocation(), here); }
+
+    /** Pareil, pour un endroit donne (ses coordonnees sur la map, et le sens ou Anna regarde). */
+    public String moveGuide(Location l, boolean here) {
+        Structures.Placed p = plugin.structures().at(l);
         if (p == null) return null;
-        Location l = pl.getLocation();
         plugin.getConfig().set("structures.anna." + p.name(), here ? List.of(l.getX() - p.x(), l.getY() - plugin.structures().level(p), l.getZ() - p.z(), (double) l.getYaw()) : null);
         plugin.saveConfig();
-        String key = pl.getWorld().getName() + "/" + p.name();
+        String key = l.getWorld().getName() + "/" + p.name();
         Entity g = guides.remove(key);
         if (g != null) g.remove();
         List<Entity> b = bubbles.remove(key);

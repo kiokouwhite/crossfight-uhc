@@ -154,8 +154,15 @@ public final class CfCommand implements TabExecutor {
                         }
                         if (what.equals("placer") || what.equals("replacer")) {
                             // Anna vient la ou se tient l'admin (ou retourne a sa place d'origine).
-                            String moved = plugin.places().moveGuide(sp, what.equals("placer"));
-                            Msg.send(sender, moved == null ? "<red>Place-toi dans un lieu." : what.equals("placer") ? "<green>Anna se tiendra ici pour <white>" + moved + "<green>, sur cette map et les suivantes. <gray>/cf quete replacer pour annuler." : "<green>Anna retourne a sa place d'origine pour <white>" + moved + "<green>.");
+                            // Avec des coordonnees (x y z, puis le sens du regard) : a cet endroit de la map plutot qu'aux pieds de l'admin.
+                            String moved;
+                            if (what.equals("placer") && args.length >= 5) {
+                                try {
+                                    moved = plugin.places().moveGuide(new org.bukkit.Location(plugin.game().world(), Double.parseDouble(args[2]), Double.parseDouble(args[3]), Double.parseDouble(args[4]),
+                                            args.length >= 6 ? Float.parseFloat(args[5]) : sp.getLocation().getYaw(), 0f), true);
+                                } catch (NumberFormatException ex) { Msg.send(sender, "<yellow>/cf quete placer [x y z [regard]]"); return true; }
+                            } else moved = plugin.places().moveGuide(sp, what.equals("placer"));
+                            Msg.send(sender, moved == null ? "<red>Cet endroit n'est dans aucun lieu." : what.equals("placer") ? "<green>Anna se tiendra ici pour <white>" + moved + "<green>, sur cette map et les suivantes. <gray>/cf quete replacer pour annuler." : "<green>Anna retourne a sa place d'origine pour <white>" + moved + "<green>.");
                             return true;
                         }
                         if (what.equals("oublier") && place == null) { qs.forget(sp, null); Msg.send(sender, "<green>Toutes tes quetes sont oubliees."); return true; }
