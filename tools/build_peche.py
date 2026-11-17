@@ -6,7 +6,7 @@ Usage : python3 tools/build_peche.py
 Vingt-huit images de 256 x 256 (les rayons ci-dessous sont comptés sur 128, puis doublés au dessin). Au centre, la cible : trois zones emboîtées (Bien, Très bien, Parfait, de l'extérieur
 vers le centre). Autour, un cercle qui se resserre d'image en image, de 62 à 8 pixels de rayon, une image par tick : il faut l'arrêter dans
 la zone la plus au centre possible (game/Quests.java dit quelle image vaut quoi). Le plugin les affiche en titre, donc
-centrées : une image haute de 120 unités de police fait 480 pixels d'interface. Un pixel presque invisible dans le coin de droite
+centrées : une image haute de 96 unités de police fait 384 pixels d'interface. Un pixel presque invisible dans le coin de droite
 fixe la largeur de toutes les images : sans lui, le jeu mesure chaque image à son dernier pixel plein, et la cible se
 décale à mesure que le cercle rétrécit.
 Dessiné ici, rien n'est repris d'un jeu. Écrit resourcepack/assets/crossfight/font/peche.json et textures/font/peche_*.png.
@@ -48,7 +48,7 @@ def main():
         small.putpixel((SIZE - 1, SIZE - 1), (255, 255, 255, 2))   # largeur fixe : voir plus haut
         small.save(ROOT / "textures" / "font" / f"peche_{i:02d}.png")
         chars.append(chr(0xE200 + i))
-    providers = [{"type": "bitmap", "file": f"crossfight:font/peche_{i:02d}.png", "height": 120, "ascent": 57, "chars": [ch]} for i, ch in enumerate(chars)]
+    providers = [{"type": "bitmap", "file": f"crossfight:font/peche_{i:02d}.png", "height": 96, "ascent": 45, "chars": [ch]} for i, ch in enumerate(chars)]
     (ROOT / "font" / "peche.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")
     print(len(chars), "images")
 

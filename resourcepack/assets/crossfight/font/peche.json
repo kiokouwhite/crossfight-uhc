@@ -3,8 +3,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_00.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue200"
    ]
@@ -12,8 +12,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_01.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue201"
    ]
@@ -21,8 +21,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_02.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue202"
    ]
@@ -30,8 +30,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_03.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue203"
    ]
@@ -39,8 +39,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_04.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue204"
    ]
@@ -48,8 +48,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_05.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue205"
    ]
@@ -57,8 +57,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_06.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue206"
    ]
@@ -66,8 +66,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_07.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue207"
    ]
@@ -75,8 +75,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_08.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue208"
    ]
@@ -84,8 +84,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_09.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue209"
    ]
@@ -93,8 +93,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_10.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20a"
    ]
@@ -102,8 +102,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_11.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20b"
    ]
@@ -111,8 +111,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_12.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20c"
    ]
@@ -120,8 +120,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_13.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20d"
    ]
@@ -129,8 +129,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_14.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20e"
    ]
@@ -138,8 +138,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_15.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue20f"
    ]
@@ -147,8 +147,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_16.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue210"
    ]
@@ -156,8 +156,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_17.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue211"
    ]
@@ -165,8 +165,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_18.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue212"
    ]
@@ -174,8 +174,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_19.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue213"
    ]
@@ -183,8 +183,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_20.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue214"
    ]
@@ -192,8 +192,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_21.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue215"
    ]
@@ -201,8 +201,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_22.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue216"
    ]
@@ -210,8 +210,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_23.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue217"
    ]
@@ -219,8 +219,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_24.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue218"
    ]
@@ -228,8 +228,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_25.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue219"
    ]
@@ -237,8 +237,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_26.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue21a"
    ]
@@ -246,8 +246,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/peche_27.png",
-   "height": 120,
-   "ascent": 57,
+   "height": 96,
+   "ascent": 45,
    "chars": [
     "\ue21b"
    ]
