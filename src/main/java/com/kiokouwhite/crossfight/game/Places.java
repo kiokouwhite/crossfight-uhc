@@ -151,9 +151,14 @@ public final class Places implements Listener {
             Entity have = guides.get(key);
             if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; }
             if (!near || have != null) continue;
-            // A trois blocs de la borne, sur le sol.
-            Block b = plugin.worldMap().standAt(w, spot.getBlockX() + 3, spot.getBlockZ());
-            Location at = b == null || Math.abs(b.getY() + 1 - spot.getBlockY()) > 3 ? spot.clone().add(1.5, 0, 0) : new Location(w, spot.getBlockX() + 3.5, b.getY() + 1, spot.getBlockZ() + 0.5);
+            // Pres de la borne, sur un sol dur a la meme hauteur ; a defaut, tout contre elle.
+            Location at = spot.clone().add(0.45, 0, 0.45);
+            for (int[] o : new int[][]{{3, 0}, {-3, 0}, {0, 3}, {0, -3}, {2, 2}, {-2, -2}, {2, 0}, {0, 2}}) {
+                Block b = plugin.worldMap().standAt(w, spot.getBlockX() + o[0], spot.getBlockZ() + o[1]);
+                if (b == null || b.isLiquid() || !b.getType().isSolid() || Math.abs(b.getY() + 1 - spot.getBlockY()) > 1) continue;
+                at = new Location(w, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5);
+                break;
+            }
             at.setYaw(90f);
             guides.put(key, w.spawn(at, org.bukkit.entity.Villager.class, v -> {
                 v.setPersistent(false);
@@ -177,9 +182,19 @@ public final class Places implements Listener {
     /** La borne d'un lieu : au milieu, sur son sol. Cherchee une fois, quand quelqu'un s'approche. */
     private Location spot(World w, Structures.Placed p) {
         return spots.computeIfAbsent(w.getName() + "/" + p.name(), k -> {
-            int x = p.x() + p.sx() / 2, z = p.z() + p.sz() / 2;
-            Block b = plugin.worldMap().standAt(w, x, z);
-            return b == null ? null : new Location(w, x + 0.5, b.getY() + 1, z + 0.5);
+            // Au plus pres du milieu, mais a l'air libre : sur du dur, pas plus bas que le sol du lieu, et sous le ciel
+            // (pas dans l'eau, ni dans un sous-sol, ni sous un plancher, ni perche tres haut).
+            int cx = p.x() + p.sx() / 2, cz = p.z() + p.sz() / 2, level = plugin.structures().level(p);
+            Block first = null;
+            for (int r = 0; r <= 40; r += 2) for (int dx = -r; dx <= r; dx += 2) for (int dz = -r; dz <= r; dz += 2) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != r) continue;
+                Block b = plugin.worldMap().standAt(w, cx + dx, cz + dz);
+                if (b == null) continue;
+                if (first == null) first = b;
+                if (!b.isLiquid() && b.getY() >= level - 1 && b.getY() <= level + 24 && b.getRelative(org.bukkit.block.BlockFace.UP).getLightFromSky() > 0 && plugin.structures().at(b.getLocation()) != null)
+                    return new Location(w, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5);
+            }
+            return first == null ? null : new Location(w, first.getX() + 0.5, first.getY() + 1, first.getZ() + 0.5);
         });
     }
 
