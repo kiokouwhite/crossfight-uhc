@@ -205,7 +205,7 @@ public final class Sounds {
     private static boolean packConfigured() {
         CrossfightPlugin plugin = CrossfightPlugin.get();
         String url = plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
-        return plugin.getConfig().getBoolean("resource-pack.enabled", true) && url != null && !url.isBlank() && sha1().length() == 40;
+        return plugin.getConfig().getBoolean("resource-pack.enabled", true) && (PackHost.active() || url != null && !url.isBlank()) && sha1().length() == 40;
     }
 
     /**
@@ -213,6 +213,7 @@ public final class Sounds {
      * voix officielles et les musiques), sinon celle du pack public embarquee dans le jar.
      */
     private static String sha1() {
+        if (PackHost.active()) return PackHost.sha1();          // le pack complet depose dans le dossier du plugin
         String own = CrossfightPlugin.get().getConfig().getString("resource-pack.sha1", "");
         own = own == null ? "" : own.trim().toLowerCase(java.util.Locale.ROOT);
         return own.matches("[0-9a-f]{40}") ? own : packSha1;
@@ -260,7 +261,7 @@ public final class Sounds {
     public static void sendPack(Player p) {
         CrossfightPlugin plugin = CrossfightPlugin.get();
         if (!plugin.getConfig().getBoolean("resource-pack.enabled", true)) return;
-        String url = plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
+        String url = PackHost.active() ? PackHost.url(p) : plugin.getConfig().getString("resource-pack.url", DEFAULT_PACK_URL);
         String hash = sha1();
         if (url == null || url.isBlank() || hash.length() != 40) return;
         boolean required = plugin.getConfig().getBoolean("resource-pack.required", false);

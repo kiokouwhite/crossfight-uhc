@@ -64,6 +64,13 @@ resource-pack:
   # A remplir quand "url" pointe vers un autre pack (le pack complet, avec les voix officielles et les musiques) :
   # tools/build_pack.py affiche l'empreinte du pack complet.
   sha1: ""
+  # Le plus simple pour le pack complet : deposer CrossfightPackComplet.zip dans plugins/CrossfightUHC/. Le plugin le
+  # distribue alors lui-meme (un petit serveur web sur le port ci-dessous, qui doit etre ouvert comme le port du jeu),
+  # calcule son empreinte, et "url" et "sha1" ne servent plus. Remplacer le fichier suffit pour le mettre a jour.
+  fichier: "CrossfightPackComplet.zip"
+  port: 8765
+  # L'adresse que les joueurs utilisent pour ce port. Vide : celle par laquelle chacun a joint le serveur.
+  adresse: ""
   # true : un joueur qui refuse le pack est deconnecte
   required: false
 

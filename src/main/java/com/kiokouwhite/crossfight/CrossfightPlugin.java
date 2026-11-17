@@ -41,6 +41,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         instance = this;
         saveDefaultConfig();
         com.kiokouwhite.crossfight.util.Sounds.load(this);
+        com.kiokouwhite.crossfight.util.PackHost.start(this);
         com.kiokouwhite.crossfight.util.Puppet.load(this);
         com.kiokouwhite.crossfight.util.Models.load(this);
         com.kiokouwhite.crossfight.util.Skins.load(this);
@@ -142,6 +143,7 @@ public final class CrossfightPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        com.kiokouwhite.crossfight.util.PackHost.stop();
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (selectionStage != null) selectionStage.closeAll(true);
