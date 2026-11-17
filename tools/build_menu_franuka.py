@@ -11,6 +11,9 @@ le plugin n'a rien à savoir). Sans les fichiers du pack, ce script ne fait rien
 Deux images de 176 x 222, la taille d'un coffre de six rangées, sur une fenêtre lavande. La première : à gauche la
 couverture (« ANNA », les prix), à droite la case où poser l'objet. La
 seconde : l'objet en haut, et dessous les trois niveaux proposés, chacun avec son prix. En bas, l'inventaire.
+
+Une image retouchée à la main et déposée dans resourcepack-prive/ui-retouches/ sous le même nom (menu_anna.png,
+menu_anna2.png), à la même taille, remplace celle que ce script compose.
 """
 import sys
 from pathlib import Path
@@ -84,6 +87,19 @@ def framed(im, slot, col, row):
     im.alpha_composite(slot, (x, y))
 
 
+def keep(im, path):
+    """Enregistre l'image composée, sauf si une retouche faite à la main existe sous le même nom : elle passe devant."""
+    own = ROOT / "resourcepack-prive" / "ui-retouches" / path.name
+    if own.is_file():
+        mine = Image.open(own).convert("RGBA")
+        if mine.size == im.size:
+            mine.save(path)
+            print("  retouche reprise :", own.relative_to(ROOT))
+            return
+        print("  retouche ignoree (il faut", im.size, "et non", mine.size, ") :", own.relative_to(ROOT))
+    im.save(path)
+
+
 def main():
     if not ONE.is_dir():
         print("pack de Franuka absent (resourcepack-prive/ui-franuka/) : rien a faire, le pack garde les cartes publiques")
@@ -106,7 +122,7 @@ def main():
     write(im, 124, 26, "Pose ton", text, NAVY)
     write(im, 124, 36, "objet ici", text, NAVY)
     framed(im, slot, 6, 3)                                                 # la case 33 du coffre
-    im.save(OUT)
+    keep(im, OUT)
 
     # 2. Choisir le niveau : l'objet en haut, trois niveaux dessous, chacun avec son prix.
     im = window(mine)
@@ -119,7 +135,7 @@ def main():
         im.alpha_composite(slot, (x, 72))                                  # les cases 29, 31 et 33
         write(im, x + 8, 89, "I" * k, title, (236, 170, 60, 255), BROWN)
         write(im, x + 8, 102, price, text, BROWN)
-    im.save(OUT.with_name("menu_anna2.png"))
+    keep(im, OUT.with_name("menu_anna2.png"))
     print(OUT.relative_to(ROOT), "et menu_anna2.png", im.size)
     return 0
 
