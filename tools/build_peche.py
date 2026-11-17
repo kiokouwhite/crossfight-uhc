@@ -3,10 +3,12 @@
 
 Usage : python3 tools/build_peche.py
 
-Vingt et une images de 96 x 96. Au centre, la cible : trois zones emboîtées (Bien, Très bien, Parfait, de l'extérieur
-vers le centre). Autour, un cercle qui se resserre d'image en image, de 46 à 6 pixels de rayon : il faut l'arrêter dans
+Vingt-huit images de 128 x 128. Au centre, la cible : trois zones emboîtées (Bien, Très bien, Parfait, de l'extérieur
+vers le centre). Autour, un cercle qui se resserre d'image en image, de 62 à 8 pixels de rayon, une image par tick : il faut l'arrêter dans
 la zone la plus au centre possible (game/Quests.java dit quelle image vaut quoi). Le plugin les affiche en titre, donc
-centrées : une image haute de 24 unités de police fait 96 pixels d'interface, un pixel d'image par pixel d'écran.
+centrées : une image haute de 40 unités de police fait 160 pixels d'interface. Un pixel presque invisible dans le coin de droite
+fixe la largeur de toutes les images : sans lui, le jeu mesure chaque image à son dernier pixel plein, et la cible se
+décale à mesure que le cercle rétrécit.
 Dessiné ici, rien n'est repris d'un jeu. Écrit resourcepack/assets/crossfight/font/peche.json et textures/font/peche_*.png.
 """
 import json
@@ -14,8 +16,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent / "resourcepack" / "assets" / "crossfight"
-SIZE, FRAMES = 96, 21
-GOOD, GREAT, PERFECT = 30, 20, 12          # rayon exterieur de chaque zone (game/Quests.java a les memes)
+SIZE, FRAMES = 128, 28
+GOOD, GREAT, PERFECT = 40, 27, 16          # rayon exterieur de chaque zone (game/Quests.java a les memes)
 
 
 def main():
@@ -25,7 +27,7 @@ def main():
     chars = []
     k = 4                                    # dessine quatre fois plus grand, puis reduit : des bords doux
     for i in range(FRAMES):
-        radius = 46 - 2 * i
+        radius = 62 - 2 * i
         big = Image.new("RGBA", (SIZE * k, SIZE * k), (0, 0, 0, 0))
         d = ImageDraw.Draw(big)
         c = SIZE * k / 2
@@ -42,9 +44,11 @@ def main():
         # le cercle qui se resserre
         ring(radius, (20, 20, 40, 160), 14)
         ring(radius, (255, 255, 255, 255), 8)
-        big.resize((SIZE, SIZE), Image.LANCZOS).save(ROOT / "textures" / "font" / f"peche_{i:02d}.png")
+        small = big.resize((SIZE, SIZE), Image.LANCZOS)
+        small.putpixel((SIZE - 1, SIZE - 1), (255, 255, 255, 2))   # largeur fixe : voir plus haut
+        small.save(ROOT / "textures" / "font" / f"peche_{i:02d}.png")
         chars.append(chr(0xE200 + i))
-    providers = [{"type": "bitmap", "file": f"crossfight:font/peche_{i:02d}.png", "height": 24, "ascent": 9, "chars": [ch]} for i, ch in enumerate(chars)]
+    providers = [{"type": "bitmap", "file": f"crossfight:font/peche_{i:02d}.png", "height": 40, "ascent": 17, "chars": [ch]} for i, ch in enumerate(chars)]
     (ROOT / "font" / "peche.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")
     print(len(chars), "images")
 

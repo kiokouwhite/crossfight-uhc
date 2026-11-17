@@ -457,10 +457,10 @@ public final class Quests implements Listener {
     }
 
     private static final String[] FISHES = {"une carpe", "une truite", "un gardon", "une perche", "un brochet", "une anguille", "un silure"};
-    /** Le cercle se resserre en vingt et une images, une tous les deux ticks ; son rayon a l'image i : 46 - 2 i. */
-    private static final int FRAMES = 21;
+    /** Le cercle se resserre en vingt-huit images, une par tick ; son rayon a l'image i : 62 - 2 i. */
+    private static final int FRAMES = 28;
     /** Le rayon exterieur de chaque zone de la cible (tools/build_peche.py a les memes). */
-    private static final int GOOD = 30, GREAT = 20, PERFECT = 12;
+    private static final int GOOD = 40, GREAT = 27, PERFECT = 16;
 
     private boolean isRod(ItemStack it) {
         return it != null && it.getType() == Material.FISHING_ROD && it.hasItemMeta() && it.getItemMeta().getPersistentDataContainer().has(rod, PersistentDataType.BYTE);
@@ -540,7 +540,7 @@ public final class Quests implements Listener {
             }
             case Catch.RING -> {
                 // Arreter le cercle : plus il est pres du centre, plus le poisson fatigue.
-                int radius = 46 - 2 * Math.min(FRAMES - 1, c.timer / 2);
+                int radius = 62 - 2 * Math.min(FRAMES - 1, c.timer);
                 if (radius <= PERFECT) { c.combo++; hit(p, r, c, 4 + Math.min(2, c.combo / 2), "<gold><bold>PARFAIT !", 1.9f); }
                 else if (radius <= GREAT) { c.combo = 0; hit(p, r, c, 3, "<yellow><bold>TRÈS BIEN !", 1.5f); }
                 else if (radius <= GOOD) { c.combo = 0; hit(p, r, c, 2, "<green><bold>BIEN", 1.2f); }
@@ -609,9 +609,9 @@ public final class Quests implements Listener {
                 }
                 case Catch.PAUSE -> { if (--c.timer <= 0) { c.state = Catch.RING; c.timer = 0; } }
                 case Catch.RING -> {
-                    int frame = c.timer / 2;
+                    int frame = c.timer;
                     if (frame >= FRAMES) { c.combo = 0; hit(p, r, c, 1, "<gray>Trop tard…", 0.7f); break; }
-                    int radius = 46 - 2 * frame;
+                    int radius = 62 - 2 * frame;
                     if (packed(p)) {
                         // Avec le pack : la cible et le cercle qui se resserre, au milieu de l'ecran (tools/build_peche.py).
                         title(p, net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE200 + frame))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "peche"))
@@ -619,7 +619,7 @@ public final class Quests implements Listener {
                         if (c.timer == 0) Msg.actionBar(p, "<white>Clic droit quand le cercle est au centre de la cible.");
                     } else {
                         String zone = radius <= PERFECT ? "<gold><bold>PARFAIT" : radius <= GREAT ? "<yellow>TRÈS BIEN" : radius <= GOOD ? "<green>BIEN" : "<gray>attends…";
-                        Msg.actionBar(p, "<white>❯" + " ".repeat(radius / 4) + "◉" + " ".repeat(radius / 4) + "❮  " + zone);
+                        Msg.actionBar(p, "<white>❯" + " ".repeat(radius / 5) + "◉" + " ".repeat(radius / 5) + "❮  " + zone);
                     }
                     c.timer++;
                 }
