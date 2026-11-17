@@ -126,6 +126,8 @@ structures:
   contour: true
   # Les lieux servent a quelque chose pendant la partie (bornes, experience, lootbox garantie)
   services: true
+  # Le nom du lieu s'affiche quand on y entre, avec sa quete et le personnage qui la donne (en surbrillance)
+  quetes: true
   # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox, chasse
   utilites:
     garreg_mach: enchantement

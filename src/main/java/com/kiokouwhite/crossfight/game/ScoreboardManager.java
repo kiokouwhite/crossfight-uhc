@@ -107,6 +107,9 @@ public final class ScoreboardManager {
         GameManager game = plugin.game();
         List<String> lines = new ArrayList<>();
         lines.add("<dark_gray>" + "━".repeat(18));
+        // Dans un lieu : sa quete, tout en haut.
+        String quest = plugin.places().questOf(p);
+        if (quest != null) { lines.add("<yellow><bold>!</bold> <white>Quete"); lines.add("<gold>" + quest); lines.add(""); }
         switch (game.state()) {
             case LOBBY, ENDED -> {
                 lines.add("<white>Etat : <yellow>Lobby");

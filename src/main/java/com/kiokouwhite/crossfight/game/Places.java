@@ -85,8 +85,26 @@ public final class Places implements Listener {
             PotionType.SLOW_FALLING, PotionType.NIGHT_VISION, PotionType.WATER_BREATHING, PotionType.STRENGTH};
     private static final long WAIT = 8 * 60 * 1000L;
 
+    /** La quete d'un lieu : son nom, celui du personnage qui la donne, ce qu'il en dit. */
+    private record Quest(String title, String giver, String says) {}
+
+    private static final Map<String, Quest> QUESTS = Map.ofEntries(
+            Map.entry("garreg_mach", new Quest("Le cours du professeur", "Le professeur", "Choisissez votre maison, puis faites vos preuves dans la cour d'entrainement.")),
+            Map.entry("shiganshina", new Quest("Reboucher la breche", "Le soldat de la garnison", "Un Titan garde la porte. Il ne tombe que frappe a la nuque.")),
+            Map.entry("pearl", new Quest("Les perles englouties", "La plongeuse", "Cinq perles dorment au fond du bassin. Rapportez-les.")),
+            Map.entry("central_town", new Quest("Les quatre modules", "Le gardien", "Quatre modules sont caches aux quatre coins de la ville. Ramenez-les au monolithe.")),
+            Map.entry("arcadia", new Quest("La recolte", "La jardiniere", "Le jardin a faim : rapportez-lui ce que vous cueillez ici.")),
+            Map.entry("terrace", new Quest("L'ascension", "Le grimpeur", "Le sommet de la rambarde vous attend. Un seul d'entre vous suffit.")),
+            Map.entry("beacon", new Quest("L'initiation", "Le directeur", "Les reliques sont cachees dans l'academie. Posez-les a deux, en meme temps.")),
+            Map.entry("forest_of_hope", new Quest("Les pieces du vaisseau", "Le capitaine", "Trois pieces du vaisseau sont tombees dans la foret. Portez-les jusqu'ici.")),
+            Map.entry("jouki", new Quest("Le sommet de la pagode", "Le moine", "Montez tout en haut, et sonnez la cloche.")));
+
     private final CrossfightPlugin plugin;
-    private final NamespacedKey mark;
+    private final NamespacedKey mark, guide;
+    /** Le lieu ou se trouve chaque joueur (son dossier), pour annoncer son nom quand il y entre. */
+    private final Map<UUID, String> zone = new HashMap<>();
+    /** Le personnage de quete de chaque lieu, tant que quelqu'un est pres. */
+    private final Map<String, Entity> guides = new HashMap<>();
     /** Les bornes : par lieu ("monde/nom"), ou elle est, et les entites qui la montrent tant qu'un joueur est pres. */
     private final Map<String, Location> spots = new HashMap<>();
     private final Map<String, List<Entity>> shown = new HashMap<>();
@@ -96,6 +114,7 @@ public final class Places implements Listener {
     public Places(CrossfightPlugin plugin) {
         this.plugin = plugin;
         this.mark = new NamespacedKey(plugin, "borne");
+        this.guide = new NamespacedKey(plugin, "quete");
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 20L);
     }
 
@@ -109,6 +128,53 @@ public final class Places implements Listener {
     public String label(String place) {
         String use = useOf(place);
         return use == null ? null : USES.get(use).title();
+    }
+
+    /** La quete du lieu ou se trouve ce joueur (son nom), ou null. Pour le tableau de bord. */
+    public String questOf(Player p) {
+        String place = zone.get(p.getUniqueId());
+        Quest q = place == null ? null : QUESTS.get(place);
+        return q == null ? null : q.title();
+    }
+
+    /** Qui entre dans un lieu voit son nom au milieu de l'ecran ; pres du centre, le personnage de la quete apparait, en surbrillance. */
+    private void zones(World w) {
+        for (Player pl : Bukkit.getOnlinePlayers()) {
+            Structures.Placed p = pl.getWorld().equals(w) ? plugin.structures().at(pl.getLocation()) : null;
+            String now = p == null ? null : p.name(), before = now == null ? zone.remove(pl.getUniqueId()) : zone.put(pl.getUniqueId(), now);
+            if (now == null || now.equals(before)) continue;
+            Quest q = QUESTS.get(now);
+            pl.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<gold><bold>" + plugin.structures().title(now)), Msg.mm(q == null ? "" : "<gray>Quete : <white>" + q.title()),
+                    net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(400), java.time.Duration.ofMillis(2500), java.time.Duration.ofMillis(800))));
+            pl.playSound(pl.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 0.7f);
+        }
+        for (Structures.Placed p : plugin.structures().finished(w)) {
+            Quest q = QUESTS.get(p.name());
+            if (q == null) continue;
+            String key = w.getName() + "/" + p.name();
+            Location spot = spot(w, p);
+            boolean near = false;
+            if (spot != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(spot) < 72 * 72) { near = true; break; }
+            Entity have = guides.get(key);
+            if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; }
+            if (!near || have != null) continue;
+            // A trois blocs de la borne, sur le sol.
+            Block b = plugin.worldMap().standAt(w, spot.getBlockX() + 3, spot.getBlockZ());
+            Location at = b == null || Math.abs(b.getY() + 1 - spot.getBlockY()) > 3 ? spot.clone().add(1.5, 0, 0) : new Location(w, spot.getBlockX() + 3.5, b.getY() + 1, spot.getBlockZ() + 0.5);
+            at.setYaw(90f);
+            guides.put(key, w.spawn(at, org.bukkit.entity.Villager.class, v -> {
+                v.setPersistent(false);
+                v.setAI(false);
+                v.setInvulnerable(true);
+                v.setSilent(true);
+                v.setGlowing(true);
+                v.setCollidable(false);
+                v.setRemoveWhenFarAway(false);
+                v.customName(Msg.mm("<yellow><bold>!</bold> <white>" + q.giver() + " <gray>- " + q.title()));
+                v.setCustomNameVisible(true);
+                v.getPersistentDataContainer().set(guide, PersistentDataType.STRING, p.name());
+            }));
+        }
     }
 
     private boolean on() {
@@ -126,8 +192,10 @@ public final class Places implements Listener {
 
     /** Chaque seconde : les bornes apparaissent pres des joueurs, l'experience tombe sur ceux qui sont dans son lieu. */
     private void tick() {
-        if (!on()) { for (List<Entity> l : shown.values()) l.forEach(Entity::remove); shown.clear(); return; }
         World w = plugin.game().world();
+        if (plugin.getConfig().getBoolean("structures.quetes", true)) zones(w);
+        else { guides.values().forEach(Entity::remove); guides.clear(); zone.clear(); }
+        if (!on()) { for (List<Entity> l : shown.values()) l.forEach(Entity::remove); shown.clear(); return; }
         boolean running = plugin.game().isRunning();
         for (Structures.Placed p : plugin.structures().finished(w)) {
             String use = useOf(p.name());
@@ -178,6 +246,17 @@ public final class Places implements Listener {
 
     @EventHandler
     public void onClick(PlayerInteractEntityEvent e) {
+        String asked = e.getRightClicked().getPersistentDataContainer().get(guide, PersistentDataType.STRING);
+        if (asked != null) {
+            // Le personnage de la quete : il dit ce qu'il attend.
+            e.setCancelled(true);
+            Quest q = QUESTS.get(asked);
+            if (q != null && e.getHand() == EquipmentSlot.HAND) {
+                Msg.send(e.getPlayer(), "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
+                e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_AMBIENT, 1f, 1f);
+            }
+            return;
+        }
         String use = e.getRightClicked().getPersistentDataContainer().get(mark, PersistentDataType.STRING);
         if (use == null) return;
         e.setCancelled(true);
@@ -391,6 +470,9 @@ public final class Places implements Listener {
     public void reset() {
         for (List<Entity> l : shown.values()) l.forEach(Entity::remove);
         shown.clear();
+        guides.values().forEach(Entity::remove);
+        guides.clear();
+        zone.clear();
         spots.clear();
         taken.clear();
         for (Piece[] all : pieces.values()) for (Piece piece : all) if (piece.shown != null) piece.shown.remove();

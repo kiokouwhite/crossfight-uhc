@@ -1000,6 +1000,14 @@ public final class Structures implements Listener {
 
     // ------------------------------------------------------------------ la protection
 
+    /** Le lieu pose dans lequel se trouve cet endroit (a l'interieur de son contour), ou null. */
+    public Placed at(Location l) {
+        for (Placed p : finished(l.getWorld())) {
+            if (l.getX() >= p.x() && l.getX() < p.x() + p.sx() && l.getZ() >= p.z() && l.getZ() < p.z() + p.sz() && within(l.getWorld(), p, l.getBlockX(), l.getBlockZ())) return p;
+        }
+        return null;
+    }
+
     /** Vrai si ce bloc est dans un lieu pose, a l'interieur de son contour : la faille n'y creuse pas. */
     private boolean held(Location l) {
         for (Placed p : placed) if (p.contains(l) && within(l.getWorld(), p, l.getBlockX(), l.getBlockZ())) return true;
