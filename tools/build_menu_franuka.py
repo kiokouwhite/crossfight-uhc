@@ -129,9 +129,10 @@ def main():
     write(im, 54, 82, "Enchants.", text, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (21, 100))
     write(im, 54, 102, "1 - 5 niv.", text, BROWN)
-    write(im, 124, 41, "Pose ton", text, NAVY)
-    write(im, 124, 51, "objet ici", text, NAVY)
-    framed(im, slot, 6, 3)                                                 # la case 33 du coffre
+    # la case et son texte, a droite : a la meme distance du bord que la carte a gauche
+    write(im, 142, 41, "Pose ton", text, NAVY)
+    write(im, 142, 51, "objet ici", text, NAVY)
+    framed(im, slot, 7, 3)                                                 # la case 34 du coffre
     keep(im, OUT)
 
     # 2. Choisir le niveau : l'objet en haut, trois niveaux dessous, chacun avec son prix.

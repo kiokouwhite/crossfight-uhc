@@ -587,7 +587,7 @@ public final class Places implements Listener {
     }
 
     /** La case du premier menu ou l'objet se pose. */
-    private static final int PLACE = 33;
+    private static final int PLACE = 34;
 
     /**
      * Le premier menu d'Anna au monastere : une seule case, ou poser l'objet a enchanter (un clic sur l'objet, dans

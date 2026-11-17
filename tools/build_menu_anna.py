@@ -5,7 +5,7 @@ Usage : python3 tools/build_menu_anna.py
 
 Deux images de 176 x 222, la taille exacte d'un coffre de six rangées, un pixel d'image par pixel d'interface, sur une
 carte dorée. La première : à gauche la couverture (un grimoire, « ANNA », « ENCHANTE », les prix), à droite la case où
-poser l'objet (case 33 du coffre). La seconde : l'objet en
+poser l'objet (case 34 du coffre). La seconde : l'objet en
 haut (case 13), les trois niveaux dessous (cases 29, 31, 33) avec leur prix. En bas, l'inventaire du joueur. Le plugin
 les pose par le titre du coffre (game/Places.java, Enchants et Levels) : un caractère d'espace recule de 8 pixels, puis
 le caractère de l'image, haut de 222 et monté de 13, la cale sur le coin du coffre. Tout est dessiné ici, pixel par pixel.
@@ -125,19 +125,19 @@ def main():
 
     # 1. Poser l'objet : la couverture a gauche, la case ou poser l'objet a droite.
     im, d = card()
-    d.rectangle([1, 4, 87, 126], fill=GOLD_DARK)
-    d.rectangle([87, 4, 88, 126], fill=GOLD_DEEP)
-    panel(d, 6, 14, 81, 124, 6)
-    book(im, d, 30, 30)
-    text(im, 44 - width("ANNA", 2) // 2, 60, "ANNA", 2)
-    text(im, 44 - width("ENCHANTE") // 2, 82, "ENCHANTE", 1, violet)
-    d.line([(20, 94), (68, 94)], fill=SLATE_LIGHT)
-    text(im, 44 - width("1 - 5 NIV") // 2, 100, "1 - 5 NIV", 1, green)
-    panel(d, 93, 14, 171, 125, 2)
-    text(im, 132 - width("POSE") // 2, 30, "POSE", 1)
-    text(im, 132 - width("ICI") // 2, 40, "ICI", 1)
-    d.rectangle([112, 68, 136, 92], fill=GOLD, outline=INK)              # le cadre dore de la case 33
-    slot(d, 116, 72)
+    d.rectangle([1, 4, 105, 126], fill=GOLD_DARK)
+    d.rectangle([105, 4, 106, 126], fill=GOLD_DEEP)
+    panel(d, 6, 14, 99, 124, 6)
+    book(im, d, 39, 30)
+    text(im, 53 - width("ANNA", 2) // 2, 60, "ANNA", 2)
+    text(im, 53 - width("ENCHANTE") // 2, 82, "ENCHANTE", 1, violet)
+    d.line([(29, 94), (77, 94)], fill=SLATE_LIGHT)
+    text(im, 53 - width("1 - 5 NIV") // 2, 100, "1 - 5 NIV", 1, green)
+    panel(d, 111, 14, 171, 125, 2)
+    text(im, 142 - width("POSE") // 2, 30, "POSE", 1)
+    text(im, 142 - width("ICI") // 2, 40, "ICI", 1)
+    d.rectangle([130, 68, 154, 92], fill=GOLD, outline=INK)              # le cadre dore de la case 34
+    slot(d, 134, 72)
     im.save(ROOT / "textures" / "font" / "menu_anna.png")
 
     # 2. Choisir le niveau : l'objet en haut (case 13), les trois niveaux dessous (cases 29, 31, 33) et leur prix.
