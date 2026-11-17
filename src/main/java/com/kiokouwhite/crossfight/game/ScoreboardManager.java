@@ -113,7 +113,7 @@ public final class ScoreboardManager {
     private static String plain(String text) {
         // (les lettres que la police du panneau connait : tools/build_quete_panneau.py, ACCENTS)
         String t = text.replaceAll("[^\\x20-\\x7EéèêëàâçùûîïôœÉÈÊÀÇ’…]", "");
-        int max = (PANEL_WIDTH - 2 * MARGIN) / LETTER;
+        int max = 22;                    // le plus long nom de quete ; les lettres n'ont plus toutes la meme largeur
         return t.length() > max ? t.substring(0, max) : t;
     }
 
