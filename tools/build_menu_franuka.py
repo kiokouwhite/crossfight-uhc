@@ -119,8 +119,8 @@ def main():
     write(im, 44, 74, "Enchants.", text, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 58), (15, 94))
     write(im, 44, 96, "1 - 5 niv.", text, BROWN)
-    write(im, 124, 26, "Pose ton", text, NAVY)
-    write(im, 124, 36, "objet ici", text, NAVY)
+    write(im, 124, 41, "Pose ton", text, NAVY)
+    write(im, 124, 51, "objet ici", text, NAVY)
     framed(im, slot, 6, 3)                                                 # la case 33 du coffre
     keep(im, OUT)
 
