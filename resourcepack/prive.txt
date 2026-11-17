@@ -33,6 +33,7 @@ ability.omori_rafale
 ability.omori_texte
 ability.omori_vaincu
 font.espace_blanc
+font.menu
 font.panneau_omori
 font.quete
 font.quete2

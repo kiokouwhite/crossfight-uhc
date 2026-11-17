@@ -8,13 +8,15 @@ resourcepack-prive/ui-franuka/ (jamais versionné) et l'image composée ici va d
 remplace, dans le pack complet, la carte dessinée par tools/build_menu_anna.py (même nom, même taille, mêmes cases :
 le plugin n'a rien à savoir). Sans les fichiers du pack, ce script ne fait rien et le pack garde la carte publique.
 
-Deux images de 176 x 222, la taille d'un coffre de six rangées, sur une fenêtre lavande. La première : à gauche la
+Deux images sur une fenêtre lavande qui déborde de dix pixels autour du coffre de six rangées (196 x 242 : les cases
+de l'inventaire ne touchent pas son bord ; la police du pack privé, font/menu.json, cale l'image en conséquence). La première : à gauche la
 couverture (« ANNA », les prix), à droite la case où poser l'objet. La
 seconde : l'objet en haut, et dessous les trois niveaux proposés, chacun avec son prix. En bas, l'inventaire.
 
 Une image retouchée à la main et déposée dans resourcepack-prive/ui-retouches/ sous le même nom (menu_anna.png,
-menu_anna2.png), à la même taille, remplace celle que ce script compose.
+menu_anna2.png), à la même taille (196 x 242), remplace celle que ce script compose.
 """
+import json
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -70,10 +72,12 @@ def write(im, cx, y, text, font, fill, shadow=None):
 NAVY = (62, 66, 110, 255)
 
 
+MARGIN = 10                      # la fenetre deborde du coffre de dix pixels de chaque cote : les cases ne touchent plus son bord
+
+
 def window(mine):
-    """La fenetre lavande, avec les cases de l'inventaire du joueur en bas."""
+    """Le contenu d'un menu, aux coordonnees du coffre (176 x 222) : d'abord les cases de l'inventaire du joueur."""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01B"), W, H))
     for col in range(9):
         for y in (140, 158, 176, 198):
             im.alpha_composite(mine, (8 + 18 * col, y))
@@ -87,8 +91,13 @@ def framed(im, slot, col, row):
     im.alpha_composite(slot, (x, y))
 
 
-def keep(im, path):
-    """Enregistre l'image composée, sauf si une retouche faite à la main existe sous le même nom : elle passe devant."""
+def keep(content, path):
+    """
+    Pose le contenu sur la fenêtre lavande, plus grande que le coffre, et enregistre l'image ; sauf si une retouche
+    faite à la main existe sous le même nom : elle passe devant.
+    """
+    im = nine(sprite("Background boxes", "BGbox_01B"), W + 2 * MARGIN, H + 2 * MARGIN)
+    im.alpha_composite(content, (MARGIN, MARGIN))
     own = ROOT / "resourcepack-prive" / "ui-retouches" / path.name
     if own.is_file():
         mine = Image.open(own).convert("RGBA")
@@ -136,7 +145,16 @@ def main():
         write(im, x + 8, 89, "I" * k, title, (236, 170, 60, 255), BROWN)
         write(im, x + 8, 102, price, text, BROWN)
     keep(im, OUT.with_name("menu_anna2.png"))
-    print(OUT.relative_to(ROOT), "et menu_anna2.png", im.size)
+    # la police : celle du pack public, calee pour une image plus grande que le coffre
+    font = {"providers": [
+        {"type": "space", "advances": {"\ue100": -(8 + MARGIN)}},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue000"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue001"]},
+    ]}
+    fonts = OUT.parent.parent.parent / "font"
+    fonts.mkdir(parents=True, exist_ok=True)
+    (fonts / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
+    print(OUT.relative_to(ROOT), "et menu_anna2.png", (W + 2 * MARGIN, H + 2 * MARGIN))
     return 0
 
 
