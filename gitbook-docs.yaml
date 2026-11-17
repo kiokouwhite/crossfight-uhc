@@ -1,0 +1,12 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: Crossfight UHC
+  structure:
+    - type: space
+      key: space-docs
+      title: Crossfight UHC
+      path: docs
+      default: true
+      content:
+        directory: ./docs
+        language: fr
