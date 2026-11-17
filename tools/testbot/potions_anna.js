@@ -18,11 +18,11 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   console.log('avant la quete :', win ? 'boutique ouverte (!)' : 'pas de boutique |', said.join(' | ').slice(0, 90));
   bot.chat('/cf quete finir pearl'); await sleep(1000);
   win = null; bot.useOn(anna()); await sleep(1500);
-  console.log('apres la quete :', win ? 'boutique "' + flat(win.title) + '" : ' + win.slots.slice(0, 9).map(s => s ? s.name : '-').join(' ') : 'pas de boutique');
-  if (win) { await bot.clickWindow(4, 0, 0).catch(() => {}); await sleep(1200); }
+  console.log('apres la quete :', win ? 'boutique "' + flat(win.title) + '" : ' + win.slots.slice(0, 54).map((s, i) => s ? i + ':' + s.name : null).filter(Boolean).join(' ') : 'pas de boutique');
+  if (win) { await bot.clickWindow(23, 0, 0).catch(() => {}); await sleep(1200); }
   console.log('recu :', bot.inventory.items().map(i => i.name + ' x' + i.count).join(', ') || 'rien', '|', bar);
   win = null; bot.useOn(anna()); await sleep(1500);
-  if (win) { bar = ''; await bot.clickWindow(0, 0, 0).catch(() => {}); await sleep(1200); }
+  if (win) { bar = ''; await bot.clickWindow(5, 0, 0).catch(() => {}); await sleep(1200); }
   console.log('deuxieme essai :', bot.inventory.items().map(i => i.name + ' x' + i.count).join(', '), '|', bar);
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();

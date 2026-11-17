@@ -9,7 +9,9 @@ poser l'objet (case 34 du coffre). La seconde : l'objet en
 haut (case 13), les trois niveaux dessous (cases 29, 31, 33) avec leur prix. En bas, l'inventaire du joueur. Le plugin
 les pose par le titre du coffre (game/Places.java, Enchants et Levels) : un caractère d'espace recule de 8 pixels, puis
 le caractère de l'image, haut de 222 et monté de 13, la cale sur le coin du coffre. Tout est dessiné ici, pixel par pixel.
-Écrit resourcepack/assets/crossfight/font/menu.json, textures/font/menu_anna.png et menu_anna2.png.
+Une troisième image habille ses potions à Pearl : la couverture, et cinq cases (colonne 5 du coffre, une rangée par potion)
+avec le nom de chaque potion à côté.
+Écrit resourcepack/assets/crossfight/font/menu.json, textures/font/menu_anna.png, menu_anna2.png et menu_anna3.png.
 """
 import json
 from pathlib import Path
@@ -36,6 +38,11 @@ LETTERS = {
     "X": ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"],
     "5": ["#####", "#....", "####.", "....#", "....#", "#...#", ".###."],
     "R": ["####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"],
+    "F": ["#####", "#....", "#....", "####.", "#....", "#....", "#...."],
+    "L": ["#....", "#....", "#....", "#....", "#....", "#....", "#####"],
+    "M": ["#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"],
+    "0": [".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."],
+    "/": ["....#", "....#", "...#.", "..#..", ".#...", "#....", "#...."],
     "P": ["####.", "#...#", "#...#", "####.", "#....", "#....", "#...."],
     "O": [".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."],
     "S": [".####", "#....", "#....", ".###.", "....#", "....#", "####."],
@@ -153,13 +160,30 @@ def main():
         text(im, x + 8 - width(price) // 2, 106, price, 1, green)
     im.save(ROOT / "textures" / "font" / "menu_anna2.png")
 
+    # 3. Les potions d'Anna (Pearl) : la couverture a gauche, et la liste : une case par potion (colonne 5), son nom a cote.
+    im, d = card()
+    d.rectangle([1, 4, 87, 126], fill=GOLD_DARK)
+    d.rectangle([87, 4, 88, 126], fill=GOLD_DEEP)
+    panel(d, 6, 14, 81, 124, 6)
+    book(im, d, 30, 30)
+    text(im, 44 - width("ANNA", 2) // 2, 60, "ANNA", 2)
+    text(im, 44 - width("POTIONS") // 2, 82, "POTIONS", 1, violet)
+    d.line([(20, 94), (68, 94)], fill=SLATE_LIGHT)
+    text(im, 44 - width("1 / 10 MIN") // 2, 100, "1 / 10 MIN", 1, green)
+    panel(d, 93, 14, 171, 125, 2)
+    for row, (name, good) in enumerate((("FORCE", True), ("VITESSE", True), ("POISON", False), ("FAIBLE", False), ("LENT", False))):
+        slot(d, 98, 18 + 18 * row)
+        text(im, 119, 23 + 18 * row, name, 1, green if good else (255, 150, 150, 255))
+    im.save(ROOT / "textures" / "font" / "menu_anna3.png")
+
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -8}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H, "ascent": 13, "chars": ["\ue000"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H, "ascent": 13, "chars": ["\ue001"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H, "ascent": 13, "chars": ["\ue002"]},
     ]}
     (ROOT / "font" / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
-    print("menu_anna.png, menu_anna2.png", im.size)
+    print("menu_anna.png, menu_anna2.png, menu_anna3.png", im.size)
 
 
 if __name__ == "__main__":

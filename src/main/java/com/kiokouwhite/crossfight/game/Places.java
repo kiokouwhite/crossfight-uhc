@@ -556,11 +556,15 @@ public final class Places implements Listener {
         return it;
     }
 
+    /** La case de chaque potion dans le menu : la colonne 5 du coffre, une rangee par potion (leur nom est ecrit a cote, sur l'image). */
+    private static int brewSlot(int i) { return i * 9 + 5; }
+
     /** La boutique d'Anna : cinq potions, gratuites, une toutes les dix minutes par joueur. */
     private final class Brews implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 9, Component.text("Anna - une potion offerte"));
+        final Inventory inv;
 
         Brews(Player p) {
+            inv = Bukkit.createInventory(this, 54, dressed(p, '\uE002', "Anna - une potion offerte"));
             Long last = taken.get(p.getUniqueId() + "/potions");
             long left = last == null ? 0 : BREW_WAIT - (System.currentTimeMillis() - last);
             for (int i = 0; i < BREWS.length; i++) {
@@ -569,7 +573,7 @@ public final class Places implements Listener {
                 meta.lore(List.of(Msg.mm(left > 0 ? "<red>Reviens dans " + Msg.time((int) (left / 1000)) : "<green>Gratuit <gray>- une toutes les 10 minutes").decoration(TextDecoration.ITALIC, false),
                         Msg.mm((boolean) BREWS[i][2] ? "<gray>A lancer sur un adversaire" : "<gray>A boire").decoration(TextDecoration.ITALIC, false)));
                 it.setItemMeta(meta);
-                inv.setItem(i * 2, it);
+                inv.setItem(brewSlot(i), it);
             }
         }
 
@@ -585,7 +589,7 @@ public final class Places implements Listener {
     public void onBrew(InventoryClickEvent e) {
         if (!(e.getInventory().getHolder() instanceof Brews shop)) return;
         e.setCancelled(true);
-        if (e.getClickedInventory() != shop.inv || e.getSlot() % 2 != 0 || e.getSlot() / 2 >= BREWS.length || !(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getClickedInventory() != shop.inv || e.getSlot() % 9 != 5 || e.getSlot() / 9 >= BREWS.length || !(e.getWhoClicked() instanceof Player p)) return;
         long now = System.currentTimeMillis();
         Long last = taken.get(p.getUniqueId() + "/potions");
         if (last != null && now - last < BREW_WAIT) {
@@ -595,9 +599,9 @@ public final class Places implements Listener {
             return;
         }
         taken.put(p.getUniqueId() + "/potions", now);
-        p.getInventory().addItem(brew(e.getSlot() / 2)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        p.getInventory().addItem(brew(e.getSlot() / 9)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
         p.closeInventory();
-        done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[e.getSlot() / 2][0] + " : cadeau d'Anna. La prochaine dans 10 minutes.");
+        done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[e.getSlot() / 9][0] + " : cadeau d'Anna. La prochaine dans 10 minutes.");
     }
 
     // ------------------------------------------------------------------ les enchantements d'Anna
