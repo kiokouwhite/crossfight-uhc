@@ -54,7 +54,7 @@ import java.util.UUID;
  */
 public final class Quests implements Listener {
 
-    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH }
+    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
     public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
@@ -64,7 +64,7 @@ public final class Quests implements Listener {
             Map.entry("garreg_mach", new Quest("Le cours du professeur", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves refusent de m'ouvrir leur bibliothèque tant que personne n'a fait ses preuves… Bats les cinq adversaires de la cour, et ses secrets seront à toi !", Kind.KILL, 5, Material.IRON_SWORD, "adversaires", "Bravo, Héros ! Les élèves t'ouvrent leur bibliothèque : la borne d'enchantement, juste à côté, enchante l'objet que tu tiens contre 5 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
             Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan", "Tu l'as terrassé ! La forge du quartier rouvre : la borne, juste à côté, répare l'objet que tu tiens contre 2 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
-            Map.entry("central_town", new Quest("Les quatre modules", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : il lui manque ses quatre modules, tombés aux quatre coins de la place. Rapporte-les, et ma boutique t'ouvre ses portes !", Kind.COLLECT, 4, Material.AMETHYST_SHARD, "modules", "La ville se réveille, merci ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
+            Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une tablette : reproduis sa figure avec les pièces, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
             Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
             Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
@@ -86,13 +86,16 @@ public final class Quests implements Listener {
     }
 
     private final CrossfightPlugin plugin;
-    private final NamespacedKey mark;
+    private final NamespacedKey mark, pillar;
+    private final Tablet tablet = new Tablet();
     /** Par equipe (ou par joueur sans equipe) puis par lieu. */
     private final Map<String, Map<String, Run>> runs = new HashMap<>();
 
     public Quests(CrossfightPlugin plugin) {
         this.plugin = plugin;
         this.mark = new NamespacedKey(plugin, "quete_cible");
+        this.pillar = new NamespacedKey(plugin, "quete_pilier");
+        Bukkit.getPluginManager().registerEvents(tablet, plugin);
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 5L);
     }
 
@@ -225,6 +228,36 @@ public final class Quests implements Listener {
                     g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + place);
                 }));
             }
+            case PUZZLE -> {
+                // Quatre piliers eteints autour du personnage : chacun ouvre une tablette a qui clique dessus.
+                int[][] around = {{5, 0}, {-5, 0}, {0, 5}, {0, -5}};
+                for (int i = 0; i < q.count(); i++) {
+                    org.bukkit.block.Block b = plugin.worldMap().standAt(w, r.home.getBlockX() + around[i][0], r.home.getBlockZ() + around[i][1]);
+                    Location at = b == null || Math.abs(b.getY() + 1 - r.home.getBlockY()) > 4 ? r.home.clone().add(around[i][0], 0, around[i][1]) : new Location(w, b.getX() + 0.5, b.getY() + 1, b.getZ() + 0.5);
+                    final String tag = r.team + "/" + place + "/" + i;
+                    r.things.add(w.spawn(at, org.bukkit.entity.BlockDisplay.class, d -> {
+                        d.setPersistent(false);
+                        d.setBlock(Material.CRYING_OBSIDIAN.createBlockData());
+                        d.setGlowing(true);
+                        d.setGlowColorOverride(org.bukkit.Color.AQUA);
+                        d.setBrightness(new Display.Brightness(15, 15));
+                        d.setTransformation(new Transformation(new Vector3f(-0.35f, 0f, -0.35f), new Quaternionf(), new Vector3f(0.7f, 2.4f, 0.7f), new Quaternionf()));
+                    }));
+                    r.things.add(w.spawn(at, org.bukkit.entity.Interaction.class, d -> {
+                        d.setPersistent(false);
+                        d.setInteractionWidth(1.1f);
+                        d.setInteractionHeight(2.5f);
+                        d.getPersistentDataContainer().set(pillar, PersistentDataType.STRING, tag);
+                    }));
+                    r.things.add(w.spawn(at.clone().add(0, 2.8, 0), org.bukkit.entity.TextDisplay.class, d -> {
+                        d.setPersistent(false);
+                        d.setBillboard(Display.Billboard.CENTER);
+                        d.setBrightness(new Display.Brightness(15, 15));
+                        d.setViewRange(0.4f);
+                        d.text(Msg.mm("<aqua>Pilier éteint\n<white>clic droit"));
+                    }));
+                }
+            }
             case REACH -> {
                 // Le sommet : le plus haut bloc du lieu, cherche de quatre en quatre.
                 int best = Integer.MIN_VALUE, bx = 0, bz = 0;
@@ -330,6 +363,7 @@ public final class Quests implements Listener {
                         g.getWorld().playSound(g.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.4f, 0.5f);
                     }
                 }
+                case PUZZLE -> { }
                 case REACH -> {
                     show(r, q);
                     if (beat % 8 == 0) r.target.getWorld().spawnParticle(Particle.END_ROD, r.target.clone().add(0, 1, 0), 6, 0.3, 1.2, 0.3, 0.01);
@@ -397,6 +431,33 @@ public final class Quests implements Listener {
     }
 
     // ------------------------------------------------------------------ les monstres des quetes
+
+    /** Un clic sur un pilier : la tablette s'ouvre, pour un membre de l'equipe a qui il appartient. */
+    @EventHandler
+    public void onPillar(org.bukkit.event.player.PlayerInteractEntityEvent e) {
+        String tag = e.getRightClicked().getPersistentDataContainer().get(pillar, PersistentDataType.STRING);
+        if (tag == null) return;
+        e.setCancelled(true);
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        Player p = e.getPlayer();
+        String[] t = tag.split("/");
+        Run r = run(p, t[1]);
+        if (r == null || r.finished || !r.team.equals(t[0])) { Msg.actionBar(p, "<gray>Ce pilier attend une autre équipe : parle à Anna pour avoir les tiens."); return; }
+        final Entity clicked = e.getRightClicked();
+        tablet.open(p, who -> {
+            if (r.finished || !clicked.isValid()) return;
+            // Le pilier se rallume : il n'a plus rien a demander.
+            Location at = clicked.getLocation();
+            for (Entity x : new ArrayList<>(r.things)) if (x.getLocation().getBlockX() == at.getBlockX() && x.getLocation().getBlockZ() == at.getBlockZ()) {
+                if (x instanceof org.bukkit.entity.BlockDisplay d) { d.setBlock(Material.SEA_LANTERN.createBlockData()); d.setGlowColorOverride(org.bukkit.Color.YELLOW); r.spots.put(at.clone().add(0, 0.01 * r.done, 0), d); r.things.remove(x); }
+                else { r.things.remove(x); x.remove(); }
+            }
+            r.done++;
+            at.getWorld().playSound(at, Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.3f);
+            tell(r, QUESTS.get(r.place));
+            if (r.done >= QUESTS.get(r.place).count()) finish(r, QUESTS.get(r.place));
+        });
+    }
 
     /** Le Titan ne craint que les coups dans le dos, ou venus d'en haut. */
     @EventHandler(ignoreCancelled = true)
