@@ -91,6 +91,8 @@ public final class Places implements Listener {
     private final Map<UUID, String> zone = new HashMap<>();
     /** Le personnage de quete de chaque lieu, tant que quelqu'un est pres. */
     private final Map<String, Entity> guides = new HashMap<>();
+    /** La bulle de dialogue au-dessus de chaque personnage de quete (le texte, et sa pointe). */
+    private final Map<String, List<Entity>> bubbles = new HashMap<>();
     /** Les bornes : par lieu ("monde/nom"), ou elle est, et les entites qui la montrent tant qu'un joueur est pres. */
     private final Map<String, Location> spots = new HashMap<>();
     private final Map<String, List<Entity>> shown = new HashMap<>();
@@ -155,7 +157,7 @@ public final class Places implements Listener {
             boolean near = false;
             if (spot != null) for (Player pl : w.getPlayers()) if (pl.getLocation().distanceSquared(spot) < 72 * 72) { near = true; break; }
             Entity have = guides.get(key);
-            if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; }
+            if (have != null && (!near || !have.isValid())) { have.remove(); guides.remove(key); have = null; List<Entity> b = bubbles.remove(key); if (b != null) b.forEach(Entity::remove); }
             if (!near || have != null) continue;
             // Pres de la borne, sur un sol dur a la meme hauteur ; a defaut, tout contre elle.
             Location at = spot.clone().add(0.45, 0, 0.45);
@@ -166,6 +168,30 @@ public final class Places implements Listener {
                 break;
             }
             at.setYaw(90f);
+            // Sa bulle : ce qu'elle a a dire, noir sur blanc, au-dessus de son nom ; on ne la voit que de pres (une
+            // douzaine de blocs), pour ne pas couvrir le lieu de texte.
+            final Location over = at.clone();
+            List<Entity> bubble = new ArrayList<>();
+            bubble.add(w.spawn(over.clone().add(0, 3.05, 0), TextDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setBillboard(Display.Billboard.CENTER);
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setLineWidth(190);
+                d.setBackgroundColor(org.bukkit.Color.fromARGB(255, 250, 250, 255));
+                d.setShadowed(false);
+                d.setViewRange(0.2f);
+                d.text(Msg.mm("<black>" + q.says()));
+            }));
+            bubble.add(w.spawn(over.clone().add(0, 2.82, 0), TextDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setBillboard(Display.Billboard.CENTER);
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+                d.setShadowed(true);
+                d.setViewRange(0.2f);
+                d.text(Msg.mm("<white>▼"));
+            }));
+            bubbles.put(key, bubble);
             // Un mannequin a l'image d'un joueur, au skin des personnages de quete ("pnj" dans skins.txt).
             guides.put(key, w.spawn(at, org.bukkit.entity.Mannequin.class, v -> {
                 v.setPersistent(false);
@@ -211,7 +237,7 @@ public final class Places implements Listener {
     private void tick() {
         World w = plugin.game().world();
         if (plugin.getConfig().getBoolean("structures.quetes", true)) zones(w);
-        else { guides.values().forEach(Entity::remove); guides.clear(); zone.clear(); }
+        else { guides.values().forEach(Entity::remove); guides.clear(); bubbles.values().forEach(l -> l.forEach(Entity::remove)); bubbles.clear(); zone.clear(); }
         if (!on()) { for (List<Entity> l : shown.values()) l.forEach(Entity::remove); shown.clear(); return; }
         boolean running = plugin.game().isRunning();
         for (Structures.Placed p : plugin.structures().finished(w)) {
@@ -519,6 +545,8 @@ public final class Places implements Listener {
         shown.clear();
         guides.values().forEach(Entity::remove);
         guides.clear();
+        bubbles.values().forEach(l -> l.forEach(Entity::remove));
+        bubbles.clear();
         zone.clear();
         plugin.quests().reset();
         spots.clear();
