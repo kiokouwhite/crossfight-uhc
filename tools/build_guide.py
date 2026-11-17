@@ -171,7 +171,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 
 | Lieu | Quête | Ce qu'il faut faire | Ce que tu débloques |
 |---|---|---|---|
-| Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, elle enchante ton équipement en un clic, 5 niveaux la pièce (armure : Protection III, ou II en diamant) |
+| Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, clique l'objet à enchanter, puis choisis le niveau : I (1 niveau), II (2 niveaux) ou III (5 niveaux ; pas sur le diamant) |
 | Shiganshina | Reboucher la brèche | Abattre un Titan, qui ne craint que les coups de dos ou d'en haut | Forge : répare l'objet tenu, contre 2 niveaux |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
 | Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant leur tablette | Marchand : échange tes minerais contre de l'équipement |

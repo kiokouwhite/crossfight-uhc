@@ -1,4 +1,4 @@
-// Le menu d'enchantement d'Anna a Garreg Mach : verrouille par la quete, puis un clic par piece, 5 niveaux chacune.
+// Le menu d'enchantement d'Anna a Garreg Mach : on clique l'objet, puis on choisit le niveau (1, 2 ou 5 niveaux).
 const mineflayer = require('mineflayer');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const flat = c => { if (c == null) return ''; if (typeof c === 'string') return c; if (c.type) return flat(c.value); if (Array.isArray(c)) return c.map(flat).join(''); return flat(c.text ?? '') + flat(c[''] ?? '') + flat(c.extra ?? ''); };
@@ -20,14 +20,23 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   console.log('avant la quete :', win ? 'menu ouvert (!) ' + flat(win.title) : 'pas de menu', '|', said.slice(-3).join(' / ').slice(0, 300)); win = null;
   bot.chat('/cf quete finir garreg_mach'); await sleep(1000);
   const ench = () => bot.inventory.items().map(i => i.name + ' ' + JSON.stringify((i.components || []).filter(c => /enchant/.test(c.type)).map(c => c.data))).join(', ');
-  for (let k = 0; k < 4; k++) {
+  // un essai : cliquer l'objet (case de la fenetre), puis un niveau (29 : I, 31 : II, 33 : III)
+  const essai = async (objet, niveau, nom) => {
     win = null; bot.useOn(anna()); await sleep(1200);
-    if (!win) { console.log('pas de menu'); break; }
-    if (k === 0) console.log('menu "' + flat(win.title) + '" :', win.slots.slice(0, 54).map((s, i) => s ? i + ':' + s.name : null).filter(Boolean).join(' '));
-    bar = ''; await bot.clickWindow(k, 0, 0).catch(() => {}); await sleep(800);
-    console.log('clic', k, '| niveaux', bot.experience.level, '|', bar);
-    bot.closeWindow(win); await sleep(400);
-  }
+    if (!win) { console.log(nom, ': pas de menu'); return; }
+    const premier = flat(win.title), w1 = win;
+    win = null; await bot.clickWindow(objet, 0, 0).catch(() => {}); await sleep(1200);
+    if (!win) { console.log(nom, ': "' + premier + '" -> pas de second menu |', bar); bot.closeWindow(w1); await sleep(300); return; }
+    const choix = [13, 29, 31, 33].map(i => win.slots[i] ? win.slots[i].name : '-').join(' ');
+    bar = ''; await bot.clickWindow(niveau, 0, 0).catch(() => {}); await sleep(900);
+    console.log(nom, ': "' + premier + '" -> "' + flat(win.title) + '" [' + choix + '] | niveaux', bot.experience.level, '|', bar);
+    if (bot.currentWindow) { bot.closeWindow(bot.currentWindow); await sleep(300); }
+  };
+  await essai(81, 33, 'plastron de fer, III');
+  await essai(82, 33, 'casque de diamant, III');
+  await essai(82, 31, 'casque de diamant, II');
+  await essai(83, 29, 'epee de fer, I');
+  await essai(86, 29, 'pain');
   console.log(ench());
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();

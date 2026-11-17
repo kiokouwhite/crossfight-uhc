@@ -47,7 +47,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * son combat, et l'on s'y croise. Au milieu de chaque lieu qui a un service, une borne (un objet qui flotte sous son
  * nom) : un clic droit dessus, pendant la partie, rend le service.
  *
- *   enchantement  Anna enchante une piece d'equipement au choix dans un menu, contre 5 niveaux (pas de borne)
+ *   enchantement  Anna enchante une piece d'equipement : on la pose, on choisit le niveau (1, 2 ou 5 niveaux ; pas de borne)
  *   forge         l'objet tenu est repare, contre 2 niveaux
  *   potions       une potion tiree au sort, toutes les 8 minutes
  *   marchand      des echanges (fer, or, diamants, charbon contre fleches, pomme doree, experience, perle, viande)
@@ -69,7 +69,7 @@ public final class Places implements Listener {
     private record Use(String title, Material icon, String hint) {}
 
     private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
-            Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "Anna enchante ton équipement (5 niveaux la pièce)")),
+            Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "Anna enchante ton équipement (1, 2 ou 5 niveaux)")),
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
@@ -545,9 +545,10 @@ public final class Places implements Listener {
 
     // ------------------------------------------------------------------ les enchantements d'Anna
 
-    private static final int ENCHANT_COST = 5;
+    /** Le prix, en niveaux, de chaque niveau d'enchantement : I, II, III. */
+    private static final int[] ENCHANT_COST = {0, 1, 2, 5};
 
-    /** Ce qu'Anna met sur cet objet : {enchantement, niveau}, ou null s'il ne s'enchante pas chez elle. Diamant et netherite : un niveau de moins. */
+    /** Ce qu'Anna met sur cet objet : {enchantement, niveau le plus haut}, ou null s'il ne s'enchante pas chez elle. Diamant et netherite : un niveau de moins. */
     private static Object[] enchantFor(ItemStack it) {
         if (it == null || it.getType().isAir()) return null;
         ItemMeta meta = it.getItemMeta();
@@ -568,57 +569,68 @@ public final class Places implements Listener {
                 : e == org.bukkit.enchantments.Enchantment.EFFICIENCY ? "Efficacité" : "Puissance";
     }
 
-    /** Le menu d'Anna au monastere : tout l'equipement du joueur qu'elle peut enchanter ; un clic, et c'est fait. */
+    /** Le titre d'un menu d'Anna : avec le pack, l'image qui habille le coffre (tools/build_menu_anna.py) ; sinon, du texte. */
+    private static Component dressed(Player p, char image, String plain) {
+        boolean pack = com.kiokouwhite.crossfight.util.Sounds.has("font.menu") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+        return pack ? Component.text("" + image).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "menu")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                : Component.text(plain);
+    }
+
+    private static ItemStack named(ItemStack it, String name, String... lore) {
+        ItemMeta meta = it.getItemMeta();
+        meta.displayName(Msg.mm(name).decoration(TextDecoration.ITALIC, false));
+        List<Component> lines = new ArrayList<>();
+        for (String l : lore) lines.add(Msg.mm(l).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lines);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    /** Les cases du premier menu : celle ou poser l'objet, et les quatre pieces d'armure portees (casque, plastron, jambieres, bottes). */
+    private static final int PLACE = 23;
+    private static final int[] WORN = {16, 25, 34, 43};
+
+    /**
+     * Le premier menu d'Anna au monastere : une case ou poser l'objet a enchanter (un clic sur l'objet, dans son
+     * inventaire, l'y pose), et a cote les pieces d'armure portees, qu'on ne voit pas dans un coffre.
+     */
     private final class Enchants implements InventoryHolder {
         final Inventory inv;
-        /** Pour chaque case du menu, la case de l'inventaire du joueur qu'elle montre (-1 : rien). */
-        final int[] from = new int[54];
 
         Enchants(Player p) {
-            // Avec le pack, le coffre est habille : une carte en pixel art, posee par le titre (tools/build_menu_anna.py).
-            boolean dressed = com.kiokouwhite.crossfight.util.Sounds.has("font.menu") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
-            inv = Bukkit.createInventory(this, 54, dressed
-                    ? Component.text("\uE100\uE000").font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "menu")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                    : Component.text("Anna - enchanter (5 niveaux)"));
-            fill(p);
+            inv = Bukkit.createInventory(this, 54, dressed(p, '', "Anna - clique l'objet à enchanter"));
+            for (int k = 0; k < 4; k++) {
+                ItemStack worn = p.getInventory().getItem(39 - k);
+                if (enchantFor(worn) != null) inv.setItem(WORN[k], named(worn.clone(), "<white>Porté", "<light_purple>Clic : choisir son enchantement"));
+            }
         }
 
-        void fill(Player p) {
-            inv.clear();
-            java.util.Arrays.fill(from, -1);
-            int at = 0;
-            // L'armure portee d'abord (cases 36 a 39), la main gauche, puis le reste.
-            int[] order = new int[41];
-            for (int i = 0; i < 4; i++) order[i] = 39 - i;
-            order[4] = 40;
-            for (int i = 0; i < 36; i++) order[5 + i] = i;
-            for (int slot : order) {
-                ItemStack it = p.getInventory().getItem(slot);
-                Object[] e = enchantFor(it);
-                if (e == null || at >= 24) continue;
-                org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) e[0];
-                int level = (int) e[1];
-                boolean has = it.getEnchantmentLevel(ench) >= level;
-                ItemStack shown = it.clone();
-                ItemMeta meta = shown.getItemMeta();
-                meta.lore(List.of(Msg.mm(has ? "<gray>Déjà enchanté : " + enchantName(ench) + " " + ROMAN[level] : "<light_purple>Clic : " + enchantName(ench) + " " + ROMAN[level]).decoration(TextDecoration.ITALIC, false),
-                        Msg.mm(has ? "<dark_gray>Rien à faire" : p.getLevel() >= ENCHANT_COST ? "<green>Prix : " + ENCHANT_COST + " niveaux" : "<red>Prix : " + ENCHANT_COST + " niveaux (tu en as " + p.getLevel() + ")").decoration(TextDecoration.ITALIC, false)));
-                shown.setItemMeta(meta);
-                // La page de droite : quatre colonnes (5 a 8), six rangees.
-                int cell = at / 4 * 9 + 5 + at % 4;
-                at++;
-                from[cell] = slot;
-                inv.setItem(cell, shown);
-            }
-            if (at == 0) {
-                ItemStack none = new ItemStack(Material.BARRIER);
-                ItemMeta meta = none.getItemMeta();
-                meta.displayName(Msg.mm("<red>Rien à enchanter sur toi").decoration(TextDecoration.ITALIC, false));
-                meta.lore(List.of(Msg.mm("<gray>Armure : Protection III (II en diamant)").decoration(TextDecoration.ITALIC, false),
-                        Msg.mm("<gray>Épée, hache : Tranchant III (II en diamant)").decoration(TextDecoration.ITALIC, false),
-                        Msg.mm("<gray>Arc : Puissance II - Pioche, pelle : Efficacité III").decoration(TextDecoration.ITALIC, false)));
-                none.setItemMeta(meta);
-                inv.setItem(5, none);
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Le second menu : l'objet pose, et les niveaux qu'Anna propose pour lui, chacun a son prix. */
+    private final class Levels implements InventoryHolder {
+        static final int ITEM = 13;
+        static final int[] CHOICES = {0, 29, 31, 33};
+        final Inventory inv;
+        final int slot;                       // la case de l'inventaire du joueur ou se trouve l'objet
+        final Material type;
+
+        Levels(Player p, int slot) {
+            this.slot = slot;
+            ItemStack it = p.getInventory().getItem(slot);
+            this.type = it.getType();
+            Object[] e = enchantFor(it);
+            org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) e[0];
+            int max = (int) e[1], has = it.getEnchantmentLevel(ench);
+            inv = Bukkit.createInventory(this, 54, dressed(p, '', "Anna - choisis le niveau"));
+            inv.setItem(ITEM, named(it.clone(), "<white>" + enchantName(ench), "<gray>Clic : changer d'objet"));
+            for (int level = 1; level <= 3; level++) {
+                String title = enchantName(ench) + " " + ROMAN[level];
+                if (level > max) inv.setItem(CHOICES[level], named(new ItemStack(Material.BARRIER), "<red>" + title, "<gray>Trop fort pour cette pièce."));
+                else if (level <= has) inv.setItem(CHOICES[level], named(new ItemStack(Material.BOOK), "<gray>" + title, "<dark_gray>Cette pièce l'a déjà."));
+                else inv.setItem(CHOICES[level], named(new ItemStack(Material.ENCHANTED_BOOK), "<light_purple>" + title,
+                        (p.getLevel() >= ENCHANT_COST[level] ? "<green>" : "<red>") + "Prix : " + ENCHANT_COST[level] + (ENCHANT_COST[level] > 1 ? " niveaux" : " niveau") + " <gray>(tu en as " + p.getLevel() + ")"));
             }
         }
 
@@ -631,23 +643,48 @@ public final class Places implements Listener {
     }
 
     @EventHandler
+    public void onEnchantDrag(org.bukkit.event.inventory.InventoryDragEvent e) {
+        if (e.getInventory().getHolder() instanceof Enchants || e.getInventory().getHolder() instanceof Levels) e.setCancelled(true);
+    }
+
+    @EventHandler
     public void onEnchant(InventoryClickEvent e) {
-        if (!(e.getInventory().getHolder() instanceof Enchants menu)) return;
+        if (!(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getInventory().getHolder() instanceof Enchants menu) {
+            e.setCancelled(true);
+            // L'objet a enchanter : un clic dessus dans l'inventaire, ou sur une piece portee montree dans le menu.
+            int slot = -1;
+            if (e.getClickedInventory() == menu.inv) { for (int k = 0; k < 4; k++) if (e.getSlot() == WORN[k]) slot = 39 - k; }
+            else if (e.getClickedInventory() == p.getInventory()) slot = e.getSlot();
+            if (slot < 0) return;
+            ItemStack it = p.getInventory().getItem(slot);
+            if (it == null || it.getType().isAir()) return;
+            if (enchantFor(it) == null) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Anna n'enchante pas cet objet."); return; }
+            // L'objet apparait dans la case, puis le choix du niveau s'ouvre.
+            menu.inv.setItem(PLACE, it.clone());
+            p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_GENERIC, 0.8f, 1.2f);
+            int chosen = slot;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> { if (p.isOnline() && p.getOpenInventory().getTopInventory() == menu.inv && enchantFor(p.getInventory().getItem(chosen)) != null) p.openInventory(new Levels(p, chosen).inv); }, 5L);
+            return;
+        }
+        if (!(e.getInventory().getHolder() instanceof Levels menu)) return;
         e.setCancelled(true);
-        if (e.getClickedInventory() != menu.inv || e.getSlot() < 0 || e.getSlot() >= 54 || menu.from[e.getSlot()] < 0 || !(e.getWhoClicked() instanceof Player p)) return;
-        int slot = menu.from[e.getSlot()];
-        ItemStack it = p.getInventory().getItem(slot);
+        if (e.getClickedInventory() != menu.inv) return;
+        if (e.getSlot() == Levels.ITEM) { openEnchants(p); return; }
+        int level = e.getSlot() == Levels.CHOICES[1] ? 1 : e.getSlot() == Levels.CHOICES[2] ? 2 : e.getSlot() == Levels.CHOICES[3] ? 3 : 0;
+        if (level == 0) return;
+        ItemStack it = p.getInventory().getItem(menu.slot);
         Object[] found = enchantFor(it);
-        if (found == null) { menu.fill(p); return; }
+        if (found == null || it.getType() != menu.type) { openEnchants(p); return; }          // l'objet n'est plus la
         org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) found[0];
-        int level = (int) found[1];
-        if (it.getEnchantmentLevel(ench) >= level) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
-        if (p.getLevel() < ENCHANT_COST) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Il faut " + ENCHANT_COST + " niveaux."); return; }
-        p.setLevel(p.getLevel() - ENCHANT_COST);
+        if (level > (int) found[1] || level <= it.getEnchantmentLevel(ench)) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
+        int cost = ENCHANT_COST[level];
+        if (p.getLevel() < cost) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Il faut " + cost + (cost > 1 ? " niveaux." : " niveau.")); return; }
+        p.setLevel(p.getLevel() - cost);
         it.addUnsafeEnchantment(ench, level);
-        p.getInventory().setItem(slot, it);
-        done(p, Sound.BLOCK_ENCHANTMENT_TABLE_USE, "<light_purple>" + enchantName(ench) + " " + ROMAN[level] + " <gray>(-" + ENCHANT_COST + " niveaux)");
-        menu.fill(p);
+        p.getInventory().setItem(menu.slot, it);
+        done(p, Sound.BLOCK_ENCHANTMENT_TABLE_USE, "<light_purple>" + enchantName(ench) + " " + ROMAN[level] + " <gray>(-" + cost + (cost > 1 ? " niveaux)" : " niveau)"));
+        openEnchants(p);
     }
 
     /** Le menu du marchand : un objet par echange, son prix en description. */
