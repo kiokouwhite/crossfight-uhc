@@ -178,6 +178,7 @@ public final class Places implements Listener {
                 if (skin != null) v.setProfile(skin);
                 v.customName(Msg.mm("<yellow><bold>!</bold> <white>" + q.giver() + " <gray>- " + q.title()));
                 v.setCustomNameVisible(true);
+                v.setDescription(Msg.mm("<gray>clic droit"));
                 v.getPersistentDataContainer().set(guide, PersistentDataType.STRING, p.name());
             }));
         }

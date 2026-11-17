@@ -93,7 +93,7 @@ public final class ScoreboardManager {
     // logo, on recule encore pour ecrire chaque ligne, puis on revient ou l'on etait, pour que le titre garde sa largeur.
     private static final net.kyori.adventure.key.Key QUEST_FONT = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete"),
             QUEST_FONT_2 = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete2");
-    private static final int PANEL_WIDTH = 172, LOGO_WIDTH = 53, LETTER = 7, MARGIN = 10;
+    private static final int PANEL_WIDTH = 172, LOGO_WIDTH = 53, LETTER = 7, MARGIN = 8;
 
     private boolean showsPanel(Player p) {
         return com.kiokouwhite.crossfight.util.Sounds.has("font.quete");
