@@ -5,7 +5,7 @@ où chaque joueur incarne un personnage tiré d'une licence (Fire Emblem, RWBY, 
 Shingeki no Kyojin, unOrdinary, Earth Delta, Armed Blue Gunvolt, Shoja's Memories,
 Bloody Snow, personnages solitaires).
 
-Règles complètes : https://kiokouwhite.gitbook.io/crossfight-uhc
+Règles complètes : https://celecias-organization.gitbook.io/crossfight-uhc/
 
 ## Prérequis
 
