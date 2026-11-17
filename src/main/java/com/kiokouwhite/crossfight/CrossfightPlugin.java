@@ -84,6 +84,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         // Puis les structures (plugins/CrossfightUHC/structures/) qui ne sont pas encore sur cette map, a des endroits tires au sort.
         worldMap = new com.kiokouwhite.crossfight.game.WorldMap(this);
         pm.registerEvents(worldMap, this);
+        quests = new com.kiokouwhite.crossfight.game.Quests(this);
+        getServer().getPluginManager().registerEvents(quests, this);
         places = new com.kiokouwhite.crossfight.game.Places(this);
         pm.registerEvents(places, this);
         getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); structures.shine(gameManager.world()); worldMap.attach(); });
@@ -172,6 +174,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.WorldMap worldMap() { return worldMap; }
     private com.kiokouwhite.crossfight.game.Places places;
     public com.kiokouwhite.crossfight.game.Places places() { return places; }
+    private com.kiokouwhite.crossfight.game.Quests quests;
+    public com.kiokouwhite.crossfight.game.Quests quests() { return quests; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }
     private com.kiokouwhite.crossfight.game.Roster roster;
     public com.kiokouwhite.crossfight.game.Roster roster() { return roster; }

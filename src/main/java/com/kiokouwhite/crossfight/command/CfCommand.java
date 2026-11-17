@@ -133,6 +133,32 @@ public final class CfCommand implements TabExecutor {
                         plugin.hostTools().refreshTeamMenus();
                         Msg.broadcast("<aqua>" + what + (on ? " <green>active" : " <red>desactive") + " <gray>(" + sender.getName() + ")");
                     }
+                    case "quete", "quetes", "quest" -> {
+                        // Essayer les quetes des lieux : /cf quete [liste | tp | lancer | finir | oublier] [lieu]
+                        if (!(sender instanceof Player sp)) return true;
+                        var qs = plugin.quests();
+                        String what = args.length > 1 ? args[1].toLowerCase() : "liste";
+                        String place = args.length > 2 ? args[2].toLowerCase() : null;
+                        if (place == null) { var here = plugin.structures().at(sp.getLocation()); if (here != null) place = here.name(); }
+                        if (what.equals("liste")) {
+                            Msg.send(sender, "<gold>Quetes des lieux <gray>(/cf quete tp|lancer|finir|oublier <lieu>)");
+                            for (var pl : plugin.structures().finished(plugin.game().world())) {
+                                var q = com.kiokouwhite.crossfight.game.Quests.QUESTS.get(pl.name());
+                                if (q != null) Msg.raw(sender, "<white>" + pl.name() + " <gray>: <gold>" + q.title() + " <gray>- " + qs.state(sp, pl.name()));
+                            }
+                            return true;
+                        }
+                        if (what.equals("oublier") && place == null) { qs.forget(sp, null); Msg.send(sender, "<green>Toutes tes quetes sont oubliees."); return true; }
+                        if (place == null || !com.kiokouwhite.crossfight.game.Quests.QUESTS.containsKey(place)) { Msg.send(sender, "<yellow>/cf quete " + what + " <lieu> <gray>(ou place-toi dans un lieu)"); return true; }
+                        org.bukkit.Location npc = plugin.places().guideOf(plugin.game().world(), place);
+                        switch (what) {
+                            case "tp" -> { if (npc == null) Msg.send(sender, "<red>Ce lieu n'est pas pose sur cette map."); else { sp.teleport(npc.clone().add(1.5, 0, 1.5)); Msg.send(sender, "<green>Te voila pres du personnage de <white>" + place + "<green> : clic droit sur lui."); } }
+                            case "lancer" -> { qs.forget(sp, place); Msg.send(sender, npc != null && qs.start(sp, place, npc) ? "<green>Quete lancee." : "<red>Ce lieu n'est pas pose sur cette map."); }
+                            case "finir" -> { qs.force(sp, place); }
+                            case "oublier" -> { qs.forget(sp, place); Msg.send(sender, "<green>Quete oubliee : <white>" + place); }
+                            default -> Msg.send(sender, "<yellow>/cf quete liste | tp | lancer | finir | oublier [lieu]");
+                        }
+                    }
                     case "structure", "structures", "lieu", "lieux" -> {
                         // Les lieux poses au hasard sur la map : les lister, visiter leur monde d'origine, ecrire leur fiche, en poser.
                         var st = plugin.structures();
@@ -791,7 +817,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -815,6 +841,7 @@ public final class CfCommand implements TabExecutor {
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
+                case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "finir", "oublier"));
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));

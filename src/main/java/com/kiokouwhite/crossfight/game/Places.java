@@ -85,20 +85,6 @@ public final class Places implements Listener {
             PotionType.SLOW_FALLING, PotionType.NIGHT_VISION, PotionType.WATER_BREATHING, PotionType.STRENGTH};
     private static final long WAIT = 8 * 60 * 1000L;
 
-    /** La quete d'un lieu : son nom, celui du personnage qui la donne, ce qu'il en dit. */
-    private record Quest(String title, String giver, String says) {}
-
-    private static final Map<String, Quest> QUESTS = Map.ofEntries(
-            Map.entry("garreg_mach", new Quest("Le cours du professeur", "Le professeur", "Choisissez votre maison, puis faites vos preuves dans la cour d'entrainement.")),
-            Map.entry("shiganshina", new Quest("Reboucher la breche", "Le soldat de la garnison", "Un Titan garde la porte. Il ne tombe que frappe a la nuque.")),
-            Map.entry("pearl", new Quest("Les perles englouties", "La plongeuse", "Cinq perles dorment au fond du bassin. Rapportez-les.")),
-            Map.entry("central_town", new Quest("Les quatre modules", "Le gardien", "Quatre modules sont caches aux quatre coins de la ville. Ramenez-les au monolithe.")),
-            Map.entry("arcadia", new Quest("La recolte", "La jardiniere", "Le jardin a faim : rapportez-lui ce que vous cueillez ici.")),
-            Map.entry("terrace", new Quest("L'ascension", "Le grimpeur", "Le sommet de la rambarde vous attend. Un seul d'entre vous suffit.")),
-            Map.entry("beacon", new Quest("L'initiation", "Le directeur", "Les reliques sont cachees dans l'academie. Posez-les a deux, en meme temps.")),
-            Map.entry("forest_of_hope", new Quest("Les pieces du vaisseau", "Le capitaine", "Trois pieces du vaisseau sont tombees dans la foret. Portez-les jusqu'ici.")),
-            Map.entry("jouki", new Quest("Le sommet de la pagode", "Le moine", "Montez tout en haut, et sonnez la cloche.")));
-
     private final CrossfightPlugin plugin;
     private final NamespacedKey mark, guide;
     /** Le lieu ou se trouve chaque joueur (son dossier), pour annoncer son nom quand il y entre. */
@@ -130,11 +116,18 @@ public final class Places implements Listener {
         return use == null ? null : USES.get(use).title();
     }
 
+    /** Ou se tient le personnage de quete d'un lieu (ou sa borne s'il n'est pas apparu), pour s'y teleporter. */
+    public Location guideOf(World w, String place) {
+        Entity g = guides.get(w.getName() + "/" + place);
+        if (g != null && g.isValid()) return g.getLocation();
+        for (Structures.Placed p : plugin.structures().finished(w)) if (p.name().equals(place)) return spot(w, p);
+        return null;
+    }
+
     /** La quete du lieu ou se trouve ce joueur (son nom), ou null. Pour le tableau de bord. */
-    public String questOf(Player p) {
+    public List<String> questOf(Player p) {
         String place = zone.get(p.getUniqueId());
-        Quest q = place == null ? null : QUESTS.get(place);
-        return q == null ? null : q.title();
+        return place == null ? List.of() : plugin.quests().lines(p, place);
     }
 
     /** Qui entre dans un lieu voit son nom au milieu de l'ecran ; pres du centre, le personnage de la quete apparait, en surbrillance. */
@@ -143,13 +136,13 @@ public final class Places implements Listener {
             Structures.Placed p = pl.getWorld().equals(w) ? plugin.structures().at(pl.getLocation()) : null;
             String now = p == null ? null : p.name(), before = now == null ? zone.remove(pl.getUniqueId()) : zone.put(pl.getUniqueId(), now);
             if (now == null || now.equals(before)) continue;
-            Quest q = QUESTS.get(now);
+            Quests.Quest q = Quests.QUESTS.get(now);
             pl.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<gold><bold>" + plugin.structures().title(now)), Msg.mm(q == null ? "" : "<gray>Quete : <white>" + q.title()),
                     net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(400), java.time.Duration.ofMillis(2500), java.time.Duration.ofMillis(800))));
             pl.playSound(pl.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 0.7f);
         }
         for (Structures.Placed p : plugin.structures().finished(w)) {
-            Quest q = QUESTS.get(p.name());
+            Quests.Quest q = Quests.QUESTS.get(p.name());
             if (q == null) continue;
             String key = w.getName() + "/" + p.name();
             Location spot = spot(w, p);
@@ -207,7 +200,7 @@ public final class Places implements Listener {
             for (Player pl : w.getPlayers()) {
                 Location at = pl.getLocation();
                 boolean inside = at.getX() >= p.x() && at.getX() < p.x() + p.sx() && at.getZ() >= p.z() && at.getZ() < p.z() + p.sz();
-                if (inside && running && use.equals("experience") && plugin.players().get(pl).isAlive() && pl.getGameMode() == org.bukkit.GameMode.SURVIVAL) pl.giveExp(2);
+                if (inside && running && use.equals("experience") && plugin.quests().unlocked(pl, p.name()) && plugin.players().get(pl).isAlive() && pl.getGameMode() == org.bukkit.GameMode.SURVIVAL) pl.giveExp(2);
                 if (!station || !inside && at.distanceSquared(new Location(w, p.x() + p.sx() / 2.0, at.getY(), p.z() + p.sz() / 2.0)) > 96 * 96) continue;
                 Location spot = spot(w, p);
                 if (spot != null && at.distanceSquared(spot) < 64 * 64) near = true;
@@ -250,9 +243,8 @@ public final class Places implements Listener {
         if (asked != null) {
             // Le personnage de la quete : il dit ce qu'il attend.
             e.setCancelled(true);
-            Quest q = QUESTS.get(asked);
-            if (q != null && e.getHand() == EquipmentSlot.HAND) {
-                Msg.send(e.getPlayer(), "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
+            if (e.getHand() == EquipmentSlot.HAND) {
+                plugin.quests().talk(e.getPlayer(), asked, e.getRightClicked().getLocation());
                 e.getPlayer().playSound(e.getPlayer().getLocation(), Sound.ENTITY_VILLAGER_AMBIENT, 1f, 1f);
             }
             return;
@@ -264,6 +256,13 @@ public final class Places implements Listener {
         Player p = e.getPlayer();
         // Hors partie, seuls les admins s'en servent (pour essayer).
         if (!plugin.game().isRunning() && !p.hasPermission("crossfight.admin")) { Msg.actionBar(p, "<gray>Les lieux ne servent que pendant la partie."); return; }
+        // Le service d'un lieu se merite : la quete du lieu d'abord.
+        Structures.Placed here = plugin.structures().at(e.getRightClicked().getLocation());
+        if (here != null && !plugin.quests().unlocked(p, here.name())) {
+            Msg.actionBar(p, "<red>Verrouille : termine d'abord la quete <white>" + Quests.QUESTS.get(here.name()).title() + "<red>.");
+            p.playSound(p.getLocation(), Sound.BLOCK_CHEST_LOCKED, 1f, 1f);
+            return;
+        }
         switch (use) {
             case "enchantement" -> enchant(p);
             case "forge" -> repair(p);
@@ -385,7 +384,7 @@ public final class Places implements Listener {
     private final Map<UUID, Integer> found = new HashMap<>();
 
     /** Un endroit ou cacher une piece : une colonne tiree au sort dans le lieu, a l'ecart de son bord, sur son sol. */
-    private Location hide(World w, Structures.Placed p) {
+    Location hide(World w, Structures.Placed p) {
         ThreadLocalRandom r = ThreadLocalRandom.current();
         for (int n = 0; n < 40; n++) {
             int x = p.x() + 12 + r.nextInt(Math.max(1, p.sx() - 24)), z = p.z() + 12 + r.nextInt(Math.max(1, p.sz() - 24));
@@ -429,7 +428,7 @@ public final class Places implements Listener {
                     d.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.55f, 0.55f, 0.55f), new Quaternionf()));
                 });
             }
-            if (taker != null) take(taker, piece, all, p);
+            if (taker != null && plugin.quests().unlocked(taker, p.name())) take(taker, piece, all, p);
         }
     }
 
@@ -456,12 +455,13 @@ public final class Places implements Listener {
     public Location lootSpot() {
         if (!on()) return null;
         World w = plugin.game().world();
-        for (Structures.Placed p : plugin.structures().finished(w)) if ("lootbox".equals(useOf(p.name()))) return spot(w, p);
+        for (Structures.Placed p : plugin.structures().finished(w)) if ("lootbox".equals(useOf(p.name())) && plugin.quests().anyUnlocked(p.name())) return spot(w, p);
         return null;
     }
 
     /** Une partie commence : les delais et les comptes de pieces repartent de zero. */
     public void newGame() {
+        plugin.quests().reset();
         taken.clear();
         found.clear();
     }
@@ -473,6 +473,7 @@ public final class Places implements Listener {
         guides.values().forEach(Entity::remove);
         guides.clear();
         zone.clear();
+        plugin.quests().reset();
         spots.clear();
         taken.clear();
         for (Piece[] all : pieces.values()) for (Piece piece : all) if (piece.shown != null) piece.shown.remove();
