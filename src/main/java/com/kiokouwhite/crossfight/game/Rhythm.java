@@ -104,6 +104,7 @@ public final class Rhythm implements Listener {
         final Vector right;
         final Location base;                 // le milieu de la ligne de frappe
         final int held, length;
+        TextDisplay streak;                  // la serie en cours (« x12 »), a droite de la piste
         TextDisplay verdict;                 // « Parfait », « Bien »... en haut de la piste
         final TextDisplay[] beams = new TextDisplay[4];   // la lumiere qui monte d'un couloir quand on y frappe une note
         final int[] beamUntil = new int[4];
@@ -390,8 +391,8 @@ public final class Rhythm implements Listener {
         plays.put(p.getUniqueId(), play);
         if (play.held < 4) p.getInventory().setHeldItemSlot(8);      // les touches 1 a 4 doivent changer de case pour se voir
         if (play.drawn) {
-            // le tableau du pack : une seule image, dont la ligne de frappe est a 26 pixels du bas
-            Location back = play.base.clone().add(play.start.getDirection().setY(0).normalize().multiply(0.12)).add(0, -26 * PIXEL, 0);
+            // le tableau du pack : une seule image, dont la ligne de frappe est a 40 pixels du bas
+            Location back = play.base.clone().add(play.start.getDirection().setY(0).normalize().multiply(0.12)).add(0, -40 * PIXEL, 0);
             play.board.add(image(play, back, '\uE400'));
         } else {
             // sans le pack : un fond sombre, la ligne de frappe, le chiffre de chaque touche
@@ -408,6 +409,10 @@ public final class Rhythm implements Listener {
         play.verdict = text(play, play.base.clone().add(toward.clone().multiply(-0.1)).add(0, HEIGHT - 1.3, 0), "", Color.fromARGB(0, 0, 0, 0), 2.2f, 2.2f);
         play.verdict.setShadowed(true);
         play.board.add(play.verdict);
+        play.streak = text(play, play.base.clone().add(play.right.clone().multiply(2 * PITCH + 1.5)).add(0, HEIGHT * 0.42, 0), "", Color.fromARGB(0, 0, 0, 0), 3f, 3f);
+        play.streak.setShadowed(true);
+        play.board.add(play.streak);
+        streak(play);
         for (int lane = 0; lane < 4; lane++) {
             Location at = play.lane(lane, 0).add(toward.clone().multiply(0.06));
             play.beams[lane] = play.drawn ? image(play, at, ' ') : text(play, at, "", Color.fromARGB(0, 0, 0, 0), 6.8f, (float) (HEIGHT / 0.25));
@@ -471,7 +476,7 @@ public final class Rhythm implements Listener {
                     Note n = play.notes.get(i);
                     if (n.tick() > t) break;
                     if (n.tick() == t && play.custom == null) p.playSound(p.getLocation(), song.lead(), 0.9f, pitch(n.pitch()));
-                    if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; play.missed++; play.combo = 0; Entity e = play.falling.remove(i); if (e != null) e.remove(); verdict(play, "<red>Raté"); }
+                    if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; Entity e = play.falling.remove(i); if (e != null) e.remove(); miss(play); }
                 }
                 play.bar.progress(Math.max(0f, Math.min(1f, t / (float) play.length)));
                 if (t % 4 == 0) Msg.actionBar(p, "<white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
@@ -521,7 +526,7 @@ public final class Rhythm implements Listener {
             play.judged[i] = true;
             Entity e = play.falling.remove(i);
             if (e != null) e.remove();
-            if (gap <= 2) { play.score += 300; play.perfect++; word = "<gold><bold>Parfait"; }
+            if (gap <= 2) { play.score += 300; play.perfect++; word = "<gold>Parfait"; }
             else if (gap <= 4) { play.score += 200; play.good++; word = "<green>Bien"; }
             else { play.score += 100; play.ok++; word = "<gray>Juste"; }
             play.combo++;
@@ -531,13 +536,38 @@ public final class Rhythm implements Listener {
         Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
         p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1f, gap <= 2 ? 1.9f : 1.5f);             // le coup de marteau, bien net
         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.8f, gap <= 2 ? 2f : 1.6f);
-        verdict(play, word + (play.combo >= 5 ? "\n<white>x" + play.combo : ""));
+        verdict(play, word);
+        streak(play);
+    }
+
+    /** Un texte du tableau, dans la police du panneau de quete quand le joueur a le pack (tools/build_quete_panneau.py) ; sinon, celle du jeu. */
+    private static Component lettered(Play play, String mini) {
+        Component text = Msg.mm(mini);
+        return play.drawn && com.kiokouwhite.crossfight.util.Sounds.has("font.quete_texte") ? text.font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete_texte")) : text;
+    }
+
+    /** La serie en cours, a droite de la piste : « x12 », doree a partir de dix, grise a zero. */
+    private void streak(Play play) {
+        if (play.streak == null || !play.streak.isValid()) return;
+        play.streak.text(lettered(play, (play.combo >= 10 ? "<gold>" : play.combo > 0 ? "<white>" : "<dark_gray>") + "x" + play.combo + "\n<gray>série"));
+    }
+
+    /** Une note manquee : la serie retombe a zero ; si elle comptait (trois notes au moins), on l'entend se briser. */
+    private void miss(Play play) {
+        if (play.combo >= 3) {
+            play.player.playSound(play.player.getLocation(), Sound.BLOCK_GLASS_BREAK, 1f, 0.8f);
+            play.player.playSound(play.player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.5f);
+        }
+        play.missed++;
+        play.combo = 0;
+        verdict(play, "<red>Raté");
+        streak(play);
     }
 
     /** L'appreciation, ecrite en haut de la piste pendant trois quarts de seconde. */
     private void verdict(Play play, String mini) {
         if (play.verdict == null || !play.verdict.isValid()) return;
-        play.verdict.text(Msg.mm(mini));
+        play.verdict.text(lettered(play, mini));
         play.verdictUntil = play.tick + 15;
     }
 

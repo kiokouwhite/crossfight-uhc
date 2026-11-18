@@ -5,9 +5,9 @@ Usage : python3 tools/build_rythme.py
 
 Le tableau est fait d'images de police, que le plugin montre dans des textes flottants devant le joueur, agrandis 1,4
 fois (un pixel d'image = 0,035 bloc) :
-  le tableau, 132 x 200 : quatre couloirs de 27 pixels (le premier commence a 12 pixels du bord gauche), chacun teinte
+  le tableau, 132 x 214 : quatre couloirs de 27 pixels (le premier commence a 12 pixels du bord gauche), chacun teinte
   a la couleur de ses notes, la ligne de
-  frappe a 26 pixels du bas, et sous elle une touche par couloir, marquee 1, 2, 3, 4 ;
+  frappe a 40 pixels du bas, et sous elle une grande touche par couloir, marquee 1, 2, 3, 4 ;
   quatre notes, 24 x 16, une couleur par couloir ;
   l'eclat d'une note frappee, 32 x 32 (une etoile blanche qui grossit et disparait) ;
   le faisceau d'un couloir, 25 x 160 : de la lumiere qui monte de la ligne et s'eteint vers le haut, blanche, que le
@@ -21,8 +21,8 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent / "resourcepack" / "assets" / "crossfight"
-W, H = 132, 200
-LEFT, LANE, LINE, TOP = 12, 27, 26, 8           # le premier couloir, sa largeur, la ligne (depuis le bas), la marge du haut
+W, H = 132, 214
+LEFT, LANE, LINE, TOP = 12, 27, 40, 8           # le premier couloir, sa largeur, la ligne (depuis le bas), la marge du haut
 NOTE_W, NOTE_H = 24, 16
 COLORS = [(240, 80, 110), (90, 170, 250), (110, 220, 130), (250, 200, 70)]
 DIGITS = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -39,13 +39,13 @@ def lanes(im, dark, light):
     d.rectangle([LEFT - 1, H - LINE - 1, LEFT + 4 * LANE, H - LINE], fill=light)
 
 
-def digits(im, color, y, dx=0):
+def digits(im, color, y, dx=0, size=14):
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
-    font = ImageFont.truetype(DIGITS, 9)
+    font = ImageFont.truetype(DIGITS, size)
     for k in range(4):
         cx = LEFT + LANE * k + LANE // 2
-        d.text((cx - 2 + dx, y), str(k + 1), font=font, fill=color)
+        d.text((cx - round(d.textlength(str(k + 1), font=font) / 2) + dx, y), str(k + 1), font=font, fill=color)
 
 
 def write_font(folder):
@@ -65,9 +65,10 @@ def main():
     d.rounded_rectangle([4, 4, W - 5, H - 5], radius=3, fill=(52, 48, 68, 255), outline=(24, 20, 28, 255))
     lanes(im, (34, 32, 48, 255), (250, 226, 150, 255))
     for k in range(4):                                   # les touches : des carres sombres sous la ligne
-        x = LEFT + LANE * k + LANE // 2 - 7
-        d.rectangle([x, H - 21, x + 13, H - 7], fill=(76, 72, 92, 255), outline=(24, 20, 28, 255))
-    digits(im, (244, 244, 248, 255), H - 20)
+        x = LEFT + LANE * k + LANE // 2 - 11
+        d.rectangle([x, H - 33, x + 22, H - 9], fill=(76, 72, 92, 255), outline=(24, 20, 28, 255))
+        d.line([(x + 1, H - 10), (x + 21, H - 10)], fill=(52, 48, 68, 255))
+    digits(im, (244, 244, 248, 255), H - 30)
     im.save(out / "rythme_tableau.png")
     for k, c in enumerate(COLORS):
         note = Image.new("RGBA", (NOTE_W, NOTE_H), (0, 0, 0, 0))

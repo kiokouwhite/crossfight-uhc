@@ -47,10 +47,11 @@ def main():
     # la fenetre du pack a six pixels vides autour d'elle : on la compose plus grande, et on les rogne
     im = nine(sprite("Background boxes", "BGbox_01B"), W + 12, H + 12).crop((6, 6, W + 6, H + 6))
     base.lanes(im, (44, 46, 82, 235), (255, 244, 226, 255))
-    key = sprite("Buttons", "Input_Key_Normal")
+    # les touches du pack, deux fois plus grandes (des pixels doubles, nets)
+    key = sprite("Buttons", "Input_Key_Normal").resize((32, 32), Image.NEAREST)
     for k in range(4):
-        im.alpha_composite(key, (base.LEFT + base.LANE * k + base.LANE // 2 - 8, H - 23))
-    base.digits(im, (255, 244, 226, 255), H - 21, -3)
+        im.alpha_composite(key, (base.LEFT + base.LANE * k + base.LANE // 2 - 16, H - 40))
+    base.digits(im, (255, 244, 226, 255), H - 33, -1, 13)
     im.save(OUT / "rythme_tableau.png")
     button = sprite("Buttons", "Button_02B_Normal").crop((7, 1, 25, 16))        # 18 x 15 : le bouton sans ses marges
     for k, turn in enumerate((0.95, 0.60, 0.35, 0.12)):                        # rose, bleu, vert, or

@@ -3,8 +3,8 @@
   {
    "type": "bitmap",
    "file": "crossfight:font/rythme_tableau.png",
-   "height": 200,
-   "ascent": 200,
+   "height": 214,
+   "ascent": 214,
    "chars": [
     "\ue400"
    ]
