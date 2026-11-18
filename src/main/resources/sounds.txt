@@ -291,7 +291,6 @@ music.forge_anemone
 music.forge_censored
 music.forge_glow
 music.forge_grin
-music.forge_installation
 music.forge_metal_crusher
 music.omori_calme
 music.omori_calme_boucle

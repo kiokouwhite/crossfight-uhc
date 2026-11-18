@@ -47,7 +47,6 @@ music.forge_anemone 101147
 music.forge_censored 116497
 music.forge_glow 125472
 music.forge_grin 163397
-music.forge_installation 335020
 music.forge_metal_crusher 63216
 music.omori_calme 262104 261854 omori_calme_boucle
 music.omori_calme_boucle 172250 172000 omori_calme_boucle
