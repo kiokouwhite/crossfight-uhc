@@ -203,7 +203,7 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **Le Titan (Shiganshina).** Il se tourne lentement vers le joueur le plus proche et écrase ceux qui restent à ses pieds. Frappe-le de dos, ou d'en haut : de face, tes coups ne comptent pas. À plusieurs, l'un attire son regard pendant que l'autre frappe.
 
-**Le casse-briques (Arcadia).** Parle à Anna : un mur de briques se dresse devant toi. Ta raquette suit ton viseur, un clic lance la balle. Beaucoup de briques cachent une pomme : quand elle tombe, rattrape-la avec la raquette. Toutes les pommes de ton équipe s'additionnent, et à quinze le lieu est à vous. Si la balle t'échappe, elle revient sur la raquette : tu ne perds rien.
+**Le casse-briques (Arcadia).** Parle à Anna : un mur de briques se dresse devant toi. Ta raquette suit ton viseur, un clic lance la balle. Certaines briques portent une pomme et dessinent un motif : casse-les, et rattrape chaque pomme qui tombe avec la raquette. Quand toutes les briques à pomme sont cassées, un nouveau mur arrive, avec un autre motif. Toutes les pommes de ton équipe s'additionnent, et à quinze le lieu est à vous. Si la balle t'échappe, elle revient sur la raquette : tu ne perds rien.
 
 **Les objets à trouver (Pearl, Beacon).** Ils brillent, entourés de jaune, et tintent quand tu approches : plus le son est fort, plus tu es près. Il suffit de passer dessus.
 

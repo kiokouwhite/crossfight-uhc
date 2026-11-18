@@ -16,16 +16,17 @@ import java.util.function.IntSupplier;
 
 /**
  * Le casse-briques : la quete d'Arcadia. Un mur de briques en haut, une raquette en bas qui suit le viseur, une balle
- * qui rebondit. Un clic lance la balle. Certaines briques cachent une pomme : cassee, elle la laisse tomber, et il faut
- * la rattraper avec la raquette. Chaque pomme rattrapee compte pour l'equipe ; a quinze, le lieu est debloque. La balle
- * perdue revient sur la raquette (on ne perd rien d'autre) ; le mur casse, un autre arrive, la balle un peu plus vive.
+ * qui rebondit. Un clic lance la balle. Certaines briques portent une pomme, qu'on voit dessus, et dessinent un motif
+ * (un V, un losange, des colonnes...) : cassee, la brique laisse tomber sa pomme, et il faut la rattraper avec la
+ * raquette. Chaque pomme rattrapee compte pour l'equipe ; a quinze, le lieu est debloque. Toutes les briques a pomme
+ * cassees, le mur revient au motif suivant, la balle un peu plus vive. La balle perdue revient sur la raquette.
  */
 final class Breakout extends PanelGame {
 
-    private static final int COLS = 8, ROWS = 5, APPLES = 6;
+    private static final int COLS = 8, ROWS = 5, APPLES = 12;
     /** Le terrain, en blocs depuis le milieu du tableau. */
     private static final double LEFT = -1.6, RIGHT = 1.6, TOP = 1.15, FLOOR = -1.45, PADDLE_V = -1.2, PADDLE_W = 0.85, PADDLE_H = 0.1;
-    private static final double BRICK_W = (RIGHT - LEFT) / COLS, BRICK_H = 0.17, BALL = 0.12, DROP = 0.045;
+    private static final double BRICK_W = (RIGHT - LEFT) / COLS, BRICK_H = 0.17, BALL = 0.12, DROP = 0.03;
     private static final Color[] ROW = {Color.fromARGB(255, 222, 70, 80), Color.fromARGB(255, 240, 150, 60), Color.fromARGB(255, 246, 204, 70), Color.fromARGB(255, 110, 200, 110), Color.fromARGB(255, 90, 160, 230)};
 
     final IntSupplier total;
@@ -69,16 +70,40 @@ final class Breakout extends PanelGame {
             apples[i] = item(0, 0, 0.2, 0.06, new ItemStack(Material.AIR));
             apples[i].setTeleportDuration(1);
         }
+        for (int i = 0; i < BADGES; i++) badges[i] = item(0, 0, 0.15, 0.045, new ItemStack(Material.AIR));
         boxes();
     }
 
-    /** Un mur neuf : toutes les briques, et une pomme dans deux sur trois. */
+    /** Les motifs : ou sont les briques a pomme (A) dans le mur de huit sur cinq. Ils se suivent dans cet ordre, puis recommencent. */
+    private static final String[][] PATTERNS = {
+            {"A......A", ".A....A.", "..A..A..", "...AA...", "........"},      // un V
+            {"...AA...", "..A..A..", ".A....A.", "..A..A..", "...AA..."},      // un losange
+            {".A....A.", ".A....A.", ".A....A.", ".A....A.", "........"},      // deux colonnes
+            {"A.A.A.A.", "........", ".A.A.A.A", "........", "........"},      // un damier
+            {"...AA...", ".AAAAAA.", "...AA...", "...AA...", "........"},      // une croix
+            {"A.......", ".A......", "..A.....", "...A....", "....AAAA"}};     // un escalier
+    private static final int BADGES = 12;
+    final ItemDisplay[] badges = new ItemDisplay[BADGES];
+    final int[] badgeOf = new int[COLS * ROWS];
+    int pattern = -1;
+
+    /** Un mur neuf, au motif suivant : toutes les briques reviennent, et celles du motif portent une pomme, qu'on voit dessus. */
     void wall() {
+        pattern = (pattern + 1) % PATTERNS.length;
+        int used = 0;
         for (int k = 0; k < bricks.length; k++) {
             alive[k] = true;
-            fruit[k] = random.nextInt(3) > 0;
+            fruit[k] = PATTERNS[pattern][k / COLS].charAt(k % COLS) == 'A';
             paint(bricks[k], ROW[k / COLS]);
+            badgeOf[k] = -1;
+            if (fruit[k] && used < BADGES) {
+                badgeOf[k] = used;
+                badges[used].setItemStack(new ItemStack(Material.APPLE));
+                badges[used].teleport(spot(brickU(k), brickV(k), 0.045));
+                used++;
+            }
         }
+        for (int i = used; i < BADGES; i++) badges[i].setItemStack(new ItemStack(Material.AIR));
     }
 
     @Override void onClick() {
@@ -113,7 +138,10 @@ final class Breakout extends PanelGame {
             // venue du dessus ou du dessous, elle repart en hauteur ; sinon, de cote
             if (Math.abs(fromV - brickV(k)) > BRICK_H / 2 + BALL / 2) velV = -velV; else velU = -velU;
             player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_XYLOPHONE, 0.8f, 1f + 0.12f * (ROWS - k / COLS));
-            if (fruit[k]) drop(brickU(k), brickV(k));
+            if (fruit[k]) {
+                if (badgeOf[k] >= 0) badges[badgeOf[k]].setItemStack(new ItemStack(Material.AIR));
+                drop(brickU(k), brickV(k));
+            }
             break;
         }
     }
@@ -148,8 +176,9 @@ final class Breakout extends PanelGame {
             if (appleV[i] < FLOOR) { falling[i] = false; apples[i].setItemStack(new ItemStack(Material.AIR)); continue; }
             apples[i].teleport(spot(appleU[i], appleV[i], 0.06));
         }
+        // toutes les briques a pomme cassees : le motif suivant
         boolean empty = true;
-        for (boolean a : alive) if (a) { empty = false; break; }
+        for (int k = 0; k < alive.length; k++) if (alive[k] && fruit[k]) { empty = false; break; }
         if (empty) {
             wall();
             held = true;
