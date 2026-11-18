@@ -410,7 +410,8 @@ public final class Rhythm implements Listener {
         play.board.forEach(Entity::remove);
         play.falling.values().forEach(Entity::remove);
         p.hideBossBar(play.bar);
-        if (play.custom != null) p.stopSound(play.custom.sound());
+        // dans la categorie ou elle a ete lancee : sans la nommer, l'arret vise une autre categorie et la musique continue
+        if (play.custom != null) p.stopSound(play.custom.sound(), org.bukkit.SoundCategory.RECORDS);
         if (p.isOnline()) {
             p.getInventory().setHeldItemSlot(play.held);
             if (message) Msg.send(p, "<gray>Forge arrêtée : rien n'est compté.");
