@@ -116,6 +116,7 @@ def main():
         return 0
     title = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtitle (size 17).ttf"), 17)
     text = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"), 12)
+    bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)       # une police libre, grasse : le mot de la carte
     slot, mine = sprite("Item slots", "Slot_01_Empty"), sprite("Item slots", "Slot_02_Empty")
     OUT.parent.mkdir(parents=True, exist_ok=True)
 
@@ -128,7 +129,7 @@ def main():
         im.alpha_composite(sprite("Mini icons", name), (36 + 22 * k, 24))
     write(im, 66, 46, "ANNA", title, (236, 170, 60, 255), BROWN)
     im.alpha_composite(sprite("Dividers", "Divider_05"), (42, 62))
-    write(im, 66, 82, "Enchants.", text, BROWN)
+    write(im, 66, 79, "Enchants.", bold, BROWN)
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 70), (31, 100))
     write(im, 66, 102, "1 - 5 niv.", text, BROWN)
     # la case et son texte, a droite
@@ -150,7 +151,6 @@ def main():
         write(im, x + 8, 102, price, text, BROWN)
     keep(im, OUT.with_name("menu_anna2.png"))
     # 3. Les potions d'Anna (Pearl) : la carte a gauche, et la liste : une case par potion (colonne 5), son nom a cote.
-    bold = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 10)
     im = window(mine)
     im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 90, 122), (2, 8))        # 78 x 110 a l'ecran, centree sur x = 47
     for k, name in enumerate(("Icon_15", "Icon_16", "Icon_14")):
