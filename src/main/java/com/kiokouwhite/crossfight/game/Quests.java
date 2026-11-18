@@ -62,7 +62,7 @@ public final class Quests implements Listener {
     // Le personnage est partout le meme : Anna, la marchande, venue faire des affaires par la Fissure Temporelle.
     public static final Map<String, Quest> QUESTS = Map.ofEntries(
             Map.entry("garreg_mach", new Quest("La partie de pêche", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves ne m'ouvriront leur bibliothèque que contre un bon repas… Prends cette canne, vise l'eau de l'étang et pêche-moi dix poissons : quand ça mord, ferre vite, puis arrête le cercle au cœur de la cible !", Kind.FISH, 10, Material.COD, "poissons", "Quelle pêche, Héros ! Les élèves se régalent et m'ont ouvert leur bibliothèque : reviens me parler, pose l'objet de ton choix, et je l'enchante au niveau que tu veux : 1, 2 ou 5 niveaux. Protection pour l'armure, Tranchant pour les lames… C'est pour ton équipe, jusqu'à la fin de la partie !")),
-            Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il ne craint que les coups à la nuque : frappe-le de dos, ou d'en haut. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 1, Material.IRON_SWORD, "Titan", "Tu l'as terrassé ! La forge du quartier rouvre : la borne, juste à côté, répare l'objet que tu tiens contre 2 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
+            Map.entry("shiganshina", new Quest("Reboucher la brèche", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il faudra cent coups pour l'abattre, et il ne se laissera pas faire : esquive sa charge et ses pierres, détourne les yeux quand il te fixe, et fuis quand il te court après. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 100, Material.IRON_SWORD, "coups", "Tu l'as terrassé ! La forge du quartier rouvre : la borne, juste à côté, répare l'objet que tu tiens contre 2 niveaux. Elle est à ton équipe jusqu'à la fin de la partie !")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
             Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une tablette : reproduis sa figure avec les pièces, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
             Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
@@ -79,6 +79,7 @@ public final class Quests implements Listener {
         /** La quete est faite, mais le lieu est complet : l'equipe doit encore choisir qui en perd le privilege. */
         boolean pending;
         final List<Entity> things = new ArrayList<>();          // les monstres
+        TitanBoss boss;                                          // le Titan de Shiganshina
         /** Les objets a ramasser (ou le repere du sommet) : ou ils sont, et ce qui les montre quand un joueur est pres. */
         final Map<Location, Entity> spots = new java.util.LinkedHashMap<>();
         Location target, home;
@@ -103,6 +104,7 @@ public final class Quests implements Listener {
         this.pillar = new NamespacedKey(plugin, "quete_pilier");
         this.rod = new NamespacedKey(plugin, "quete_canne");
         Bukkit.getScheduler().runTaskTimer(plugin, this::fish, 100L, 1L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::bosses, 100L, 1L);
         Bukkit.getPluginManager().registerEvents(tablet, plugin);
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 5L);
     }
@@ -148,7 +150,7 @@ public final class Quests implements Listener {
         if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12"};
         if (r.finished && r.pending) return new String[]{q.title(), "choisis qui part", "#a02020"};
         if (r.finished) return new String[]{q.title(), "terminée", "#2e6b1f"};
-        return new String[]{q.title(), q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
+        return new String[]{q.title(), q.kind() == Kind.REACH ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
     }
 
     /** Vrai si l'equipe de ce joueur a fini la quete de ce lieu. */
@@ -162,7 +164,7 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null || !on()) return List.of();
         Run r = run(p, place);
-        String state = r == null ? "<gray>parle au personnage" : r.finished ? "<green>terminée" : q.kind() == Kind.REACH || q.kind() == Kind.TITAN ? "<yellow>en cours" : "<yellow>" + r.done + " / " + q.count() + " " + q.thing();
+        String state = r == null ? "<gray>parle au personnage" : r.finished ? "<green>terminée" : q.kind() == Kind.REACH ? "<yellow>en cours" : "<yellow>" + r.done + " / " + q.count() + " " + q.thing();
         return List.of("<yellow><bold>!</bold> <white>Quête", "<gold>" + q.title(), state, "");
     }
 
@@ -230,16 +232,16 @@ public final class Quests implements Listener {
             }
             case TITAN -> {
                 Location at = r.home.clone().add(8, 0.2, 0);
-                r.things.add(w.spawn(at, Giant.class, g -> {
+                Giant titan = w.spawn(at, Giant.class, g -> {
                     g.setPersistent(false);
                     g.setRemoveWhenFarAway(false);
                     g.setGlowing(true);
                     g.customName(Msg.mm("<red>Titan"));
                     g.setCustomNameVisible(true);
-                    var hp = g.getAttribute(Attribute.MAX_HEALTH);
-                    if (hp != null) { hp.setBaseValue(120); g.setHealth(120); }
                     g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + place);
-                }));
+                });
+                r.things.add(titan);
+                r.boss = new TitanBoss(titan);
             }
             case FISH -> { for (Player m : members(r.team)) giveRod(m); }
             case PUZZLE -> {
@@ -356,25 +358,26 @@ public final class Quests implements Listener {
                     if (r.things.isEmpty()) finish(r, q);
                 }
                 case TITAN -> {
-                    r.things.removeIf(e -> !e.isValid());
-                    if (r.things.isEmpty()) { finish(r, q); break; }
-                    if (beat % 4 != 0) break;
-                    Giant g = (Giant) r.things.get(0);
-                    // Il se tourne lentement vers le joueur le plus proche, et ecrase ceux qui restent a ses pieds.
-                    Player near = null;
-                    for (Player p : g.getWorld().getPlayers()) {
-                        if (p.isDead() || p.getGameMode() != GameMode.SURVIVAL && p.getGameMode() != GameMode.ADVENTURE) continue;
-                        if (near == null || p.getLocation().distanceSquared(g.getLocation()) < near.getLocation().distanceSquared(g.getLocation())) near = p;
-                    }
-                    if (near == null || near.getLocation().distanceSquared(g.getLocation()) > 40 * 40) break;
-                    Vector to = near.getLocation().toVector().subtract(g.getLocation().toVector());
-                    float want = (float) Math.toDegrees(Math.atan2(-to.getX(), to.getZ())), turn = ((want - g.getLocation().getYaw()) % 360 + 540) % 360 - 180;
-                    g.setRotation(g.getLocation().getYaw() + Math.max(-25, Math.min(25, turn)), 0);
-                    if (beat % 12 == 0) for (Player p : g.getWorld().getPlayers()) {
-                        if (p.getGameMode() != GameMode.SURVIVAL && p.getGameMode() != GameMode.ADVENTURE || p.getLocation().distanceSquared(g.getLocation()) > 25 || p.getLocation().getY() > g.getLocation().getY() + 3) continue;
-                        p.damage(5.0, g);
-                        p.setVelocity(p.getLocation().toVector().subtract(g.getLocation().toVector()).setY(0).normalize().multiply(1.1).setY(0.45));
-                        g.getWorld().playSound(g.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.4f, 0.5f);
+                    // Le Titan vit tick par tick (bosses()) ; ici, on ne fait que le remettre s'il a disparu (monde decharge).
+                    if (r.boss != null && !r.boss.giant.isValid()) {
+                        boolean near = false;
+                        for (Player p : team) if (p.getWorld().equals(r.home.getWorld()) && p.getLocation().distanceSquared(r.home) < 60 * 60) { near = true; break; }
+                        if (near) {
+                            int left = r.boss.hitsLeft();
+                            r.boss.remove();
+                            r.things.clear();
+                            Giant titan = r.home.getWorld().spawn(r.home.clone().add(8, 0.2, 0), Giant.class, g -> {
+                                g.setPersistent(false);
+                                g.setRemoveWhenFarAway(false);
+                                g.setGlowing(true);
+                                g.customName(Msg.mm("<red>Titan"));
+                                g.setCustomNameVisible(true);
+                                g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + r.place);
+                            });
+                            r.things.add(titan);
+                            r.boss = new TitanBoss(titan);
+                            for (int k = TitanBoss.HITS; k > left; k--) r.boss.spare();
+                        }
                     }
                 }
                 case PUZZLE -> { }
@@ -463,6 +466,7 @@ public final class Quests implements Listener {
     }
 
     private void clear(Run r) {
+        if (r.boss != null) { r.boss.remove(); r.boss = null; }
         r.things.forEach(Entity::remove);
         r.things.clear();
         for (Entity e : r.spots.values()) if (e != null) e.remove();
@@ -884,17 +888,34 @@ public final class Quests implements Listener {
         });
     }
 
-    /** Le Titan ne craint que les coups dans le dos, ou venus d'en haut. */
+    /** Chaque tick : la vie des Titans (leurs attaques, leur barre). */
+    private void bosses() {
+        for (Map<String, Run> m : runs.values()) for (Run r : m.values())
+            if (r.boss != null && !r.finished && r.boss.giant.isValid()) r.boss.tick(members(r.team));
+    }
+
+    /** Le Titan ne prend pas de degats : chaque coup d'un joueur de l'equipe qui a la quete compte pour un, et le centieme le tue. */
     @EventHandler(ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Giant g) || !g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) return;
-        Entity by = e.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Entity s ? s : e.getDamager();
-        Vector to = by.getLocation().toVector().subtract(g.getLocation().toVector()).setY(0);
-        boolean behind = to.lengthSquared() > 0.01 && to.normalize().dot(g.getLocation().getDirection().setY(0).normalize()) < -0.2;
-        boolean above = by.getLocation().getY() > g.getLocation().getY() + 8;
-        if (behind || above) { g.getWorld().spawnParticle(Particle.CRIT, g.getLocation().add(0, 10, 0), 20, 1, 1, 1, 0.2); return; }
         e.setCancelled(true);
-        if (by instanceof Player p) Msg.actionBar(p, "<red>Il ne craint que la nuque : frappe-le de dos, ou d'en haut.");
+        Entity by = e.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Entity s ? s : e.getDamager();
+        if (!(by instanceof Player p)) return;
+        String[] owner = g.getPersistentDataContainer().get(mark, PersistentDataType.STRING).split("/", 2);
+        Map<String, Run> m = runs.get(owner[0]);
+        Run r = m == null || owner.length < 2 ? null : m.get(owner[1]);
+        if (r == null || r.boss == null || r.finished) return;
+        if (!teamOf(p).equals(r.team)) { Msg.actionBar(p, "<red>Ce Titan est la quête d'une autre équipe."); return; }
+        boolean dead = r.boss.hit(p);
+        r.done = TitanBoss.HITS - r.boss.hitsLeft();
+        if (dead) finish(r, QUESTS.get(r.place));
+    }
+
+    /** Aucun autre degat ne l'atteint (chute, feu, explosion...). */
+    @EventHandler(ignoreCancelled = true)
+    public void onTitanHurt(org.bukkit.event.entity.EntityDamageEvent e) {
+        if (e instanceof EntityDamageByEntityEvent) return;
+        if (e.getEntity() instanceof Giant g && g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) e.setCancelled(true);
     }
 
     /** Les monstres d'une quete ne laissent rien. */

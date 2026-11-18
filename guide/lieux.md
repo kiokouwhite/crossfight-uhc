@@ -20,7 +20,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Lieu | Quête | Ce qu'il faut faire | Ce que tu débloques |
 |---|---|---|---|
 | Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, clique l'objet à enchanter, puis choisis le niveau : I (1 niveau), II (2 niveaux) ou III (5 niveaux ; pas sur le diamant) |
-| Shiganshina | Reboucher la brèche | Abattre un Titan, qui ne craint que les coups de dos ou d'en haut | Forge : répare l'objet tenu, contre 2 niveaux |
+| Shiganshina | Reboucher la brèche | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Forge : répare l'objet tenu, contre 2 niveaux |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
 | Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant leur tablette | Marchand : échange tes minerais contre de l'équipement |
 | Arcadia | La récolte | Cueillir huit fruits | Nourriture : 12 steaks toutes les 8 minutes |
@@ -30,6 +30,8 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Jouki | Le sommet de la pagode | Monter tout en haut | Rien, sinon la vue |
 
 ## Le détail des quêtes
+
+**Le Titan (Shiganshina).** Il tombe en cent coups, comptés sur la barre en haut de l'écran. Il lance au hasard cinq attaques : la *Charge titanesque* (sors du couloir rouge avant qu'il ne fonce : 2 cœurs), le *Lancer de pierres* (sors des cercles orange, trois fois de suite : 2 cœurs), le *Regard terrifiant* (détourne les yeux dans la seconde, sinon tu es pétrifié 30 secondes), le *Cri strident* (nausée et lenteur 10 secondes) et la *Course du Titan* (fuis pendant 10 secondes : 1 cœur chaque fois qu'il te rattrape). Il casse les blocs sur son passage : ne compte pas sur un mur pour t'abriter.
 
 **La pêche (Garreg Mach).** Anna te donne une canne, et le bord de l'étang se met à scintiller pour ton équipe. Clic droit pour lancer la ligne dans l'eau. Quand « ÇA MORD ! » s'affiche, fais clic droit le plus vite possible. Une barre apparaît en haut de l'écran : la résistance du poisson. Ensuite, un cercle se resserre sur une cible au milieu de l'écran : clic droit pour l'arrêter. Plus il est près du centre (Bien, Très bien, Parfait), plus la barre descend. Tu ne peux pas rater : un mauvais clic fatigue seulement le poisson moins vite. Quand la barre est vide, il est pris ; il en faut dix.
 
