@@ -72,7 +72,7 @@ public final class Places implements Listener {
     private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
             Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "Anna enchante ton équipement (1, 2 ou 5 niveaux)")),
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
-            Map.entry("rythme", new Use("Concert", Material.NOTE_BLOCK, "neuf musiques à jouer chez Anna : du fer, de l'or et des diamants selon la note")),
+            Map.entry("rythme", new Use("Forge", Material.ANVIL, "on y forge en musique chez Anna : du fer, de l'or et des diamants selon la note")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
             Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),

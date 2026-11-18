@@ -18,13 +18,13 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   if (bot.currentWindow) { bot.closeWindow(bot.currentWindow); await sleep(300); }
   const stock = () => ['iron_ingot', 'gold_ingot', 'diamond'].map(n => n.split('_')[0] + ' ' + bot.inventory.items().filter(i => i.name === n).reduce((s, i) => s + i.count, 0)).join(', ');
   for (const essai of process.argv.slice(3)) {
-    const [caseMenu, part] = essai.split(':').map(Number), chute = [30, 24, 18][Math.floor(caseMenu / 9)];
+    const [caseMenu, part] = essai.split(':').map(Number), chute = [40, 32, 26][Math.floor(caseMenu / 9)];
     win = null; bot.chat('/cf quete parler shiganshina'); await sleep(1200);
     if (!win) { console.log('pas de menu |', said.slice(-2).join(' | ').slice(0, 160)); break; }
     const nom = win.slots[caseMenu] ? flat(win.slots[caseMenu].customName || '') || win.slots[caseMenu].name : '?';
     apparus = []; said = []; await bot.clickWindow(caseMenu, 0, 0).catch(() => {}); await sleep(1500);
     // le tableau vient d'apparaitre : le fond, puis pour chaque colonne sa zone et son chiffre
-    const colonnes = [1, 3, 5, 7].map(i => apparus[i]).filter(Boolean);
+    const colonnes = [1, 3, 5, 7].map(i => apparus[i]).filter(Boolean);   // sans le pack : le fond, puis (zone, chiffre) par colonne
     if (colonnes.length < 4) { console.log(nom, ': tableau incomplet (' + apparus.length + ' affichages)'); continue; }
     let vu = colonnes.length * 2 + 1, frappes = 0, n = 0;
     const fin = Date.now() + 70000;

@@ -140,12 +140,14 @@ public final class CfCommand implements TabExecutor {
                         // Raccourci : /cf pearl glowing = /cf quete montrer pearl
                         if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
                     }
-                    case "rythme", "concert" -> {
+                    case "rythme", "concert", "forge" -> {
                         // Essayer le concert d'Anna : /cf rythme (le menu) ou /cf rythme <musique> (la jouer tout de suite)
                         if (!(sender instanceof Player sp)) return true;
                         if (args.length < 2) { plugin.rhythm().open(sp); return true; }
-                        for (var song : com.kiokouwhite.crossfight.game.Rhythm.SONGS) if (song.id().equalsIgnoreCase(args[1])) { plugin.rhythm().start(sp, song); return true; }
-                        Msg.send(sender, "<yellow>Musiques : <white>" + String.join(", ", java.util.Arrays.stream(com.kiokouwhite.crossfight.game.Rhythm.SONGS).map(com.kiokouwhite.crossfight.game.Rhythm.Song::id).toList()));
+                        if (args[1].equalsIgnoreCase("recharger")) { Msg.send(sender, "<green>Musiques importées : <white>" + plugin.rhythm().reload()); return true; }
+                        var song = plugin.rhythm().find(args[1]);
+                        if (song != null) { plugin.rhythm().start(sp, song); return true; }
+                        Msg.send(sender, "<yellow>Musiques : <white>" + String.join(", ", plugin.rhythm().ids()) + " <gray>(ou recharger)");
                         return true;
                     }
                     case "quete", "quetes", "quest" -> {
@@ -902,7 +904,7 @@ public final class CfCommand implements TabExecutor {
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
                 case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "parler", "oublier", "placer", "replacer"));
                 case "tp" -> out.add("quete");
-                case "rythme", "concert" -> { for (var song : com.kiokouwhite.crossfight.game.Rhythm.SONGS) out.add(song.id()); }
+                case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); }
                 case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {

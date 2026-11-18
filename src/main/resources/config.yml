@@ -140,7 +140,7 @@ structures:
   # perd son privilege (l'equipe ecartee peut refaire la quete).
   equipes-par-lieu: 2
   # Quel lieu rend quel service : enchantement, forge, rythme, potions, marchand, nourriture, experience, lootbox, chasse
-  # ("forge" a Shiganshina, le reglage d'avant le concert, est lu comme "rythme" ; pour y remettre vraiment la forge :
+  # ("rythme" est la forge en musique de Shiganshina ; "forge" y est lu comme "rythme" ; pour y remettre vraiment la forge :
   # structures.forge-a-shiganshina: true)
   utilites:
     garreg_mach: enchantement

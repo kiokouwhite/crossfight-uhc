@@ -37,12 +37,16 @@ import java.util.Random;
 import java.util.UUID;
 
 /**
- * Le jeu de rythme d'Anna (le service "rythme", a Shiganshina) : des notes tombent sur quatre colonnes, et l'on appuie sur
+ * La forge d'Anna (le service "rythme", a Shiganshina) : on y forge ses materiaux en musique. Des notes tombent sur
+ * quatre colonnes, et l'on frappe avec
  * les touches 1, 2, 3 et 4 du clavier quand elles atteignent la ligne du bas. Neuf musiques, trois par difficulte ; la
  * note obtenue (C, B ou A) donne des materiaux, une seule fois par musique : rejouer ne rapporte que ce qu'une meilleure
  * note ajoute.
  *
- * Les musiques sont composees ici, par le plugin : une melodie tiree d'une graine (toujours la meme pour une musique),
+ * Des musiques importees d'osu!mania (tools/import_osu.py : la carte dans plugins/CrossfightUHC/musiques/, le son dans
+ * le pack) prennent la place de celles du plugin, trois par difficulte au plus.
+ *
+ * Les musiques du plugin sont composees ici : une melodie tiree d'une graine (toujours la meme pour une musique),
  * jouee avec les sons de blocs musicaux du jeu, sur une basse et une batterie. Les notes a frapper sont celles de la
  * melodie. Rien n'est repris d'un jeu ni d'un disque.
  *
@@ -68,7 +72,7 @@ public final class Rhythm implements Listener {
     private static final String[] LEVELS = {"Facile", "Moyen", "Difficile"};
     private static final String[] LEVEL_COLORS = {"<green>", "<gold>", "<red>"};
     /** Par difficulte : les ticks par temps (20 ticks par seconde), le nombre de mesures, la duree de chute d'une note. */
-    private static final int[] BEAT = {12, 10, 8}, BARS = {16, 20, 24}, FALL = {30, 24, 18};
+    private static final int[] BEAT = {12, 10, 8}, BARS = {16, 20, 24}, FALL = {40, 32, 26};
     /** Les recompenses : [difficulte][note C, B, A] = {fer, or, diamants}. */
     private static final int[][][] REWARDS = {
             {{5, 0, 0}, {5, 5, 0}, {5, 10, 1}},
@@ -100,12 +104,15 @@ public final class Rhythm implements Listener {
         final Vector right;
         final Location base;                 // le milieu de la ligne de frappe
         final int held, length;
+        final Custom custom;                 // une musique importee : son audio vient du pack, le plugin ne joue ni melodie ni batterie
+        final boolean drawn;                 // avec le pack : le tableau et les notes sont des images ; sinon, des rectangles de couleur
         int tick = -70, next, score, combo, best, perfect, good, ok, missed;
 
         Play(Player player, Song song) {
             this.player = player;
             this.song = song;
-            this.notes = chart(song);
+            this.notes = Rhythm.this.notes(song);
+            this.custom = customs.get(song.id());
             this.judged = new boolean[notes.size()];
             this.length = notes.get(notes.size() - 1).tick() + 30;
             this.held = player.getInventory().getHeldItemSlot();
@@ -114,24 +121,101 @@ public final class Rhythm implements Listener {
             if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
             look.normalize();
             this.right = new Vector(-look.getZ(), 0, look.getX());
-            this.base = player.getEyeLocation().add(look.multiply(4.5)).add(0, -1.3, 0);
+            this.base = player.getEyeLocation().add(look.multiply(7)).add(0, -0.4, 0);
+            this.base.setYaw(0);                 // sans cela, les affichages gardent le regard du joueur et penchent avec lui
+            this.base.setPitch(0);
+            this.drawn = com.kiokouwhite.crossfight.util.Sounds.has("font.rythme") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(player);
             this.bar = BossBar.bossBar(Msg.mm(LEVEL_COLORS[song.level()] + song.title() + " <gray>- " + LEVELS[song.level()]), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
         }
 
         Location lane(int lane, double up) {
-            return base.clone().add(right.clone().multiply((lane - 1.5) * 0.85)).add(0, up, 0);
+            return base.clone().add(right.clone().multiply((lane - 1.5) * PITCH)).add(0, up, 0);
         }
     }
 
-    private static final double HEIGHT = 3.4;        // la hauteur de chute, en blocs
+    /** Un pixel des images du tableau, en blocs (elles sont montrees agrandies 1,4 fois : tools/build_rythme.py). */
+    private static final double PIXEL = 0.035;
+    private static final double HEIGHT = 160 * PIXEL;   // la hauteur de chute : 160 pixels du tableau, soit 5,6 blocs
+    private static final double PITCH = 27 * PIXEL;     // d'un couloir au suivant
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, Play> plays = new HashMap<>();
     /** La meilleure note de chaque joueur a chaque musique (0 : C, 1 : B, 2 : A), pour la partie en cours. */
     private final Map<UUID, Map<String, Integer>> grades = new HashMap<>();
 
+    /** Une musique importee (tools/import_osu.py) : le son du pack qui la joue, et ses notes. */
+    private record Custom(String sound, List<Note> notes) {}
+
+    private final Map<String, Custom> customs = new HashMap<>();
+    /** Les neuf musiques du menu, trois par difficulte : les musiques importees d'abord, celles du plugin pour completer. */
+    private final List<Song> songs = new ArrayList<>();
+
+    /**
+     * Relit plugins/CrossfightUHC/musiques/ : un fichier par musique importee (titre, niveau, son, puis une note par
+     * ligne : l'instant en millisecondes et la colonne, 0 a 3). Rend le nombre de musiques importees.
+     */
+    public int reload() {
+        customs.clear();
+        songs.clear();
+        List<Song> imported = new ArrayList<>();
+        java.io.File[] files = new java.io.File(plugin.getDataFolder(), "musiques").listFiles((dir, name) -> name.endsWith(".txt"));
+        if (files != null) {
+            java.util.Arrays.sort(files);
+            for (java.io.File f : files) {
+                try {
+                    String title = null, sound = null;
+                    int level = 0;
+                    List<Note> notes = new ArrayList<>();
+                    for (String line : java.nio.file.Files.readAllLines(f.toPath(), java.nio.charset.StandardCharsets.UTF_8)) {
+                        line = line.trim();
+                        if (line.isEmpty() || line.startsWith("#")) continue;
+                        if (line.startsWith("titre:")) title = line.substring(6).trim();
+                        else if (line.startsWith("niveau:")) { String l = line.substring(7).trim().toLowerCase(java.util.Locale.ROOT); level = l.startsWith("d") ? 2 : l.startsWith("m") ? 1 : 0; }
+                        else if (line.startsWith("son:")) sound = line.substring(4).trim();
+                        else {
+                            String[] parts = line.split("\\s+");
+                            if (parts.length >= 2) notes.add(new Note((int) Math.round(Double.parseDouble(parts[0]) / 50.0), Math.max(0, Math.min(3, Integer.parseInt(parts[1]))), 12));
+                        }
+                    }
+                    if (title == null || sound == null || notes.isEmpty()) { plugin.getLogger().warning("Musique ignoree (titre, son ou notes manquants) : " + f.getName()); continue; }
+                    notes.sort(java.util.Comparator.comparingInt(Note::tick));
+                    String id = f.getName().substring(0, f.getName().length() - 4).toLowerCase(java.util.Locale.ROOT);
+                    customs.put(id, new Custom(sound, notes));
+                    imported.add(new Song(id, title, level, 0L, null));
+                } catch (Exception ex) { plugin.getLogger().warning("Musique illisible : " + f.getName() + " (" + ex.getMessage() + ")"); }
+            }
+        }
+        for (int level = 0; level < 3; level++) {
+            List<Song> row = new ArrayList<>();
+            for (Song song : imported) if (song.level() == level && row.size() < 3) row.add(song);
+            for (Song song : SONGS) if (song.level() == level && row.size() < 3) row.add(song);
+            songs.addAll(row);
+        }
+        return imported.size();
+    }
+
+    /** Une musique par son nom (celles du menu, puis toutes celles du plugin), ou null. */
+    public Song find(String id) {
+        for (Song song : songs) if (song.id().equalsIgnoreCase(id)) return song;
+        for (Song song : SONGS) if (song.id().equalsIgnoreCase(id)) return song;
+        return null;
+    }
+
+    public List<String> ids() {
+        List<String> out = new ArrayList<>();
+        for (Song song : songs) out.add(song.id());
+        return out;
+    }
+
+    private List<Note> notes(Song song) {
+        Custom custom = customs.get(song.id());
+        return custom != null ? custom.notes() : chart(song);
+    }
+
     public Rhythm(CrossfightPlugin plugin) {
         this.plugin = plugin;
+        int imported = reload();
+        if (imported > 0) plugin.getLogger().info("Forge : " + imported + " musique(s) importee(s).");
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 1L);
     }
 
@@ -188,7 +272,9 @@ public final class Rhythm implements Listener {
     }
 
     /** Les secondes que dure une musique. */
-    private static int seconds(Song song) {
+    private int seconds(Song song) {
+        Custom custom = customs.get(song.id());
+        if (custom != null) return custom.notes().get(custom.notes().size() - 1).tick() / 20;
         return BARS[song.level()] * 4 * BEAT[song.level()] / 20;
     }
 
@@ -207,13 +293,13 @@ public final class Rhythm implements Listener {
     }
 
     private final class Menu implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 27, Component.text("Anna - le concert"));
+        final Inventory inv = Bukkit.createInventory(this, 27, Component.text("Anna - la forge"));
 
         Menu(Player p) {
             Map<String, Integer> mine = grades.getOrDefault(p.getUniqueId(), Map.of());
             Material[] icons = {Material.LIME_DYE, Material.ORANGE_DYE, Material.RED_DYE};
-            for (int i = 0; i < SONGS.length; i++) {
-                Song song = SONGS[i];
+            for (int i = 0; i < songs.size(); i++) {
+                Song song = songs.get(i);
                 ItemStack it = new ItemStack(icons[song.level()]);
                 ItemMeta meta = it.getItemMeta();
                 meta.displayName(plain(LEVEL_COLORS[song.level()] + song.title()));
@@ -223,7 +309,7 @@ public final class Rhythm implements Listener {
                 lore.add(plain(best == null ? "<dark_gray>Pas encore de note" : "<white>Ta meilleure note : <gold>" + GRADES[best]));
                 for (int g = 0; g < 3; g++)
                     lore.add(plain((best != null && best >= g ? "<dark_gray>" : "<white>") + GRADES[g] + " <gray>: " + reward(REWARDS[song.level()][g]) + (best != null && best >= g ? " (déjà reçu)" : "")));
-                lore.add(plain("<yellow>Clic : jouer <gray>(touches 1, 2, 3, 4)"));
+                lore.add(plain("<yellow>Clic : forger <gray>(touches 1, 2, 3, 4)"));
                 meta.lore(lore);
                 it.setItemMeta(meta);
                 inv.setItem(song.level() * 9 + 2 + (i % 3) * 2, it);
@@ -247,7 +333,8 @@ public final class Rhythm implements Listener {
         int row = e.getSlot() / 9, col = e.getSlot() % 9;
         if (row > 2 || col < 2 || col > 6 || col % 2 != 0) return;
         p.closeInventory();
-        start(p, SONGS[row * 3 + (col - 2) / 2]);
+        int index = row * 3 + (col - 2) / 2;
+        if (index < songs.size()) start(p, songs.get(index));
     }
 
     // ------------------------------------------------------------------ une partie
@@ -256,7 +343,7 @@ public final class Rhythm implements Listener {
         TextDisplay d = at.getWorld().spawn(at, TextDisplay.class, t -> {
             t.setPersistent(false);
             t.setVisibleByDefault(false);
-            t.setBillboard(Display.Billboard.CENTER);
+            t.setBillboard(Display.Billboard.VERTICAL);        // droit comme un mur : tourne vers le joueur, mais sans pencher quand il leve les yeux
             t.setBrightness(new Display.Brightness(15, 15));
             t.setShadowed(false);
             t.setSeeThrough(false);
@@ -270,22 +357,50 @@ public final class Rhythm implements Listener {
         return d;
     }
 
+    /** Une image du tableau (police "rythme" du pack), posee par son bas, au milieu. */
+    private TextDisplay image(Play play, Location at, char glyph) {
+        TextDisplay d = at.getWorld().spawn(at, TextDisplay.class, t -> {
+            t.setPersistent(false);
+            t.setVisibleByDefault(false);
+            t.setBillboard(Display.Billboard.VERTICAL);        // droit comme un mur : tourne vers le joueur, mais sans pencher quand il leve les yeux
+            t.setBrightness(new Display.Brightness(15, 15));
+            t.setShadowed(false);
+            t.setViewRange(1f);
+            t.text(Component.text(String.valueOf(glyph)).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "rythme")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+            t.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            t.setTransformation(new Transformation(new Vector3f(0, 0, 0), new Quaternionf(), new Vector3f(1.4f, 1.4f, 1), new Quaternionf()));
+        });
+        play.player.showEntity(plugin, d);
+        return d;
+    }
+
+    /** Une note, en haut (`up` = HEIGHT) ou sur la ligne (`up` = 0) de son couloir : une image, centree sur ce point, ou un rectangle. */
+    private Location noteAt(Play play, int lane, double up) {
+        return play.lane(lane, play.drawn ? up - 8 * PIXEL : up);
+    }
+
     /** Lance une musique pour ce joueur : le tableau se pose devant lui, un decompte, puis les notes. */
     public void start(Player p, Song song) {
         stop(p, false);
         Play play = new Play(p, song);
         plays.put(p.getUniqueId(), play);
         if (play.held < 4) p.getInventory().setHeldItemSlot(8);      // les touches 1 a 4 doivent changer de case pour se voir
-        // le tableau : un fond sombre, la ligne de frappe, le chiffre de chaque touche
-        Location back = play.base.clone().add(play.start.getDirection().setY(0).normalize().multiply(0.15)).add(0, -0.45, 0);
-        play.board.add(text(play, back, " ", Color.fromARGB(190, 16, 16, 28), 30f, 17f));
-        for (int lane = 0; lane < 4; lane++) {
-            Color c = LANES[lane];
-            play.board.add(text(play, play.lane(lane, -0.08), " ", Color.fromARGB(110, c.getRed(), c.getGreen(), c.getBlue()), 6.2f, 0.9f));
-            play.board.add(text(play, play.lane(lane, -0.42), "<white><bold>" + (lane + 1), Color.fromARGB(0, 0, 0, 0), 1.4f, 1.4f));
+        if (play.drawn) {
+            // le tableau du pack : une seule image, dont la ligne de frappe est a 26 pixels du bas
+            Location back = play.base.clone().add(play.start.getDirection().setY(0).normalize().multiply(0.12)).add(0, -26 * PIXEL, 0);
+            play.board.add(image(play, back, '\uE400'));
+        } else {
+            // sans le pack : un fond sombre, la ligne de frappe, le chiffre de chaque touche
+            Location back = play.base.clone().add(play.start.getDirection().setY(0).normalize().multiply(0.12)).add(0, -0.9, 0);
+            play.board.add(text(play, back, " ", Color.fromARGB(190, 16, 16, 28), 33f, 27f));
+            for (int lane = 0; lane < 4; lane++) {
+                Color c = LANES[lane];
+                play.board.add(text(play, play.lane(lane, -0.08), " ", Color.fromARGB(110, c.getRed(), c.getGreen(), c.getBlue()), 6.8f, 0.9f));
+                play.board.add(text(play, play.lane(lane, -0.5), "<white><bold>" + (lane + 1), Color.fromARGB(0, 0, 0, 0), 1.6f, 1.6f));
+            }
         }
         p.showBossBar(play.bar);
-        Msg.send(p, "<gold>" + song.title() + " <gray>: appuie sur <white>1, 2, 3, 4 <gray>quand une note touche la ligne. <dark_gray>S'accroupir pour arrêter.");
+        Msg.send(p, "<gold>" + song.title() + " <gray>: frappe au marteau avec <white>1, 2, 3, 4 <gray>quand un lingot touche la ligne. <dark_gray>S'accroupir pour arrêter.");
     }
 
     /** Arrete la partie de ce joueur (sans note si elle n'est pas finie) : le tableau disparait, la main revient ou elle etait. */
@@ -295,9 +410,10 @@ public final class Rhythm implements Listener {
         play.board.forEach(Entity::remove);
         play.falling.values().forEach(Entity::remove);
         p.hideBossBar(play.bar);
+        if (play.custom != null) p.stopSound(play.custom.sound());
         if (p.isOnline()) {
             p.getInventory().setHeldItemSlot(play.held);
-            if (message) Msg.send(p, "<gray>Musique arrêtée : rien n'est compté.");
+            if (message) Msg.send(p, "<gray>Forge arrêtée : rien n'est compté.");
         }
     }
 
@@ -317,16 +433,19 @@ public final class Rhythm implements Listener {
             while (play.next < play.notes.size() && play.notes.get(play.next).tick() - fall <= t) {
                 Note n = play.notes.get(play.next);
                 Color c = LANES[n.lane()];
-                TextDisplay d = text(play, play.lane(n.lane(), HEIGHT), " ", Color.fromARGB(255, c.getRed(), c.getGreen(), c.getBlue()), 5.4f, 0.75f);
+                TextDisplay d = play.drawn ? image(play, noteAt(play, n.lane(), HEIGHT), (char) (0xE401 + n.lane()))
+                        : text(play, noteAt(play, n.lane(), HEIGHT), " ", Color.fromARGB(255, c.getRed(), c.getGreen(), c.getBlue()), 6f, 0.8f);
                 d.setTeleportDuration(Math.min(59, fall - 1));
                 play.falling.put(play.next, d);
                 final int lane = n.lane();
-                Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) d.teleport(play.lane(lane, 0)); }, 1L);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) d.teleport(noteAt(play, lane, 0)); }, 1L);
                 play.next++;
             }
+            if (t == 0 && play.custom != null) p.playSound(p.getLocation(), play.custom.sound(), org.bukkit.SoundCategory.RECORDS, 1f, 1f);
             if (t >= 0) {
-                // la batterie et la basse
-                if (t % beat == 0) {
+                // la batterie et la basse (une musique importee a son propre son)
+                if (play.custom != null) { }
+                else if (t % beat == 0) {
                     int count = t / beat % 4;
                     p.playSound(p.getLocation(), count % 2 == 0 ? Sound.BLOCK_NOTE_BLOCK_BASEDRUM : Sound.BLOCK_NOTE_BLOCK_SNARE, 0.55f, 1f);
                     if (count == 0) p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.7f, pitch(SCALES[(int) (song.seed() % SCALES.length)][0] + (t / (beat * 8) % 4 == 3 ? 2 : 0)));
@@ -335,7 +454,7 @@ public final class Rhythm implements Listener {
                 for (int i = 0; i < play.notes.size(); i++) {
                     Note n = play.notes.get(i);
                     if (n.tick() > t) break;
-                    if (n.tick() == t) p.playSound(p.getLocation(), song.lead(), 0.9f, pitch(n.pitch()));
+                    if (n.tick() == t && play.custom == null) p.playSound(p.getLocation(), song.lead(), 0.9f, pitch(n.pitch()));
                     if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; play.missed++; play.combo = 0; Entity e = play.falling.remove(i); if (e != null) e.remove(); }
                 }
                 play.bar.progress(Math.max(0f, Math.min(1f, t / (float) play.length)));
@@ -374,7 +493,7 @@ public final class Rhythm implements Listener {
         play.combo++;
         play.best = Math.max(play.best, play.combo);
         Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
-        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, 1.8f);
+        p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.25f, gap <= 2 ? 1.9f : 1.5f);          // le coup de marteau
         Location at = play.lane(lane, 0.1);
         p.spawnParticle(org.bukkit.Particle.DUST, at, 6, 0.3, 0.1, 0.05, 0, new org.bukkit.Particle.DustOptions(LANES[lane], 1.2f));
     }
@@ -403,7 +522,7 @@ public final class Rhythm implements Listener {
         int[] gain = {Math.max(0, now[0] - had[0]), Math.max(0, now[1] - had[1]), Math.max(0, now[2] - had[2])};
         Material[] what = {Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND};
         for (int k = 0; k < 3; k++) if (gain[k] > 0) p.getInventory().addItem(new ItemStack(what[k], gain[k])).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
-        Msg.send(p, "<green>Note " + GRADES[grade] + " : <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note rapporte la différence." : ""));
+        Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note rapporte la différence." : ""));
     }
 
     @EventHandler

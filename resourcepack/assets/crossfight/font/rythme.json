@@ -1,0 +1,49 @@
+{
+ "providers": [
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_tableau.png",
+   "height": 200,
+   "ascent": 200,
+   "chars": [
+    "\ue400"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_note_0.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue401"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_note_1.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue402"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_note_2.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue403"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_note_3.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue404"
+   ]
+  }
+ ]
+}

@@ -277,6 +277,7 @@ font.peche
 font.quete
 font.quete2
 font.quete_recul
+font.rythme
 glyph.flaque_noire
 glyph.kunai
 glyph.orbe
