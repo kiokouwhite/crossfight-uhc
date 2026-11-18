@@ -192,7 +192,7 @@ def main():
     text(im, 44 - width("EN MUSIQUE") // 2, 100, "EN MUSIQUE", 1, green)
     panel(d, 93, 14, 171, 125, 2)
     for k, (name, color) in enumerate((("FACILE", green), ("MOYEN", (255, 220, 110, 255)), ("DIFFICILE", (255, 150, 150, 255)))):
-        text(im, 133 - width(name) // 2, 24 + 36 * k, name, 1, color)
+        text(im, 125 - width(name) // 2, 24 + 36 * k, name, 1, color)
         for col in (5, 6, 7):
             slot(d, 8 + 18 * col, 36 + 36 * k)
     im.save(ROOT / "textures" / "font" / "menu_anna4.png")
