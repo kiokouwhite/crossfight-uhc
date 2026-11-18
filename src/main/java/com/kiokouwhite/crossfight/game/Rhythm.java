@@ -479,7 +479,7 @@ public final class Rhythm implements Listener {
                     if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; Entity e = play.falling.remove(i); if (e != null) e.remove(); miss(play); }
                 }
                 play.bar.progress(Math.max(0f, Math.min(1f, t / (float) play.length)));
-                if (t % 4 == 0) Msg.actionBar(p, "<white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
+                if (t % 4 == 0) Msg.actionBar(p, "<white>" + percent(play) + " % <dark_gray>| <gold>combo " + play.combo);
             }
             // les effets s'eteignent
             if (play.verdictUntil != 0 && t >= play.verdictUntil) { play.verdict.text(Component.empty()); play.verdictUntil = 0; }
@@ -533,7 +533,7 @@ public final class Rhythm implements Listener {
             burst(play, play.notes.get(i).lane());
         }
         play.best = Math.max(play.best, play.combo);
-        Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
+        Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>combo " + play.combo);
         p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1f, gap <= 2 ? 1.9f : 1.5f);             // le coup de marteau, bien net
         p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.8f, gap <= 2 ? 2f : 1.6f);
         verdict(play, word);
@@ -549,7 +549,7 @@ public final class Rhythm implements Listener {
     /** La serie en cours, a droite de la piste : « x12 », doree a partir de dix, grise a zero. */
     private void streak(Play play) {
         if (play.streak == null || !play.streak.isValid()) return;
-        play.streak.text(lettered(play, (play.combo >= 10 ? "<gold>" : play.combo > 0 ? "<white>" : "<dark_gray>") + "x" + play.combo + "\n<gray>série"));
+        play.streak.text(lettered(play, (play.combo >= 10 ? "<gold>" : play.combo > 0 ? "<white>" : "<dark_gray>") + "x" + play.combo + "\n<gray>combo"));
     }
 
     /** Une note manquee : la serie retombe a zero ; si elle comptait (trois notes au moins), on l'entend se briser. */
@@ -618,7 +618,7 @@ public final class Rhythm implements Listener {
         Song song = play.song;
         stop(p, false);
         Msg.send(p, "<gold>" + song.title() + " <gray>: <white>" + Math.round(share * 100) + " % <gray>(" + play.perfect + " parfaits, " + play.good + " bien, " + play.ok + " justes, " + play.missed
-                + " manquées ; plus longue série : " + play.best + ")");
+                + " manquées ; plus long combo : " + play.best + ")");
         if (grade < 0) {
             p.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<red>Raté"), Msg.mm("<gray>Il faut " + Math.round(NEEDED[0] * 100) + " % pour un C")));
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1f, 0.6f);
