@@ -2,6 +2,7 @@
 track forge_aegleseeker 147692
 track forge_anemone 101147
 track forge_censored 116497
+track forge_eternal_drain 130470
 track forge_eternal_white 158429
 track forge_glow 125472
 track forge_grin 163397
