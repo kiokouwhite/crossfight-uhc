@@ -60,7 +60,7 @@ def panel(title):
     return im
 
 
-BAR_X, BAR_Y, BAR_W, STEPS = 14, 42, None, 10      # la jauge : a 14 points du bord, 42 sous le haut du cadre, sur toute la largeur
+BAR_X, BAR_Y, BAR_W, STEPS = 14, 40, None, 10      # la jauge : a 14 points du bord, 40 sous le haut du cadre, sur toute la largeur
 
 
 def gauges():
