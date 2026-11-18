@@ -288,6 +288,7 @@ glyph.vent
 model.falchion
 model.yumi_fujin
 music.forge_installation
+music.forge_metal_crusher
 music.omori_calme
 music.omori_calme_boucle
 music.omori_violent

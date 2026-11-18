@@ -1,5 +1,6 @@
 # Genere par tools/build_pack.py
 track forge_installation 335020
+track forge_metal_crusher 63216
 track omori_calme 262104 261854 omori_calme_boucle
 track omori_calme_boucle 172250 172000 omori_calme_boucle
 track omori_violent 391622 391372 omori_violent_boucle
