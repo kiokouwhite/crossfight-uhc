@@ -22,7 +22,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, clique l'objet à enchanter, puis choisis le niveau : I (1 niveau), II (2 niveaux) ou III (5 niveaux ; pas sur le diamant) |
 | Shiganshina | La chasse au Titan | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Forge : on y forge en musique chez Anna, pour du fer, de l'or et des diamants |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
-| Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant leur tablette | Marchand : échange tes minerais contre de l'équipement |
+| Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant l'énigme de chacun | Marchand : échange tes minerais contre de l'équipement |
 | Arcadia | La récolte | Cueillir huit fruits | Nourriture : 12 steaks toutes les 8 minutes |
 | Terrace | L'ascension | Atteindre le sommet du lieu | De l'expérience tant que tu restes dans le lieu |
 | Beacon | L'initiation | Retrouver quatre reliques | À chaque événement Lootbox, une caisse tombe ici |
@@ -51,7 +51,12 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **Les objets à trouver (Pearl, Arcadia, Beacon).** Ils brillent, entourés de jaune, et tintent quand tu approches : plus le son est fort, plus tu es près. Il suffit de passer dessus.
 
-**Les tablettes (Central Town).** Quatre piliers éteints apparaissent autour d'Anna. Un clic droit sur un pilier dresse une tablette devant toi : à gauche la figure à obtenir, à droite une grille, en bas trois pièces dorées. Vise une pièce et clique pour l'attraper : elle suit ton viseur. Amène-la sur la grille et clique pour la poser ; la touche F la tourne, et tu peux reprendre une pièce posée en cliquant dessus. Là où deux pièces se recouvrent, les cases s'annulent et s'assombrissent : sers-t'en pour creuser la figure. Quand les trois pièces sont posées et que la grille montre la figure, le pilier se rallume. S'accroupir ferme la tablette.
+**Les énigmes des piliers (Central Town).** Quatre piliers éteints apparaissent autour d'Anna, et chacun cache une énigme différente. Un clic droit sur un pilier dresse un tableau devant toi : tu y joues en visant et en cliquant, et tu le fermes en t'accroupissant. Résous l'énigme, et le pilier se rallume.
+
+- **La tablette.** À gauche la figure à obtenir, à droite une grille, en bas trois pièces dorées. Clique une pièce pour l'attraper, amène-la sur la grille, clique pour la poser ; la touche F la tourne. Là où deux pièces se recouvrent, les cases s'annulent : sers-t'en pour creuser la figure.
+- **Le circuit.** Une source orange, deux lampes rouges, et des tuiles de fils. Clique une tuile pour la faire pivoter : le courant doit courir de la source jusqu'aux deux lampes.
+- **L'établi.** Un objet t'est montré : refais sa recette sur la table de craft, avec les ingrédients proposés (attention aux intrus). Prends un ingrédient, puis clique les cases où le poser ; clique une case garnie pour la vider.
+- **Le puzzle.** Une image découpée en neuf pièces mélangées : prends-les une à une et remets-les dans le cadre, d'après le modèle.
 
 **Les pièces du vaisseau (Forest of Hope).** Tu n'en portes qu'une à la fois, et tu es ralenti tant que tu la portes. Si tu meurs, la pièce retourne où elle était.
 
