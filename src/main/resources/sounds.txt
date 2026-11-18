@@ -278,6 +278,7 @@ font.peche
 font.puzzle
 font.quete
 font.quete2
+font.quete_jauge
 font.quete_recul
 font.quete_texte
 font.rythme

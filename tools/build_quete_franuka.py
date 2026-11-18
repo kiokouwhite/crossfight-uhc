@@ -7,7 +7,7 @@ Même principe que tools/build_menu_franuka.py : les fichiers du « RPG UI pack 
 resourcepack-prive/ui-franuka/, et les deux images composées ici vont dans resourcepack-prive/assets/, où elles
 remplacent dans le pack complet celles de tools/build_quete_panneau.py (mêmes noms, mêmes tailles, mêmes cases de
 lettres : la police et le plugin ne changent pas). Le panneau : un cadre pêche, une grande bannière lavande à cheval
-sur son bord, où « QUÊTE » est écrit en grand avec un contour bleu foncé, un filet en bas. Les lettres : une police libre et grasse (la police de
+sur son bord, où « QUÊTE » est écrit en grand avec un contour bleu foncé, et en bas une jauge (un curseur du pack) qui dit où en est la quête (police quete_jauge). Les lettres : une police libre et grasse (la police de
 texte du pack, toute petite, se lisait mal), chacune à sa largeur (font/quete_recul.json dit de combien reculer pour
 chacune). Les polices du pack public sont recopiées avec les lignes à la hauteur de ce cadre.
 """
@@ -57,10 +57,32 @@ def panel(title):
     im.alpha_composite(banner, ((W - banner.width) // 2, 0 if BIG else TOP))
     big = word("QUÊTE", title, 2 if BIG else 1, (255, 244, 226, 255), NAVY)
     im.alpha_composite(big, ((W - big.width) // 2, 0))
-    line = sprite("Dividers", "Divider_02")
-    for x in range(14, W - 14, 48):
-        im.alpha_composite(line.crop((0, 0, min(48, W - 14 - x), 16)), (x, TOP + 40))
     return im
+
+
+BAR_X, BAR_Y, BAR_W, STEPS = 14, 42, None, 10      # la jauge : a 14 points du bord, 42 sous le haut du cadre, sur toute la largeur
+
+
+def gauges():
+    """
+    La jauge de la quete, a la place du filet du bas : la boite d'un curseur du pack allongee, et sa barre verte remplie
+    de 0 a 10 dixiemes. Onze images de meme taille ; le plugin dessine celle qui dit ou en est la quete.
+    """
+    w = W - 2 * BAR_X
+    box = wide(sprite("Sliders & Bars", "Slider01_Box"), w)
+    fill = wide(sprite("Sliders & Bars", "Slider01_Bar04"), w)
+    left, right = 4, w - 4                                               # la barre du pack commence a quatre points du bord de sa boite
+    out = []
+    for k in range(STEPS + 1):
+        # (une image de police ne peut pas etre posee plus haut que sa propre hauteur : elle descend donc jusqu'a la ligne de base, la jauge en haut)
+        im = Image.new("RGBA", (w, H + LIFT - BAR_Y), (0, 0, 0, 0))
+        im.alpha_composite(box)
+        end = left + round((right - left) * k / STEPS)
+        if end > left:
+            im.alpha_composite(fill.crop((0, 0, end, 16)))
+        im.putpixel((w - 1, im.height - 1), (255, 255, 255, 2))                      # un point presque invisible : toutes les images avancent de la meme largeur
+        out.append(im)
+    return out
 
 
 LINE1, LINE2 = 44, 33            # hauteur du haut de chaque ligne au-dessus de la ligne de base du titre
@@ -118,6 +140,12 @@ def main():
             if provider.get("file", "").endswith("quete_panneau.png"):           # l'image est plus haute : la banniere depasse en haut
                 provider["height"] = provider["ascent"] = TOP + H + LIFT
         (fonts / (name + ".json")).write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
+    # la jauge : onze images, posees a la hauteur du filet qu'elles remplacent
+    bars = gauges()
+    for k, im in enumerate(bars):
+        im.save(OUT / f"quete_jauge_{k}.png")
+    gauge = {"providers": [{"type": "bitmap", "file": f"crossfight:font/quete_jauge_{k}.png", "height": H + LIFT - BAR_Y, "ascent": H + LIFT - BAR_Y, "chars": [chr(0xE200 + k)]} for k in range(len(bars))]}
+    (fonts / "quete_jauge.json").write_text(json.dumps(gauge, ensure_ascii=True, indent=1), encoding="utf-8")
     back = {"providers": [{"type": "space", "advances": {c: -w for c, w in advances.items()}}]}
     (fonts / "quete_recul.json").write_text(json.dumps(back, ensure_ascii=True, indent=1), encoding="utf-8")
     print("panneau", (W, TOP + H + LIFT), "lettres", atlas.size)

@@ -152,10 +152,12 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null || !on()) return null;
         Run r = run(p, place);
-        if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12"};
-        if (r.finished && r.pending) return new String[]{q.title(), "choisis qui part", "#a02020"};
-        if (r.finished) return new String[]{q.title(), "terminée", "#2e6b1f"};
-        return new String[]{q.title(), q.kind() == Kind.REACH ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12"};
+        // (le quatrieme : ou en est la quete, en dixiemes, pour la jauge du panneau)
+        if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12", "0"};
+        if (r.finished && r.pending) return new String[]{q.title(), "choisis qui part", "#a02020", "10"};
+        if (r.finished) return new String[]{q.title(), "terminée", "#2e6b1f", "10"};
+        int tenths = q.kind() == Kind.REACH || q.count() <= 0 ? 0 : Math.max(0, Math.min(10, (int) Math.round(10.0 * r.done / q.count())));
+        return new String[]{q.title(), q.kind() == Kind.REACH ? "en cours" : r.done + " / " + q.count() + " " + q.thing(), "#7a4a12", String.valueOf(tenths)};
     }
 
     /** Vrai si l'equipe de ce joueur a fini la quete de ce lieu. */

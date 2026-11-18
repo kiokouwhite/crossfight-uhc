@@ -128,9 +128,23 @@ public final class ScoreboardManager {
                 .append(net.kyori.adventure.text.Component.text(name).font(QUEST_BACK).color(white))
                 .append(net.kyori.adventure.text.Component.text(state).font(QUEST_FONT_2).color(net.kyori.adventure.text.format.TextColor.fromHexString(quest[2])))
                 .append(net.kyori.adventure.text.Component.text(state).font(QUEST_BACK).color(white))
+                .append(gauge(quest))
                 .append(net.kyori.adventure.text.Component.text(shift(-MARGIN + side)).font(QUEST_FONT).color(white))
                 .append(LOGO)
                 .append(net.kyori.adventure.text.Component.text(shift(PANEL_WIDTH + 1 - side - LOGO_WIDTH)).font(QUEST_FONT).color(white));
+    }
+
+    /** La jauge du panneau (avec le pack d'interface : police quete_jauge) : a 14 points du bord, large de 144 ; on y va, on la dessine, on revient. */
+    private static final int GAUGE_X = 14, GAUGE_WIDTH = PANEL_WIDTH - 2 * GAUGE_X;
+
+    private net.kyori.adventure.text.Component gauge(String[] quest) {
+        if (quest.length < 4 || !com.kiokouwhite.crossfight.util.Sounds.has("font.quete_jauge")) return net.kyori.adventure.text.Component.empty();
+        int tenths;
+        try { tenths = Math.max(0, Math.min(10, Integer.parseInt(quest[3]))); } catch (NumberFormatException e) { tenths = 0; }
+        var white = net.kyori.adventure.text.format.NamedTextColor.WHITE;
+        return net.kyori.adventure.text.Component.text(shift(GAUGE_X - MARGIN)).font(QUEST_FONT).color(white)
+                .append(net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE200 + tenths))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete_jauge")).color(white))
+                .append(net.kyori.adventure.text.Component.text(shift(-(GAUGE_WIDTH + 1) - (GAUGE_X - MARGIN))).font(QUEST_FONT).color(white));
     }
 
     /** Lignes vides sous le titre, pour la hauteur du logo (30 pixels : la ligne du titre et trois autres de 9). */
