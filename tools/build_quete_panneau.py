@@ -105,6 +105,9 @@ def main():
     (ROOT / "font" / "quete_texte.json").write_text(json.dumps({"providers": [line(10)]}, ensure_ascii=True, indent=1), encoding="utf-8")
     back = {c: -7 for row in rows for c in row if c != "\u0000"}
     (ROOT / "font" / "quete_recul.json").write_text(json.dumps({"providers": [{"type": "space", "advances": back}]}, ensure_ascii=True, indent=1), encoding="utf-8")
+    # pour centrer une ligne : les memes caracteres qui reculent, puis avancent, de la moitie de leur largeur
+    for name, sign in (("quete_demi", 0.5), ("quete_demi2", -0.5)):
+        (ROOT / "font" / (name + ".json")).write_text(json.dumps({"providers": [{"type": "space", "advances": {c: w * sign for c, w in back.items()}}]}, ensure_ascii=True, indent=1), encoding="utf-8")
     print("panneau", (W, H + LIFT), "lettres", atlas.size)
 
 

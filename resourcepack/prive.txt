@@ -38,6 +38,8 @@ font.menu
 font.panneau_omori
 font.quete
 font.quete2
+font.quete_demi
+font.quete_demi2
 font.quete_jauge
 font.quete_recul
 glyph.porte_blanche

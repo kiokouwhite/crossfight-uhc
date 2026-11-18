@@ -148,6 +148,9 @@ def main():
     (fonts / "quete_jauge.json").write_text(json.dumps(gauge, ensure_ascii=True, indent=1), encoding="utf-8")
     back = {"providers": [{"type": "space", "advances": {c: -w for c, w in advances.items()}}]}
     (fonts / "quete_recul.json").write_text(json.dumps(back, ensure_ascii=True, indent=1), encoding="utf-8")
+    # pour centrer une ligne : les memes caracteres qui reculent, puis avancent, de la moitie de leur largeur
+    for name, sign in (("quete_demi", -0.5), ("quete_demi2", 0.5)):
+        (fonts / (name + ".json")).write_text(json.dumps({"providers": [{"type": "space", "advances": {c: w * sign for c, w in advances.items()}}]}, ensure_ascii=True, indent=1), encoding="utf-8")
     print("panneau", (W, TOP + H + LIFT), "lettres", atlas.size)
     return 0
 
