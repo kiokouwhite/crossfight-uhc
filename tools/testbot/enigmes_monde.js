@@ -40,7 +40,7 @@ const CLES = { iron_pickaxe: { I: 'iron_ingot', S: 'stick' }, diamond_sword: { D
       for (let y = 0; y < rangees.length; y++) for (let x = 0; x < rangees[y].length; x++) if (rangees[y][x] === lettre) { await clic(-0.05 + (x + 0.5) * 0.5, 1.2 - (y + 0.5) * 0.5); clics++; }
     }
   } else {
-    const PX = 0.14, PIECE = 0.56, MINI = 0.045, FL = 0.5, FT = 1.2, HL = -2.2, HT = 1.3, HP = 0.68, ML = FL + (3 * PIECE - 12 * MINI) / 2, MT = -0.78;
+    const PX = 0.14, PIECE = 0.56, MINI = 0.045, FL = 0.5, FT = 1.2, HL = -2.05, HT = 1.1, HP = 0.56, ML = FL + (3 * PIECE - 12 * MINI) / 2, MT = -0.78;
     // avec le pack : chaque piece est une image (une lettre de la police "puzzle") ; la piece i va dans la case i
     const images = Object.values(bot.entities).filter(e => e.name === 'text_display' && lettre[e.id] != null && lettre[e.id] % 16 < 9).map(e => ({ i: lettre[e.id] % 16, u: uv(e)[0], v: uv(e)[1] + PIECE / 2 }));
     if (images.length) {

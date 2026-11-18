@@ -30,7 +30,7 @@ final class Jigsaw extends PanelGame {
             {"....GGGG....", "...GGGGGG...", "..GGGDGGGG..", ".GGGGGGGDGG.", ".GDGGGGGGGG.", ".GGGGGDGGGG.", "..GGGGGGGG..", "...GGTTGG...", ".....TT.....", ".....TT.....", "....TTTT....", "MMMMMMMMMMMM"},
             {".....RR.....", "....RRRR....", "...RRRRRR...", "..RRRRRRRR..", ".RRRRRRRRRR.", "..YYYYYYYY..", "..YBBYYYYY..", "..YBBYYTTY..", "..YYYYYTTY..", "..YYYYYTTY..", "MMMMMMMMMMMM", "MMMMMMMMMMMM"}};
 
-    private static final double PX = 0.14, PIECE = K * PX, FRAME_LEFT = 0.5, FRAME_TOP = 1.2, HOME_LEFT = -2.2, HOME_TOP = 1.3, HOME_PITCH = 0.68;
+    private static final double PX = 0.14, PIECE = K * PX, FRAME_LEFT = 0.5, FRAME_TOP = 1.2, HOME_LEFT = -2.05, HOME_TOP = 1.1, HOME_PITCH = 0.56;
     private static final double MINI = 0.045, MINI_LEFT = FRAME_LEFT + (P * PIECE - SIDE * MINI) / 2, MINI_TOP = -0.78;
     private static final Color BACK = Color.fromARGB(235, 12, 14, 36), SLOT = Color.fromARGB(255, 34, 40, 76), AIMED = Color.fromARGB(255, 70, 80, 130);
 
@@ -90,8 +90,10 @@ final class Jigsaw extends PanelGame {
 
     void build() {
         backdrop();
-        plate(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP - (2 * HOME_PITCH + PIECE) / 2, 2 * HOME_PITCH + PIECE + 0.1, 2 * HOME_PITCH + PIECE + 0.1);
-        label(HOME_LEFT + 1.5 * HOME_PITCH - 0.06, HOME_TOP + 0.1, "<gray>Les pièces", 0.6f);
+        // le cadre du tas : les neuf pieces, sa bordure, et de la marge
+        double heap = 2 * HOME_PITCH + PIECE * HOME_SCALE + 0.5;
+        plate(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP - (2 * HOME_PITCH + PIECE) / 2, heap, heap);
+        label(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP + 0.2, "<gray>Les pièces", 0.6f);
         label(FRAME_LEFT + P * PIECE / 2, FRAME_TOP + 0.08, "<aqua>Reforme l'image", 0.7f);
         label(MINI_LEFT - 0.4, MINI_TOP - 0.35, "<gray>Modèle", 0.6f);
         label(-0.6, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>Accroupi <gray>: fermer", 0.55f);
@@ -118,8 +120,10 @@ final class Jigsaw extends PanelGame {
         boxes();
     }
 
-    /** Dans le tas, les pieces sont plus petites : elles tiennent dans leur cadre. */
-    private static final double HOME_SCALE = 0.8;
+    /** Dans le tas et dans les cases du cadre, les pieces sont plus petites que leur place : elles n'en sortent pas. */
+    private static final double HOME_SCALE = 0.8, SLOT_SCALE = 0.8;
+    /** Le creux d'une case du pack est un demi-point plus bas et plus a droite que son milieu (son ombre est en haut a gauche). */
+    private static final double NUDGE = 0.017;
 
     /** Pose une piece, son coin haut gauche en (u, v), a cette echelle (1 : sa taille dans le cadre). */
     void move(int i, double u, double v, double depth, double f) {
@@ -137,9 +141,15 @@ final class Jigsaw extends PanelGame {
 
     void move(int i, double u, double v, double depth) { move(i, u, v, depth, 1); }
 
+    /** Pose une piece au milieu d'une case du cadre. */
+    void seat(int i, int s, double depth) {
+        double in = PIECE * (1 - SLOT_SCALE) / 2, nudge = drawn ? NUDGE : 0;
+        move(i, frameU(s) + in + nudge, frameV(s) - in - nudge, depth, SLOT_SCALE);
+    }
+
     /** Remet une piece ou elle doit etre : sur sa case du cadre, ou a sa place dans le tas. */
     void place(int i) {
-        if (slot[i] >= 0) move(i, frameU(slot[i]), frameV(slot[i]), 0.035);
+        if (slot[i] >= 0) seat(i, slot[i], 0.035);
         else move(i, homeU(home[i]) + PIECE * (1 - HOME_SCALE) / 2, homeV(home[i]) - PIECE * (1 - HOME_SCALE) / 2, 0.035, HOME_SCALE);
     }
 
@@ -202,7 +212,7 @@ final class Jigsaw extends PanelGame {
             hover = over;
         }
         if (held < 0 || !aimed) return;
-        if (over >= 0) move(held, frameU(over), frameV(over), 0.06);
+        if (over >= 0) seat(held, over, 0.06);
         else move(held, cu - PIECE / 2, cv + PIECE / 2, 0.06);
     }
 
