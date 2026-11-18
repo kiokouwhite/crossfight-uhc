@@ -15,7 +15,6 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Giant;
 import org.bukkit.entity.Husk;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
@@ -232,16 +231,8 @@ public final class Quests implements Listener {
             }
             case TITAN -> {
                 Location at = r.home.clone().add(8, 0.2, 0);
-                Giant titan = w.spawn(at, Giant.class, g -> {
-                    g.setPersistent(false);
-                    g.setRemoveWhenFarAway(false);
-                    g.setGlowing(true);
-                    g.customName(Msg.mm("<red>Titan"));
-                    g.setCustomNameVisible(true);
-                    g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + place);
-                });
-                r.things.add(titan);
-                r.boss = new TitanBoss(titan);
+                r.boss = new TitanBoss(titan(at, r));
+                r.things.add(r.boss.giant);
             }
             case FISH -> { for (Player m : members(r.team)) giveRod(m); }
             case PUZZLE -> {
@@ -366,16 +357,8 @@ public final class Quests implements Listener {
                             int left = r.boss.hitsLeft();
                             r.boss.remove();
                             r.things.clear();
-                            Giant titan = r.home.getWorld().spawn(r.home.clone().add(8, 0.2, 0), Giant.class, g -> {
-                                g.setPersistent(false);
-                                g.setRemoveWhenFarAway(false);
-                                g.setGlowing(true);
-                                g.customName(Msg.mm("<red>Titan"));
-                                g.setCustomNameVisible(true);
-                                g.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + r.place);
-                            });
-                            r.things.add(titan);
-                            r.boss = new TitanBoss(titan);
+                            r.boss = new TitanBoss(titan(r.home.clone().add(8, 0.2, 0), r));
+                            r.things.add(r.boss.giant);
                             for (int k = TitanBoss.HITS; k > left; k--) r.boss.spare();
                         }
                     }
@@ -888,6 +871,26 @@ public final class Quests implements Listener {
         });
     }
 
+    /** Le corps du Titan : un mannequin a l'image d'un joueur, au skin "titan_quete" (skins.txt), six fois et demie plus grand. */
+    private LivingEntity titan(Location at, Run r) {
+        return at.getWorld().spawn(at, org.bukkit.entity.Mannequin.class, v -> {
+            v.setPersistent(false);
+            v.setImmovable(true);
+            v.setSilent(true);
+            v.setGlowing(true);
+            v.setCollidable(false);
+            var skin = com.kiokouwhite.crossfight.util.Skins.profile("titan_quete");
+            if (skin != null) v.setProfile(skin);
+            var scale = v.getAttribute(Attribute.SCALE);
+            if (scale == null) { v.registerAttribute(Attribute.SCALE); scale = v.getAttribute(Attribute.SCALE); }
+            if (scale != null) scale.setBaseValue(6.5);
+            v.customName(Msg.mm("<red>Titan"));
+            v.setCustomNameVisible(true);
+            v.setDescription(net.kyori.adventure.text.Component.empty());
+            v.getPersistentDataContainer().set(mark, PersistentDataType.STRING, r.team + "/" + r.place);
+        });
+    }
+
     /** Chaque tick : la vie des Titans (leurs attaques, leur barre). */
     private void bosses() {
         for (Map<String, Run> m : runs.values()) for (Run r : m.values())
@@ -897,7 +900,7 @@ public final class Quests implements Listener {
     /** Le Titan ne prend pas de degats : chaque coup d'un joueur de l'equipe qui a la quete compte pour un, et le centieme le tue. */
     @EventHandler(ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
-        if (!(e.getEntity() instanceof Giant g) || !g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) return;
+        if (!(e.getEntity() instanceof org.bukkit.entity.Mannequin g) || !g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) return;
         e.setCancelled(true);
         Entity by = e.getDamager() instanceof Projectile pr && pr.getShooter() instanceof Entity s ? s : e.getDamager();
         if (!(by instanceof Player p)) return;
@@ -915,7 +918,7 @@ public final class Quests implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onTitanHurt(org.bukkit.event.entity.EntityDamageEvent e) {
         if (e instanceof EntityDamageByEntityEvent) return;
-        if (e.getEntity() instanceof Giant g && g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) e.setCancelled(true);
+        if (e.getEntity() instanceof org.bukkit.entity.Mannequin g && g.getPersistentDataContainer().has(mark, PersistentDataType.STRING)) e.setCancelled(true);
     }
 
     /** Les monstres d'une quete ne laissent rien. */

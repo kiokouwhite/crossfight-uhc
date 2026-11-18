@@ -16,7 +16,10 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   bot.chat('/gamemode creative'); bot.chat('/cf quete oublier shiganshina'); await sleep(500); bot.chat('/cf tp quete shiganshina'); await sleep(5000);
   bot.chat('/cf quete lancer shiganshina'); await sleep(1500);
   bot.chat('/gamemode survival'); bot.chat('/effect give @s minecraft:regeneration 900 5 true'); bot.chat('/effect give @s minecraft:resistance 900 1 true'); await sleep(800);
-  const titan = () => Object.values(bot.entities).find(e => e.name === 'giant');
+  // deux mannequins dans les parages : Anna, tout pres, et le Titan, plus loin ; on garde l'identifiant du second
+  const loin = Object.values(bot.entities).filter(e => e.name === 'mannequin').sort((x, y) => y.position.distanceTo(bot.entity.position) - x.position.distanceTo(bot.entity.position))[0];
+  const id = loin ? loin.id : -1;
+  const titan = () => bot.entities[id];
   console.log('titan :', titan() ? 'la, a ' + titan().position.distanceTo(bot.entity.position).toFixed(1) + ' blocs' : 'absent', '|', barre);
   const t0 = Date.now(); let fin = false;
   while (Date.now() - t0 < 230000 && !fin) {

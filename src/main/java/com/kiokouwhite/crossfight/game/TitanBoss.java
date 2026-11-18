@@ -11,7 +11,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Giant;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -48,7 +48,8 @@ final class TitanBoss {
     private static final int IDLE = 0, CHARGE = 1, STONES = 2, STARE = 3, SCREAM = 4, CHASE = 5;
     private static final String[] NAMES = {"", "Charge titanesque", "Lancer de pierres", "Regard terrifiant", "Cri strident", "Course du Titan"};
 
-    final Giant giant;
+    /** Son corps : un mannequin a l'image d'un joueur, grandi six fois et demie, qui porte le skin du Titan. */
+    final LivingEntity giant;
     private final BossBar bar = BossBar.bossBar(Msg.mm("<red>Titan"), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
     private final Set<UUID> viewers = new HashSet<>();
     private final Map<UUID, Integer> lastHit = new HashMap<>(), lastBite = new HashMap<>();
@@ -59,9 +60,8 @@ final class TitanBoss {
     private Vector dash;
     private UUID prey;
 
-    TitanBoss(Giant giant) {
+    TitanBoss(LivingEntity giant) {
         this.giant = giant;
-        giant.setAI(false);
         title();
     }
 
