@@ -63,7 +63,7 @@ public final class Quests implements Listener {
             Map.entry("garreg_mach", new Quest("La partie de pêche", "Anna", "Bonjour, Héros ! Je suis Anna, et la Fissure Temporelle m'a déposée en plein monastère. Les élèves ne m'ouvriront leur bibliothèque que contre un bon repas… Prends cette canne, vise l'eau de l'étang et pêche-moi dix poissons : quand ça mord, ferre vite, puis arrête le cercle au cœur de la cible !", Kind.FISH, 10, Material.COD, "poissons", "Quelle pêche, Héros ! Les élèves se régalent et m'ont ouvert leur bibliothèque : reviens me parler, pose l'objet de ton choix, et je l'enchante au niveau que tu veux : 1, 2 ou 5 niveaux. Protection pour l'armure, Tranchant pour les lames… C'est pour ton équipe, jusqu'à la fin de la partie !")),
             Map.entry("shiganshina", new Quest("La chasse au Titan", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il faudra cent coups pour l'abattre, et il ne se laissera pas faire : esquive sa charge et ses pierres, détourne les yeux quand il te fixe, et fuis quand il te court après. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 100, Material.IRON_SWORD, "coups", "Tu l'as terrassé ! La forge du quartier rouvre, et ici on forge en musique : reviens me parler, choisis un air et frappe le métal en rythme. Neuf airs, du plus facile au plus difficile ; mieux tu frappes, plus tu forges de fer, d'or et de diamants. De quoi t'équiper sans descendre à la mine !")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
-            Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une tablette : reproduis sa figure avec les pièces, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
+            Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une tablette : attrape ses pièces dorées, pose-les sur la grille pour reproduire sa figure, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : à la borne du marchand, juste à côté, échange ton fer, ton or, tes diamants et ton charbon contre des flèches, des pommes d'or, des perles de l'Ender et des vivres, jusqu'à la fin de la partie !")),
             Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
             Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
@@ -93,7 +93,7 @@ public final class Quests implements Listener {
     private final NamespacedKey mark, pillar, rod;
     /** Les pecheurs : ou en est la prise de chacun. */
     private final Map<UUID, Catch> catches = new HashMap<>();
-    private final Tablet tablet = new Tablet();
+    private final Tablet tablet;
     /** Par equipe (ou par joueur sans equipe) puis par lieu. */
     private final Map<String, Map<String, Run>> runs = new HashMap<>();
 
@@ -101,6 +101,7 @@ public final class Quests implements Listener {
         this.plugin = plugin;
         this.mark = new NamespacedKey(plugin, "quete_cible");
         this.pillar = new NamespacedKey(plugin, "quete_pilier");
+        this.tablet = new Tablet(plugin);
         this.rod = new NamespacedKey(plugin, "quete_canne");
         Bukkit.getScheduler().runTaskTimer(plugin, this::fish, 100L, 1L);
         Bukkit.getScheduler().runTaskTimer(plugin, this::bosses, 100L, 1L);
@@ -845,7 +846,14 @@ public final class Quests implements Listener {
         }
     }
 
-    /** Un clic sur un pilier : la tablette s'ouvre, pour un membre de l'equipe a qui il appartient. */
+    /** Pour les essais (/cf tablette) : une tablette a trois blocs et demi devant le joueur, sans quete. */
+    public void tryTablet(Player p) {
+        Vector look = p.getLocation().getDirection().setY(0);
+        if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
+        tablet.open(p, p.getLocation().add(look.normalize().multiply(4.2)), who -> Msg.send(who, "<green>Tablette résolue."));
+    }
+
+    /** Un clic sur un pilier : la tablette se dresse devant lui, pour un membre de l'equipe a qui il appartient. */
     @EventHandler
     public void onPillar(org.bukkit.event.player.PlayerInteractEntityEvent e) {
         String tag = e.getRightClicked().getPersistentDataContainer().get(pillar, PersistentDataType.STRING);
@@ -853,11 +861,12 @@ public final class Quests implements Listener {
         e.setCancelled(true);
         if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         Player p = e.getPlayer();
+        if (tablet.isOpen(p)) return;                      // sa tablette est ouverte : le clic est pour elle
         String[] t = tag.split("/");
         Run r = run(p, t[1]);
         if (r == null || r.finished || !r.team.equals(t[0])) { Msg.actionBar(p, "<gray>Ce pilier attend une autre équipe : parle à Anna pour avoir les tiens."); return; }
         final Entity clicked = e.getRightClicked();
-        tablet.open(p, who -> {
+        tablet.open(p, clicked.getLocation(), who -> {
             if (r.finished || !clicked.isValid()) return;
             // Le pilier se rallume : il n'a plus rien a demander.
             Location at = clicked.getLocation();
@@ -980,6 +989,7 @@ public final class Quests implements Listener {
     /** Une partie commence, ou la map change : tout repart de zero. */
     public void reset() {
         plugin.rhythm().reset();
+        tablet.reset();
         for (Map<String, Run> m : runs.values()) for (Run r : m.values()) clear(r);
         runs.clear();
         for (var e : catches.entrySet()) drop(Bukkit.getPlayer(e.getKey()), e.getValue());

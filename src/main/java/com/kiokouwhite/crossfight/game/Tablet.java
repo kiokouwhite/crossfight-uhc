@@ -1,32 +1,49 @@
 package com.kiokouwhite.crossfight.game;
 
+import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.util.Msg;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
+import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Sound;
+import org.bukkit.entity.Display;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerAnimationEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
- * La tablette : le casse-tete des piliers (la quete de Central Town). A gauche, la figure a obtenir ; a droite, une
- * grille vide ; en bas, des pieces. On choisit une piece, on la tourne si l'on veut, on clique dans la grille pour la
- * poser. La ou deux pieces se recouvrent, les cases s'annulent. La tablette est resolue quand toutes les pieces sont
- * posees et que la grille montre la figure. Chaque tablette est tiree au hasard, et toujours soluble : la figure est
- * faite en posant les pieces quelque part.
+ * La tablette : le casse-tete des piliers (la quete de Central Town). Un tableau se dresse devant le pilier, que seul
+ * le joueur voit : a gauche la figure a obtenir, a droite une grille, en bas trois pieces dorees. On attrape une piece
+ * en la visant et en cliquant, elle suit le viseur, on clique encore pour la poser sur la grille ; F la tourne. La ou
+ * deux pieces se recouvrent, les cases s'annulent (elles s'assombrissent). La tablette est resolue quand les trois
+ * pieces sont posees et que la grille montre la figure. Chaque tablette est tiree au hasard, et toujours soluble : la
+ * figure est faite en posant les pieces quelque part.
+ *
+ * Le tableau est fait d'affichages de texte (des rectangles de couleur) dans un plan tourne vers le joueur ; le viseur
+ * est le point ou son regard coupe ce plan.
  */
 public final class Tablet implements Listener {
 
@@ -39,21 +56,49 @@ public final class Tablet implements Listener {
             {{0, 0}, {1, 0}, {0, 1}, {1, 1}},               // carre
             {{0, 0}, {1, 0}, {2, 0}, {1, 1}},               // te
             {{0, 0}, {1, 0}, {1, 1}, {2, 1}}};              // marche
-    private static final Material[] COLORS = {Material.ORANGE_CONCRETE, Material.LIGHT_BLUE_CONCRETE, Material.LIME_CONCRETE};
+
+    /** Le fond d'un texte d'une espace, a l'echelle 1 : sa largeur et sa hauteur en blocs, et son debord vers la droite. */
+    private static final double W0 = 0.125, H0 = 0.25, OFF = 0.0125;
+    /** La disposition, en blocs depuis le milieu du tableau (u vers la droite, v vers le haut). */
+    private static final double CELL = 0.5, GAP = 0.05, GRID_LEFT = 0.15, GRID_TOP = 1.1;
+    private static final double GOAL = 0.3, GOAL_LEFT = -2.15, GOAL_TOP = 1.1;
+    private static final double SMALL = 0.2, TRAY_V = -0.85;
+    private static final double[] TRAY_U = {-2.0, -1.3, -0.6};
+    private static final double WIDTH = 5.0, HEIGHT = 3.2;
+
+    private static final Color BACK = Color.fromARGB(235, 12, 14, 36), EMPTY = Color.fromARGB(255, 34, 40, 76), GOLD = Color.fromARGB(255, 246, 190, 60),
+            FADED = Color.fromARGB(255, 110, 92, 58), HELD = Color.fromARGB(200, 255, 140, 40), SLOT = Color.fromARGB(255, 24, 28, 58), NONE = Color.fromARGB(0, 0, 0, 0);
 
     /** Une tablette ouverte chez un joueur. */
-    private static final class Board implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 54, Component.text("Tablette - reproduis la figure"));
+    private final class Board {
+        final Player player;
+        final Location centre;
+        final Vector normal, right;
+        final float yaw;
         final boolean[] target = new boolean[SIZE * SIZE];
         final int[][][] pieces = new int[3][][];
         final int[] at = {-1, -1, -1};                        // la case (y * SIZE + x) du coin de chaque piece posee, -1 sinon
-        int chosen = 0;
+        final List<Integer> order = new ArrayList<>();        // les pieces posees, la derniere en dernier
+        final List<Entity> all = new ArrayList<>();
+        final TextDisplay[] cells = new TextDisplay[SIZE * SIZE];
+        final TextDisplay[] moving = new TextDisplay[4];
+        final TextDisplay[][] tray = new TextDisplay[3][4];
         final Consumer<Player> solved;
+        int held = -1, lastClick, solvedAt = -1;
+        double cu, cv;
+        boolean aimed;
 
-        Board(Random r, Consumer<Player> solved) {
+        Board(Player player, Location pillar, Random r, Consumer<Player> solved) {
+            this.player = player;
             this.solved = solved;
+            Vector to = player.getLocation().toVector().subtract(pillar.toVector()).setY(0);
+            if (to.lengthSquared() < 0.01) to = new Vector(0, 0, 1);
+            this.normal = to.normalize();
+            this.right = new Vector(normal.getZ(), 0, -normal.getX());
+            this.centre = pillar.clone().add(normal.clone().multiply(0.7)).add(0, 2.0, 0);
+            this.yaw = new Location(pillar.getWorld(), 0, 0, 0).setDirection(normal).getYaw();
             // La figure : trois pieces posees au hasard, tournees au hasard. On recommence tant qu'elle est trop maigre.
-            int cells;
+            int count;
             do {
                 java.util.Arrays.fill(target, false);
                 for (int i = 0; i < pieces.length; i++) {
@@ -65,62 +110,221 @@ public final class Tablet implements Listener {
                     for (int k = r.nextInt(4); k > 0; k--) s = turn(s);
                     pieces[i] = s;
                 }
-                cells = 0;
-                for (boolean b : target) if (b) cells++;
-            } while (cells < 4);
+                count = 0;
+                for (boolean b : target) if (b) count++;
+            } while (count < 4);
+            lastClick = Bukkit.getCurrentTick() + 5;         // le clic qui l'ouvre ne compte pas
+            build();
             draw();
         }
 
-        boolean[] grid() {
-            boolean[] g = new boolean[SIZE * SIZE];
-            for (int i = 0; i < pieces.length; i++) if (at[i] >= 0) for (int[] c : pieces[i]) g[at[i] + c[1] * SIZE + c[0]] ^= true;
+        Location spot(double u, double v, double depth) {
+            Location l = centre.clone().add(right.clone().multiply(u)).add(0, v, 0).add(normal.clone().multiply(depth));
+            l.setYaw(yaw);
+            l.setPitch(0);
+            return l;
+        }
+
+        /** Un rectangle de couleur de a x b blocs, centre en (u, v). */
+        TextDisplay rect(double u, double v, double a, double b, double depth, Color color) {
+            float sx = (float) (a / W0), sy = (float) (b / H0);
+            TextDisplay d = centre.getWorld().spawn(spot(u, v - b / 2, depth), TextDisplay.class, t -> {
+                t.setPersistent(false);
+                t.setVisibleByDefault(false);
+                t.setBillboard(Display.Billboard.FIXED);
+                t.setBrightness(new Display.Brightness(15, 15));
+                t.setViewRange(1f);
+                t.text(net.kyori.adventure.text.Component.text(" "));
+                t.setBackgroundColor(color);
+                t.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), 0, 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
+            });
+            player.showEntity(plugin, d);
+            all.add(d);
+            return d;
+        }
+
+        void label(double u, double v, String mini, float scale) {
+            TextDisplay d = centre.getWorld().spawn(spot(u, v, 0.03), TextDisplay.class, t -> {
+                t.setPersistent(false);
+                t.setVisibleByDefault(false);
+                t.setBillboard(Display.Billboard.FIXED);
+                t.setBrightness(new Display.Brightness(15, 15));
+                t.setViewRange(1f);
+                t.setLineWidth(400);
+                t.text(Msg.mm(mini));
+                t.setBackgroundColor(NONE);
+                t.setShadowed(true);
+                t.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale, scale, 1), new Quaternionf()));
+            });
+            player.showEntity(plugin, d);
+            all.add(d);
+        }
+
+        void build() {
+            rect(0, 0, WIDTH, HEIGHT, 0, BACK);
+            label(GOAL_LEFT + SIZE * GOAL / 2, GOAL_TOP + 0.08, "<aqua>Figure à obtenir", 0.7f);
+            label(GRID_LEFT + SIZE * CELL / 2, GRID_TOP + 0.08, "<white>Pose les pièces ici", 0.7f);
+            label(-1.3, TRAY_V + 0.42, "<gray>Tes pièces", 0.6f);
+            label(0, -HEIGHT / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>F <gray>: tourner   <yellow>Accroupi <gray>: fermer", 0.6f);
+            for (int y = 0; y < SIZE; y++) for (int x = 0; x < SIZE; x++) {
+                rect(GOAL_LEFT + (x + 0.5) * GOAL, GOAL_TOP - (y + 0.5) * GOAL, GOAL - 0.03, GOAL - 0.03, 0.02, target[y * SIZE + x] ? GOLD : EMPTY);
+                cells[y * SIZE + x] = rect(GRID_LEFT + (x + 0.5) * CELL, GRID_TOP - (y + 0.5) * CELL, CELL - GAP, CELL - GAP, 0.02, EMPTY);
+            }
+            for (int i = 0; i < 3; i++) {
+                rect(TRAY_U[i], TRAY_V, 0.64, 0.64, 0.015, SLOT);
+                for (int k = 0; k < 4; k++) tray[i][k] = rect(TRAY_U[i], TRAY_V, SMALL - 0.02, SMALL - 0.02, 0.03, NONE);
+            }
+            for (int k = 0; k < 4; k++) {
+                moving[k] = rect(0, 0, CELL - GAP, CELL - GAP, 0.05, NONE);
+                moving[k].setTeleportDuration(2);
+            }
+            // de quoi recevoir les clics droits (a main nue, le jeu n'en envoie pas dans le vide) : une rangee de boites devant le tableau
+            for (double u = -WIDTH / 2 + 0.25; u < WIDTH / 2; u += 0.5) {
+                Interaction box = centre.getWorld().spawn(spot(u, -HEIGHT / 2, 0.1), Interaction.class, t -> {
+                    t.setPersistent(false);
+                    t.setVisibleByDefault(false);
+                    t.setInteractionWidth(0.5f);
+                    t.setInteractionHeight((float) HEIGHT);
+                    t.setResponsive(false);
+                });
+                player.showEntity(plugin, box);
+                all.add(box);
+            }
+        }
+
+        int[] coverage() {
+            int[] g = new int[SIZE * SIZE];
+            for (int i = 0; i < pieces.length; i++) if (at[i] >= 0) for (int[] c : pieces[i]) g[at[i] + c[1] * SIZE + c[0]]++;
             return g;
         }
 
         boolean done() {
             for (int a : at) if (a < 0) return false;
-            return java.util.Arrays.equals(grid(), target);
+            int[] g = coverage();
+            for (int k = 0; k < g.length; k++) if ((g[k] % 2 == 1) != target[k]) return false;
+            return true;
         }
 
+        /** Les couleurs de la grille et des pieces en attente, d'apres l'etat. */
         void draw() {
-            boolean[] g = grid();
-            for (int y = 0; y < 6; y++) for (int x = 0; x < 9; x++) inv.setItem(y * 9 + x, item(Material.BLACK_STAINED_GLASS_PANE, " "));
-            for (int y = 0; y < SIZE; y++) for (int x = 0; x < SIZE; x++) {
-                inv.setItem(y * 9 + x, item(target[y * SIZE + x] ? Material.YELLOW_CONCRETE : Material.GRAY_STAINED_GLASS_PANE, target[y * SIZE + x] ? "<yellow>La figure à obtenir" : "<gray>La figure à obtenir"));
-                // Dans la grille, chaque case pleine porte la couleur de la derniere piece posee dessus.
-                Material m = Material.WHITE_STAINED_GLASS_PANE;
-                if (g[y * SIZE + x]) for (int i = 0; i < pieces.length; i++) if (at[i] >= 0) for (int[] c : pieces[i]) if (at[i] + c[1] * SIZE + c[0] == y * SIZE + x) m = COLORS[i];
-                inv.setItem(y * 9 + 5 + x, item(m, "<white>Clique pour poser la pièce choisie ici"));
-            }
-            for (int i = 0; i < pieces.length; i++) {
-                List<String> lore = new ArrayList<>();
-                for (int y = 0; y < height(pieces[i]); y++) {
-                    StringBuilder row = new StringBuilder("<white>");
-                    for (int x = 0; x < width(pieces[i]); x++) { boolean on = false; for (int[] c : pieces[i]) if (c[0] == x && c[1] == y) on = true; row.append(on ? "■" : "<dark_gray>□<white>"); }
-                    lore.add(row.toString());
+            int[] g = coverage();
+            for (int k = 0; k < g.length; k++) cells[k].setBackgroundColor(g[k] == 0 ? EMPTY : g[k] % 2 == 1 ? GOLD : FADED);
+            for (int i = 0; i < 3; i++) {
+                int w = width(pieces[i]), h = height(pieces[i]);
+                for (int k = 0; k < 4; k++) {
+                    boolean shown = at[i] < 0 && held != i && k < pieces[i].length;
+                    tray[i][k].setBackgroundColor(shown ? GOLD : NONE);
+                    if (!shown) continue;
+                    int[] c = pieces[i][k];
+                    double u = TRAY_U[i] - w * SMALL / 2 + (c[0] + 0.5) * SMALL, v = TRAY_V + h * SMALL / 2 - (c[1] + 0.5) * SMALL;
+                    tray[i][k].teleport(spot(u, v - (SMALL - 0.02) / 2, 0.03));
                 }
-                lore.add(at[i] >= 0 ? "<green>posée <gray>(clique dans la grille pour la déplacer)" : "<yellow>à poser");
-                ItemStack it = item(COLORS[i], (i == chosen ? "<gold><bold>▶ " : "<white>") + "Pièce " + (i + 1) + (i == chosen ? " (choisie)" : ""), lore.toArray(new String[0]));
-                if (i == chosen) { ItemMeta meta = it.getItemMeta(); meta.setEnchantmentGlintOverride(true); it.setItemMeta(meta); }
-                inv.setItem(45 + i * 2, it);
             }
-            inv.setItem(52, item(Material.COMPASS, "<aqua>Tourner la pièce choisie"));
-            inv.setItem(53, item(Material.BARRIER, "<red>Tout retirer"));
-            inv.setItem(40, item(Material.PAPER, "<gold>Comment faire", "<gray>Choisis une pièce en bas, tourne-la si besoin,", "<gray>puis clique dans la grille de droite pour la poser.", "<gray>Là où deux pièces se recouvrent, les cases s'annulent.", "<gray>Reproduis la figure de gauche avec les trois pièces."));
+            for (int k = 0; k < 4; k++) moving[k].setBackgroundColor(held >= 0 && k < pieces[held].length ? HELD : NONE);
+            follow();
         }
 
-        @Override public Inventory getInventory() { return inv; }
-    }
+        boolean overGrid() {
+            return aimed && cu > GRID_LEFT - 0.3 && cu < GRID_LEFT + SIZE * CELL + 0.3 && cv < GRID_TOP + 0.3 && cv > GRID_TOP - SIZE * CELL - 0.3;
+        }
 
-    private static ItemStack item(Material m, String name, String... lore) {
-        ItemStack it = new ItemStack(m);
-        ItemMeta meta = it.getItemMeta();
-        meta.displayName(Msg.mm(name).decoration(TextDecoration.ITALIC, false));
-        List<Component> lines = new ArrayList<>();
-        for (String l : lore) lines.add(Msg.mm(l).decoration(TextDecoration.ITALIC, false));
-        if (!lines.isEmpty()) meta.lore(lines);
-        it.setItemMeta(meta);
-        return it;
+        /** Le coin ou tomberait la piece tenue : la case de la grille la plus proche du viseur, la piece restant dedans. */
+        int[] corner() {
+            int w = width(pieces[held]), h = height(pieces[held]);
+            int x = (int) Math.round((cu - GRID_LEFT) / CELL - w / 2.0), y = (int) Math.round((GRID_TOP - cv) / CELL - h / 2.0);
+            return new int[]{Math.max(0, Math.min(SIZE - w, x)), Math.max(0, Math.min(SIZE - h, y))};
+        }
+
+        /** La piece tenue suit le viseur : sur la grille, elle se cale sur les cases. */
+        void follow() {
+            if (held < 0 || !aimed) return;
+            int w = width(pieces[held]), h = height(pieces[held]);
+            double left, top;
+            if (overGrid()) { int[] c = corner(); left = GRID_LEFT + c[0] * CELL; top = GRID_TOP - c[1] * CELL; }
+            else { left = cu - w * CELL / 2; top = cv + h * CELL / 2; }
+            for (int k = 0; k < pieces[held].length; k++) {
+                int[] c = pieces[held][k];
+                moving[k].teleport(spot(left + (c[0] + 0.5) * CELL, top - (c[1] + 0.5) * CELL - (CELL - GAP) / 2, 0.05));
+            }
+        }
+
+        /** Ou le regard coupe le tableau. */
+        void aim() {
+            Location eye = player.getEyeLocation();
+            Vector d = eye.getDirection();
+            double facing = d.dot(normal);
+            aimed = false;
+            if (facing > -0.05) return;
+            double t = centre.toVector().subtract(eye.toVector()).dot(normal) / facing;
+            if (t < 0 || t > 12) return;
+            Vector hit = eye.toVector().add(d.multiply(t)).subtract(centre.toVector());
+            cu = hit.dot(right);
+            cv = hit.getY();
+            aimed = Math.abs(cu) < WIDTH / 2 + 0.5 && Math.abs(cv) < HEIGHT / 2 + 0.5;
+        }
+
+        /** La piece en attente que vise le joueur, ou -1. */
+        int trayAt() {
+            if (!aimed) return -1;
+            for (int i = 0; i < 3; i++) if (at[i] < 0 && Math.abs(cu - TRAY_U[i]) < 0.34 && Math.abs(cv - TRAY_V) < 0.34) return i;
+            return -1;
+        }
+
+        void click() {
+            int now = Bukkit.getCurrentTick();
+            if (now - lastClick < 3 || solvedAt >= 0) return;
+            lastClick = now;
+            aim();
+            if (!aimed) return;
+            if (held >= 0) {
+                if (overGrid()) {
+                    int[] c = corner();
+                    at[held] = c[1] * SIZE + c[0];
+                    order.add(held);
+                    player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_PLACE, 1f, 1.1f);
+                } else player.playSound(player.getLocation(), Sound.ITEM_BUNDLE_DROP_CONTENTS, 0.8f, 1f);
+                held = -1;
+                draw();
+                if (done()) win();
+                return;
+            }
+            int pick = trayAt();
+            if (pick < 0 && cu > GRID_LEFT && cu < GRID_LEFT + SIZE * CELL && cv < GRID_TOP && cv > GRID_TOP - SIZE * CELL) {
+                // sur la grille : la derniere piece posee qui couvre cette case
+                int x = (int) ((cu - GRID_LEFT) / CELL), y = (int) ((GRID_TOP - cv) / CELL);
+                for (int k = order.size() - 1; k >= 0 && pick < 0; k--) {
+                    int i = order.get(k);
+                    for (int[] c : pieces[i]) if (at[i] % SIZE + c[0] == x && at[i] / SIZE + c[1] == y) pick = i;
+                }
+            }
+            if (pick < 0) return;
+            at[pick] = -1;
+            order.remove((Integer) pick);
+            held = pick;
+            player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1f, 1.4f);
+            draw();
+        }
+
+        void rotate() {
+            aim();
+            int i = held >= 0 ? held : trayAt();
+            if (i < 0 || solvedAt >= 0) return;
+            pieces[i] = turn(pieces[i]);
+            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.6f, 1.6f);
+            draw();
+        }
+
+        void win() {
+            solvedAt = Bukkit.getCurrentTick();
+            for (int k = 0; k < cells.length; k++) if (target[k]) cells[k].setBackgroundColor(Color.fromARGB(255, 255, 240, 170));
+            player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1f);
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.5f);
+        }
+
+        void remove() {
+            all.forEach(Entity::remove);
+            all.clear();
+        }
     }
 
     private static int width(int[][] s) { int w = 0; for (int[] c : s) w = Math.max(w, c[0] + 1); return w; }
@@ -134,41 +338,95 @@ public final class Tablet implements Listener {
         return out;
     }
 
-    /** Ouvre une tablette a ce joueur ; {@code solved} est appele quand il la resout. */
-    public void open(Player p, Consumer<Player> solved) {
-        p.openInventory(new Board(new Random(), solved).inv);
+    private final CrossfightPlugin plugin;
+    private final Map<UUID, Board> boards = new HashMap<>();
+
+    public Tablet(CrossfightPlugin plugin) {
+        this.plugin = plugin;
+        Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 1L);
     }
 
-    @EventHandler
-    public void onClick(InventoryClickEvent e) {
-        if (!(e.getInventory().getHolder() instanceof Board b)) return;
-        e.setCancelled(true);
-        if (e.getClickedInventory() != b.inv || !(e.getWhoClicked() instanceof Player p)) return;
-        int slot = e.getSlot(), x = slot % 9, y = slot / 9;
-        if (y == 5 && x % 2 == 0 && x / 2 < b.pieces.length) b.chosen = x / 2;
-        else if (slot == 52) {
-            // Tourner retire la piece de la grille : on la repose dans son nouveau sens.
-            b.pieces[b.chosen] = turn(b.pieces[b.chosen]);
-            b.at[b.chosen] = -1;
-        } else if (slot == 53) java.util.Arrays.fill(b.at, -1);
-        else if (y < SIZE && x >= 5) {
-            int gx = x - 5;
-            if (gx + width(b.pieces[b.chosen]) > SIZE || y + height(b.pieces[b.chosen]) > SIZE) { p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f); return; }
-            b.at[b.chosen] = y * SIZE + gx;
-            // La suivante a poser est choisie d'office.
-            for (int i = 1; i <= b.pieces.length; i++) if (b.at[(b.chosen + i) % b.pieces.length] < 0) { b.chosen = (b.chosen + i) % b.pieces.length; break; }
-        } else return;
-        p.playSound(p.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 1.3f);
-        b.draw();
-        if (b.done()) {
-            p.closeInventory();
-            p.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1f, 1.2f);
-            b.solved.accept(p);
+    /** Ouvre une tablette a ce joueur, devant ce pilier ; {@code solved} est appele quand il la resout. */
+    public void open(Player p, Location pillar, Consumer<Player> solved) {
+        close(p);
+        boards.put(p.getUniqueId(), new Board(p, pillar, new Random(), solved));
+        Msg.actionBar(p, "<aqua>Vise une pièce et clique pour la prendre, clique sur la grille pour la poser. <white>F <aqua>la tourne.");
+    }
+
+    public boolean isOpen(Player p) {
+        return boards.containsKey(p.getUniqueId());
+    }
+
+    public void close(Player p) {
+        Board b = boards.remove(p.getUniqueId());
+        if (b != null) b.remove();
+    }
+
+    /** Tout fermer (nouvelle partie, arret du plugin). */
+    public void reset() {
+        for (Board b : boards.values()) b.remove();
+        boards.clear();
+    }
+
+    private void tick() {
+        for (Board b : new ArrayList<>(boards.values())) {
+            Player p = b.player;
+            if (!p.isOnline() || p.isDead() || !p.getWorld().equals(b.centre.getWorld()) || p.getLocation().distanceSquared(b.centre) > 81) { close(p); continue; }
+            if (b.solvedAt >= 0) {
+                if (Bukkit.getCurrentTick() - b.solvedAt > 25) { close(p); b.solved.accept(p); }
+                continue;
+            }
+            b.aim();
+            b.follow();
         }
     }
 
     @EventHandler
-    public void onDrag(InventoryDragEvent e) {
-        if (e.getInventory().getHolder() instanceof Board) e.setCancelled(true);
+    public void onSwing(PlayerAnimationEvent e) {
+        Board b = boards.get(e.getPlayer().getUniqueId());
+        if (b != null) b.click();
+    }
+
+    @EventHandler
+    public void onUse(PlayerInteractEvent e) {
+        Board b = boards.get(e.getPlayer().getUniqueId());
+        if (b == null) return;
+        e.setCancelled(true);
+        if (e.getHand() == EquipmentSlot.HAND && (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK)) b.click();
+    }
+
+    @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST)
+    public void onUseEntity(PlayerInteractEntityEvent e) {
+        Board b = boards.get(e.getPlayer().getUniqueId());
+        if (b == null) return;
+        e.setCancelled(true);
+        if (e.getHand() == EquipmentSlot.HAND) b.click();
+    }
+
+    @EventHandler
+    public void onAttack(io.papermc.paper.event.player.PrePlayerAttackEntityEvent e) {
+        // le coup de bras qui suit fait le clic
+        if (boards.containsKey(e.getPlayer().getUniqueId())) e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onSwap(PlayerSwapHandItemsEvent e) {
+        Board b = boards.get(e.getPlayer().getUniqueId());
+        if (b == null) return;
+        e.setCancelled(true);
+        b.rotate();
+    }
+
+    @EventHandler
+    public void onSneak(PlayerToggleSneakEvent e) {
+        if (e.isSneaking() && boards.containsKey(e.getPlayer().getUniqueId())) {
+            close(e.getPlayer());
+            Msg.actionBar(e.getPlayer(), "<gray>Tablette fermée : reclique sur le pilier pour réessayer.");
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent e) {
+        close(e.getPlayer());
     }
 }

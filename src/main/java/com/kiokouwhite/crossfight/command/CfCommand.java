@@ -140,6 +140,11 @@ public final class CfCommand implements TabExecutor {
                         // Raccourci : /cf pearl glowing = /cf quete montrer pearl
                         if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
                     }
+                    case "tablette" -> {
+                        // Essayer le casse-tete des piliers de Central Town, sans la quete
+                        if (sender instanceof Player sp) plugin.quests().tryTablet(sp);
+                        return true;
+                    }
                     case "evenement", "evenements" -> {
                         // L'evenement des lieux : /cf evenement (voir), tirer, arreter, ou <lieu renforce> <lieu affaibli>
                         var ev = plugin.placeEvents();

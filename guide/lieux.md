@@ -51,7 +51,7 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **Les objets à trouver (Pearl, Arcadia, Beacon).** Ils brillent, entourés de jaune, et tintent quand tu approches : plus le son est fort, plus tu es près. Il suffit de passer dessus.
 
-**Les tablettes (Central Town).** Quatre piliers éteints apparaissent autour d'Anna. Un clic droit sur un pilier ouvre une tablette : à gauche la figure à obtenir, à droite une grille vide, en bas trois pièces. Choisis une pièce, tourne-la si besoin, clique dans la grille pour la poser. Là où deux pièces se recouvrent, les cases s'annulent. Reproduis la figure avec les trois pièces.
+**Les tablettes (Central Town).** Quatre piliers éteints apparaissent autour d'Anna. Un clic droit sur un pilier dresse une tablette devant toi : à gauche la figure à obtenir, à droite une grille, en bas trois pièces dorées. Vise une pièce et clique pour l'attraper : elle suit ton viseur. Amène-la sur la grille et clique pour la poser ; la touche F la tourne, et tu peux reprendre une pièce posée en cliquant dessus. Là où deux pièces se recouvrent, les cases s'annulent et s'assombrissent : sers-t'en pour creuser la figure. Quand les trois pièces sont posées et que la grille montre la figure, le pilier se rallume. S'accroupir ferme la tablette.
 
 **Les pièces du vaisseau (Forest of Hope).** Tu n'en portes qu'une à la fois, et tu es ralenti tant que tu la portes. Si tu meurs, la pièce retourne où elle était.
 
