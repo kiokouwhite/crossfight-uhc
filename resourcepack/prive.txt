@@ -43,6 +43,7 @@ glyph.schnee_cercle
 glyph.schnee_flocon
 model.falchion
 model.yumi_fujin
+music.forge_glow 125472
 music.forge_installation 335020
 music.forge_metal_crusher 63216
 music.omori_calme 262104 261854 omori_calme_boucle
