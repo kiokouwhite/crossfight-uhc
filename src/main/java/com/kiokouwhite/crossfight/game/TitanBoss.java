@@ -33,10 +33,12 @@ import java.util.concurrent.ThreadLocalRandom;
  *   Charge titanesque   il s'arrete, un couloir de danger apparait devant lui, puis il fonce : 2 coeurs a qui s'y trouve
  *   Lancer de pierres   il s'arrete et jette des debris en l'air ; trois fois de suite, un debris tombe pres de chaque
  *                       joueur, la ou un cercle de danger l'annonce : 2 coeurs
- *   Regard terrifiant   il fixe les joueurs ; qui le regarde encore une seconde plus tard est petrifie
- *   Cri strident        il crie : nausee et lenteur pendant dix secondes
+ *   Regard terrifiant   il fixe les joueurs ; qui le regarde encore une seconde et demie plus tard est petrifie
+ *   Cri strident        il crie : nausee et lenteur pendant dix secondes, a vingt blocs a la ronde
  *   Course du Titan     pendant dix secondes il court apres un joueur, a sa vitesse ; chaque fois qu'il le rattrape, 1 coeur
  *
+ * Chaque attaque s'annonce deux secondes avant : son nom s'affiche dans une seconde barre, sous celle du Titan, qui se
+ * vide le temps de l'annonce (comme pour Omori) ; le Titan s'arrete et se tourne vers sa cible.
  * Il casse les blocs : ce qui lui barre la route quand il marche, charge ou court, et le sol ou tombe une pierre.
  * Ses degats sont bruts, comme ceux d'une capacite : l'armure ne les reduit pas.
  * Il ne prend pas de degats : chaque coup d'un joueur de l'equipe compte pour un (un coup par demi-seconde et par
@@ -45,18 +47,23 @@ import java.util.concurrent.ThreadLocalRandom;
 final class TitanBoss {
     static final int HITS = 100;
     private static final int STUN_SECONDS = 10;
-    private static final int IDLE = 0, CHARGE = 1, STONES = 2, STARE = 3, SCREAM = 4, CHASE = 5;
+    private static final int IDLE = 0, CHARGE = 1, STONES = 2, STARE = 3, SCREAM = 4, CHASE = 5, WARN = 6;
+    /** Le temps d'annonce d'une attaque, en ticks : son nom s'affiche, sa barre se vide, puis elle part. */
+    private static final int WARNING = 40;
     private static final String[] NAMES = {"", "Charge titanesque", "Lancer de pierres", "Regard terrifiant", "Cri strident", "Course du Titan"};
 
     /** Son corps : un mannequin a l'image d'un joueur, grandi six fois et demie, qui porte le skin du Titan. */
     final LivingEntity giant;
     private final BossBar bar = BossBar.bossBar(Msg.mm("<red>Titan"), 1f, BossBar.Color.RED, BossBar.Overlay.NOTCHED_10);
+    /** Une seconde barre, sous la sienne : le nom de l'attaque qui vient. Elle se vide pendant l'annonce, et reste vide jusqu'a la fin de l'attaque. */
+    private final BossBar nameBar = BossBar.bossBar(Msg.mm(""), 1f, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
     private final Set<UUID> viewers = new HashSet<>();
     private final Map<UUID, Integer> lastHit = new HashMap<>(), lastBite = new HashMap<>();
     private final Set<UUID> struck = new HashSet<>();
     /** Les debris en train de tomber : ou, et dans combien de ticks. */
     private final List<Object[]> stones = new ArrayList<>();
-    private int hits = HITS, state = IDLE, timer, last, age, lastCrash = -100;
+    private int hits = HITS, state = IDLE, timer, last, age, lastCrash = -100, coming;
+    private boolean named;
     private Vector dash;
     private UUID prey;
 
@@ -68,7 +75,7 @@ final class TitanBoss {
     int hitsLeft() { return hits; }
 
     private void title() {
-        bar.name(Msg.mm("<red><bold>Titan</bold> <gray>- <white>" + hits + " <gray>coups" + (state == IDLE ? "" : " <dark_gray>| <gold>" + NAMES[state])));
+        bar.name(Msg.mm("<red><bold>Titan</bold> <gray>- <white>" + hits + " <gray>coups"));
         bar.progress(Math.max(0f, Math.min(1f, hits / (float) HITS)));
     }
 
@@ -90,7 +97,7 @@ final class TitanBoss {
 
     /** Le Titan s'en va (vaincu, ou la quete s'arrete) : sa barre disparait. */
     void remove() {
-        for (UUID id : viewers) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) p.hideBossBar(bar); }
+        for (UUID id : viewers) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) { p.hideBossBar(bar); p.hideBossBar(nameBar); } }
         viewers.clear();
         if (giant.isValid()) {
             giant.getWorld().spawnParticle(Particle.EXPLOSION, giant.getLocation().add(0, 6, 0), 12, 1.5, 4, 1.5, 0);
@@ -157,12 +164,33 @@ final class TitanBoss {
         if (push != null) p.setVelocity(push);
     }
 
+    /** L'attaque s'annonce : son nom apparait dans la seconde barre, qui se vide le temps de l'annonce. */
+    private void announce(int attack) {
+        state = WARN;
+        coming = attack;
+        timer = 0;
+        last = attack;
+        nameBar.name(Msg.mm("<gold><bold>" + NAMES[attack]));
+        nameBar.progress(1f);
+        named = true;
+        for (UUID id : viewers) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) p.showBossBar(nameBar); }
+        giant.getWorld().playSound(giant.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 2f, 0.6f);
+    }
+
+    /** L'attaque annoncee part. */
     private void begin(int attack) {
         state = attack;
         timer = 0;
-        last = attack;
         struck.clear();
-        title();
+        nameBar.progress(0f);
+    }
+
+    /** L'attaque est finie : le Titan souffle, et la barre du nom s'en va. */
+    private void rest() {
+        state = IDLE;
+        timer = 0;
+        named = false;
+        for (UUID id : viewers) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) p.hideBossBar(nameBar); }
     }
 
     /** Un tick de sa vie. `team` : ceux qui ont la quete (ils voient sa barre). */
@@ -175,12 +203,12 @@ final class TitanBoss {
         // sa barre : pour l'equipe de la quete, tant qu'elle est a portee
         Set<UUID> now = new HashSet<>();
         for (Player p : team) if (p.getWorld().equals(w) && p.getLocation().distanceSquared(here) < 60 * 60) now.add(p.getUniqueId());
-        for (UUID id : now) if (viewers.add(id)) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) p.showBossBar(bar); }
-        for (var it = viewers.iterator(); it.hasNext(); ) { UUID id = it.next(); if (!now.contains(id)) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) p.hideBossBar(bar); it.remove(); } }
+        for (UUID id : now) if (viewers.add(id)) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) { p.showBossBar(bar); if (named) p.showBossBar(nameBar); } }
+        for (var it = viewers.iterator(); it.hasNext(); ) { UUID id = it.next(); if (!now.contains(id)) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) { p.hideBossBar(bar); p.hideBossBar(nameBar); } it.remove(); } }
         falling(w, near);
         Player target = null;
         for (Player p : near) if (target == null || p.getLocation().distanceSquared(here) < target.getLocation().distanceSquared(here)) target = p;
-        if (target == null) { if (state != IDLE) { state = IDLE; timer = 0; title(); } return; }
+        if (target == null) { if (state != IDLE) rest(); return; }
         var random = ThreadLocalRandom.current();
         switch (state) {
             case IDLE -> {
@@ -188,7 +216,13 @@ final class TitanBoss {
                 face(target.getLocation(), 6);
                 double far = flat(target.getLocation(), here);
                 if (far > 7) { Vector to = target.getLocation().toVector().subtract(here.toVector()).setY(0).normalize().multiply(0.07); step(to.getX(), to.getZ()); }
-                if (++timer >= 70) { int next; do { next = 1 + random.nextInt(5); } while (next == last); begin(next); }
+                if (++timer >= 60) { int next; do { next = 1 + random.nextInt(5); } while (next == last); announce(next); }
+            }
+            case WARN -> {
+                // L'annonce : il s'arrete, se tourne vers sa cible, et la barre du nom se vide.
+                face(target.getLocation(), 12);
+                nameBar.progress(Math.max(0f, 1f - ++timer / (float) WARNING));
+                if (timer >= WARNING) begin(coming);
             }
             case CHARGE -> {
                 if (timer == 0) {
@@ -197,7 +231,7 @@ final class TitanBoss {
                     dash.normalize();
                     w.playSound(here, Sound.ENTITY_RAVAGER_ROAR, 2f, 0.6f);
                 }
-                if (timer < 30) {
+                if (timer < 45) {
                     // le couloir de danger : seize blocs devant lui, cinq de large
                     face(here.clone().add(dash), 30);
                     if (timer % 3 == 0) {
@@ -207,7 +241,7 @@ final class TitanBoss {
                             w.spawnParticle(Particle.DUST, at.getX(), ground(at) + 0.2, at.getZ(), 2, 0.15, 0, 0.15, 0, new Particle.DustOptions(Color.RED, 1.6f));
                         }
                     }
-                } else if (timer < 42) {
+                } else if (timer < 57) {
                     // la charge : seize blocs en douze ticks
                     step(dash.getX() * 16 / 12.0, dash.getZ() * 16 / 12.0);
                     if (timer % 3 == 0) w.playSound(giant.getLocation(), Sound.ENTITY_IRON_GOLEM_STEP, 2f, 0.5f);
@@ -215,32 +249,32 @@ final class TitanBoss {
                         hurt(p, 4.0, dash.clone().multiply(1.3).setY(0.5));
                         w.playSound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 1.5f, 0.5f);
                     }
-                } else { state = IDLE; timer = 0; title(); break; }
+                } else { rest(); break; }
                 timer++;
             }
             case STONES -> {
                 if (timer == 0) w.playSound(here, Sound.ENTITY_IRON_GOLEM_DAMAGE, 2f, 0.5f);
                 if (timer < 20 && timer % 2 == 0)             // il arrache des debris et les jette en l'air
                     w.spawnParticle(Particle.BLOCK, here.clone().add(0, 8 + timer * 0.6, 0), 14, 1.2, 0.6, 1.2, 0.1, Material.COBBLESTONE.createBlockData());
-                if (timer == 20 || timer == 45 || timer == 70) for (Player p : near) {
+                if (timer == 20 || timer == 55 || timer == 90) for (Player p : near) {
                     double a = random.nextDouble(Math.PI * 2), d = random.nextDouble(1.5);
                     Location at = p.getLocation().add(Math.cos(a) * d, 0, Math.sin(a) * d);
                     at.setY(ground(at));
-                    stones.add(new Object[]{at, 24});
+                    stones.add(new Object[]{at, 36});
                     w.playSound(at, Sound.ENTITY_ARROW_SHOOT, 1.2f, 0.4f);
                 }
-                if (++timer > 100) { state = IDLE; timer = 0; title(); }
+                if (++timer > 130) rest();
             }
             case STARE -> {
                 face(target.getLocation(), 30);
                 if (timer == 0) {
                     for (Player p : near) {
-                        p.showTitle(Title.title(Msg.mm("<dark_red><bold>Le Titan te fixe"), Msg.mm("<white>Détourne le regard !"), Title.Times.times(Duration.ZERO, Duration.ofMillis(1100), Duration.ofMillis(200))));
+                        p.showTitle(Title.title(Msg.mm("<dark_red><bold>Le Titan te fixe"), Msg.mm("<white>Détourne le regard !"), Title.Times.times(Duration.ZERO, Duration.ofMillis(1500), Duration.ofMillis(200))));
                         p.playSound(p.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1f, 1.4f);
                     }
                     w.spawnParticle(Particle.DUST, here.clone().add(0, 10.5, 0).add(here.getDirection().multiply(1.2)), 30, 0.8, 0.3, 0.8, 0, new Particle.DustOptions(Color.fromRGB(255, 40, 40), 2.5f));
                 }
-                if (timer == 22) for (Player p : near) {
+                if (timer == 30) for (Player p : near) {
                     if (!watches(p)) continue;
                     if (p.getGameMode() != GameMode.CREATIVE) {
                         p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, STUN_SECONDS * 20, 250, true, false, true));
@@ -250,20 +284,20 @@ final class TitanBoss {
                     p.showTitle(Title.title(Msg.mm("<dark_red><bold>Pétrifié"), Msg.mm("<gray>" + STUN_SECONDS + " secondes")));
                     p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.8f, 0.5f);
                 }
-                if (++timer > 40) { state = IDLE; timer = 0; title(); }
+                if (++timer > 45) rest();
             }
             case SCREAM -> {
                 if (timer == 0) {
                     w.playSound(here, Sound.ENTITY_ENDER_DRAGON_GROWL, 3f, 0.6f);
                     w.spawnParticle(Particle.SONIC_BOOM, here.clone().add(0, 10, 0).add(here.getDirection().multiply(2)), 3, 1, 0.5, 1, 0);
                     for (Player p : near) {
-                        if (p.getLocation().distanceSquared(here) > 30 * 30 || p.getGameMode() == GameMode.CREATIVE) continue;
+                        if (p.getLocation().distanceSquared(here) > 20 * 20 || p.getGameMode() == GameMode.CREATIVE) continue;
                         p.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 200, 0, true, false, true));
                         p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 200, 1, true, false, true));
                         Msg.actionBar(p, "<red>Le cri du Titan t'étourdit.");
                     }
                 }
-                if (++timer > 30) { state = IDLE; timer = 0; title(); }
+                if (++timer > 30) rest();
             }
             case CHASE -> {
                 if (timer == 0) { prey = target.getUniqueId(); w.playSound(here, Sound.ENTITY_WARDEN_ROAR, 2f, 0.8f); Msg.actionBar(target, "<red>Le Titan te court après : fuis !"); }
@@ -282,9 +316,9 @@ final class TitanBoss {
                         w.playSound(p.getLocation(), Sound.ENTITY_ZOMBIE_ATTACK_WOODEN_DOOR, 1f, 0.6f);
                     }
                 }
-                if (++timer > 200) { state = IDLE; timer = 0; title(); }
+                if (++timer > 200) rest();
             }
-            default -> state = IDLE;
+            default -> rest();
         }
     }
 
