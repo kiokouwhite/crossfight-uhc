@@ -128,7 +128,8 @@ public final class Rhythm implements Listener {
             if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
             look.normalize();
             this.right = new Vector(-look.getZ(), 0, look.getX());
-            this.base = player.getEyeLocation().add(look.multiply(7)).add(0, -0.4, 0);
+            // dans la salle de forge, le tableau est un peu plus haut : l'enclume se voit dessous
+            this.base = player.getEyeLocation().add(look.multiply(7)).add(0, inRoom(player) ? 0 : -0.4, 0);
             this.base.setYaw(0);                 // sans cela, les affichages gardent le regard du joueur et penchent avec lui
             this.base.setPitch(0);
             this.drawn = com.kiokouwhite.crossfight.util.Sounds.has("font.rythme") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(player);
@@ -390,7 +391,19 @@ public final class Rhythm implements Listener {
     /** Lance une musique pour ce joueur : le tableau se pose devant lui, un decompte, puis les notes. */
     public void start(Player p, Song song) {
         stop(p, false);
-        closeResult(p);
+        Result old = results.remove(p.getUniqueId());
+        if (old != null) old.remove();
+        if (enter(p)) {
+            // il vient de changer de monde : on laisse au jeu le temps de l'y poser avant de dresser le tableau
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (p.isOnline() && inRoom(p) && !plays.containsKey(p.getUniqueId()) && !results.containsKey(p.getUniqueId())) begin(p, song);
+            }, 10L);
+            return;
+        }
+        begin(p, song);
+    }
+
+    private void begin(Player p, Song song) {
         Play play = new Play(p, song);
         plays.put(p.getUniqueId(), play);
         if (play.held < 4) p.getInventory().setHeldItemSlot(8);      // les touches 1 a 4 doivent changer de case pour se voir
@@ -452,7 +465,7 @@ public final class Rhythm implements Listener {
     private void tick() {
         for (Play play : new ArrayList<>(plays.values())) {
             Player p = play.player;
-            if (!p.isOnline() || p.isDead() || !p.getWorld().equals(play.start.getWorld()) || p.getLocation().distanceSquared(play.start) > 36) { stop(p, true); continue; }
+            if (!p.isOnline() || p.isDead() || !p.getWorld().equals(play.start.getWorld()) || p.getLocation().distanceSquared(play.start) > 36) { stop(p, true); leave(p); continue; }
             Song song = play.song;
             int level = song.level(), beat = BEAT[level], fall = FALL[level], t = play.tick;
             if (t == -60 || t == -40 || t == -20) {
@@ -598,6 +611,7 @@ public final class Rhythm implements Listener {
      */
     private void burst(Play play, int lane) {
         Player p = play.player;
+        strike(play);
         Color c = LANES[lane];
         Location at = play.lane(lane, 0);
         p.spawnParticle(org.bukkit.Particle.DUST, at.clone().add(0, 0.1, 0), 10, 0.3, 0.15, 0.05, 0, new org.bukkit.Particle.DustOptions(c, 1.4f));
@@ -737,6 +751,7 @@ public final class Rhythm implements Listener {
     private void closeResult(Player p) {
         Result r = results.remove(p.getUniqueId());
         if (r != null) r.remove();
+        if (p.isOnline()) leave(p);
     }
 
     /** Chaque tick : l'anneau qui se remplit, les paliers franchis, puis le panneau qui s'en va. */
@@ -780,13 +795,121 @@ public final class Rhythm implements Listener {
 
     @EventHandler
     public void onSneak(PlayerToggleSneakEvent e) {
-        if (e.isSneaking() && plays.containsKey(e.getPlayer().getUniqueId())) stop(e.getPlayer(), true);
+        if (!e.isSneaking()) return;
+        Player p = e.getPlayer();
+        if (plays.containsKey(p.getUniqueId())) { stop(p, true); leave(p); }
+        else if (results.containsKey(p.getUniqueId())) closeResult(p);
+    }
+
+    // ------------------------------------------------------------------ la salle de forge
+
+    /** Les salles sont dans un monde vide a part : une par joueur qui forge, noire, avec juste une enclume. */
+    public static final String ROOM_WORLD = "crossfight_forge";
+    private static final int ROOM_FLOOR = 100, ROOM_GAP = 64;
+    private final Map<UUID, Location> origins = new HashMap<>();
+    private final Map<UUID, Integer> rooms = new HashMap<>();
+    private final java.util.Set<Integer> built = new java.util.HashSet<>();
+
+    private org.bukkit.World roomWorld() {
+        org.bukkit.World w = Bukkit.getWorld(ROOM_WORLD);
+        if (w != null) return w;
+        w = new org.bukkit.WorldCreator(ROOM_WORLD).generator(new com.kiokouwhite.crossfight.util.ArenaWorlds.VoidGenerator())
+                .keepSpawnLoaded(net.kyori.adventure.util.TriState.FALSE).createWorld();
+        if (w == null) return null;
+        w.setGameRule(org.bukkit.GameRule.DO_DAYLIGHT_CYCLE, false);
+        w.setGameRule(org.bukkit.GameRule.DO_WEATHER_CYCLE, false);
+        w.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+        w.setTime(18000);
+        w.setAutoSave(false);
+        return w;
+    }
+
+    /** La salle d'un numero : une boite fermee de beton noir, une enclume devant le joueur, une lumiere au-dessus d'elle. */
+    private Location room(org.bukkit.World w, int slot) {
+        int cx = slot * ROOM_GAP;
+        if (built.add(slot)) {
+            for (int x = cx - 6; x <= cx + 6; x++) for (int y = ROOM_FLOOR - 3; y <= ROOM_FLOOR + 9; y++) for (int z = -3; z <= 10; z++) {
+                boolean wall = x == cx - 6 || x == cx + 6 || y == ROOM_FLOOR + 9 || z == -3 || z == 10;
+                // le sol s'abaisse devant le joueur : le bas du tableau ne s'y enfonce pas
+                boolean floor = y <= (z >= 3 ? ROOM_FLOOR - 3 : ROOM_FLOOR - 1);
+                w.getBlockAt(x, y, z).setType(wall || floor ? Material.BLACK_CONCRETE : Material.AIR, false);
+            }
+            w.getBlockAt(cx, ROOM_FLOOR, 2).setType(Material.ANVIL, false);
+            org.bukkit.block.Block lamp = w.getBlockAt(cx, ROOM_FLOOR + 2, 2);
+            lamp.setType(Material.LIGHT, false);
+            if (lamp.getBlockData() instanceof org.bukkit.block.data.type.Light light) { light.setLevel(12); lamp.setBlockData(light, true); }
+        }
+        return new Location(w, cx + 0.5, ROOM_FLOOR, 0.5, 0f, 0f);
+    }
+
+    /** Le joueur entre dans sa salle (on retient d'ou il vient). Deja dedans : il se replace devant l'enclume. Vrai s'il vient d'y arriver. */
+    private boolean enter(Player p) {
+        org.bukkit.World w = roomWorld();
+        if (w == null) return false;                             // pas de salle : la forge se joue sur place, comme avant
+        boolean arrives = !inRoom(p);
+        UUID id = p.getUniqueId();
+        if (!origins.containsKey(id)) origins.put(id, p.getLocation());
+        Integer slot = rooms.get(id);
+        if (slot == null) {
+            slot = 0;
+            while (rooms.containsValue(slot)) slot++;
+            rooms.put(id, slot);
+        }
+        p.teleport(room(w, slot));
+        return arrives;
+    }
+
+    /** Le joueur retourne d'ou il venait. */
+    private void leave(Player p) {
+        UUID id = p.getUniqueId();
+        rooms.remove(id);
+        Location back = origins.remove(id);
+        if (back == null || p.isDead()) return;
+        if (back.getWorld() == null || Bukkit.getWorld(back.getWorld().getUID()) == null) back = Bukkit.getWorlds().get(0).getSpawnLocation();
+        p.teleport(back);
+    }
+
+    private static boolean inRoom(Entity e) {
+        return e.getWorld().getName().equals(ROOM_WORLD);
+    }
+
+    /** L'enclume qu'on frappe : le bras part, des etincelles en jaillissent. */
+    private void strike(Play play) {
+        Player p = play.player;
+        p.swingMainHand();
+        if (!inRoom(p)) return;
+        Location anvil = play.start.clone().add(0, 1.05, 2.0);
+        p.spawnParticle(org.bukkit.Particle.ELECTRIC_SPARK, anvil, 4, 0.15, 0.02, 0.15, 0.4);
+        p.spawnParticle(org.bukkit.Particle.CRIT, anvil, 6, 0.2, 0.05, 0.2, 0.25);
+    }
+
+    @EventHandler
+    public void onRoomBreak(org.bukkit.event.block.BlockBreakEvent e) { if (inRoom(e.getPlayer())) e.setCancelled(true); }
+
+    @EventHandler
+    public void onRoomPlace(org.bukkit.event.block.BlockPlaceEvent e) { if (inRoom(e.getPlayer())) e.setCancelled(true); }
+
+    @EventHandler
+    public void onRoomUse(org.bukkit.event.player.PlayerInteractEvent e) { if (inRoom(e.getPlayer())) e.setCancelled(true); }
+
+    @EventHandler
+    public void onRoomHurt(org.bukkit.event.entity.EntityDamageEvent e) { if (inRoom(e.getEntity())) e.setCancelled(true); }
+
+    @EventHandler
+    public void onRoomDrop(org.bukkit.event.player.PlayerDropItemEvent e) { if (inRoom(e.getPlayer())) e.setCancelled(true); }
+
+    /** Reste d'un arret brutal du serveur : un joueur qui se reconnecte dans une salle retourne au monde. */
+    @EventHandler
+    public void onRoomJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        if (inRoom(p) && !origins.containsKey(p.getUniqueId())) p.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         stop(e.getPlayer(), false);
         closeResult(e.getPlayer());
+        leave(e.getPlayer());
     }
 
     /** Une partie commence, ou le plugin s'arrete : tout repart de zero. */
@@ -794,6 +917,12 @@ public final class Rhythm implements Listener {
         for (Play play : new ArrayList<>(plays.values())) stop(play.player, false);
         for (Result r : new ArrayList<>(results.values())) r.remove();
         results.clear();
+        for (UUID id : new ArrayList<>(origins.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) leave(p);
+        }
+        origins.clear();
+        rooms.clear();
         grades.clear();
     }
 
