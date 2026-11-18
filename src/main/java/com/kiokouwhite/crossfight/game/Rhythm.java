@@ -484,19 +484,31 @@ public final class Rhythm implements Listener {
             if (Math.abs(n.tick() - now) < gap) { gap = Math.abs(n.tick() - now); found = i; }
         }
         if (found < 0) return;
-        play.judged[found] = true;
-        Entity e = play.falling.remove(found);
-        if (e != null) e.remove();
-        String word;
-        if (gap <= 2) { play.score += 300; play.perfect++; word = "<gold><bold>Parfait"; }
-        else if (gap <= 4) { play.score += 200; play.good++; word = "<green>Bien"; }
-        else { play.score += 100; play.ok++; word = "<gray>Juste"; }
-        play.combo++;
+        // Un accord : les notes qui tombent au meme instant sur les autres colonnes comptent avec celle-ci. Quand deux
+        // touches de la barre d'objets sont enfoncees dans le meme instant, le jeu n'en envoie qu'une au serveur : sans
+        // cela, un accord ne pourrait jamais etre reussi.
+        int at0 = play.notes.get(found).tick();
+        List<Integer> struck = new ArrayList<>(List.of(found));
+        for (int i = 0; i < play.notes.size(); i++) {
+            Note n = play.notes.get(i);
+            if (n.tick() - at0 > 1) break;
+            if (i != found && !play.judged[i] && Math.abs(n.tick() - at0) <= 1) struck.add(i);
+        }
+        String word = "";
+        for (int i : struck) {
+            play.judged[i] = true;
+            Entity e = play.falling.remove(i);
+            if (e != null) e.remove();
+            if (gap <= 2) { play.score += 300; play.perfect++; word = "<gold><bold>Parfait"; }
+            else if (gap <= 4) { play.score += 200; play.good++; word = "<green>Bien"; }
+            else { play.score += 100; play.ok++; word = "<gray>Juste"; }
+            play.combo++;
+            Location spark = play.lane(play.notes.get(i).lane(), 0.1);
+            p.spawnParticle(org.bukkit.Particle.DUST, spark, 6, 0.3, 0.1, 0.05, 0, new org.bukkit.Particle.DustOptions(LANES[play.notes.get(i).lane()], 1.2f));
+        }
         play.best = Math.max(play.best, play.combo);
         Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
         p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.25f, gap <= 2 ? 1.9f : 1.5f);          // le coup de marteau
-        Location at = play.lane(lane, 0.1);
-        p.spawnParticle(org.bukkit.Particle.DUST, at, 6, 0.3, 0.1, 0.05, 0, new org.bukkit.Particle.DustOptions(LANES[lane], 1.2f));
     }
 
     /** La musique est finie : la note, et ce qu'elle rapporte de plus que la meilleure note d'avant. */

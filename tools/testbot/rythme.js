@@ -26,13 +26,15 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
     // le tableau vient d'apparaitre : le fond, puis pour chaque colonne sa zone et son chiffre
     const colonnes = [1, 3, 5, 7].map(i => apparus[i]).filter(Boolean);   // sans le pack : le fond, puis (zone, chiffre) par colonne
     if (colonnes.length < 4) { console.log(nom, ': tableau incomplet (' + apparus.length + ' affichages)'); continue; }
-    let vu = colonnes.length * 2 + 1, frappes = 0, n = 0;
+    let vu = colonnes.length * 2 + 1, frappes = 0, n = 0, dernier = null;
     const fin = Date.now() + Number(process.env.DUREE || 70) * 1000;
     while (Date.now() < fin && !said.some(t => /%/.test(t))) {
       while (vu < apparus.length) {
         const a = apparus[vu++];
         let voie = 0; for (let k = 1; k < 4; k++) if (Math.hypot(a.x - colonnes[k].x, a.z - colonnes[k].z) < Math.hypot(a.x - colonnes[voie].x, a.z - colonnes[voie].z)) voie = k;
-        if ((n++ * 37 % 100) / 100 < part) { frappes++; setTimeout(() => bot._client.write('held_item_slot', { slotId: voie }), Math.max(0, a.t + chute * 50 - Date.now())); }
+        // UNE=1 : comme le vrai jeu, qui n'envoie qu'une touche quand deux sont enfoncees au meme instant (la plus haute)
+        if (process.env.UNE && dernier && a.t - dernier.t < 30) { n++; if (voie > dernier.voie) { clearTimeout(dernier.minuterie); dernier.voie = voie; dernier.minuterie = setTimeout(() => bot._client.write('held_item_slot', { slotId: voie }), Math.max(0, a.t + chute * 50 - Date.now())); } continue; }
+        if ((n++ * 37 % 100) / 100 < part) { frappes++; dernier = { t: a.t, voie, minuterie: setTimeout(() => bot._client.write('held_item_slot', { slotId: voie }), Math.max(0, a.t + chute * 50 - Date.now())) }; }
       }
       await sleep(10);
     }
