@@ -288,6 +288,7 @@ glyph.vent
 model.falchion
 model.yumi_fujin
 music.forge_anemone
+music.forge_censored
 music.forge_glow
 music.forge_grin
 music.forge_installation
