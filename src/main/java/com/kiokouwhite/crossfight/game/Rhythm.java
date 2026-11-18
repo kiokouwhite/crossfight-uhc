@@ -108,6 +108,8 @@ public final class Rhythm implements Listener {
         TextDisplay verdict;                 // « Parfait », « Bien »... en haut de la piste
         final TextDisplay[] beams = new TextDisplay[4];   // la lumiere qui monte d'un couloir quand on y frappe une note
         final int[] beamUntil = new int[4];
+        final TextDisplay[] keys = new TextDisplay[4];    // la touche enfoncee de chaque couloir (avec le pack)
+        final int[] keyUntil = new int[4];
         int verdictUntil;
         final Custom custom;                 // une musique importee : son audio vient du pack, le plugin ne joue ni melodie ni batterie
         final boolean drawn;                 // avec le pack : le tableau et les notes sont des images ; sinon, des rectangles de couleur
@@ -418,6 +420,12 @@ public final class Rhythm implements Listener {
             play.beams[lane] = play.drawn ? image(play, at, ' ') : text(play, at, "", Color.fromARGB(0, 0, 0, 0), 6.8f, (float) (HEIGHT / 0.25));
             play.beams[lane].text(Component.empty());
             play.board.add(play.beams[lane]);
+            if (play.drawn) {
+                // la touche du tableau est a 8 pixels de son bord bas, 40 sous la ligne
+                play.keys[lane] = image(play, play.lane(lane, -32 * PIXEL).add(toward.clone().multiply(-0.04)), ' ');
+                play.keys[lane].text(Component.empty());
+                play.board.add(play.keys[lane]);
+            }
         }
         p.showBossBar(play.bar);
         Msg.send(p, "<gold>" + song.title() + " <gray>: frappe au marteau avec <white>1, 2, 3, 4 <gray>quand un lingot touche la ligne. <dark_gray>S'accroupir pour arrêter.");
@@ -483,6 +491,7 @@ public final class Rhythm implements Listener {
             }
             // les effets s'eteignent
             if (play.verdictUntil != 0 && t >= play.verdictUntil) { play.verdict.text(Component.empty()); play.verdictUntil = 0; }
+            for (int lane = 0; lane < 4; lane++) if (play.keyUntil[lane] != 0 && t >= play.keyUntil[lane]) { play.keys[lane].text(Component.empty()); play.keyUntil[lane] = 0; }
             for (int lane = 0; lane < 4; lane++) if (play.beamUntil[lane] != 0 && t >= play.beamUntil[lane]) {
                 play.beams[lane].text(Component.empty());
                 if (!play.drawn) play.beams[lane].setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
@@ -498,9 +507,18 @@ public final class Rhythm implements Listener {
         return done == 0 ? 100 : (int) Math.round(100.0 * play.score / (done * 300.0));
     }
 
+    /** La touche d'un couloir s'enfonce un instant, au bas du tableau. */
+    private void push(Play play, int lane) {
+        TextDisplay key = play.keys[lane];
+        if (key == null || !key.isValid()) return;
+        key.text(Component.text(String.valueOf((char) (0xE407 + lane))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "rythme")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+        play.keyUntil[lane] = play.tick + 3;
+    }
+
     /** Une touche (0 a 3) : la note la plus proche de la ligne sur cette colonne, si elle est a portee. */
     private void press(Play play, int lane) {
         Player p = play.player;
+        push(play, lane);
         // ce que le joueur voit a un demi-aller-retour de retard, et sa touche met autant a arriver
         int now = play.tick - Math.min(6, Math.round(p.getPing() / 50f));
         int found = -1, gap = 99;
@@ -531,6 +549,7 @@ public final class Rhythm implements Listener {
             else { play.score += 100; play.ok++; word = "<gray>Juste"; }
             play.combo++;
             burst(play, play.notes.get(i).lane());
+            push(play, play.notes.get(i).lane());              // un accord : ses autres touches s'enfoncent aussi
         }
         play.best = Math.max(play.best, play.combo);
         Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>combo " + play.combo);

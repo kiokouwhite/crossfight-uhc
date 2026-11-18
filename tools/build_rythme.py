@@ -10,6 +10,7 @@ fois (un pixel d'image = 0,035 bloc) :
   frappe a 40 pixels du bas, et sous elle une grande touche par couloir, marquee 1, 2, 3, 4 ;
   quatre notes, 24 x 16, une couleur par couloir ;
   l'eclat d'une note frappee, 32 x 32 (une etoile blanche qui grossit et disparait) ;
+  quatre touches enfoncees, 32 x 32, que le plugin pose un instant sur celles du tableau quand le joueur appuie ;
   le faisceau d'un couloir, 25 x 160 : de la lumiere qui monte de la ligne et s'eteint vers le haut, blanche, que le
   plugin teinte a la couleur du couloir.
 Ici, tout est dessine pixel par pixel ; dans le pack complet, tools/build_rythme_franuka.py compose les memes images
@@ -51,6 +52,8 @@ def digits(im, color, y, dx=0, size=14):
 def write_font(folder):
     providers = [{"type": "bitmap", "file": "crossfight:font/rythme_tableau.png", "height": H, "ascent": H, "chars": [""]}]
     providers += [{"type": "bitmap", "file": f"crossfight:font/rythme_note_{k}.png", "height": NOTE_H, "ascent": NOTE_H, "chars": [chr(0xE401 + k)]} for k in range(4)]
+    # une touche enfoncee par couloir : elle recouvre un instant la touche du tableau
+    providers += [{"type": "bitmap", "file": f"crossfight:font/rythme_touche_{k}.png", "height": 32, "ascent": 32, "chars": [chr(0xE407 + k)]} for k in range(4)]
     providers.append({"type": "bitmap", "file": "crossfight:font/rythme_eclat.png", "height": 32, "ascent": 32, "chars": ["\ue405"]})
     providers.append({"type": "bitmap", "file": "crossfight:font/rythme_faisceau.png", "height": 160, "ascent": 160, "chars": ["\ue406"]})
     (folder / "rythme.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")
@@ -77,6 +80,16 @@ def main():
         n.line([(4, 4), (NOTE_W - 5, 4)], fill=tuple(min(255, v + 70) for v in c) + (255,))
         note.putpixel((NOTE_W - 1, NOTE_H - 1), (255, 255, 255, 2))        # largeur fixe
         note.save(out / f"rythme_note_{k}.png")
+    # les touches enfoncees, 32 x 32 : le fond du tableau (pour cacher la touche au repos), puis la touche, plus basse et plus sombre
+    for k in range(4):
+        key = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        kd = ImageDraw.Draw(key)
+        kd.rectangle([0, 2, 31, 31], fill=(52, 48, 68, 255))
+        kd.rectangle([5, 10, 27, 31], fill=(58, 54, 72, 255), outline=(24, 20, 28, 255))
+        kd.fontmode = "1"
+        font = ImageFont.truetype(DIGITS, 14)
+        kd.text((16 - round(kd.textlength(str(k + 1), font=font) / 2), 13), str(k + 1), font=font, fill=tuple(COLORS[k]) + (255,))
+        key.save(out / f"rythme_touche_{k}.png")
     # l'eclat : une etoile a huit branches, blanche au coeur, doree au bord
     burst = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     b = ImageDraw.Draw(burst)

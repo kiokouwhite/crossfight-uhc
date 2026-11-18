@@ -47,6 +47,42 @@
   },
   {
    "type": "bitmap",
+   "file": "crossfight:font/rythme_touche_0.png",
+   "height": 32,
+   "ascent": 32,
+   "chars": [
+    "\ue407"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_touche_1.png",
+   "height": 32,
+   "ascent": 32,
+   "chars": [
+    "\ue408"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_touche_2.png",
+   "height": 32,
+   "ascent": 32,
+   "chars": [
+    "\ue409"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_touche_3.png",
+   "height": 32,
+   "ascent": 32,
+   "chars": [
+    "\ue40a"
+   ]
+  },
+  {
+   "type": "bitmap",
    "file": "crossfight:font/rythme_eclat.png",
    "height": 32,
    "ascent": 32,

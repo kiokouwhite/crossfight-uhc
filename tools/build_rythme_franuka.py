@@ -53,6 +53,19 @@ def main():
         im.alpha_composite(key, (base.LEFT + base.LANE * k + base.LANE // 2 - 16, H - 40))
     base.digits(im, (255, 244, 226, 255), H - 33, -1, 13)
     im.save(OUT / "rythme_tableau.png")
+    # les touches enfoncees : le fond de la fenetre (pour cacher la touche au repos), la touche enfoncee du pack, son chiffre a la couleur du couloir
+    from PIL import ImageDraw, ImageFont
+    pressed = sprite("Buttons", "Input_Key_Pressed").resize((32, 32), Image.NEAREST)
+    fill = im.getpixel((base.LEFT + 2, H - 6))
+    for k in range(4):
+        one = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        d = ImageDraw.Draw(one)
+        d.rectangle([0, 2, 31, 31], fill=fill)
+        one.alpha_composite(pressed)
+        d.fontmode = "1"
+        font = ImageFont.truetype(base.DIGITS, 13)
+        d.text((16 - round(d.textlength(str(k + 1), font=font) / 2) - 1, 10), str(k + 1), font=font, fill=tuple(base.COLORS[k]) + (255,))
+        one.save(OUT / f"rythme_touche_{k}.png")
     button = sprite("Buttons", "Button_02B_Normal").crop((7, 1, 25, 16))        # 18 x 15 : le bouton sans ses marges
     for k, turn in enumerate((0.95, 0.60, 0.35, 0.12)):                        # rose, bleu, vert, or
         note = Image.new("RGBA", (base.NOTE_W, base.NOTE_H), (0, 0, 0, 0))
