@@ -302,9 +302,14 @@ public final class Rhythm implements Listener {
     }
 
     private final class Menu implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 27, Component.text("Anna - la forge"));
+        final Inventory inv;
 
         Menu(Player p) {
+            // avec le pack : la carte dessinee (police "menu", image E003) a la place du coffre
+            boolean pack = com.kiokouwhite.crossfight.util.Sounds.has("font.menu") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+            inv = Bukkit.createInventory(this, 54, pack
+                    ? Component.text("\uE100\uE003").font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "menu")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                    : Component.text("Anna - la forge"));
             Map<String, Integer> mine = grades.getOrDefault(p.getUniqueId(), Map.of());
             Material[] icons = {Material.LIME_DYE, Material.ORANGE_DYE, Material.RED_DYE};
             for (int i = 0; i < songs.size(); i++) {
@@ -321,11 +326,16 @@ public final class Rhythm implements Listener {
                 lore.add(plain("<yellow>Clic : forger <gray>(touches 1, 2, 3, 4)"));
                 meta.lore(lore);
                 it.setItemMeta(meta);
-                inv.setItem(song.level() * 9 + 2 + (i % 3) * 2, it);
+                inv.setItem(menuSlot(song.level(), i % 3), it);
             }
         }
 
         @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** La case d'une musique dans le menu : une difficulte toutes les deux rangees (1, 3, 5), colonnes 5 a 7. */
+    private static int menuSlot(int level, int k) {
+        return (level * 2 + 1) * 9 + 5 + k;
     }
 
     /** Ouvre le choix des musiques a ce joueur. */
@@ -340,9 +350,9 @@ public final class Rhythm implements Listener {
         e.setCancelled(true);
         if (e.getClickedInventory() != menu.inv || !(e.getWhoClicked() instanceof Player p)) return;
         int row = e.getSlot() / 9, col = e.getSlot() % 9;
-        if (row > 2 || col < 2 || col > 6 || col % 2 != 0) return;
+        if (row % 2 == 0 || col < 5 || col > 7) return;
         p.closeInventory();
-        int index = row * 3 + (col - 2) / 2;
+        int index = (row / 2) * 3 + col - 5;
         if (index < songs.size()) start(p, songs.get(index));
     }
 

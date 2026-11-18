@@ -12,7 +12,8 @@ Deux images sur une fenêtre lavande qui déborde de dix pixels autour du coffre
 de l'inventaire ne touchent pas son bord ; la police du pack privé, font/menu.json, cale l'image en conséquence). La première : à gauche la
 couverture (« ANNA », les prix), à droite la case où poser l'objet. La
 seconde : l'objet en haut, et dessous les trois niveaux proposés, chacun avec son prix. Une troisième,
-pour ses potions à Pearl : la carte, et la liste des cinq potions, une case et un nom par ligne. En bas, l'inventaire.
+pour ses potions à Pearl : la carte, et la liste des cinq potions, une case et un nom par ligne. Une quatrième, pour sa forge à Shiganshina :
+la carte, et trois musiques par difficulté. En bas, l'inventaire.
 
 Une image retouchée à la main et déposée dans resourcepack-prive/ui-retouches/ sous le même nom (menu_anna.png,
 menu_anna2.png), à la même taille (196 x 242), remplace celle que ce script compose.
@@ -167,17 +168,34 @@ def main():
         pen.text((119, 21 + 18 * row), name, font=text, fill=(40, 100, 60, 255) if good else (150, 44, 60, 255))    # la petite police du pack
     keep(im, OUT.with_name("menu_anna3.png"))
 
+    # 4. La forge d'Anna (Shiganshina) : la carte a gauche, et trois musiques par difficulte, chacune sous son nom.
+    im = window(mine)
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 90, 122), (2, 8))
+    for k, name in enumerate(("Icon_09", "Icon_13", "Icon_10")):
+        im.alpha_composite(sprite("Mini icons", name), (19 + 20 * k, 24))
+    write(im, 47, 46, "ANNA", title, (236, 170, 60, 255), BROWN)
+    im.alpha_composite(sprite("Dividers", "Divider_05"), (23, 62))
+    write(im, 47, 79, "Forge", bold, BROWN)
+    im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (14, 100))
+    write(im, 47, 103, "en musique", text, BROWN)
+    for k, (name, color) in enumerate((("Facile", (40, 100, 60, 255)), ("Moyen", (176, 110, 30, 255)), ("Difficile", (150, 44, 60, 255)))):
+        write(im, 133, 23 + 36 * k, name, bold, color)                 # en gras : dans la petite police du pack, « ff » se lit mal
+        for col in (5, 6, 7):
+            im.alpha_composite(slot, (8 + 18 * col, 36 + 36 * k))
+    keep(im, OUT.with_name("menu_anna4.png"))
+
     # la police : celle du pack public, calee pour une image plus grande que le coffre
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -(8 + MARGIN)}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue000"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue001"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue002"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue003"]},
     ]}
     fonts = OUT.parent.parent.parent / "font"
     fonts.mkdir(parents=True, exist_ok=True)
     (fonts / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
-    print(OUT.relative_to(ROOT), "menu_anna2.png et menu_anna3.png", (W + 2 * MARGIN, H + 2 * MARGIN))
+    print(OUT.relative_to(ROOT), "menu_anna2.png, menu_anna3.png et menu_anna4.png", (W + 2 * MARGIN, H + 2 * MARGIN))
     return 0
 
 

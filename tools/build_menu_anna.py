@@ -11,7 +11,7 @@ les pose par le titre du coffre (game/Places.java, Enchants et Levels) : un cara
 le caractère de l'image, haut de 222 et monté de 13, la cale sur le coin du coffre. Tout est dessiné ici, pixel par pixel.
 Une troisième image habille ses potions à Pearl : la couverture, et cinq cases (colonne 5 du coffre, une rangée par potion)
 avec le nom de chaque potion à côté.
-Écrit resourcepack/assets/crossfight/font/menu.json, textures/font/menu_anna.png, menu_anna2.png et menu_anna3.png.
+Écrit resourcepack/assets/crossfight/font/menu.json, textures/font/menu_anna.png, menu_anna2.png, menu_anna3.png et menu_anna4.png (la forge).
 """
 import json
 from pathlib import Path
@@ -51,6 +51,10 @@ LETTERS = {
     "1": ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."],
     "2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
     "-": [".....", ".....", ".....", ".###.", ".....", ".....", "....."],
+    "D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+    "G": [".####", "#....", "#....", "#.###", "#...#", "#...#", ".###."],
+    "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
+    "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"],
     " ": ["....."] * 7,
 }
 
@@ -176,14 +180,32 @@ def main():
         text(im, 119, 23 + 18 * row, name, 1, green if good else (255, 150, 150, 255))
     im.save(ROOT / "textures" / "font" / "menu_anna3.png")
 
+    # 4. La forge d'Anna (Shiganshina) : la couverture a gauche, et trois musiques par difficulte (colonnes 5 a 7, rangees 1, 3 et 5).
+    im, d = card()
+    d.rectangle([1, 4, 87, 126], fill=GOLD_DARK)
+    d.rectangle([87, 4, 88, 126], fill=GOLD_DEEP)
+    panel(d, 6, 14, 81, 124, 6)
+    book(im, d, 30, 30)
+    text(im, 44 - width("ANNA", 2) // 2, 60, "ANNA", 2)
+    text(im, 44 - width("FORGE") // 2, 82, "FORGE", 1, violet)
+    d.line([(20, 94), (68, 94)], fill=SLATE_LIGHT)
+    text(im, 44 - width("EN MUSIQUE") // 2, 100, "EN MUSIQUE", 1, green)
+    panel(d, 93, 14, 171, 125, 2)
+    for k, (name, color) in enumerate((("FACILE", green), ("MOYEN", (255, 220, 110, 255)), ("DIFFICILE", (255, 150, 150, 255)))):
+        text(im, 133 - width(name) // 2, 24 + 36 * k, name, 1, color)
+        for col in (5, 6, 7):
+            slot(d, 8 + 18 * col, 36 + 36 * k)
+    im.save(ROOT / "textures" / "font" / "menu_anna4.png")
+
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -8}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H, "ascent": 13, "chars": ["\ue000"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H, "ascent": 13, "chars": ["\ue001"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H, "ascent": 13, "chars": ["\ue002"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H, "ascent": 13, "chars": ["\ue003"]},
     ]}
     (ROOT / "font" / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
-    print("menu_anna.png, menu_anna2.png, menu_anna3.png", im.size)
+    print("menu_anna.png, menu_anna2.png, menu_anna3.png, menu_anna4.png", im.size)
 
 
 if __name__ == "__main__":
