@@ -40,8 +40,8 @@ import java.util.UUID;
  * La forge d'Anna (le service "rythme", a Shiganshina) : on y forge ses materiaux en musique. Des notes tombent sur
  * quatre colonnes, et l'on frappe avec
  * les touches 1, 2, 3 et 4 du clavier quand elles atteignent la ligne du bas. Neuf musiques, trois par difficulte ; la
- * note obtenue (C, B ou A) donne des materiaux, une seule fois par musique : rejouer ne rapporte que ce qu'une meilleure
- * note ajoute.
+ * note atteinte (C, B, A) donne sa recompense, et elles s'additionnent : un A donne celles du C, du B et du A. Chacune
+ * ne se recoit qu'une fois par musique : rejouer ne rapporte que celles des notes pas encore atteintes.
  *
  * Des musiques importees d'osu!mania (tools/import_osu.py : la carte dans plugins/CrossfightUHC/musiques/, le son dans
  * le pack) prennent la place de celles du plugin, trois par difficulte au plus.
@@ -73,7 +73,7 @@ public final class Rhythm implements Listener {
     private static final String[] LEVEL_COLORS = {"<green>", "<gold>", "<red>"};
     /** Par difficulte : les ticks par temps (20 ticks par seconde), le nombre de mesures, la duree de chute d'une note. */
     private static final int[] BEAT = {12, 10, 8}, BARS = {16, 20, 24}, FALL = {40, 32, 26};
-    /** Les recompenses : [difficulte][note C, B, A] = {fer, or, diamants}. */
+    /** Les recompenses : [difficulte][note C, B, A] = {fer, or, diamants}. Elles s'additionnent : un A donne les trois. */
     private static final int[][][] REWARDS = {
             {{5, 0, 0}, {5, 5, 0}, {5, 10, 1}},
             {{10, 10, 0}, {10, 20, 1}, {10, 20, 2}},
@@ -670,11 +670,12 @@ public final class Rhythm implements Listener {
         else if (before != null && before >= grade) Msg.send(p, "<gray>Tu avais déjà " + (before > grade ? "mieux" : "cette note") + " à cette musique : rien de plus à gagner pour l'instant.");
         else {
             mine.put(song.id(), grade);
-            int[] now = REWARDS[song.level()][grade], had = before == null ? new int[3] : REWARDS[song.level()][before];
-            int[] gain = {Math.max(0, now[0] - had[0]), Math.max(0, now[1] - had[1]), Math.max(0, now[2] - had[2])};
+            // chaque note donne sa recompense : un A donne celles du C, du B et du A (moins celles deja recues)
+            int[] gain = new int[3];
+            for (int g = before == null ? 0 : before + 1; g <= grade; g++) for (int k = 0; k < 3; k++) gain[k] += REWARDS[song.level()][g][k];
             Material[] what = {Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND};
             for (int k = 0; k < 3; k++) if (gain[k] > 0) p.getInventory().addItem(new ItemStack(what[k], gain[k])).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
-            Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note rapporte la différence." : ""));
+            Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note y ajoute sa récompense." : ""));
         }
         results.put(p.getUniqueId(), new Result(play, share, grade, before));
     }

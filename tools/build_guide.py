@@ -195,7 +195,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Moyen | 10 fer, 10 or | 10 fer, 20 or, 1 diamant | 10 fer, 20 or, 2 diamants |
 | Difficile | 10 or, 1 diamant | 10 or, 2 diamants | 20 or, 3 diamants |
 
-Chaque musique ne paie qu'une fois : si tu la rejoues et fais mieux, tu reçois seulement la différence. C'est le lieu de ceux qui veulent s'équiper sans descendre à la mine.
+Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne. Un A te donne donc celles du C, du B et du A : au difficile, 40 or et 6 diamants. Chaque récompense ne se reçoit qu'une fois par musique : si tu la rejoues et fais mieux, tu reçois celles des notes que tu n'avais pas encore. C'est le lieu de ceux qui veulent s'équiper sans descendre à la mine.
 
 **La pêche (Garreg Mach).** Anna te donne une canne, et le bord de l'étang se met à scintiller pour ton équipe. Clic droit pour lancer la ligne dans l'eau. Quand « ÇA MORD ! » s'affiche, fais clic droit le plus vite possible. Une barre apparaît en haut de l'écran : la résistance du poisson. Ensuite, un cercle se resserre sur une cible au milieu de l'écran : clic droit pour l'arrêter. Plus il est près du centre (Bien, Très bien, Parfait), plus la barre descend. Tu ne peux pas rater : un mauvais clic fatigue seulement le poisson moins vite. Quand la barre est vide, il est pris ; il en faut dix.
 
