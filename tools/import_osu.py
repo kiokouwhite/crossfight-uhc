@@ -78,7 +78,7 @@ def main():
         member = next((n for n in z.namelist() if n.lower() == audio.lower()), None)
         if member is None:
             sys.exit(f"Musique introuvable dans l'archive : {audio}")
-        title = fields.get("TitleUnicode") or fields.get("Title") or Path(args.archive).stem
+        title = fields.get("Title") or fields.get("TitleUnicode") or Path(args.archive).stem   # le titre en lettres latines : il se lit partout
         name = re.sub(r"[^a-z0-9]+", "_", (args.nom or fields.get("Title") or Path(args.archive).stem).lower()).strip("_")[:32] or "musique"
         notes = []
         for line in hits:

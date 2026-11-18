@@ -27,7 +27,7 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
     const colonnes = [1, 3, 5, 7].map(i => apparus[i]).filter(Boolean);   // sans le pack : le fond, puis (zone, chiffre) par colonne
     if (colonnes.length < 4) { console.log(nom, ': tableau incomplet (' + apparus.length + ' affichages)'); continue; }
     let vu = colonnes.length * 2 + 1, frappes = 0, n = 0;
-    const fin = Date.now() + 70000;
+    const fin = Date.now() + Number(process.env.DUREE || 70) * 1000;
     while (Date.now() < fin && !said.some(t => /%/.test(t))) {
       while (vu < apparus.length) {
         const a = apparus[vu++];
