@@ -318,11 +318,15 @@ public final class AbilityEngine implements Listener {
                 piece = (st.isEnabled() ? "<aqua>" : "<gray>") + a.name() + (st.isEnabled() ? " <white>actif" : "");
             }
             case SWITCH -> piece = "<yellow>" + a.name() + " <white>[" + ((SwitchAbility) a).modeName(st.mode()) + "]";
-            case ULTIMATE -> piece = cf.isUltimateLocked()
+            case ULTIMATE -> {
+                // avec l'orbe de l'ultime a l'ecran, la barre n'a plus a dire ou il en est
+                if (owner != null && plugin.effectHud() != null && plugin.effectHud().showsUltimate(owner)) return;
+                piece = cf.isUltimateLocked()
                     ? "<dark_purple>Ultime en cours"
                     : cf.isUltimateReady()
                     ? "<light_purple><bold>ULTIME PRET</bold>"
                     : "<light_purple>Ultime " + (int) cf.ultimateCharge() + "%";
+            }
             default -> { return; }
         }
         if (!bar.isEmpty()) bar.append(" <dark_gray>| ");
@@ -438,7 +442,8 @@ public final class AbilityEngine implements Listener {
                 boolean free = plugin.game().isTest();
                 if (free) cf.setUltimateCharge(100);
                 if (!cf.isUltimateReady()) {
-                    Msg.actionBar(p, "<light_purple>Ultime a " + (int) cf.ultimateCharge() + "%");
+                    if (plugin.effectHud() != null && plugin.effectHud().showsUltimate(p)) p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_BASS, 0.6f, 0.7f);
+                    else Msg.actionBar(p, "<light_purple>Ultime a " + (int) cf.ultimateCharge() + "%");
                     return;
                 }
                 if (ult.cast(p, cf, st)) {

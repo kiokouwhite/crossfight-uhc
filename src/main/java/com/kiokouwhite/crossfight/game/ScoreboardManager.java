@@ -194,7 +194,7 @@ public final class ScoreboardManager {
             case TEST -> {
                 lines.add("<white>Etat : <aqua>Mode test");
                 lines.add("<white>Perso : <gold>" + (cf.character() == null ? "<gray>/cf change" : cf.character().name()));
-                lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
+                if (!plugin.effectHud().showsUltimate(p)) lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");   // sinon l'orbe le dit
                 String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
                 if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
                 lines.add("<gray>/cf mannequin, /cf ult, /cf test");
@@ -217,7 +217,7 @@ public final class ScoreboardManager {
                     if (t.licence() != null) lines.add("<white>Licence : <gold>" + t.licence().name());
                     lines.add("<white>Perso : <gold>" + (cf.character() == null ? "<gray>aucun" : cf.character().name()));
                     lines.add("<white>Vies : <red>" + "❤".repeat(Math.max(0, cf.lives())) + "<dark_gray>" + "❤".repeat(Math.max(0, plugin.getConfig().getInt("game.lives", 3) - cf.lives())));
-                    lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
+                    if (!plugin.effectHud().showsUltimate(p)) lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
                     String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
                     if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
                     StringBuilder allies = new StringBuilder();

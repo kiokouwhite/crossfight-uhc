@@ -149,11 +149,16 @@ public final class EffectHud implements Listener {
      * Null sans le pack, ou si le joueur n'a pas de personnage.
      */
     private String ultimate(Player p) {
-        if (!plugin.getConfig().getBoolean("hud.ultime", true) || !com.kiokouwhite.crossfight.util.Sounds.has("overlay.ultime") || !com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p)) return null;
+        if (!showsUltimate(p)) return null;
         CfPlayer cf = plugin.players().get(p);
         if (cf == null || cf.character() == null) return null;
         if (cf.isUltimateReady()) return "overlay_ult/ult_pret_" + (tick / 10 % 2);
         return String.format("overlay_ult/ult_%02d", Math.max(0, Math.min(19, (int) (cf.ultimateCharge() / 5))));
+    }
+
+    /** Vrai si ce joueur a l'orbe de l'ultime a l'ecran (le pack d'interface charge, hud.ultime) : la charge n'a alors plus a etre ecrite ailleurs. */
+    public boolean showsUltimate(Player p) {
+        return plugin.getConfig().getBoolean("hud.ultime", true) && com.kiokouwhite.crossfight.util.Sounds.has("overlay.ultime") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
     }
 
     /** Images par boucle (tools/build_overlays.py : FRAMES). */
