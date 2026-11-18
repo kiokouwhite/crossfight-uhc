@@ -24,6 +24,8 @@ OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "font
 SIZES = [(5.0, 3.2), (3.6, 3.6), (4.4, 3.5), (5.0, 3.7), (5.2, 3.6)]
 DENSITY = 32
 BANNERS = [64, 96, 128, 160, 192]
+# les cadres clairs qui ne sont pas carres : leur taille en blocs (les memes, dans le meme ordre, que Panel.PLATES)
+PLATES = [(4.7, 2.65)]
 
 
 def white(im):
@@ -68,6 +70,11 @@ def main():
     for k, w in enumerate(BANNERS):
         wide(sprite("Title banners", "BannerSmall_04A"), w).save(OUT / f"enigme_bandeau_{k}.png")
         providers.append({"type": "bitmap", "file": f"crossfight:font/enigme_bandeau_{k}.png", "height": 16, "ascent": 16, "chars": [chr(0xE620 + k)]})
+    # les cadres clairs a leurs vraies proportions (un cadre carre etire aurait des bords epais d'un cote)
+    for k, (w, h) in enumerate(PLATES):
+        pw, ph = round(w * DENSITY), round(h * DENSITY)
+        nine(sprite("Background boxes", "BGbox_01A"), pw + 12, ph + 12).crop((6, 6, pw + 6, ph + 6)).save(OUT / f"enigme_cadre_{k}.png")
+        providers.append({"type": "bitmap", "file": f"crossfight:font/enigme_cadre_{k}.png", "height": ph, "ascent": ph, "chars": [chr(0xE630 + k)]})
     fonts = OUT.parent.parent / "font"
     fonts.mkdir(parents=True, exist_ok=True)
     (fonts / "enigme.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")

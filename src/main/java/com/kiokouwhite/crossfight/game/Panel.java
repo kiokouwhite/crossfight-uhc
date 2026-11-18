@@ -126,6 +126,8 @@ abstract class Panel {
         d.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), px == null ? 0 : (float) (DROP / 40.0 * sy), 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
     }
 
+    private static final double[][] PLATES = {{4.7, 2.65}};
+
     /** Les largeurs des bandeaux de titre du pack, en points (tools/build_enigmes_franuka.py : BANNERS). */
     private static final int[] BANNERS = {64, 96, 128, 160, 192};
     private TextDisplay pointer;
@@ -179,7 +181,13 @@ abstract class Panel {
 
     /** Un panneau clair de a x b blocs, centre en (u, v), ou l'on pose les choses : le cadre du pack, ou rien. */
     void plate(double u, double v, double a, double b) {
-        if (drawn) picture("enigme", '\uE611', 64, 64, u, v, a, b, 0.01, Color.WHITE);
+        if (!drawn) return;
+        // un cadre qui n'est pas carre a sa propre image, a ses proportions (tools/build_enigmes_franuka.py : PLATES)
+        for (int k = 0; k < PLATES.length; k++) if (Math.abs(PLATES[k][0] - a) < 0.01 && Math.abs(PLATES[k][1] - b) < 0.01) {
+            picture("enigme", (char) (0xE630 + k), (int) Math.round(a * 32), (int) Math.round(b * 32), u, v, a, b, 0.01, Color.WHITE);
+            return;
+        }
+        picture("enigme", '\uE611', 64, 64, u, v, a, b, 0.01, Color.WHITE);
     }
 
     /** Change la couleur d'un rectangle ou d'une case (NONE : on ne le voit plus). */
