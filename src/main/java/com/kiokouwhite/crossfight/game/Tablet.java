@@ -62,7 +62,7 @@ public final class Tablet implements Listener {
     /** La disposition, en blocs depuis le milieu du tableau (u vers la droite, v vers le haut). */
     private static final double CELL = 0.5, GAP = 0.05, GRID_LEFT = 0.15, GRID_TOP = 1.1;
     private static final double GOAL = 0.3, GOAL_LEFT = -2.15, GOAL_TOP = 1.1;
-    private static final double SMALL = 0.2, TRAY_V = -0.85;
+    private static final double SMALL = 0.15, TRAY_V = -0.85;
     private static final double[] TRAY_U = {-2.0, -1.3, -0.6};
     private static final double WIDTH = 5.0, HEIGHT = 3.2;
 
