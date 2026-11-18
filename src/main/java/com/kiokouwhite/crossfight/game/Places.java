@@ -49,6 +49,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  *   enchantement  Anna enchante une piece d'equipement : on la pose, on choisit le niveau (1, 2 ou 5 niveaux ; pas de borne)
  *   forge         l'objet tenu est repare, contre 2 niveaux
+ *   rythme        le concert d'Anna : un jeu de rythme a quatre touches, des materiaux selon la note (game/Rhythm.java ; pas de borne)
  *   potions       une potion tiree au sort, toutes les 8 minutes
  *   marchand      des echanges (fer, or, diamants, charbon contre fleches, pomme doree, experience, perle, viande)
  *   nourriture    12 steaks, toutes les 8 minutes
@@ -63,7 +64,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class Places implements Listener {
 
     /** Par defaut : les lieux connus et leur service. */
-    private static final Map<String, String> DEFAULTS = Map.of("garreg_mach", "enchantement", "shiganshina", "forge", "pearl", "potions",
+    private static final Map<String, String> DEFAULTS = Map.of("garreg_mach", "enchantement", "shiganshina", "rythme", "pearl", "potions",
             "central_town", "marchand", "arcadia", "nourriture", "terrace", "experience", "beacon", "lootbox", "forest_of_hope", "chasse");
 
     private record Use(String title, Material icon, String hint) {}
@@ -71,6 +72,7 @@ public final class Places implements Listener {
     private static final Map<String, Use> USES = Map.ofEntries(Map.entry("chasse", new Use("Chasse aux pieces", Material.RECOVERY_COMPASS, "cinq pieces cachees a trouver")),
             Map.entry("enchantement", new Use("Enchantement", Material.ENCHANTING_TABLE, "Anna enchante ton équipement (1, 2 ou 5 niveaux)")),
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
+            Map.entry("rythme", new Use("Concert", Material.NOTE_BLOCK, "neuf musiques à jouer chez Anna : du fer, de l'or et des diamants selon la note")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
             Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),
@@ -118,6 +120,8 @@ public final class Places implements Listener {
     /** Le service d'un lieu (son nom de dossier), ou null. */
     public String useOf(String place) {
         String use = plugin.getConfig().getString("structures.utilites." + place, DEFAULTS.get(place));
+        // Shiganshina avait la forge par defaut : une configuration d'avant le concert le dit encore, sans que personne l'ait choisi.
+        if ("shiganshina".equals(place) && "forge".equals(use) && !plugin.getConfig().getBoolean("structures.forge-a-shiganshina", false)) use = "rythme";
         return use != null && USES.containsKey(use) ? use : null;
     }
 
@@ -365,7 +369,7 @@ public final class Places implements Listener {
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
             // (les potions n'ont pas de borne : c'est Anna qui tient boutique)
-            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement");
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement") && !use.equals("rythme");
             if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {

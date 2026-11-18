@@ -87,6 +87,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         pm.registerEvents(worldMap, this);
         quests = new com.kiokouwhite.crossfight.game.Quests(this);
         getServer().getPluginManager().registerEvents(quests, this);
+        rhythm = new com.kiokouwhite.crossfight.game.Rhythm(this);
+        getServer().getPluginManager().registerEvents(rhythm, this);
         places = new com.kiokouwhite.crossfight.game.Places(this);
         pm.registerEvents(places, this);
         getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); structures.shine(gameManager.world()); worldMap.attach(); });
@@ -144,6 +146,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         com.kiokouwhite.crossfight.util.PackHost.stop();
+        if (rhythm != null) rhythm.reset();
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (selectionStage != null) selectionStage.closeAll(true);
@@ -176,6 +179,8 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.WorldMap worldMap() { return worldMap; }
     private com.kiokouwhite.crossfight.game.Places places;
     public com.kiokouwhite.crossfight.game.Places places() { return places; }
+    private com.kiokouwhite.crossfight.game.Rhythm rhythm;
+    public com.kiokouwhite.crossfight.game.Rhythm rhythm() { return rhythm; }
     private com.kiokouwhite.crossfight.game.Quests quests;
     public com.kiokouwhite.crossfight.game.Quests quests() { return quests; }
     public com.kiokouwhite.crossfight.game.Lootbox lootbox() { return lootbox; }

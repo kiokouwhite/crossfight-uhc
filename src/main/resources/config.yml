@@ -139,10 +139,12 @@ structures:
   # equipe qui se lance dans sa quete fait prevenir celles qui le tiennent ; si elle la termine, elle choisit laquelle
   # perd son privilege (l'equipe ecartee peut refaire la quete).
   equipes-par-lieu: 2
-  # Quel lieu rend quel service : enchantement, forge, potions, marchand, nourriture, experience, lootbox, chasse
+  # Quel lieu rend quel service : enchantement, forge, rythme, potions, marchand, nourriture, experience, lootbox, chasse
+  # ("forge" a Shiganshina, le reglage d'avant le concert, est lu comme "rythme" ; pour y remettre vraiment la forge :
+  # structures.forge-a-shiganshina: true)
   utilites:
     garreg_mach: enchantement
-    shiganshina: forge
+    shiganshina: rythme
     pearl: potions
     central_town: marchand
     arcadia: nourriture

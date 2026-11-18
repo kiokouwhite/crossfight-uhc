@@ -174,7 +174,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Lieu | Quête | Ce qu'il faut faire | Ce que tu débloques |
 |---|---|---|---|
 | Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, clique l'objet à enchanter, puis choisis le niveau : I (1 niveau), II (2 niveaux) ou III (5 niveaux ; pas sur le diamant) |
-| Shiganshina | La chasse au Titan | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Forge : répare l'objet tenu, contre 2 niveaux |
+| Shiganshina | La chasse au Titan | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Concert : un jeu de rythme chez Anna, qui paie en fer, en or et en diamants |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
 | Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant leur tablette | Marchand : échange tes minerais contre de l'équipement |
 | Arcadia | La récolte | Cueillir huit fruits | Nourriture : 12 steaks toutes les 8 minutes |
@@ -186,6 +186,16 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 ## Le détail des quêtes
 
 **Le Titan (Shiganshina).** Il tombe en cent coups, comptés sur la barre en haut de l'écran. Chaque attaque s'annonce deux secondes avant, par son nom, dans une seconde barre sous la sienne : à toi de réagir. Il en a cinq, tirées au hasard : la *Charge titanesque* (sors du couloir rouge avant qu'il ne fonce : 2 cœurs), le *Lancer de pierres* (sors des cercles orange, trois fois de suite : 2 cœurs), le *Regard terrifiant* (détourne les yeux à temps, sinon tu es pétrifié 10 secondes), le *Cri strident* (éloigne-toi de 20 blocs, sinon nausée et lenteur 10 secondes) et la *Course du Titan* (fuis pendant 10 secondes : 1 cœur chaque fois qu'il te rattrape). Ses coups ignorent l'armure, et il casse les blocs sur son passage : ne compte pas sur un mur pour t'abriter.
+
+**Le concert (Shiganshina).** Le Titan vaincu, reparle à Anna : elle te propose neuf musiques, trois faciles, trois moyennes et trois difficiles. Des notes tombent sur quatre colonnes ; appuie sur les touches 1, 2, 3 et 4 de ton clavier quand elles touchent la ligne du bas. Ta note dépend de ta précision : C à partir de 55 %, B à 75 %, A à 90 %.
+
+| Difficulté | C | B | A |
+|---|---|---|---|
+| Facile | 5 fer | 5 fer, 5 or | 5 fer, 10 or, 1 diamant |
+| Moyen | 10 fer, 10 or | 10 fer, 20 or, 1 diamant | 10 fer, 20 or, 2 diamants |
+| Difficile | 10 or, 1 diamant | 10 or, 2 diamants | 20 or, 3 diamants |
+
+Chaque musique ne paie qu'une fois : si tu la rejoues et fais mieux, tu reçois seulement la différence. C'est le lieu de ceux qui veulent s'équiper sans descendre à la mine.
 
 **La pêche (Garreg Mach).** Anna te donne une canne, et le bord de l'étang se met à scintiller pour ton équipe. Clic droit pour lancer la ligne dans l'eau. Quand « ÇA MORD ! » s'affiche, fais clic droit le plus vite possible. Une barre apparaît en haut de l'écran : la résistance du poisson. Ensuite, un cercle se resserre sur une cible au milieu de l'écran : clic droit pour l'arrêter. Plus il est près du centre (Bien, Très bien, Parfait), plus la barre descend. Tu ne peux pas rater : un mauvais clic fatigue seulement le poisson moins vite. Quand la barre est vide, il est pris ; il en faut dix.
 

@@ -31,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Le Titan de Shiganshina : un mini-boss qui tombe en cent coups, et qui lance au hasard une de ses cinq attaques.
  *
  *   Charge titanesque   il s'arrete, un couloir de danger apparait devant lui, puis il fonce : 2 coeurs a qui s'y trouve
- *   Lancer de pierres   il s'arrete et jette des debris en l'air ; trois fois de suite, un debris tombe pres de chaque
+ *   Lancer de pierres   il se baisse, arrache des rochers et les lance en l'air d'un coup de bras ; trois fois de suite, un debris tombe pres de chaque
  *                       joueur, la ou un cercle de danger l'annonce : 2 coeurs
  *   Regard terrifiant   il fixe les joueurs ; qui le regarde encore une seconde et demie plus tard est petrifie
  *   Cri strident        il crie : nausee et lenteur pendant dix secondes, a vingt blocs a la ronde
@@ -99,6 +99,8 @@ final class TitanBoss {
     void remove() {
         for (UUID id : viewers) { Player p = org.bukkit.Bukkit.getPlayer(id); if (p != null) { p.hideBossBar(bar); p.hideBossBar(nameBar); } }
         viewers.clear();
+        for (Object[] s : stones) if (s.length > 2 && s[2] instanceof org.bukkit.entity.Entity rock) rock.remove();
+        stones.clear();
         if (giant.isValid()) {
             giant.getWorld().spawnParticle(Particle.EXPLOSION, giant.getLocation().add(0, 6, 0), 12, 1.5, 4, 1.5, 0);
             giant.getWorld().playSound(giant.getLocation(), Sound.ENTITY_WITHER_DEATH, 1.2f, 0.6f);
@@ -187,6 +189,7 @@ final class TitanBoss {
 
     /** L'attaque est finie : le Titan souffle, et la barre du nom s'en va. */
     private void rest() {
+        giant.setPose(org.bukkit.entity.Pose.STANDING, false);
         state = IDLE;
         timer = 0;
         named = false;
@@ -253,14 +256,37 @@ final class TitanBoss {
                 timer++;
             }
             case STONES -> {
-                if (timer == 0) w.playSound(here, Sound.ENTITY_IRON_GOLEM_DAMAGE, 2f, 0.5f);
-                if (timer < 20 && timer % 2 == 0)             // il arrache des debris et les jette en l'air
-                    w.spawnParticle(Particle.BLOCK, here.clone().add(0, 8 + timer * 0.6, 0), 14, 1.2, 0.6, 1.2, 0.1, Material.COBBLESTONE.createBlockData());
+                // Le geste : il se baisse pour arracher des blocs au sol, se redresse et les lance d'un grand coup de bras.
+                if (timer == 0) {
+                    giant.setPose(org.bukkit.entity.Pose.SNEAKING, true);
+                    w.playSound(here, Sound.ENTITY_IRON_GOLEM_DAMAGE, 2f, 0.5f);
+                }
+                if (timer < 12 && timer % 2 == 0)               // la poussiere de ce qu'il arrache, a ses pieds
+                    w.spawnParticle(Particle.BLOCK, here.clone().add(here.getDirection().setY(0).normalize().multiply(2.5)).add(0, 0.5, 0), 20, 1.2, 0.4, 1.2, 0.1, Material.COBBLESTONE.createBlockData());
+                if (timer == 12) {
+                    giant.setPose(org.bukkit.entity.Pose.STANDING, false);
+                    giant.swingMainHand();
+                    w.playSound(here, Sound.ENTITY_IRON_GOLEM_ATTACK, 2f, 0.6f);
+                    // trois rochers partent de sa main et montent haut dans le ciel
+                    Vector front = here.getDirection().setY(0).normalize();
+                    for (int k = 0; k < 3; k++) {
+                        Location from = here.clone().add(front.clone().multiply(2.5)).add((k - 1) * 1.2, 7.5, 0);
+                        org.bukkit.entity.BlockDisplay rock = boulder(from, 1.6f);
+                        rock.setTeleportDuration(18);
+                        Location to = from.clone().add(front.clone().multiply(3 + k)).add(0, 26, 0);
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), () -> { if (rock.isValid()) rock.teleport(to); }, 1L);
+                        org.bukkit.Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), rock::remove, 20L);
+                    }
+                }
                 if (timer == 20 || timer == 55 || timer == 90) for (Player p : near) {
                     double a = random.nextDouble(Math.PI * 2), d = random.nextDouble(1.5);
                     Location at = p.getLocation().add(Math.cos(a) * d, 0, Math.sin(a) * d);
                     at.setY(ground(at));
-                    stones.add(new Object[]{at, 36});
+                    // le rocher redescend du ciel sur le cercle
+                    org.bukkit.entity.BlockDisplay rock = boulder(at.clone().add(0, 22, 0), 1.8f);
+                    rock.setTeleportDuration(34);
+                    org.bukkit.Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), () -> { if (rock.isValid()) rock.teleport(at.clone().add(0, 0.2, 0)); }, 1L);
+                    stones.add(new Object[]{at, 36, rock});
                     w.playSound(at, Sound.ENTITY_ARROW_SHOOT, 1.2f, 0.4f);
                 }
                 if (++timer > 130) rest();
@@ -322,6 +348,20 @@ final class TitanBoss {
         }
     }
 
+    /** Un rocher : un bloc de pierre affiche, centre sur ce point, de `size` blocs de cote. */
+    private org.bukkit.entity.BlockDisplay boulder(Location at, float size) {
+        Location spot = at.clone();
+        spot.setYaw(0);
+        spot.setPitch(0);
+        return at.getWorld().spawn(spot, org.bukkit.entity.BlockDisplay.class, d -> {
+            d.setPersistent(false);
+            d.setBlock((ThreadLocalRandom.current().nextBoolean() ? Material.COBBLESTONE : Material.MOSSY_COBBLESTONE).createBlockData());
+            d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(-size / 2, 0, -size / 2), new org.joml.Quaternionf().rotateXYZ(0.4f, 0.6f, 0.2f),
+                    new org.joml.Vector3f(size, size, size), new org.joml.Quaternionf()));
+            d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+        });
+    }
+
     /** Le joueur regarde-t-il le Titan ? (a quarante degres pres, vers ses pieds, son torse ou sa tete, sans mur entre eux) */
     private boolean watches(Player p) {
         if (!p.hasLineOfSight(giant)) return false;
@@ -354,10 +394,10 @@ final class TitanBoss {
                     double a = Math.PI * 2 * k / 16;
                     w.spawnParticle(Particle.DUST, at.getX() + Math.cos(a) * 2.5, at.getY() + 0.2, at.getZ() + Math.sin(a) * 2.5, 1, 0, 0, 0, 0, new Particle.DustOptions(Color.ORANGE, 1.5f));
                 }
-                w.spawnParticle(Particle.BLOCK, at.clone().add(0, fuse * 0.6, 0), 8, 0.4, 0.4, 0.4, 0, Material.COBBLESTONE.createBlockData());
                 continue;
             }
             it.remove();
+            if (s.length > 2 && s[2] instanceof org.bukkit.entity.Entity rock) rock.remove();
             w.spawnParticle(Particle.EXPLOSION, at.clone().add(0, 0.5, 0), 2, 0.5, 0.2, 0.5, 0);
             w.spawnParticle(Particle.BLOCK, at.clone().add(0, 0.5, 0), 40, 1.2, 0.4, 1.2, 0.1, Material.COBBLESTONE.createBlockData());
             w.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.8f);
