@@ -1,0 +1,184 @@
+{
+ "providers": [
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/bouquet.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue800\ue801\ue802",
+    "\ue803\ue804\ue805",
+    "\ue806\ue807\ue808"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/bouquet.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue809"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/cavebird.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue810\ue811\ue812",
+    "\ue813\ue814\ue815",
+    "\ue816\ue817\ue818"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/cavebird.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue819"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/cotan.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue820\ue821\ue822",
+    "\ue823\ue824\ue825",
+    "\ue826\ue827\ue828"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/cotan.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue829"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/endboss.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue830\ue831\ue832",
+    "\ue833\ue834\ue835",
+    "\ue836\ue837\ue838"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/endboss.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue839"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/fern.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue840\ue841\ue842",
+    "\ue843\ue844\ue845",
+    "\ue846\ue847\ue848"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/fern.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue849"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/owlemons.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue850\ue851\ue852",
+    "\ue853\ue854\ue855",
+    "\ue856\ue857\ue858"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/owlemons.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue859"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/sunflowers.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue860\ue861\ue862",
+    "\ue863\ue864\ue865",
+    "\ue866\ue867\ue868"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/sunflowers.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue869"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/tides.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue870\ue871\ue872",
+    "\ue873\ue874\ue875",
+    "\ue876\ue877\ue878"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/tides.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue879"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/dennis.png",
+   "height": 16,
+   "ascent": 16,
+   "chars": [
+    "\ue880\ue881\ue882",
+    "\ue883\ue884\ue885",
+    "\ue886\ue887\ue888"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "minecraft:painting/dennis.png",
+   "height": 48,
+   "ascent": 48,
+   "chars": [
+    "\ue889"
+   ]
+  }
+ ]
+}

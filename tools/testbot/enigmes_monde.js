@@ -18,8 +18,8 @@ const CLES = { iron_pickaxe: { I: 'iron_ingot', S: 'stick' }, diamond_sword: { D
   const quoi = process.argv[2];
   const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Invite', version: '1.21.10' });
   bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
-  const fond = {}, objet = {}; let said = [];
-  bot._client.on('entity_metadata', d => { for (const m of d.metadata) { if (m.key === 25 && typeof m.value === 'number') fond[d.entityId] = m.value | 0; if (m.type === 'item_stack' || (m.value && typeof m.value === 'object' && 'itemId' in m.value)) objet[d.entityId] = m.value.itemId; } });
+  const fond = {}, objet = {}, lettre = {}; let said = [];
+  bot._client.on('entity_metadata', d => { for (const m of d.metadata) { if (m.key === 23) { const t = flat(m.value); if (t.length === 1 && t.charCodeAt(0) >= 0xE800 && t.charCodeAt(0) < 0xE900) lettre[d.entityId] = t.charCodeAt(0); } if (m.key === 25 && typeof m.value === 'number') fond[d.entityId] = m.value | 0; if (m.type === 'item_stack' || (m.value && typeof m.value === 'object' && 'itemId' in m.value)) objet[d.entityId] = m.value.itemId; } });
   bot._client.on('system_chat', m => { if (!m.isActionBar) said.push(flat(m.content)); });
   await new Promise(r => bot.once('spawn', r)); await sleep(2500);
   bot.chat('/gamemode creative'); bot.chat('/tp @s 0.5 65 0.5 0 0'); await sleep(1500);
@@ -41,13 +41,19 @@ const CLES = { iron_pickaxe: { I: 'iron_ingot', S: 'stick' }, diamond_sword: { D
     }
   } else {
     const PX = 0.14, PIECE = 0.56, MINI = 0.045, FL = 0.5, FT = 1.2, HL = -2.2, HT = 1.3, HP = 0.68, ML = FL + (3 * PIECE - 12 * MINI) / 2, MT = -0.78;
-    const points = Object.values(bot.entities).filter(e => e.name === 'text_display' && fond[e.id]).map(e => ({ c: fond[e.id], u: uv(e)[0], v: uv(e)[1] }));
+    // avec le pack : chaque piece est une image (une lettre de la police "puzzle") ; la piece i va dans la case i
+    const images = Object.values(bot.entities).filter(e => e.name === 'text_display' && lettre[e.id] != null && lettre[e.id] % 16 < 9).map(e => ({ i: lettre[e.id] % 16, u: uv(e)[0], v: uv(e)[1] + PIECE / 2 }));
+    if (images.length) {
+      console.log('pieces en images :', images.length, '/ 9');
+      for (const im of images) { await clic(im.u, im.v); await clic(FL + (im.i % 3 + 0.5) * PIECE, FT - (Math.floor(im.i / 3) + 0.5) * PIECE); clics += 2; }
+    }
+    const points = images.length ? [] : Object.values(bot.entities).filter(e => e.name === 'text_display' && fond[e.id]).map(e => ({ c: fond[e.id], u: uv(e)[0], v: uv(e)[1] }));
     // le modele : 12 x 12 points ; chaque affichage est pose par son bas
     const modele = []; for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) { const u = ML + (x + 0.5) * MINI, v = MT - (y + 0.5) * MINI - (MINI + 0.004) / 2; const q = points.find(o => Math.abs(o.u - u) < 0.012 && Math.abs(o.v - v) < 0.012); modele.push(q ? q.c : null); }
     const tas = []; for (let h = 0; h < 9; h++) { const m = []; for (let k = 0; k < 16; k++) { const u = HL + (h % 3) * HP + (k % 4 + 0.5) * PX, v = HT - Math.floor(h / 3) * HP - (Math.floor(k / 4) + 0.5) * PX - (PX + 0.004) / 2; const q = points.find(o => Math.abs(o.u - u) < 0.03 && Math.abs(o.v - v) < 0.03); m.push(q ? q.c : null); } tas.push(m); }
     console.log('points du modele lus :', modele.filter(c => c != null).length, '/ 144 | pieces lues :', tas.filter(m => m.every(c => c != null)).length, '/ 9');
     const pris = new Set();
-    for (let s = 0; s < 9; s++) {
+    for (let s = 0; s < 9 && !images.length; s++) {
       const voulu = []; for (let k = 0; k < 16; k++) voulu.push(modele[(Math.floor(s / 3) * 4 + Math.floor(k / 4)) * 12 + (s % 3) * 4 + k % 4]);
       const h = tas.findIndex((m, i) => !pris.has(i) && m.every((c, k) => c === voulu[k]));
       if (h < 0) { console.log('aucune piece pour la case', s); continue; }

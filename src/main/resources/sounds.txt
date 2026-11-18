@@ -275,6 +275,7 @@ font.logo
 font.menu
 font.panneau_omori
 font.peche
+font.puzzle
 font.quete
 font.quete2
 font.quete_recul

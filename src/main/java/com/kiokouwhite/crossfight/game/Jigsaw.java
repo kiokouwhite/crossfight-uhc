@@ -34,8 +34,14 @@ final class Jigsaw extends PanelGame {
     private static final double MINI = 0.045, MINI_LEFT = FRAME_LEFT + (P * PIECE - SIDE * MINI) / 2, MINI_TOP = -0.78;
     private static final Color BACK = Color.fromARGB(235, 12, 14, 36), SLOT = Color.fromARGB(255, 34, 40, 76), AIMED = Color.fromARGB(255, 70, 80, 130);
 
+    /** Les tableaux du jeu qui servent d'image, avec le pack (tools/build_puzzle_font.py, meme ordre) : 48 x 48 points, neuf pieces de 16. */
+    private static final int PAINTINGS = 9;
+
+    /** Avec le pack : l'image est un tableau du jeu (une image par piece). Sinon : une image dessinee ici, point par point. */
+    final boolean painted;
+    final int painting;
     final Color[] picture = new Color[SIDE * SIDE];
-    final TextDisplay[][] pieces = new TextDisplay[P * P][K * K];
+    final TextDisplay[][] pieces = new TextDisplay[P * P][];
     final TextDisplay[] frame = new TextDisplay[P * P];
     final int[] home = new int[P * P];                    // la place de chaque piece dans le tas de gauche
     final int[] slot = new int[P * P];                    // la case du cadre ou est chaque piece, -1 dans le tas
@@ -43,6 +49,8 @@ final class Jigsaw extends PanelGame {
 
     Jigsaw(CrossfightPlugin plugin, Player player, Location pillar, Random r, Consumer<Player> solved) {
         super(plugin, player, pillar, 5.0, 3.7, solved);
+        painted = com.kiokouwhite.crossfight.util.Sounds.has("font.puzzle") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(player);
+        painting = r.nextInt(PAINTINGS);
         String[] rows = PICTURES[r.nextInt(PICTURES.length)];
         for (int y = 0; y < SIDE; y++) for (int x = 0; x < SIDE; x++) picture[y * SIDE + x] = color(rows[y].charAt(x), y);
         List<Integer> order = new ArrayList<>();
@@ -88,12 +96,23 @@ final class Jigsaw extends PanelGame {
         label(MINI_LEFT - 0.4, MINI_TOP - 0.35, "<gray>Modèle", 0.6f);
         label(-0.6, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>Accroupi <gray>: fermer", 0.55f);
         for (int s = 0; s < P * P; s++) frame[s] = tile(frameU(s) + PIECE / 2, frameV(s) - PIECE / 2, PIECE - 0.03, PIECE - 0.03, 0.02, empty);
-        for (int y = 0; y < SIDE; y++) for (int x = 0; x < SIDE; x++)
-            rect(MINI_LEFT + (x + 0.5) * MINI, MINI_TOP - (y + 0.5) * MINI, MINI + 0.004, MINI + 0.004, 0.02, picture[y * SIDE + x]);
-        for (int i = 0; i < P * P; i++) for (int k = 0; k < K * K; k++) {
-            int x = i % P * K + k % K, y = i / P * K + k / K;
-            pieces[i][k] = rect(0, 0, PX + 0.004, PX + 0.004, 0.035, picture[y * SIDE + x]);
-            pieces[i][k].setTeleportDuration(2);
+        if (painted) {
+            picture("puzzle", (char) (0xE800 + 16 * painting + 9), 48, 48, MINI_LEFT + SIDE * MINI / 2, MINI_TOP - SIDE * MINI / 2, SIDE * MINI, SIDE * MINI, 0.02, Color.WHITE);
+            for (int i = 0; i < P * P; i++) {
+                pieces[i] = new TextDisplay[]{picture("puzzle", (char) (0xE800 + 16 * painting + i), 16, 16, 0, 0, PIECE, PIECE, 0.035, Color.WHITE)};
+                pieces[i][0].setTeleportDuration(2);
+            }
+        } else {
+            for (int y = 0; y < SIDE; y++) for (int x = 0; x < SIDE; x++)
+                rect(MINI_LEFT + (x + 0.5) * MINI, MINI_TOP - (y + 0.5) * MINI, MINI + 0.004, MINI + 0.004, 0.02, picture[y * SIDE + x]);
+            for (int i = 0; i < P * P; i++) {
+                pieces[i] = new TextDisplay[K * K];
+                for (int k = 0; k < K * K; k++) {
+                    int x = i % P * K + k % K, y = i / P * K + k / K;
+                    pieces[i][k] = rect(0, 0, PX + 0.004, PX + 0.004, 0.035, picture[y * SIDE + x]);
+                    pieces[i][k].setTeleportDuration(2);
+                }
+            }
         }
         for (int i = 0; i < P * P; i++) place(i);
         boxes();
@@ -101,6 +120,7 @@ final class Jigsaw extends PanelGame {
 
     /** Pose les points d'une piece, son coin haut gauche en (u, v). */
     void move(int i, double u, double v, double depth) {
+        if (painted) { pieces[i][0].teleport(spot(u + PIECE / 2, v - PIECE, depth)); return; }
         for (int k = 0; k < K * K; k++) pieces[i][k].teleport(spot(u + (k % K + 0.5) * PX, v - (k / K + 0.5) * PX - (PX + 0.004) / 2, depth));
     }
 
@@ -128,6 +148,7 @@ final class Jigsaw extends PanelGame {
     }
 
     boolean same(int a, int b) {
+        if (painted) return a == b;
         for (int k = 0; k < K * K; k++) if (!pieces[a][k].getBackgroundColor().equals(pieces[b][k].getBackgroundColor())) return false;
         return true;
     }

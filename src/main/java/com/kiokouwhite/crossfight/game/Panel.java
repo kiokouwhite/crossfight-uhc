@@ -29,15 +29,16 @@ abstract class Panel {
     static final Color NONE = Color.fromARGB(0, 0, 0, 0);
     /** Les tailles de tableau qui ont leur fenetre dans le pack (tools/build_enigmes_franuka.py, meme ordre), a 32 points par bloc. */
     private static final double[][] WINDOWS = {{5.0, 3.2}, {3.6, 3.6}, {4.4, 3.5}, {5.0, 3.7}};
-    private static final net.kyori.adventure.key.Key FONT = net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "enigme");
     /** Ou tombe le bas d'une image de la police, en points de l'image, sous le point ou l'affichage est pose. */
-    private static final double DROP = 0;
+    private static final double DROP = -2;
 
     /** Avec le pack d'interface : la fenetre et les cases sont des images. Sinon : des rectangles bleu nuit. */
     final boolean drawn;
     /** Les couleurs du tableau : une case vide, visee, pleine (doree), annulee, la piece qu'on tient, le fond d'une tuile sombre. */
     final Color empty, pointed, gold, faded, carried, dark;
-    private final java.util.Set<java.util.UUID> images = new java.util.HashSet<>();
+    private final java.util.Map<java.util.UUID, net.kyori.adventure.text.Component> images = new java.util.HashMap<>();
+    /** Avec le pack : les textes sont dans sa police (celle du panneau de quete), pas dans celle du jeu. */
+    final boolean lettered;
 
     final CrossfightPlugin plugin;
     final Player player;
@@ -56,6 +57,7 @@ abstract class Panel {
         this.width = width;
         this.height = height;
         this.drawn = com.kiokouwhite.crossfight.util.Sounds.has("font.enigme") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(player);
+        this.lettered = com.kiokouwhite.crossfight.util.Sounds.has("font.quete_texte") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(player);
         this.empty = drawn ? Color.fromARGB(255, 226, 180, 158) : Color.fromARGB(255, 34, 40, 76);
         this.pointed = drawn ? Color.fromARGB(255, 255, 236, 214) : Color.fromARGB(255, 70, 80, 130);
         this.gold = drawn ? Color.fromARGB(255, 250, 184, 48) : Color.fromARGB(255, 246, 190, 60);
@@ -96,7 +98,7 @@ abstract class Panel {
     }
 
     /** Une image de la police "enigme" (w x h points), etiree a a x b blocs, centree en (u, v), teintee. */
-    private TextDisplay picture(char glyph, int w, int h, double u, double v, double a, double b, double depth, Color tint) {
+    TextDisplay picture(String font, char glyph, int w, int h, double u, double v, double a, double b, double depth, Color tint) {
         float sx = (float) (a / (w / 40.0)), sy = (float) (b / (h / 40.0));
         TextDisplay d = centre.getWorld().spawn(spot(u, v - b / 2, depth), TextDisplay.class, t -> {
             t.setPersistent(false);
@@ -108,8 +110,7 @@ abstract class Panel {
             t.setShadowed(false);
             t.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), (float) (DROP / 40.0 * sy), 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
         });
-        d.getPersistentDataContainer().set(new org.bukkit.NamespacedKey(plugin, "enigme_image"), org.bukkit.persistence.PersistentDataType.STRING, String.valueOf(glyph));
-        images.add(d.getUniqueId());
+        images.put(d.getUniqueId(), net.kyori.adventure.text.Component.text(String.valueOf(glyph)).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, font)));
         paint(d, tint);
         player.showEntity(plugin, d);
         all.add(d);
@@ -119,7 +120,7 @@ abstract class Panel {
     /** Le fond du tableau : la fenetre du pack, ou un rectangle bleu nuit. */
     void backdrop() {
         if (drawn) for (int k = 0; k < WINDOWS.length; k++) if (WINDOWS[k][0] == width && WINDOWS[k][1] == height) {
-            picture((char) (0xE600 + k), (int) Math.round(width * 32), (int) Math.round(height * 32), 0, 0, width, height, 0, Color.WHITE);
+            picture("enigme", (char) (0xE600 + k), (int) Math.round(width * 32), (int) Math.round(height * 32), 0, 0, width, height, 0, Color.WHITE);
             return;
         }
         rect(0, 0, width, height, 0, Color.fromARGB(235, 12, 14, 36));
@@ -127,20 +128,19 @@ abstract class Panel {
 
     /** Une case de a x b blocs, centree en (u, v) : celle du pack, teintee, ou un rectangle de cette couleur. */
     TextDisplay tile(double u, double v, double a, double b, double depth, Color color) {
-        return drawn ? picture('\uE610', 16, 16, u, v, a, b, depth, color) : rect(u, v, a, b, depth, color);
+        return drawn ? picture("enigme", '\uE610', 16, 16, u, v, a, b, depth, color) : rect(u, v, a, b, depth, color);
     }
 
     /** Un panneau clair de a x b blocs, centre en (u, v), ou l'on pose les choses : le cadre du pack, ou rien. */
     void plate(double u, double v, double a, double b) {
-        if (drawn) picture('\uE611', 64, 64, u, v, a, b, 0.01, Color.WHITE);
+        if (drawn) picture("enigme", '\uE611', 64, 64, u, v, a, b, 0.01, Color.WHITE);
     }
 
     /** Change la couleur d'un rectangle ou d'une case (NONE : on ne le voit plus). */
     void paint(TextDisplay d, Color color) {
-        if (!images.contains(d.getUniqueId())) { d.setBackgroundColor(color); return; }
-        String glyph = d.getPersistentDataContainer().get(new org.bukkit.NamespacedKey(plugin, "enigme_image"), org.bukkit.persistence.PersistentDataType.STRING);
-        d.text(color.getAlpha() == 0 ? net.kyori.adventure.text.Component.empty()
-                : net.kyori.adventure.text.Component.text(glyph).font(FONT).color(net.kyori.adventure.text.format.TextColor.color(color.getRed(), color.getGreen(), color.getBlue())));
+        net.kyori.adventure.text.Component image = images.get(d.getUniqueId());
+        if (image == null) { d.setBackgroundColor(color); return; }
+        d.text(color.getAlpha() == 0 ? net.kyori.adventure.text.Component.empty() : image.color(net.kyori.adventure.text.format.TextColor.color(color.getRed(), color.getGreen(), color.getBlue())));
         d.setTextOpacity((byte) Math.max(26, color.getAlpha()));
     }
 
@@ -153,6 +153,9 @@ abstract class Panel {
     TextDisplay label(double u, double v, String mini, float scale) {
         // sur la fenetre du pack, la ligne du bas remonte au-dessus de son cadre
         double up = drawn && v < -height / 2 + 0.2 ? 0.2 : 0;
+        // la police du pack n'a ni fleche ni carre plein : ces textes-la gardent celle du jeu ; ses lettres sont plus grosses, on les reduit
+        boolean own = lettered && mini.indexOf('←') < 0 && mini.indexOf('■') < 0;
+        float size = own ? scale * 0.82f : scale;
         TextDisplay d = centre.getWorld().spawn(spot(u, v + up, 0.03), TextDisplay.class, t -> {
             t.setPersistent(false);
             t.setVisibleByDefault(false);
@@ -160,10 +163,11 @@ abstract class Panel {
             t.setBrightness(new Display.Brightness(15, 15));
             t.setViewRange(1f);
             t.setLineWidth(400);
-            t.text(Msg.mm(drawn ? inked(mini) : mini));
+            net.kyori.adventure.text.Component text = Msg.mm(drawn ? inked(mini) : mini);
+            t.text(own ? text.font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "quete_texte")) : text);
             t.setBackgroundColor(NONE);
             t.setShadowed(!drawn);
-            t.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale, scale, 1), new Quaternionf()));
+            t.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(size, size, 1), new Quaternionf()));
         });
         player.showEntity(plugin, d);
         all.add(d);
