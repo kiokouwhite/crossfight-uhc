@@ -819,10 +819,10 @@ public final class Places implements Listener {
         p.openInventory(new Shop(p).inv);
     }
 
-    /** Le prix d'un objet, en diamants : plus il est rare, plus il est cher (structures.marchand.prix) ; moitie ou double selon l'evenement des lieux. */
+    /** Le prix d'un objet, en diamants : plus il est rare, plus il est cher (structures.marchand.prix-par-tier) ; moitie ou double selon l'evenement des lieux. */
     private int price(String id) {
-        List<Integer> prices = plugin.getConfig().getIntegerList("structures.marchand.prix");
-        int tier = Lootbox.tierOf(id), base = prices.size() >= tier && tier > 0 ? prices.get(tier - 1) : new int[]{4, 8, 16, 32}[Math.max(0, tier - 1)];
+        List<Integer> prices = plugin.getConfig().getIntegerList("structures.marchand.prix-par-tier");
+        int tier = Lootbox.tierOf(id), base = prices.size() >= tier && tier > 0 ? prices.get(tier - 1) : new int[]{2, 4, 6, 8}[Math.max(0, tier - 1)];
         return mood("marchand") > 0 ? Math.max(1, base / 2) : mood("marchand") < 0 ? base * 2 : base;
     }
 
