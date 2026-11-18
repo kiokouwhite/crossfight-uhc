@@ -104,6 +104,10 @@ public final class Rhythm implements Listener {
         final Vector right;
         final Location base;                 // le milieu de la ligne de frappe
         final int held, length;
+        TextDisplay verdict;                 // « Parfait », « Bien »... en haut de la piste
+        final TextDisplay[] beams = new TextDisplay[4];   // la lumiere qui monte d'un couloir quand on y frappe une note
+        final int[] beamUntil = new int[4];
+        int verdictUntil;
         final Custom custom;                 // une musique importee : son audio vient du pack, le plugin ne joue ni melodie ni batterie
         final boolean drawn;                 // avec le pack : le tableau et les notes sont des images ; sinon, des rectangles de couleur
         int tick = -70, next, score, combo, best, perfect, good, ok, missed;
@@ -399,6 +403,17 @@ public final class Rhythm implements Listener {
                 play.board.add(text(play, play.lane(lane, -0.5), "<white><bold>" + (lane + 1), Color.fromARGB(0, 0, 0, 0), 1.6f, 1.6f));
             }
         }
+        // l'appreciation, en haut de la piste, et un faisceau par couloir (eteint) : juste devant le tableau
+        Vector toward = play.start.getDirection().setY(0).normalize();
+        play.verdict = text(play, play.base.clone().add(toward.clone().multiply(-0.1)).add(0, HEIGHT - 1.3, 0), "", Color.fromARGB(0, 0, 0, 0), 2.2f, 2.2f);
+        play.verdict.setShadowed(true);
+        play.board.add(play.verdict);
+        for (int lane = 0; lane < 4; lane++) {
+            Location at = play.lane(lane, 0).add(toward.clone().multiply(0.06));
+            play.beams[lane] = play.drawn ? image(play, at, ' ') : text(play, at, "", Color.fromARGB(0, 0, 0, 0), 6.8f, (float) (HEIGHT / 0.25));
+            play.beams[lane].text(Component.empty());
+            play.board.add(play.beams[lane]);
+        }
         p.showBossBar(play.bar);
         Msg.send(p, "<gold>" + song.title() + " <gray>: frappe au marteau avec <white>1, 2, 3, 4 <gray>quand un lingot touche la ligne. <dark_gray>S'accroupir pour arrêter.");
     }
@@ -456,10 +471,17 @@ public final class Rhythm implements Listener {
                     Note n = play.notes.get(i);
                     if (n.tick() > t) break;
                     if (n.tick() == t && play.custom == null) p.playSound(p.getLocation(), song.lead(), 0.9f, pitch(n.pitch()));
-                    if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; play.missed++; play.combo = 0; Entity e = play.falling.remove(i); if (e != null) e.remove(); }
+                    if (!play.judged[i] && t - n.tick() > 6) { play.judged[i] = true; play.missed++; play.combo = 0; Entity e = play.falling.remove(i); if (e != null) e.remove(); verdict(play, "<red>Raté"); }
                 }
                 play.bar.progress(Math.max(0f, Math.min(1f, t / (float) play.length)));
                 if (t % 4 == 0) Msg.actionBar(p, "<white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
+            }
+            // les effets s'eteignent
+            if (play.verdictUntil != 0 && t >= play.verdictUntil) { play.verdict.text(Component.empty()); play.verdictUntil = 0; }
+            for (int lane = 0; lane < 4; lane++) if (play.beamUntil[lane] != 0 && t >= play.beamUntil[lane]) {
+                play.beams[lane].text(Component.empty());
+                if (!play.drawn) play.beams[lane].setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+                play.beamUntil[lane] = 0;
             }
             if (t >= play.length) { finish(play); continue; }
             play.tick++;
@@ -503,12 +525,59 @@ public final class Rhythm implements Listener {
             else if (gap <= 4) { play.score += 200; play.good++; word = "<green>Bien"; }
             else { play.score += 100; play.ok++; word = "<gray>Juste"; }
             play.combo++;
-            Location spark = play.lane(play.notes.get(i).lane(), 0.1);
-            p.spawnParticle(org.bukkit.Particle.DUST, spark, 6, 0.3, 0.1, 0.05, 0, new org.bukkit.Particle.DustOptions(LANES[play.notes.get(i).lane()], 1.2f));
+            burst(play, play.notes.get(i).lane());
         }
         play.best = Math.max(play.best, play.combo);
         Msg.actionBar(p, word + " <dark_gray>| <white>" + percent(play) + " % <dark_gray>| <gold>série " + play.combo);
-        p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 0.25f, gap <= 2 ? 1.9f : 1.5f);          // le coup de marteau
+        p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_PLACE, 1f, gap <= 2 ? 1.9f : 1.5f);             // le coup de marteau, bien net
+        p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 0.8f, gap <= 2 ? 2f : 1.6f);
+        verdict(play, word + (play.combo >= 5 ? "\n<white>x" + play.combo : ""));
+    }
+
+    /** L'appreciation, ecrite en haut de la piste pendant trois quarts de seconde. */
+    private void verdict(Play play, String mini) {
+        if (play.verdict == null || !play.verdict.isValid()) return;
+        play.verdict.text(Msg.mm(mini));
+        play.verdictUntil = play.tick + 15;
+    }
+
+    /**
+     * Une note frappee : elle eclate (une etoile qui grossit et disparait, des etincelles), et son couloir s'illumine un
+     * instant, comme si de la lumiere montait de la ligne.
+     */
+    private void burst(Play play, int lane) {
+        Player p = play.player;
+        Color c = LANES[lane];
+        Location at = play.lane(lane, 0);
+        p.spawnParticle(org.bukkit.Particle.DUST, at.clone().add(0, 0.1, 0), 10, 0.3, 0.15, 0.05, 0, new org.bukkit.Particle.DustOptions(c, 1.4f));
+        p.spawnParticle(org.bukkit.Particle.END_ROD, at.clone().add(0, 0.1, 0), 2, 0.2, 0.1, 0.05, 0.03);
+        Vector toward = play.start.getDirection().setY(0).normalize();
+        Location front = at.clone().add(toward.clone().multiply(-0.08));
+        TextDisplay star;
+        if (play.drawn) {
+            star = image(play, front, '\uE405');
+            // l'etoile grossit autour de son centre : son image est posee par le bas, on la redescend d'une demi-hauteur
+            star.setTransformation(new Transformation(new Vector3f(0, -0.4f, 0), new Quaternionf(), new Vector3f(1f, 1f, 1), new Quaternionf()));
+        } else {
+            star = text(play, front, " ", Color.fromARGB(230, 255, 255, 255), 6f, 0.8f);
+        }
+        final TextDisplay shown = star;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!shown.isValid()) return;
+            shown.setInterpolationDelay(0);
+            shown.setInterpolationDuration(4);
+            if (play.drawn) shown.setTransformation(new Transformation(new Vector3f(0, -1.0f, 0), new Quaternionf(), new Vector3f(2.5f, 2.5f, 1), new Quaternionf()));
+            else shown.setTransformation(new Transformation(new Vector3f(-0.0097f * 9f, -0.1f, 0), new Quaternionf(), new Vector3f(9f, 1.6f, 1), new Quaternionf()));
+            shown.setTextOpacity((byte) 90);
+        }, 1L);
+        Bukkit.getScheduler().runTaskLater(plugin, shown::remove, 6L);
+        // le faisceau du couloir
+        TextDisplay beam = play.beams[lane];
+        if (beam != null && beam.isValid()) {
+            if (play.drawn) beam.text(Component.text("\uE406").font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "rythme")).color(net.kyori.adventure.text.format.TextColor.color(c.getRed(), c.getGreen(), c.getBlue())));
+            else { beam.text(Component.text(" ")); beam.setBackgroundColor(Color.fromARGB(70, c.getRed(), c.getGreen(), c.getBlue())); }
+            play.beamUntil[lane] = play.tick + 5;
+        }
     }
 
     /** La musique est finie : la note, et ce qu'elle rapporte de plus que la meilleure note d'avant. */

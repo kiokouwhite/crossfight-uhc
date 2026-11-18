@@ -44,6 +44,24 @@
    "chars": [
     "\ue404"
    ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_eclat.png",
+   "height": 32,
+   "ascent": 32,
+   "chars": [
+    "\ue405"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/rythme_faisceau.png",
+   "height": 160,
+   "ascent": 160,
+   "chars": [
+    "\ue406"
+   ]
   }
  ]
 }
