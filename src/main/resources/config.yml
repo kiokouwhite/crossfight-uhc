@@ -145,6 +145,10 @@ structures:
   evenements:
     actifs: true
     intervalle: 20
+  # Le marchand (Central Town) : quatre objets de lootbox differents, tires aux chances des lootbox, changes toutes les
+  # dix minutes ; un seul de chaque par joueur et par etalage. Leur prix en diamants, du tier 1 au tier 4 :
+  marchand:
+    prix: [4, 8, 16, 32]
   # Quel lieu rend quel service : enchantement, forge, rythme, potions, marchand, nourriture, experience, lootbox, chasse
   # ("rythme" est la forge en musique de Shiganshina ; "forge" y est lu comme "rythme" ; pour y remettre vraiment la forge :
   # structures.forge-a-shiganshina: true)

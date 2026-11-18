@@ -28,7 +28,7 @@ public final class PlaceEvents {
             "rythme", new String[]{"matériaux doublés, et de la netherite pour un A en difficile", "matériaux divisés par deux"},
             "enchantement", new String[]{"enchantements gratuits", "enchantements deux fois plus chers"},
             "forge", new String[]{"réparations gratuites", "réparations deux fois plus chères"},
-            "marchand", new String[]{"le marchand donne le double", "le marchand demande le double"},
+            "marchand", new String[]{"le marchand vend à moitié prix", "le marchand vend au double"},
             "nourriture", new String[]{"24 steaks et une pomme dorée", "6 steaks seulement"},
             "experience", new String[]{"expérience doublée", "expérience divisée par deux"},
             "lootbox", new String[]{"deux lootbox garanties au lieu d'une", "plus de lootbox garantie"},

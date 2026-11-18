@@ -637,7 +637,24 @@ public final class Lootbox implements Listener {
 
     // ------------------------------------------------------------------ les coffres
 
-    private int rollTier() {
+    /** Les objets d'un tier (leurs noms). */
+    public static List<String> idsOf(int tier) {
+        List<String> out = new ArrayList<>();
+        for (Loot l : LOOTS.values()) if (l.tier() == tier) out.add(l.id());
+        return out;
+    }
+
+    /** Le tier d'un objet (1 a 4), ou 0 s'il n'existe pas. */
+    public static int tierOf(String id) {
+        Loot l = LOOTS.get(id);
+        return l == null ? 0 : l.tier();
+    }
+
+    /** La couleur d'un tier, pour les textes. */
+    public static String colorOf(int tier) { return TIER_COLOR[tier - 1]; }
+
+    /** Tire un tier au hasard, aux chances des lootbox (45, 35, 19 et 1 %). */
+    public int rollTier() {
         int roll = ThreadLocalRandom.current().nextInt(100), sum = 0;
         for (int i = 0; i < TIER_CHANCE.length; i++) { sum += TIER_CHANCE[i]; if (roll < sum) return i + 1; }
         return 1;

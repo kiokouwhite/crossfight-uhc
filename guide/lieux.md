@@ -22,7 +22,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Garreg Mach | La partie de pêche | Pêcher dix poissons à l'étang avec la canne d'Anna | Enchantement : reparle à Anna, clique l'objet à enchanter, puis choisis le niveau : I (1 niveau), II (2 niveaux) ou III (5 niveaux ; pas sur le diamant) |
 | Shiganshina | La chasse au Titan | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Forge : on y forge en musique chez Anna, pour du fer, de l'or et des diamants |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
-| Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant l'énigme de chacun | Marchand : échange tes minerais contre de l'équipement |
+| Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant l'énigme de chacun | Marchand : Anna vend quatre objets de lootbox contre des diamants, et change d'étalage toutes les dix minutes |
 | Arcadia | La récolte | Cueillir huit fruits | Nourriture : 12 steaks toutes les 8 minutes |
 | Terrace | L'ascension | Atteindre le sommet du lieu | De l'expérience tant que tu restes dans le lieu |
 | Beacon | L'initiation | Retrouver quatre reliques | À chaque événement Lootbox, une caisse tombe ici |

@@ -74,15 +74,12 @@ public final class Places implements Listener {
             Map.entry("forge", new Use("Forge", Material.ANVIL, "repare l'objet tenu (2 niveaux)")),
             Map.entry("rythme", new Use("Forge", Material.ANVIL, "on y forge en musique chez Anna : du fer, de l'or et des diamants selon la note")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
-            Map.entry("marchand", new Use("Marchand", Material.EMERALD, "echanges")),
+            Map.entry("marchand", new Use("Marchand", Material.EMERALD, "quatre objets de lootbox contre des diamants, changes toutes les 10 minutes")),
             Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),
             Map.entry("experience", new Use("Experience", Material.EXPERIENCE_BOTTLE, "de l'experience tant qu'on y reste")),
             Map.entry("lootbox", new Use("Lootbox", Material.ENDER_CHEST, "une lootbox garantie a l'evenement")));
 
     /** Les echanges du marchand : {ce qu'on donne, combien, ce qu'on recoit, combien}. */
-    private static final Object[][] TRADES = {
-            {Material.IRON_INGOT, 8, Material.ARROW, 16}, {Material.GOLD_INGOT, 6, Material.GOLDEN_APPLE, 1}, {Material.DIAMOND, 2, Material.EXPERIENCE_BOTTLE, 8},
-            {Material.DIAMOND, 4, Material.ENDER_PEARL, 1}, {Material.COAL, 16, Material.COOKED_BEEF, 6}};
     private static final PotionType[] POTIONS = {PotionType.SWIFTNESS, PotionType.SWIFTNESS, PotionType.FIRE_RESISTANCE, PotionType.FIRE_RESISTANCE, PotionType.LEAPING,
             PotionType.SLOW_FALLING, PotionType.NIGHT_VISION, PotionType.WATER_BREATHING, PotionType.STRENGTH};
     private static final long WAIT = 8 * 60 * 1000L;
@@ -369,7 +366,7 @@ public final class Places implements Listener {
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
             // (les potions n'ont pas de borne : c'est Anna qui tient boutique)
-            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement") && !use.equals("rythme");
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement") && !use.equals("rythme") && !use.equals("marchand");
             if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {
@@ -488,7 +485,7 @@ public final class Places implements Listener {
                 p.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, steaks)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
                 if (mood(use) > 0) p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
                 done(p, Sound.ENTITY_PLAYER_BURP, "<green>" + steaks + " steaks" + (mood(use) > 0 ? " et une pomme dorée." : ".")); } }
-            case "marchand" -> p.openInventory(new Shop().inv);
+            case "marchand" -> openShop(p);
             default -> { }
         }
     }
@@ -779,38 +776,113 @@ public final class Places implements Listener {
         openEnchants(p);
     }
 
-    /** Le menu du marchand : un objet par echange, son prix en description. */
-    private final class Shop implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 9, Component.text("Marchand"));
+    // ------------------------------------------------------------------ le marchand de Central Town
 
-        Shop() {
-            for (int i = 0; i < TRADES.length; i++) {
-                ItemStack it = new ItemStack((Material) TRADES[i][2], (int) TRADES[i][3] * (mood("marchand") > 0 ? 2 : 1));
+    /** Le marchand change d'etalage toutes les dix minutes. */
+    private static final long STOCK_TIME = 10 * 60 * 1000L;
+    private static final int[] STOCK_SLOTS = {10, 12, 14, 16};
+    /** Ce qu'il vend en ce moment : quatre objets de lootbox differents, chacun tire aux chances des lootbox. */
+    private final List<String> stock = new ArrayList<>();
+    private long stockAt;
+    /** Ce que chacun a deja achete dans cet etalage ("joueur/objet") : un seul de chaque. */
+    private final java.util.Set<String> bought = new java.util.HashSet<>();
+
+    /** L'etalage du moment ; il est refait s'il a plus de dix minutes. */
+    private List<String> stock() {
+        long now = System.currentTimeMillis();
+        if (stock.isEmpty() || now - stockAt >= STOCK_TIME) restock();
+        return stock;
+    }
+
+    /** Refait l'etalage tout de suite (et le dit a ceux qui sont dans le lieu du marchand). */
+    public void restock() {
+        stock.clear();
+        bought.clear();
+        stockAt = System.currentTimeMillis();
+        for (int tries = 0; stock.size() < STOCK_SLOTS.length && tries < 200; tries++) {
+            List<String> pool = Lootbox.idsOf(plugin.lootbox().rollTier());
+            pool.removeAll(stock);
+            if (!pool.isEmpty()) stock.add(pool.get(ThreadLocalRandom.current().nextInt(pool.size())));
+        }
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            Structures.Placed here = plugin.structures().at(p.getLocation());
+            if (here != null && "marchand".equals(useOf(here.name()))) Msg.send(p, "<gold>Le marchand a refait son étalage : <white>quatre nouveaux objets<gold>.");
+            if (p.getOpenInventory().getTopInventory().getHolder() instanceof Shop) p.openInventory(new Shop(p).inv);
+        }
+    }
+
+    /** Ouvre l'etalage du marchand a ce joueur (la borne de Central Town, ou /cf marchand pour l'essayer). */
+    public void openShop(Player p) {
+        String notice = plugin.placeEvents().notice("marchand");
+        if (notice != null) Msg.send(p, notice);
+        p.openInventory(new Shop(p).inv);
+    }
+
+    /** Le prix d'un objet, en diamants : plus il est rare, plus il est cher (structures.marchand.prix) ; moitie ou double selon l'evenement des lieux. */
+    private int price(String id) {
+        List<Integer> prices = plugin.getConfig().getIntegerList("structures.marchand.prix");
+        int tier = Lootbox.tierOf(id), base = prices.size() >= tier && tier > 0 ? prices.get(tier - 1) : new int[]{4, 8, 16, 32}[Math.max(0, tier - 1)];
+        return mood("marchand") > 0 ? Math.max(1, base / 2) : mood("marchand") < 0 ? base * 2 : base;
+    }
+
+    /** Le menu du marchand : ses quatre objets du moment, leur prix en diamants, et le temps avant le prochain etalage. */
+    private final class Shop implements InventoryHolder {
+        final Inventory inv = Bukkit.createInventory(this, 27, Component.text("Marchand"));
+
+        Shop(Player p) {
+            List<String> now = stock();
+            int have = 0;
+            for (ItemStack it : p.getInventory().getContents()) if (it != null && it.getType() == Material.DIAMOND) have += it.getAmount();
+            for (int i = 0; i < now.size(); i++) {
+                String id = now.get(i);
+                ItemStack it = plugin.lootbox().item(id);
+                if (it == null) continue;
+                int tier = Lootbox.tierOf(id), cost = price(id);
+                boolean sold = bought.contains(p.getUniqueId() + "/" + id);
                 ItemMeta meta = it.getItemMeta();
-                meta.lore(List.of(Msg.mm("<gray>Prix : <white>" + (int) TRADES[i][1] * (mood("marchand") < 0 ? 2 : 1) + " x " + name((Material) TRADES[i][0])).decoration(TextDecoration.ITALIC, false)));
+                List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
+                lore.add(Component.empty());
+                lore.add(Msg.mm("<" + Lootbox.colorOf(tier) + ">Tier " + tier).decoration(TextDecoration.ITALIC, false));
+                lore.add(Msg.mm(sold ? "<red>Déjà acheté : reviens au prochain étalage" : (have >= cost ? "<green>" : "<red>") + "Prix : " + cost + " diamants <gray>(tu en as " + have + ")").decoration(TextDecoration.ITALIC, false));
+                meta.lore(lore);
                 it.setItemMeta(meta);
-                inv.setItem(i * 2, it);
+                inv.setItem(STOCK_SLOTS[i], it);
             }
+            long left = Math.max(0, STOCK_TIME - (System.currentTimeMillis() - stockAt));
+            inv.setItem(22, named(new ItemStack(Material.CLOCK), "<gold>Nouvel étalage dans " + Msg.time((int) (left / 1000)),
+                    "<gray>Quatre objets de lootbox, changés toutes les 10 minutes.", "<gray>Plus un objet est rare, plus il coûte de diamants.", "<gray>Un seul de chaque par étalage."));
         }
 
         @Override public Inventory getInventory() { return inv; }
-    }
-
-    private static String name(Material m) {
-        return switch (m) { case IRON_INGOT -> "lingots de fer"; case GOLD_INGOT -> "lingots d'or"; case DIAMOND -> "diamants"; case COAL -> "charbons"; default -> m.name().toLowerCase(); };
     }
 
     @EventHandler
     public void onShop(InventoryClickEvent e) {
         if (!(e.getInventory().getHolder() instanceof Shop shop)) return;
         e.setCancelled(true);
-        if (e.getClickedInventory() != shop.inv || e.getSlot() % 2 != 0 || e.getSlot() / 2 >= TRADES.length || !(e.getWhoClicked() instanceof Player p)) return;
-        Object[] t = TRADES[e.getSlot() / 2];
-        ItemStack price = new ItemStack((Material) t[0], (int) t[1] * (mood("marchand") < 0 ? 2 : 1));
-        if (!p.getInventory().containsAtLeast(price, price.getAmount())) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
-        p.getInventory().removeItem(price);
-        p.getInventory().addItem(new ItemStack((Material) t[2], (int) t[3] * (mood("marchand") > 0 ? 2 : 1))).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        if (e.getClickedInventory() != shop.inv || !(e.getWhoClicked() instanceof Player p)) return;
+        int index = -1;
+        for (int i = 0; i < STOCK_SLOTS.length; i++) if (STOCK_SLOTS[i] == e.getSlot()) index = i;
+        List<String> now = stock();
+        if (index < 0 || index >= now.size()) return;
+        String id = now.get(index);
+        // l'etalage a pu changer pendant que le menu etait ouvert : on ne vend que ce qui est montre
+        ItemStack shown = shop.inv.getItem(e.getSlot());
+        Lootbox.Loot loot = shown == null ? null : plugin.lootbox().lootOf(shown);
+        if (loot == null || !loot.id().equals(id)) { p.openInventory(new Shop(p).inv); return; }
+        if (!bought.add(p.getUniqueId() + "/" + id)) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
+        ItemStack cost = new ItemStack(Material.DIAMOND, price(id));
+        if (!p.getInventory().containsAtLeast(cost, cost.getAmount())) {
+            bought.remove(p.getUniqueId() + "/" + id);
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            Msg.actionBar(p, "<red>Il te faut " + cost.getAmount() + " diamants.");
+            return;
+        }
+        p.getInventory().removeItem(cost);
+        p.getInventory().addItem(plugin.lootbox().item(id)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_YES, 1f, 1f);
+        Msg.actionBar(p, "<green>Acheté pour " + cost.getAmount() + " diamants.");
+        p.openInventory(new Shop(p).inv);
     }
 
     @EventHandler
@@ -936,6 +1008,8 @@ public final class Places implements Listener {
     /** Une partie commence : les delais et les comptes de pieces repartent de zero. */
     public void newGame() {
         plugin.placeEvents().clear();
+        stock.clear();
+        bought.clear();
         plugin.quests().reset();
         taken.clear();
         found.clear();

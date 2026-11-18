@@ -153,6 +153,12 @@ public final class CfCommand implements TabExecutor {
                         if (sender instanceof Player sp) plugin.quests().tryTablet(sp);
                         return true;
                     }
+                    case "marchand" -> {
+                        // Essayer le marchand de Central Town : /cf marchand (son etalage), /cf marchand nouveau (un nouvel etalage tout de suite)
+                        if (args.length > 1 && args[1].equalsIgnoreCase("nouveau")) { plugin.places().restock(); Msg.send(sender, "<gray>Nouvel étalage."); }
+                        if (sender instanceof Player sp) plugin.places().openShop(sp);
+                        return true;
+                    }
                     case "evenement", "evenements" -> {
                         // L'evenement des lieux : /cf evenement (voir), tirer, arreter, ou <lieu renforce> <lieu affaibli>
                         var ev = plugin.placeEvents();
@@ -938,6 +944,7 @@ public final class CfCommand implements TabExecutor {
                 case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); out.add("resultat"); }
                 case "pearl" -> out.add("glowing");
                 case "enigme", "enigmes" -> out.addAll(List.of("tablette", "circuit", "etabli", "puzzle"));
+                case "marchand" -> out.add("nouveau");
                 case "evenement", "evenements" -> { out.add("tirer"); out.add("arreter"); out.addAll(plugin.placeEvents().places()); }
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {
