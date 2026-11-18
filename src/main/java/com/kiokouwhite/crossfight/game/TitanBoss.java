@@ -38,12 +38,13 @@ import java.util.concurrent.ThreadLocalRandom;
  *   Course du Titan     pendant dix secondes il court apres un joueur, a sa vitesse ; chaque fois qu'il le rattrape, 1 coeur
  *
  * Il casse les blocs : ce qui lui barre la route quand il marche, charge ou court, et le sol ou tombe une pierre.
+ * Ses degats sont bruts, comme ceux d'une capacite : l'armure ne les reduit pas.
  * Il ne prend pas de degats : chaque coup d'un joueur de l'equipe compte pour un (un coup par demi-seconde et par
  * joueur au plus), et une barre en haut de l'ecran dit ce qu'il en reste. Quests le fait vivre, un tick apres l'autre.
  */
 final class TitanBoss {
     static final int HITS = 100;
-    private static final int STUN_SECONDS = 30;
+    private static final int STUN_SECONDS = 10;
     private static final int IDLE = 0, CHARGE = 1, STONES = 2, STARE = 3, SCREAM = 4, CHASE = 5;
     private static final String[] NAMES = {"", "Charge titanesque", "Lancer de pierres", "Regard terrifiant", "Cri strident", "Course du Titan"};
 
@@ -152,7 +153,7 @@ final class TitanBoss {
 
     private void hurt(Player p, double amount, Vector push) {
         if (p.getGameMode() == GameMode.CREATIVE) return;
-        p.damage(amount, giant);
+        com.kiokouwhite.crossfight.util.Effects.damage(p, amount, giant);   // des degats bruts : l'armure ne les reduit pas
         if (push != null) p.setVelocity(push);
     }
 
