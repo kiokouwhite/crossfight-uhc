@@ -375,7 +375,7 @@ public final class Places implements Listener {
             for (Player pl : w.getPlayers()) {
                 Location at = pl.getLocation();
                 boolean inside = at.getX() >= p.x() && at.getX() < p.x() + p.sx() && at.getZ() >= p.z() && at.getZ() < p.z() + p.sz();
-                if (inside && running && use.equals("experience") && plugin.quests().unlocked(pl, p.name()) && plugin.players().get(pl).isAlive() && pl.getGameMode() == org.bukkit.GameMode.SURVIVAL) pl.giveExp(2);
+                if (inside && running && use.equals("experience") && plugin.quests().unlocked(pl, p.name()) && plugin.players().get(pl).isAlive() && pl.getGameMode() == org.bukkit.GameMode.SURVIVAL) pl.giveExp(mood("experience") > 0 ? 4 : mood("experience") < 0 ? 1 : 2);
                 if (!station || !inside && at.distanceSquared(new Location(w, p.x() + p.sx() / 2.0, at.getY(), p.z() + p.sz() / 2.0)) > 96 * 96) continue;
                 Location spot = spot(w, p);
                 if (spot != null && at.distanceSquared(spot) < 64 * 64) near = true;
@@ -478,14 +478,24 @@ public final class Places implements Listener {
             p.playSound(p.getLocation(), Sound.BLOCK_CHEST_LOCKED, 1f, 1f);
             return;
         }
+        String notice = plugin.placeEvents().notice(use);
+        if (notice != null) Msg.send(p, notice);
         switch (use) {
             case "enchantement" -> enchant(p);
             case "forge" -> repair(p);
             case "potions" -> { if (ready(p, use)) { p.getInventory().addItem(potion()).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i)); done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Une potion pour toi."); } }
-            case "nourriture" -> { if (ready(p, use)) { p.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, 12)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i)); done(p, Sound.ENTITY_PLAYER_BURP, "<green>12 steaks."); } }
+            case "nourriture" -> { if (ready(p, use)) { int steaks = mood(use) > 0 ? 24 : mood(use) < 0 ? 6 : 12;
+                p.getInventory().addItem(new ItemStack(Material.COOKED_BEEF, steaks)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+                if (mood(use) > 0) p.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+                done(p, Sound.ENTITY_PLAYER_BURP, "<green>" + steaks + " steaks" + (mood(use) > 0 ? " et une pomme dorée." : ".")); } }
             case "marchand" -> p.openInventory(new Shop().inv);
             default -> { }
         }
+    }
+
+    /** Ou en est ce service dans l'evenement des lieux : 1 renforce, -1 affaibli, 0 sinon. */
+    private int mood(String use) {
+        return plugin.placeEvents().mood(use);
     }
 
     private void done(Player p, Sound sound, String text) {
@@ -537,8 +547,9 @@ public final class Places implements Listener {
         ItemStack it = plain(p);
         if (it == null) return;
         if (!(it.getItemMeta() instanceof Damageable d) || !d.hasDamage()) { Msg.actionBar(p, "<red>Cet objet n'est pas abime."); return; }
-        if (p.getLevel() < 2) { Msg.actionBar(p, "<red>Il faut 2 niveaux."); return; }
-        p.setLevel(p.getLevel() - 2);
+        int cost = mood("forge") > 0 ? 0 : mood("forge") < 0 ? 4 : 2;
+        if (p.getLevel() < cost) { Msg.actionBar(p, "<red>Il faut " + cost + " niveaux."); return; }
+        p.setLevel(p.getLevel() - cost);
         d.setDamage(0);
         it.setItemMeta(d);
         done(p, Sound.BLOCK_ANVIL_USE, "<green>Repare.");
@@ -570,11 +581,14 @@ public final class Places implements Listener {
         Brews(Player p) {
             inv = Bukkit.createInventory(this, 54, dressed(p, '\uE002', "Anna - une potion offerte"));
             Long last = taken.get(p.getUniqueId() + "/potions");
-            long left = last == null ? 0 : BREW_WAIT - (System.currentTimeMillis() - last);
+            long left = last == null ? 0 : (mood("potions") < 0 ? 2 * BREW_WAIT : BREW_WAIT) - (System.currentTimeMillis() - last);
             for (int i = 0; i < BREWS.length; i++) {
                 ItemStack it = brew(i);
                 ItemMeta meta = it.getItemMeta();
-                meta.lore(List.of(Msg.mm(left > 0 ? "<red>Reviens dans " + Msg.time((int) (left / 1000)) : "<green>Gratuit <gray>- une toutes les 10 minutes").decoration(TextDecoration.ITALIC, false),
+                Long mine = taken.get(p.getUniqueId() + "/potions/" + i);
+                boolean had = mine != null && System.currentTimeMillis() - mine < 2 * BREW_WAIT;
+                meta.lore(List.of(Msg.mm(mood("potions") > 0 ? (had ? "<red>Déjà prise" : "<green>Gratuit <gray>- lieu renforcé : une de chaque")
+                        : left > 0 ? "<red>Reviens dans " + Msg.time((int) (left / 1000)) : "<green>Gratuit <gray>- une toutes les " + (mood("potions") < 0 ? 20 : 10) + " minutes").decoration(TextDecoration.ITALIC, false),
                         Msg.mm((boolean) BREWS[i][2] ? "<gray>A lancer sur un adversaire" : "<gray>A boire").decoration(TextDecoration.ITALIC, false)));
                 it.setItemMeta(meta);
                 inv.setItem(brewSlot(i), it);
@@ -586,6 +600,8 @@ public final class Places implements Listener {
 
     /** Ouvre la boutique de potions d'Anna a ce joueur. */
     public void openBrews(Player p) {
+        String notice = plugin.placeEvents().notice("potions");
+        if (notice != null) Msg.send(p, notice);
         p.openInventory(new Brews(p).inv);
     }
 
@@ -595,23 +611,39 @@ public final class Places implements Listener {
         e.setCancelled(true);
         if (e.getClickedInventory() != shop.inv || e.getSlot() % 9 != 5 || e.getSlot() / 9 >= BREWS.length || !(e.getWhoClicked() instanceof Player p)) return;
         long now = System.currentTimeMillis();
-        Long last = taken.get(p.getUniqueId() + "/potions");
-        if (last != null && now - last < BREW_WAIT) {
+        int mood = mood("potions"), which = e.getSlot() / 9;
+        // lieu renforce : une de chaque (le delai se compte par potion) ; affaibli : le delai double
+        String key = p.getUniqueId() + (mood > 0 ? "/potions/" + which : "/potions");
+        long wait = mood != 0 ? 2 * BREW_WAIT : BREW_WAIT;
+        Long last = taken.get(key);
+        if (last != null && now - last < wait) {
             p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
-            Msg.actionBar(p, "<red>Anna n'a plus rien pour toi : reviens dans " + Msg.time((int) ((BREW_WAIT - (now - last)) / 1000)) + ".");
-            p.closeInventory();
+            Msg.actionBar(p, mood > 0 ? "<red>Tu as déjà pris cette potion : choisis-en une autre." : "<red>Anna n'a plus rien pour toi : reviens dans " + Msg.time((int) ((wait - (now - last)) / 1000)) + ".");
+            if (mood <= 0) p.closeInventory();
             return;
         }
-        taken.put(p.getUniqueId() + "/potions", now);
-        p.getInventory().addItem(brew(e.getSlot() / 9)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        taken.put(key, now);
+        p.getInventory().addItem(brew(which)).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        if (mood > 0) {
+            // elle reste ouverte : il peut prendre les autres ; apres l'evenement, le delai ordinaire repart de la
+            taken.put(p.getUniqueId() + "/potions", now);
+            done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[which][0] + " : sers-toi, une de chaque.");
+            return;
+        }
         p.closeInventory();
-        done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[e.getSlot() / 9][0] + " : cadeau d'Anna. La prochaine dans 10 minutes.");
+        done(p, Sound.BLOCK_BREWING_STAND_BREW, "<green>Potion de " + BREWS[which][0] + " : cadeau d'Anna. La prochaine dans " + (mood < 0 ? 20 : 10) + " minutes.");
     }
 
     // ------------------------------------------------------------------ les enchantements d'Anna
 
     /** Le prix, en niveaux, de chaque niveau d'enchantement : I, II, III. */
     private static final int[] ENCHANT_COST = {0, 1, 2, 5};
+
+    /** Le prix d'un niveau en ce moment : gratuit si le lieu est renforce, double s'il est affaibli. */
+    private int enchantCost(int level) {
+        int mood = mood("enchantement");
+        return mood > 0 ? 0 : mood < 0 ? 2 * ENCHANT_COST[level] : ENCHANT_COST[level];
+    }
 
     /** Ce qu'Anna met sur cet objet : {enchantement, niveau le plus haut}, ou null s'il ne s'enchante pas chez elle. Diamant et netherite : un niveau de moins. */
     private static Object[] enchantFor(ItemStack it) {
@@ -690,7 +722,7 @@ public final class Places implements Listener {
                 if (level > max) inv.setItem(CHOICES[level], named(new ItemStack(Material.BARRIER), "<red>" + title, "<gray>Trop fort pour cette pièce."));
                 else if (level <= has) inv.setItem(CHOICES[level], named(new ItemStack(Material.BOOK), "<gray>" + title, "<dark_gray>Cette pièce l'a déjà."));
                 else inv.setItem(CHOICES[level], named(new ItemStack(Material.ENCHANTED_BOOK), "<light_purple>" + title,
-                        (p.getLevel() >= ENCHANT_COST[level] ? "<green>" : "<red>") + "Prix : " + ENCHANT_COST[level] + (ENCHANT_COST[level] > 1 ? " niveaux" : " niveau") + " <gray>(tu en as " + p.getLevel() + ")"));
+                        (p.getLevel() >= enchantCost(level) ? "<green>" : "<red>") + "Prix : " + (enchantCost(level) == 0 ? "gratuit" : enchantCost(level) + (enchantCost(level) > 1 ? " niveaux" : " niveau")) + " <gray>(tu en as " + p.getLevel() + ")"));
             }
         }
 
@@ -699,6 +731,8 @@ public final class Places implements Listener {
 
     /** Ouvre le menu d'enchantement d'Anna a ce joueur. */
     public void openEnchants(Player p) {
+        String notice = plugin.placeEvents().notice("enchantement");
+        if (notice != null) Msg.actionBar(p, notice);
         p.openInventory(new Enchants(p).inv);
     }
 
@@ -736,7 +770,7 @@ public final class Places implements Listener {
         if (found == null || it.getType() != menu.type) { openEnchants(p); return; }          // l'objet n'est plus la
         org.bukkit.enchantments.Enchantment ench = (org.bukkit.enchantments.Enchantment) found[0];
         if (level > (int) found[1] || level <= it.getEnchantmentLevel(ench)) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
-        int cost = ENCHANT_COST[level];
+        int cost = enchantCost(level);
         if (p.getLevel() < cost) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); Msg.actionBar(p, "<red>Il faut " + cost + (cost > 1 ? " niveaux." : " niveau.")); return; }
         p.setLevel(p.getLevel() - cost);
         it.addUnsafeEnchantment(ench, level);
@@ -751,9 +785,9 @@ public final class Places implements Listener {
 
         Shop() {
             for (int i = 0; i < TRADES.length; i++) {
-                ItemStack it = new ItemStack((Material) TRADES[i][2], (int) TRADES[i][3]);
+                ItemStack it = new ItemStack((Material) TRADES[i][2], (int) TRADES[i][3] * (mood("marchand") > 0 ? 2 : 1));
                 ItemMeta meta = it.getItemMeta();
-                meta.lore(List.of(Msg.mm("<gray>Prix : <white>" + TRADES[i][1] + " x " + name((Material) TRADES[i][0])).decoration(TextDecoration.ITALIC, false)));
+                meta.lore(List.of(Msg.mm("<gray>Prix : <white>" + (int) TRADES[i][1] * (mood("marchand") < 0 ? 2 : 1) + " x " + name((Material) TRADES[i][0])).decoration(TextDecoration.ITALIC, false)));
                 it.setItemMeta(meta);
                 inv.setItem(i * 2, it);
             }
@@ -772,10 +806,10 @@ public final class Places implements Listener {
         e.setCancelled(true);
         if (e.getClickedInventory() != shop.inv || e.getSlot() % 2 != 0 || e.getSlot() / 2 >= TRADES.length || !(e.getWhoClicked() instanceof Player p)) return;
         Object[] t = TRADES[e.getSlot() / 2];
-        ItemStack price = new ItemStack((Material) t[0], (int) t[1]);
+        ItemStack price = new ItemStack((Material) t[0], (int) t[1] * (mood("marchand") < 0 ? 2 : 1));
         if (!p.getInventory().containsAtLeast(price, price.getAmount())) { p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f); return; }
         p.getInventory().removeItem(price);
-        p.getInventory().addItem(new ItemStack((Material) t[2], (int) t[3])).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
+        p.getInventory().addItem(new ItemStack((Material) t[2], (int) t[3] * (mood("marchand") > 0 ? 2 : 1))).values().forEach(i -> p.getWorld().dropItem(p.getLocation(), i));
         p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_YES, 1f, 1f);
     }
 
@@ -879,11 +913,12 @@ public final class Places implements Listener {
         int left = 0;
         for (Piece other : all) if (other.at != null) left++;
         int count = found.merge(pl.getUniqueId(), 1, Integer::sum);
-        pl.getInventory().addItem(new ItemStack(Material.DIAMOND, 2)).values().forEach(i -> pl.getWorld().dropItem(pl.getLocation(), i));
+        int diamonds = mood("chasse") > 0 ? 4 : mood("chasse") < 0 ? 1 : 2;
+        pl.getInventory().addItem(new ItemStack(Material.DIAMOND, diamonds)).values().forEach(i -> pl.getWorld().dropItem(pl.getLocation(), i));
         pl.giveExp(30);
         pl.playSound(pl.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.4f);
         Msg.broadcast("<green>" + pl.getName() + " <gray>a trouve une piece dans <white>" + plugin.structures().title(p.name()) + "<gray> (" + left + " encore cachee" + (left > 1 ? "s" : "") + ").");
-        Msg.send(pl, "<green>Piece trouvee : <white>2 diamants<green> et de l'experience. <gray>(" + count + " trouvee" + (count > 1 ? "s" : "") + " ; a la troisieme, une lootbox)");
+        Msg.send(pl, "<green>Piece trouvee : <white>" + diamonds + (diamonds > 1 ? " diamants" : " diamant") + "<green> et de l'experience. <gray>(" + count + " trouvee" + (count > 1 ? "s" : "") + " ; a la troisieme, une lootbox)");
         if (count == 3) {
             plugin.lootbox().reward(pl, 2);
             Msg.send(pl, "<gold>Troisieme piece : le contenu d'une lootbox est a toi.");
@@ -900,6 +935,7 @@ public final class Places implements Listener {
 
     /** Une partie commence : les delais et les comptes de pieces repartent de zero. */
     public void newGame() {
+        plugin.placeEvents().clear();
         plugin.quests().reset();
         taken.clear();
         found.clear();

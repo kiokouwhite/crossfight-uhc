@@ -90,6 +90,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         rhythm = new com.kiokouwhite.crossfight.game.Rhythm(this);
         getServer().getPluginManager().registerEvents(rhythm, this);
         places = new com.kiokouwhite.crossfight.game.Places(this);
+        placeEvents = new com.kiokouwhite.crossfight.game.PlaceEvents(this);
         pm.registerEvents(places, this);
         getServer().getScheduler().runTask(this, () -> { ferox.build(); structures.scatter(gameManager.world()); structures.shine(gameManager.world()); worldMap.attach(); });
         getServer().getScheduler().runTaskTimer(this, structures::sparkle, 100L, 5L);
@@ -178,7 +179,9 @@ public final class CrossfightPlugin extends JavaPlugin {
     private com.kiokouwhite.crossfight.game.WorldMap worldMap;
     public com.kiokouwhite.crossfight.game.WorldMap worldMap() { return worldMap; }
     private com.kiokouwhite.crossfight.game.Places places;
+    private com.kiokouwhite.crossfight.game.PlaceEvents placeEvents;
     public com.kiokouwhite.crossfight.game.Places places() { return places; }
+    public com.kiokouwhite.crossfight.game.PlaceEvents placeEvents() { return placeEvents; }
     private com.kiokouwhite.crossfight.game.Rhythm rhythm;
     public com.kiokouwhite.crossfight.game.Rhythm rhythm() { return rhythm; }
     private com.kiokouwhite.crossfight.game.Quests quests;

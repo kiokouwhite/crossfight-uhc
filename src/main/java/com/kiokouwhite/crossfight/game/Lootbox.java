@@ -655,8 +655,11 @@ public final class Lootbox implements Listener {
             if (place(at, tier)) where.add("<" + TIER_COLOR[tier - 1] + ">" + at.getBlockX() + " " + at.getBlockY() + " " + at.getBlockZ() + "</" + TIER_COLOR[tier - 1] + ">");
         }
         // Le lieu des lootbox (game/Places.java) en recoit une de plus, a coup sur.
-        Location sure = plugin.places().lootSpot();
-        if (sure != null) {
+        // (evenement des lieux : deux si ce lieu est renforce, aucune s'il est affaibli)
+        Location first = plugin.places().lootSpot();
+        int mood = plugin.placeEvents().mood("lootbox");
+        for (int k = 0; first != null && k < (mood > 0 ? 2 : mood < 0 ? 0 : 1); k++) {
+            Location sure = first.clone().add(2 * k, 0, 0);
             int tier = rollTier();
             if (place(sure, tier)) where.add("<" + TIER_COLOR[tier - 1] + ">" + sure.getBlockX() + " " + sure.getBlockY() + " " + sure.getBlockZ() + "</" + TIER_COLOR[tier - 1] + ">");
         }

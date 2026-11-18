@@ -341,6 +341,8 @@ public final class Rhythm implements Listener {
     /** Ouvre le choix des musiques a ce joueur. */
     public void open(Player p) {
         if (plays.containsKey(p.getUniqueId())) return;
+        String notice = plugin.placeEvents().notice("rythme");
+        if (notice != null) Msg.send(p, notice);
         p.openInventory(new Menu(p).inv);
     }
 
@@ -673,8 +675,17 @@ public final class Rhythm implements Listener {
             // chaque note donne sa recompense : un A donne celles du C, du B et du A (moins celles deja recues)
             int[] gain = new int[3];
             for (int g = before == null ? 0 : before + 1; g <= grade; g++) for (int k = 0; k < 3; k++) gain[k] += REWARDS[song.level()][g][k];
+            // l'evenement des lieux : forge renforcee, tout est double (et un A en difficile donne de la netherite) ; affaiblie, moitie (arrondie au-dessus)
+            int mood = plugin.placeEvents().mood("rythme");
+            for (int k = 0; k < 3; k++) gain[k] = mood > 0 ? gain[k] * 2 : mood < 0 ? (gain[k] + 1) / 2 : gain[k];
+            boolean netherite = mood > 0 && song.level() == 2 && grade == 2;
             Material[] what = {Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND};
             for (int k = 0; k < 3; k++) if (gain[k] > 0) p.getInventory().addItem(new ItemStack(what[k], gain[k])).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
+            if (netherite) {
+                // le lingot et le modele qui permet de s'en servir a la table de forgeron
+                for (Material m : new Material[]{Material.NETHERITE_INGOT, Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE}) p.getInventory().addItem(new ItemStack(m)).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
+                Msg.send(p, "<dark_purple>Forge renforcée : <white>un lingot de netherite et son modèle d'amélioration<dark_purple>.");
+            } else if (mood != 0) Msg.send(p, mood > 0 ? "<green>▲ Forge renforcée : matériaux doublés." : "<red>▼ Forge affaiblie : matériaux divisés par deux.");
             Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note y ajoute sa récompense." : ""));
         }
         results.put(p.getUniqueId(), new Result(play, share, grade, before));

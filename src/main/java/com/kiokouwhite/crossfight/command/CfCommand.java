@@ -140,6 +140,18 @@ public final class CfCommand implements TabExecutor {
                         // Raccourci : /cf pearl glowing = /cf quete montrer pearl
                         if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
                     }
+                    case "evenement", "evenements" -> {
+                        // L'evenement des lieux : /cf evenement (voir), tirer, arreter, ou <lieu renforce> <lieu affaibli>
+                        var ev = plugin.placeEvents();
+                        if (args.length < 2) { Msg.send(sender, ev.status()); return true; }
+                        if (args[1].equalsIgnoreCase("tirer")) { if (!ev.roll()) Msg.send(sender, "<red>Il faut au moins deux lieux posés."); return true; }
+                        if (args[1].equalsIgnoreCase("arreter")) { ev.clear(); Msg.send(sender, "<gray>Plus aucun lieu renforcé ni affaibli."); return true; }
+                        java.util.List<String> known = ev.places();
+                        String up = args[1].equals("-") ? null : args[1], down = args.length > 2 && !args[2].equals("-") ? args[2] : null;
+                        if (up != null && !known.contains(up) || down != null && !known.contains(down)) { Msg.send(sender, "<yellow>Lieux posés : <white>" + String.join(", ", known) + " <gray>(- pour aucun)"); return true; }
+                        ev.set(up, down);
+                        return true;
+                    }
                     case "rythme", "concert", "forge" -> {
                         // Essayer le concert d'Anna : /cf rythme (le menu) ou /cf rythme <musique> (la jouer tout de suite)
                         if (!(sender instanceof Player sp)) return true;
@@ -912,6 +924,7 @@ public final class CfCommand implements TabExecutor {
                 case "tp" -> out.add("quete");
                 case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); out.add("resultat"); }
                 case "pearl" -> out.add("glowing");
+                case "evenement", "evenements" -> { out.add("tirer"); out.add("arreter"); out.addAll(plugin.placeEvents().places()); }
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {
                     out.addAll(List.of("solo", "duo", "trio"));

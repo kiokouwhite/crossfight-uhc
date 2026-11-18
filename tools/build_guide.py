@@ -187,6 +187,8 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 
 **Le Titan (Shiganshina).** Il tombe en cent coups, comptés sur la barre en haut de l'écran. Chaque attaque s'annonce deux secondes avant, par son nom, dans une seconde barre sous la sienne : à toi de réagir. Il en a cinq, tirées au hasard : la *Charge titanesque* (sors du couloir rouge avant qu'il ne fonce : 2 cœurs), le *Lancer de pierres* (sors des cercles orange, trois fois de suite : 2 cœurs), le *Regard terrifiant* (détourne les yeux à temps, sinon tu es pétrifié 10 secondes), le *Cri strident* (éloigne-toi de 20 blocs, sinon nausée et lenteur 10 secondes) et la *Course du Titan* (fuis pendant 10 secondes : 1 cœur chaque fois qu'il te rattrape). Ses coups ignorent l'armure, et il casse les blocs sur son passage : ne compte pas sur un mur pour t'abriter.
 
+**L'événement des lieux.** Toutes les vingt minutes, une cloche sonne : un lieu au hasard est renforcé, un autre affaibli, jusqu'à la cloche suivante. Un lieu renforcé donne bien plus (chez Anna à Pearl, toutes ses potions, une de chaque ; à la forge de Shiganshina, des matériaux doublés et de la netherite pour un A en difficile ; des enchantements gratuits à Garreg Mach...), un lieu affaibli donne moins ou coûte le double. Regarde l'annonce avant de choisir ta route.
+
 **La forge (Shiganshina).** Le Titan vaincu, reparle à Anna : ici, on forge en musique. Elle te propose neuf airs, trois faciles, trois moyens et trois difficiles. Un grand tableau se dresse devant toi : des notes tombent sur quatre couloirs ; frappe avec les touches 1, 2, 3 et 4 de ton clavier quand elles touchent la ligne du bas. Ta note dépend de ta précision : C à partir de 55 %, B à 75 %, A à 90 %.
 
 | Difficulté | C | B | A |

@@ -139,6 +139,12 @@ structures:
   # equipe qui se lance dans sa quete fait prevenir celles qui le tiennent ; si elle la termine, elle choisit laquelle
   # perd son privilege (l'equipe ecartee peut refaire la quete).
   equipes-par-lieu: 2
+  # L'evenement des lieux : toutes les "intervalle" minutes de partie, un lieu pose au hasard est renforce et un autre
+  # affaibli, jusqu'au tirage suivant (potions : une de chaque / une toutes les 20 minutes ; forge en musique : materiaux
+  # doubles et netherite pour un A en difficile / materiaux divises par deux ; enchantements gratuits / deux fois plus chers...)
+  evenements:
+    actifs: true
+    intervalle: 20
   # Quel lieu rend quel service : enchantement, forge, rythme, potions, marchand, nourriture, experience, lootbox, chasse
   # ("rythme" est la forge en musique de Shiganshina ; "forge" y est lu comme "rythme" ; pour y remettre vraiment la forge :
   # structures.forge-a-shiganshina: true)
