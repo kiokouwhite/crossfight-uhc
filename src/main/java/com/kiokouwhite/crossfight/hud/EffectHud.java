@@ -144,7 +144,7 @@ public final class EffectHud implements Listener {
     }
 
     /**
-     * L'orbe de l'ultime, en bas a gauche de l'ecran (avec le pack d'interface : tools/build_ultime_franuka.py) : il se
+     * L'orbe de l'ultime, en bas a droite de l'ecran (avec le pack d'interface : tools/build_ultime_franuka.py) : il se
      * remplit par vingtiemes avec la charge ; plein, il brille (deux images qui alternent). Porte par la case des bottes.
      * Null sans le pack, ou si le joueur n'a pas de personnage.
      */

@@ -217,5 +217,5 @@ restrictions:
 # Bonus et malus sur les bords de l'ecran (bande et icones, comme dans un jeu de tir) et un son quand on en recoit un.
 hud:
   effets: true
-  # L'orbe de l'ultime, en bas a gauche de l'ecran (avec le pack d'interface) : il se remplit avec la charge.
+  # L'orbe de l'ultime, en bas a droite de l'ecran (avec le pack d'interface) : il se remplit avec la charge.
   ultime: true
