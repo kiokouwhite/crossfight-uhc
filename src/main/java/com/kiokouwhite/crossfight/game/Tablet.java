@@ -108,7 +108,7 @@ public final class Tablet implements Listener {
         void build() {
             backdrop();
             plate(GRID_LEFT + SIZE * CELL / 2, GRID_TOP - SIZE * CELL / 2, SIZE * CELL + 0.06, SIZE * CELL + 0.06);
-            label(GOAL_LEFT + SIZE * GOAL / 2, GOAL_TOP + 0.08, "<aqua>Figure à obtenir", 0.7f);
+            header(GOAL_LEFT + SIZE * GOAL / 2, GOAL_TOP + 0.1, "<aqua>Figure à obtenir", 0.6f);
             label(GRID_LEFT + SIZE * CELL / 2, GRID_TOP + 0.08, "<white>Pose les pièces ici", 0.7f);
             label(-1.3, TRAY_V + 0.42, "<gray>Tes pièces", 0.6f);
             label(0, -HEIGHT / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>F <gray>: tourner   <yellow>Accroupi <gray>: fermer", 0.6f);
@@ -293,6 +293,7 @@ public final class Tablet implements Listener {
                 continue;
             }
             b.aim();
+            b.point();
             b.follow();
         }
     }

@@ -92,7 +92,7 @@ final class Workbench extends PanelGame {
 
     void build() {
         backdrop();
-        label(-1.3, 1.3, "<aqua>Refais cet objet", 0.6f);
+        header(-1.3, 1.3, "<aqua>Refais cet objet", 0.6f);
         tile(-1.35, 0.55, 1.1, 1.1, 0.02, empty);
         item(-1.35, 0.55, 0.8, 0.04, new ItemStack(recipe.result()));
         label(-0.45, 0.42, "<white>←", 1.0f);

@@ -214,6 +214,15 @@ def main():
     slot(d, 8 + 18 * 6, 18 + 18 * 5)
     im.save(ROOT / "textures" / "font" / "menu_anna5.png")
 
+    # 6. Un lieu complet : quelle equipe perd son privilege (sept cases, rangee 2 : 19 a 25).
+    im, d = card()
+    panel(d, 6, 14, 169, 124, 6)
+    text(im, 88 - width("LIEU COMPLET", 2) // 2, 24, "LIEU COMPLET", 2)
+    text(im, 88 - width("QUI PERD SA PLACE") // 2, 96, "QUI PERD SA PLACE", 1, (255, 150, 150, 255))
+    for col in range(1, 8):
+        slot(d, 8 + 18 * col, 18 + 18 * 2)
+    im.save(ROOT / "textures" / "font" / "menu_anna6.png")
+
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -8}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H, "ascent": 13, "chars": ["\ue000"]},
@@ -221,6 +230,7 @@ def main():
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H, "ascent": 13, "chars": ["\ue002"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H, "ascent": 13, "chars": ["\ue003"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H, "ascent": 13, "chars": ["\ue004"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna6.png", "height": H, "ascent": 13, "chars": ["\ue005"]},
     ]}
     (ROOT / "font" / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
     print("menu_anna.png, menu_anna2.png, menu_anna3.png, menu_anna4.png", im.size)

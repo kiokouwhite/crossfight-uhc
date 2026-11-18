@@ -49,6 +49,7 @@ abstract class PanelGame extends Panel {
     final void tick() {
         if (solvedAt >= 0) return;
         aim();
+        point();
         onTick();
     }
 

@@ -126,6 +126,43 @@ abstract class Panel {
         d.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), px == null ? 0 : (float) (DROP / 40.0 * sy), 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
     }
 
+    /** Les largeurs des bandeaux de titre du pack, en points (tools/build_enigmes_franuka.py : BANNERS). */
+    private static final int[] BANNERS = {64, 96, 128, 160, 192};
+    private TextDisplay pointer;
+
+    /** Un titre : son texte, et avec le pack un bandeau dessous, a sa largeur. */
+    void header(double u, double v, String mini, float scale) {
+        if (drawn) {
+            String plain = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(Msg.mm(mini));
+            double need = plain.length() * 0.115 * scale + 0.3;
+            int k = 0;
+            while (k < BANNERS.length - 1 && BANNERS[k] * 0.75 / 40 < need) k++;
+            picture("enigme", (char) (0xE620 + k), BANNERS[k], 16, u, v + 0.11 * scale / 0.7, BANNERS[k] * 0.75 / 40, 0.3, 0.012, Color.WHITE);
+        }
+        label(u, v, mini, scale);
+    }
+
+    /** Avec le pack : une main qui suit le viseur sur le tableau (son doigt est a l'endroit vise). A appeler apres aim(). */
+    void point() {
+        if (!drawn) return;
+        if (pointer == null) {
+            pointer = picture("enigme", '\uE612', 16, 16, 0, 0, 0.3, 0.3, 0.09, Color.WHITE);
+            pointer.setTeleportDuration(1);
+        }
+        if (aimed) pointer.teleport(spot(cu + 0.04, cv - 0.15 - 0.13, 0.09));
+    }
+
+    /** Un orbe du pack (0 : la source, 1 : une lampe eteinte, 2 : une lampe allumee), de `size` blocs, centre en (u, v). */
+    TextDisplay orb(int kind, double u, double v, double size, double depth) {
+        return picture("enigme", (char) (0xE613 + kind), 48, 48, u, v, size, size, depth, Color.WHITE);
+    }
+
+    /** Change l'image d'un orbe. */
+    void orb(TextDisplay d, int kind) {
+        images.put(d.getUniqueId(), net.kyori.adventure.text.Component.text(String.valueOf((char) (0xE613 + kind))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "enigme")));
+        paint(d, Color.WHITE);
+    }
+
     /** Le fond du tableau : la fenetre du pack, ou un rectangle bleu nuit. */
     void backdrop() {
         if (drawn) for (int k = 0; k < WINDOWS.length; k++) if (WINDOWS[k][0] == width && WINDOWS[k][1] == height) {

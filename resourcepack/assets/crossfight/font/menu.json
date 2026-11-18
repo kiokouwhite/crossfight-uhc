@@ -50,6 +50,15 @@
    "chars": [
     "\ue004"
    ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/menu_anna6.png",
+   "height": 222,
+   "ascent": 13,
+   "chars": [
+    "\ue005"
+   ]
   }
  ]
 }

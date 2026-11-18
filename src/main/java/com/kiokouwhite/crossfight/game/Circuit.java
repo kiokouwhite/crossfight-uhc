@@ -88,18 +88,21 @@ final class Circuit extends PanelGame {
     void build() {
         backdrop();
         plate(0, TOP - N * CELL / 2, N * CELL + 0.06, N * CELL + 0.06);
-        label(0, TOP + 0.3, "<aqua>Amène le courant aux deux lampes", 0.7f);
+        header(0, TOP + 0.34, "<aqua>Amène le courant aux deux lampes", 0.6f);
         // la legende : un carre de couleur et son nom (dans la police du tableau, qui n'a pas de carre plein)
         Object[][] legend = {{-1.29, -1.0, SOURCE, "source"}, {-0.64, -0.14, LAMP_OFF, "lampe éteinte"}, {0.46, 0.96, LAMP_ON, "lampe allumée"}};
-        for (Object[] l : legend) {
-            rect((double) l[0], TOP + 0.17, 0.09, 0.09, 0.03, (Color) l[2]);
+        for (int k = 0; k < legend.length; k++) {
+            Object[] l = legend[k];
+            if (drawn) orb(k, (double) l[0], TOP + 0.17, 0.16, 0.03);
+            else rect((double) l[0], TOP + 0.17, 0.09, 0.09, 0.03, (Color) l[2]);
             label((double) l[1], TOP + 0.1, "<gray>" + l[3], 0.5f);
         }
         label(0, -height / 2 + 0.06, "<yellow>Clic <gray>: tourner la tuile   <yellow>Accroupi <gray>: fermer", 0.6f);
         for (int c = 0; c < N * N; c++) {
             tiles[c] = tile(tu(c), tv(c), CELL - 0.04, CELL - 0.04, 0.02, dark);
             boolean end = c == source || lamps.contains(c);
-            hubs[c] = rect(tu(c), tv(c), end ? 0.26 : 0.1, end ? 0.26 : 0.1, 0.045, NONE);
+            // la source et les lampes : les orbes du pack, ou des carres de couleur
+            hubs[c] = drawn && end ? orb(c == source ? 0 : 1, tu(c), tv(c), 0.4, 0.045) : rect(tu(c), tv(c), end ? 0.26 : 0.1, end ? 0.26 : 0.1, 0.045, NONE);
             for (int d = 0; d < 4; d++) {
                 boolean flat = d % 2 == 1;
                 arms[c][d] = rect(tu(c) + DX[d] * CELL / 4, tv(c) - DY[d] * CELL / 4, flat ? CELL / 2 : 0.1, flat ? 0.1 : CELL / 2, 0.035, NONE);
@@ -139,8 +142,8 @@ final class Circuit extends PanelGame {
             boolean live = dist[c] >= 0 && dist[c] <= flow;
             paint(tiles[c], c == hover && solvedAt < 0 ? (drawn ? Color.fromARGB(255, 132, 140, 200) : AIMED) : dark);
             Color wire = live ? LIVE : drawn ? Color.fromARGB(255, 206, 212, 242) : WIRE;
-            if (c == source) hubs[c].setBackgroundColor(SOURCE);
-            else if (lamps.contains(c)) { hubs[c].setBackgroundColor(live ? LAMP_ON : LAMP_OFF); if (live) reached++; }
+            if (c == source) { if (!drawn) hubs[c].setBackgroundColor(SOURCE); }
+            else if (lamps.contains(c)) { if (drawn) orb(hubs[c], live ? 2 : 1); else hubs[c].setBackgroundColor(live ? LAMP_ON : LAMP_OFF); if (live) reached++; }
             else hubs[c].setBackgroundColor(mask[c] == 0 ? NONE : wire);
             for (int d = 0; d < 4; d++) arms[c][d].setBackgroundColor((mask[c] & 1 << d) != 0 ? wire : NONE);
         }

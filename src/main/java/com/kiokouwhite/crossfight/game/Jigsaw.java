@@ -94,7 +94,7 @@ final class Jigsaw extends PanelGame {
         double heap = 2 * HOME_PITCH + PIECE * HOME_SCALE + 0.5;
         plate(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP - (2 * HOME_PITCH + PIECE) / 2, heap, heap);
         label(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP + 0.2, "<gray>Les pièces", 0.6f);
-        label(FRAME_LEFT + P * PIECE / 2, FRAME_TOP + 0.08, "<aqua>Reforme l'image", 0.7f);
+        header(FRAME_LEFT + P * PIECE / 2, FRAME_TOP + 0.12, "<aqua>Reforme l'image", 0.6f);
         label(MINI_LEFT - 0.4, MINI_TOP - 0.35, "<gray>Modèle", 0.6f);
         label(-0.6, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>Accroupi <gray>: fermer", 0.55f);
         for (int s = 0; s < P * P; s++) frame[s] = tile(frameU(s) + PIECE / 2, frameV(s) - PIECE / 2, PIECE - 0.03, PIECE - 0.03, 0.02, empty);

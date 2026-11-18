@@ -202,6 +202,18 @@ def main():
     im.alpha_composite(slot, (8 + 18 * 6, 18 + 18 * 5))                    # la case 51 : l'horloge
     keep(im, OUT.with_name("menu_anna5.png"))
 
+    # 6. Un lieu complet : quelle equipe perd son privilege. Un grand bandeau, la rangee des equipes sur un cadre clair, un avertissement.
+    im = window(mine)
+    im.alpha_composite(wide(sprite("Title banners", "BannerMedium_05A"), 128), (24, 4))
+    write(im, 88, 12, "Lieu complet", title, (150, 44, 60, 255))
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 152 + 12, 40 + 12), (12 - 6, 42 - 6))
+    for col in range(1, 8):
+        im.alpha_composite(slot, (8 + 18 * col, 18 + 18 * 2))              # les cases 19 a 25
+    im.alpha_composite(sprite("Dividers", "Divider_02"), (64, 88))
+    write(im, 88, 100, "Quelle équipe perd", text, NAVY)
+    write(im, 88, 110, "son privilège ?", text, NAVY)
+    keep(im, OUT.with_name("menu_anna6.png"))
+
     # la police : celle du pack public, calee pour une image plus grande que le coffre
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -(8 + MARGIN)}},
@@ -210,6 +222,7 @@ def main():
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue002"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue003"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue004"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna6.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue005"]},
     ]}
     fonts = OUT.parent.parent.parent / "font"
     fonts.mkdir(parents=True, exist_ok=True)

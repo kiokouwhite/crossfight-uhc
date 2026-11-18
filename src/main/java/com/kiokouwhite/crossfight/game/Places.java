@@ -664,7 +664,7 @@ public final class Places implements Listener {
     }
 
     /** Le titre d'un menu d'Anna : avec le pack, l'image qui habille le coffre (tools/build_menu_anna.py) ; sinon, du texte. */
-    private static Component dressed(Player p, char image, String plain) {
+    static Component dressed(Player p, char image, String plain) {
         boolean pack = com.kiokouwhite.crossfight.util.Sounds.has("font.menu") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
         return pack ? Component.text("" + image).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "menu")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
                 : Component.text(plain);

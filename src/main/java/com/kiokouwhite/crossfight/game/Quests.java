@@ -583,11 +583,11 @@ public final class Quests implements Listener {
         final Run run;
         final List<String> teams = new ArrayList<>();
 
-        Eject(Run run) {
+        Eject(Run run, Player p) {
             this.run = run;
-            inv = Bukkit.createInventory(this, 9, net.kyori.adventure.text.Component.text("Quelle équipe perd son privilège ?"));
+            inv = Bukkit.createInventory(this, 54, Places.dressed(p, '\uE005', "Quelle équipe perd son privilège ?"));
             for (String team : holders(run.place)) {
-                if (teams.size() >= 9) break;
+                if (teams.size() >= 7) break;
                 ItemStack head = new ItemStack(Material.PLAYER_HEAD);
                 org.bukkit.inventory.meta.SkullMeta meta = (org.bukkit.inventory.meta.SkullMeta) head.getItemMeta();
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>();
@@ -609,7 +609,7 @@ public final class Quests implements Listener {
                 lore.add(Msg.mm("<red>Clic : elle perd le privilège de ce lieu").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
                 meta.lore(lore);
                 head.setItemMeta(meta);
-                inv.setItem(teams.size(), head);
+                inv.setItem(19 + teams.size(), head);
                 teams.add(team);
             }
         }
@@ -624,17 +624,17 @@ public final class Quests implements Listener {
     private void openEject(Player p, Run r) {
         // Entre-temps, une place a pu se liberer : alors il n'y a plus personne a ecarter.
         if (cap() == 0 || holders(r.place).size() < cap()) { closeEject(r.team); grant(r, QUESTS.get(r.place), null); return; }
-        p.openInventory(new Eject(r).inv);
+        p.openInventory(new Eject(r, p).inv);
     }
 
     @EventHandler
     public void onEject(org.bukkit.event.inventory.InventoryClickEvent e) {
         if (!(e.getInventory().getHolder() instanceof Eject menu)) return;
         e.setCancelled(true);
-        if (e.getClickedInventory() != menu.inv || e.getSlot() < 0 || e.getSlot() >= menu.teams.size() || !(e.getWhoClicked() instanceof Player p)) return;
+        if (e.getClickedInventory() != menu.inv || e.getSlot() < 19 || e.getSlot() - 19 >= menu.teams.size() || !(e.getWhoClicked() instanceof Player p)) return;
         Run r = menu.run;
         if (!r.pending) { p.closeInventory(); return; }                    // un equipier a deja choisi
-        String out = menu.teams.get(e.getSlot());
+        String out = menu.teams.get(e.getSlot() - 19);
         Map<String, Run> theirs = runs.get(out);
         Run lost = theirs == null ? null : theirs.get(r.place);
         boolean ejected = lost != null && lost.finished && !lost.pending;
