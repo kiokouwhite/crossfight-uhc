@@ -30,7 +30,7 @@ final class Jigsaw extends PanelGame {
             {"....GGGG....", "...GGGGGG...", "..GGGDGGGG..", ".GGGGGGGDGG.", ".GDGGGGGGGG.", ".GGGGGDGGGG.", "..GGGGGGGG..", "...GGTTGG...", ".....TT.....", ".....TT.....", "....TTTT....", "MMMMMMMMMMMM"},
             {".....RR.....", "....RRRR....", "...RRRRRR...", "..RRRRRRRR..", ".RRRRRRRRRR.", "..YYYYYYYY..", "..YBBYYYYY..", "..YBBYYTTY..", "..YYYYYTTY..", "..YYYYYTTY..", "MMMMMMMMMMMM", "MMMMMMMMMMMM"}};
 
-    private static final double PX = 0.14, PIECE = K * PX, FRAME_LEFT = 0.5, FRAME_TOP = 1.2, HOME_LEFT = -2.3, HOME_TOP = 1.3, HOME_PITCH = 0.68;
+    private static final double PX = 0.14, PIECE = K * PX, FRAME_LEFT = 0.5, FRAME_TOP = 1.2, HOME_LEFT = -2.2, HOME_TOP = 1.3, HOME_PITCH = 0.68;
     private static final double MINI = 0.045, MINI_LEFT = FRAME_LEFT + (P * PIECE - SIDE * MINI) / 2, MINI_TOP = -0.78;
     private static final Color BACK = Color.fromARGB(235, 12, 14, 36), SLOT = Color.fromARGB(255, 34, 40, 76), AIMED = Color.fromARGB(255, 70, 80, 130);
 
@@ -81,12 +81,13 @@ final class Jigsaw extends PanelGame {
     double homeV(int h) { return HOME_TOP - (h / P) * HOME_PITCH; }
 
     void build() {
-        rect(0, 0, width, height, 0, BACK);
-        label(HOME_LEFT + 1.5 * HOME_PITCH - 0.06, HOME_TOP + 0.06, "<gray>Les pièces", 0.6f);
+        backdrop();
+        plate(HOME_LEFT + (2 * HOME_PITCH + PIECE) / 2, HOME_TOP - (2 * HOME_PITCH + PIECE) / 2, 2 * HOME_PITCH + PIECE + 0.1, 2 * HOME_PITCH + PIECE + 0.1);
+        label(HOME_LEFT + 1.5 * HOME_PITCH - 0.06, HOME_TOP + 0.1, "<gray>Les pièces", 0.6f);
         label(FRAME_LEFT + P * PIECE / 2, FRAME_TOP + 0.08, "<aqua>Reforme l'image", 0.7f);
         label(MINI_LEFT - 0.4, MINI_TOP - 0.35, "<gray>Modèle", 0.6f);
-        label(-0.9, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>Accroupi <gray>: fermer", 0.6f);
-        for (int s = 0; s < P * P; s++) frame[s] = rect(frameU(s) + PIECE / 2, frameV(s) - PIECE / 2, PIECE - 0.03, PIECE - 0.03, 0.02, SLOT);
+        label(-0.6, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>Accroupi <gray>: fermer", 0.55f);
+        for (int s = 0; s < P * P; s++) frame[s] = tile(frameU(s) + PIECE / 2, frameV(s) - PIECE / 2, PIECE - 0.03, PIECE - 0.03, 0.02, empty);
         for (int y = 0; y < SIDE; y++) for (int x = 0; x < SIDE; x++)
             rect(MINI_LEFT + (x + 0.5) * MINI, MINI_TOP - (y + 0.5) * MINI, MINI + 0.004, MINI + 0.004, 0.02, picture[y * SIDE + x]);
         for (int i = 0; i < P * P; i++) for (int k = 0; k < K * K; k++) {
@@ -163,7 +164,7 @@ final class Jigsaw extends PanelGame {
     @Override void onTick() {
         int over = held >= 0 ? slotAt() : -1;
         if (over != hover) {
-            for (int s = 0; s < P * P; s++) frame[s].setBackgroundColor(s == over ? AIMED : SLOT);
+            for (int s = 0; s < P * P; s++) paint(frame[s], s == over ? pointed : empty);
             hover = over;
         }
         if (held < 0 || !aimed) return;

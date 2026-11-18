@@ -26,7 +26,8 @@ const CLES = { iron_pickaxe: { I: 'iron_ingot', S: 'stick' }, diamond_sword: { D
   const p = bot.entity.position.clone();
   bot.chat('/cf enigme ' + quoi); await sleep(2500);
   const uv = e => [-(e.position.x - p.x), e.position.y - (p.y + 2)];
-  const clic = async (u, v) => { await bot.lookAt(new Vec3(p.x - u, p.y + 2.0 + v, p.z + 3.5), true); await sleep(300); await bot.look(bot.entity.yaw, bot.entity.pitch, true); await sleep(300); bot.swingArm('right'); await sleep(350); };
+  // le serveur oriente lui-meme le bot (son propre regard arrive parfois en retard) : yeux a 1,62 au-dessus des pieds
+  const clic = async (u, v) => { const dx = -u, dy = 2.0 + v - 1.62, dz = 3.5; bot.chat('/tp @s ' + p.x + ' ' + p.y + ' ' + p.z + ' ' + (-Math.atan2(dx, dz) * 180 / Math.PI).toFixed(3) + ' ' + (-Math.atan2(dy, Math.hypot(dx, dz)) * 180 / Math.PI).toFixed(3)); await sleep(450); bot.swingArm('right'); await sleep(350); };
   let clics = 0;
   if (quoi === 'etabli') {
     const vus = Object.values(bot.entities).filter(e => e.name === 'item_display' && objet[e.id]).map(e => ({ nom: bot.registry.items[objet[e.id]].name, u: uv(e)[0], v: uv(e)[1] }));
@@ -39,7 +40,7 @@ const CLES = { iron_pickaxe: { I: 'iron_ingot', S: 'stick' }, diamond_sword: { D
       for (let y = 0; y < rangees.length; y++) for (let x = 0; x < rangees[y].length; x++) if (rangees[y][x] === lettre) { await clic(-0.05 + (x + 0.5) * 0.5, 1.2 - (y + 0.5) * 0.5); clics++; }
     }
   } else {
-    const PX = 0.14, PIECE = 0.56, MINI = 0.045, FL = 0.5, FT = 1.2, HL = -2.3, HT = 1.3, HP = 0.68, ML = FL + (3 * PIECE - 12 * MINI) / 2, MT = -0.78;
+    const PX = 0.14, PIECE = 0.56, MINI = 0.045, FL = 0.5, FT = 1.2, HL = -2.2, HT = 1.3, HP = 0.68, ML = FL + (3 * PIECE - 12 * MINI) / 2, MT = -0.78;
     const points = Object.values(bot.entities).filter(e => e.name === 'text_display' && fond[e.id]).map(e => ({ c: fond[e.id], u: uv(e)[0], v: uv(e)[1] }));
     // le modele : 12 x 12 points ; chaque affichage est pose par son bas
     const modele = []; for (let y = 0; y < 12; y++) for (let x = 0; x < 12; x++) { const u = ML + (x + 0.5) * MINI, v = MT - (y + 0.5) * MINI - (MINI + 0.004) / 2; const q = points.find(o => Math.abs(o.u - u) < 0.012 && Math.abs(o.v - v) < 0.012); modele.push(q ? q.c : null); }

@@ -91,21 +91,22 @@ final class Workbench extends PanelGame {
     double trayU(int i) { return (i - 2.5) * TRAY_PITCH; }
 
     void build() {
-        rect(0, 0, width, height, 0, BACK);
-        label(-1.35, 1.3, "<aqua>Refais cet objet", 0.7f);
-        rect(-1.35, 0.55, 1.1, 1.1, 0.02, SLOT);
+        backdrop();
+        label(-1.3, 1.3, "<aqua>Refais cet objet", 0.6f);
+        tile(-1.35, 0.55, 1.1, 1.1, 0.02, empty);
         item(-1.35, 0.55, 0.8, 0.04, new ItemStack(recipe.result()));
         label(-0.45, 0.42, "<white>←", 1.0f);
         label(GRID_LEFT + 1.5 * CELL, GRID_TOP + 0.1, "<white>Table de craft", 0.7f);
-        rect(GRID_LEFT + 1.5 * CELL, GRID_TOP - 1.5 * CELL, 3 * CELL + 0.12, 3 * CELL + 0.12, 0.015, WOOD);
+        if (drawn) plate(GRID_LEFT + 1.5 * CELL, GRID_TOP - 1.5 * CELL, 3 * CELL + 0.06, 3 * CELL + 0.06);
+        else rect(GRID_LEFT + 1.5 * CELL, GRID_TOP - 1.5 * CELL, 3 * CELL + 0.12, 3 * CELL + 0.12, 0.015, WOOD);
         for (int c = 0; c < 9; c++) {
             double u = GRID_LEFT + (c % 3 + 0.5) * CELL, v = GRID_TOP - (c / 3 + 0.5) * CELL;
-            cells[c] = rect(u, v, CELL - 0.05, CELL - 0.05, 0.02, SLOT);
+            cells[c] = tile(u, v, CELL - 0.05, CELL - 0.05, 0.02, empty);
             placed[c] = item(u, v, CELL * 0.72, 0.04, new ItemStack(Material.AIR));
         }
         label(0, TRAY_V + 0.34, "<gray>Ingrédients", 0.6f);
         for (int i = 0; i < 6; i++) {
-            slots[i] = rect(trayU(i), TRAY_V, 0.5, 0.5, 0.02, SLOT);
+            slots[i] = tile(trayU(i), TRAY_V, 0.5, 0.5, 0.02, empty);
             item(trayU(i), TRAY_V, 0.36, 0.04, new ItemStack(tray.get(i)));
         }
         label(0, -height / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser / retirer   <yellow>Accroupi <gray>: fermer", 0.6f);
@@ -141,7 +142,7 @@ final class Workbench extends PanelGame {
             placed[cell].setItemStack(new ItemStack(grid[cell] == null ? Material.AIR : grid[cell]));
             if (matches(false) || matches(true)) {
                 hold(null);
-                for (TextDisplay c : cells) c.setBackgroundColor(GOOD);
+                for (TextDisplay c : cells) paint(c, GOOD);
                 win(Sound.BLOCK_ANVIL_USE);
             }
         } else if (held != null) {
@@ -168,8 +169,8 @@ final class Workbench extends PanelGame {
     @Override void onTick() {
         int over = cellAt() >= 0 ? cellAt() : trayAt() >= 0 ? 9 + trayAt() : -1;
         if (over != hover) {
-            for (int c = 0; c < 9; c++) cells[c].setBackgroundColor(c == over ? AIMED : SLOT);
-            for (int i = 0; i < 6; i++) slots[i].setBackgroundColor(9 + i == over ? AIMED : SLOT);
+            for (int c = 0; c < 9; c++) paint(cells[c], c == over ? pointed : empty);
+            for (int i = 0; i < 6; i++) paint(slots[i], 9 + i == over ? pointed : empty);
             hover = over;
         }
         if (held != null && aimed) moving.teleport(spot(cu, cv, 0.07));

@@ -86,12 +86,13 @@ final class Circuit extends PanelGame {
     double tv(int c) { return TOP - (c / N + 0.5) * CELL; }
 
     void build() {
-        rect(0, 0, width, height, 0, BACK);
+        backdrop();
+        plate(0, TOP - N * CELL / 2, N * CELL + 0.06, N * CELL + 0.06);
         label(0, TOP + 0.3, "<aqua>Amène le courant aux deux lampes", 0.7f);
         label(0, TOP + 0.1, "<gold>■ <gray>source   <red>■ <gray>lampe éteinte   <green>■ <gray>lampe allumée", 0.5f);
         label(0, -height / 2 + 0.06, "<yellow>Clic <gray>: tourner la tuile   <yellow>Accroupi <gray>: fermer", 0.6f);
         for (int c = 0; c < N * N; c++) {
-            tiles[c] = rect(tu(c), tv(c), CELL - 0.04, CELL - 0.04, 0.02, TILE);
+            tiles[c] = tile(tu(c), tv(c), CELL - 0.04, CELL - 0.04, 0.02, dark);
             boolean end = c == source || lamps.contains(c);
             hubs[c] = rect(tu(c), tv(c), end ? 0.26 : 0.1, end ? 0.26 : 0.1, 0.045, NONE);
             for (int d = 0; d < 4; d++) {
@@ -131,8 +132,8 @@ final class Circuit extends PanelGame {
         int reached = 0;
         for (int c = 0; c < N * N; c++) {
             boolean live = dist[c] >= 0 && dist[c] <= flow;
-            tiles[c].setBackgroundColor(c == hover && solvedAt < 0 ? AIMED : TILE);
-            Color wire = live ? LIVE : WIRE;
+            paint(tiles[c], c == hover && solvedAt < 0 ? (drawn ? Color.fromARGB(255, 132, 140, 200) : AIMED) : dark);
+            Color wire = live ? LIVE : drawn ? Color.fromARGB(255, 206, 212, 242) : WIRE;
             if (c == source) hubs[c].setBackgroundColor(SOURCE);
             else if (lamps.contains(c)) { hubs[c].setBackgroundColor(live ? LAMP_ON : LAMP_OFF); if (live) reached++; }
             else hubs[c].setBackgroundColor(mask[c] == 0 ? NONE : wire);

@@ -5,12 +5,12 @@ const { Vec3 } = require('vec3');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const flat = c => { if (c == null) return ''; if (typeof c === 'string') return c; if (c.type) return flat(c.value); if (Array.isArray(c)) return c.map(flat).join(''); return flat(c.text ?? '') + flat(c[''] ?? '') + flat(c.extra ?? ''); };
 const argb = (a, r, g, b) => ((a << 24) | (r << 16) | (g << 8) | b) | 0;
-const WIRE = argb(255, 120, 130, 165), LIVE = argb(255, 255, 176, 56), SOURCE = argb(255, 255, 140, 30), LAMP = argb(255, 200, 50, 60), LAMP_ON = argb(255, 110, 240, 120);
+const WIRE = argb(255, 120, 130, 165), WIRE2 = argb(255, 206, 212, 242), LIVE = argb(255, 255, 176, 56), SOURCE = argb(255, 255, 140, 30), LAMP = argb(255, 200, 50, 60), LAMP_ON = argb(255, 110, 240, 120);
 (async () => {
   const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Invite', version: '1.21.10' });
   bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
   const couleur = {}; let said = [], recus = 0;
-  bot._client.on('entity_metadata', d => { recus++; for (const m of d.metadata) if (typeof m.value === 'number' && [WIRE, LIVE, SOURCE, LAMP, LAMP_ON, 0].includes(m.value | 0) && m.key >= 20) couleur[d.entityId] = m.value | 0; });
+  bot._client.on('entity_metadata', d => { recus++; for (const m of d.metadata) if (typeof m.value === 'number' && [WIRE, WIRE2, LIVE, SOURCE, LAMP, LAMP_ON, 0].includes(m.value | 0) && m.key >= 20) couleur[d.entityId] = m.value | 0; });
   bot._client.on('system_chat', m => { if (!m.isActionBar) said.push(flat(m.content)); });
   await new Promise(r => bot.once('spawn', r)); await sleep(2500);
   bot.chat('/gamemode creative'); bot.chat('/tp @s 0.5 65 0.5 0 0'); await sleep(1500);

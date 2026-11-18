@@ -70,33 +70,20 @@ public final class Tablet implements Listener {
             FADED = Color.fromARGB(255, 110, 92, 58), HELD = Color.fromARGB(200, 255, 140, 40), SLOT = Color.fromARGB(255, 24, 28, 58), NONE = Color.fromARGB(0, 0, 0, 0);
 
     /** Une tablette ouverte chez un joueur. */
-    private final class Board {
-        final Player player;
-        final Location centre;
-        final Vector normal, right;
-        final float yaw;
+    private final class Board extends Panel {
         final boolean[] target = new boolean[SIZE * SIZE];
         final int[][][] pieces = new int[3][][];
         final int[] at = {-1, -1, -1};                        // la case (y * SIZE + x) du coin de chaque piece posee, -1 sinon
         final List<Integer> order = new ArrayList<>();        // les pieces posees, la derniere en dernier
-        final List<Entity> all = new ArrayList<>();
         final TextDisplay[] cells = new TextDisplay[SIZE * SIZE];
         final TextDisplay[] moving = new TextDisplay[4];
         final TextDisplay[][] tray = new TextDisplay[3][4];
         final Consumer<Player> solved;
         int held = -1, lastClick, solvedAt = -1;
-        double cu, cv;
-        boolean aimed;
 
         Board(Player player, Location pillar, Random r, Consumer<Player> solved) {
-            this.player = player;
+            super(Tablet.this.plugin, player, pillar, WIDTH, HEIGHT);
             this.solved = solved;
-            Vector to = player.getLocation().toVector().subtract(pillar.toVector()).setY(0);
-            if (to.lengthSquared() < 0.01) to = new Vector(0, 0, 1);
-            this.normal = to.normalize();
-            this.right = new Vector(normal.getZ(), 0, -normal.getX());
-            this.centre = pillar.clone().add(normal.clone().multiply(0.7)).add(0, 2.0, 0);
-            this.yaw = new Location(pillar.getWorld(), 0, 0, 0).setDirection(normal).getYaw();
             // La figure : trois pieces posees au hasard, tournees au hasard. On recommence tant qu'elle est trop maigre.
             int count;
             do {
@@ -118,78 +105,26 @@ public final class Tablet implements Listener {
             draw();
         }
 
-        Location spot(double u, double v, double depth) {
-            Location l = centre.clone().add(right.clone().multiply(u)).add(0, v, 0).add(normal.clone().multiply(depth));
-            l.setYaw(yaw);
-            l.setPitch(0);
-            return l;
-        }
-
-        /** Un rectangle de couleur de a x b blocs, centre en (u, v). */
-        TextDisplay rect(double u, double v, double a, double b, double depth, Color color) {
-            float sx = (float) (a / W0), sy = (float) (b / H0);
-            TextDisplay d = centre.getWorld().spawn(spot(u, v - b / 2, depth), TextDisplay.class, t -> {
-                t.setPersistent(false);
-                t.setVisibleByDefault(false);
-                t.setBillboard(Display.Billboard.FIXED);
-                t.setBrightness(new Display.Brightness(15, 15));
-                t.setViewRange(1f);
-                t.text(net.kyori.adventure.text.Component.text(" "));
-                t.setBackgroundColor(color);
-                t.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), 0, 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
-            });
-            player.showEntity(plugin, d);
-            all.add(d);
-            return d;
-        }
-
-        void label(double u, double v, String mini, float scale) {
-            TextDisplay d = centre.getWorld().spawn(spot(u, v, 0.03), TextDisplay.class, t -> {
-                t.setPersistent(false);
-                t.setVisibleByDefault(false);
-                t.setBillboard(Display.Billboard.FIXED);
-                t.setBrightness(new Display.Brightness(15, 15));
-                t.setViewRange(1f);
-                t.setLineWidth(400);
-                t.text(Msg.mm(mini));
-                t.setBackgroundColor(NONE);
-                t.setShadowed(true);
-                t.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale, scale, 1), new Quaternionf()));
-            });
-            player.showEntity(plugin, d);
-            all.add(d);
-        }
-
         void build() {
-            rect(0, 0, WIDTH, HEIGHT, 0, BACK);
+            backdrop();
+            plate(GRID_LEFT + SIZE * CELL / 2, GRID_TOP - SIZE * CELL / 2, SIZE * CELL + 0.06, SIZE * CELL + 0.06);
             label(GOAL_LEFT + SIZE * GOAL / 2, GOAL_TOP + 0.08, "<aqua>Figure à obtenir", 0.7f);
             label(GRID_LEFT + SIZE * CELL / 2, GRID_TOP + 0.08, "<white>Pose les pièces ici", 0.7f);
             label(-1.3, TRAY_V + 0.42, "<gray>Tes pièces", 0.6f);
             label(0, -HEIGHT / 2 + 0.06, "<yellow>Clic <gray>: prendre / poser   <yellow>F <gray>: tourner   <yellow>Accroupi <gray>: fermer", 0.6f);
             for (int y = 0; y < SIZE; y++) for (int x = 0; x < SIZE; x++) {
-                rect(GOAL_LEFT + (x + 0.5) * GOAL, GOAL_TOP - (y + 0.5) * GOAL, GOAL - 0.03, GOAL - 0.03, 0.02, target[y * SIZE + x] ? GOLD : EMPTY);
-                cells[y * SIZE + x] = rect(GRID_LEFT + (x + 0.5) * CELL, GRID_TOP - (y + 0.5) * CELL, CELL - GAP, CELL - GAP, 0.02, EMPTY);
+                tile(GOAL_LEFT + (x + 0.5) * GOAL, GOAL_TOP - (y + 0.5) * GOAL, GOAL - 0.03, GOAL - 0.03, 0.02, target[y * SIZE + x] ? gold : empty);
+                cells[y * SIZE + x] = tile(GRID_LEFT + (x + 0.5) * CELL, GRID_TOP - (y + 0.5) * CELL, CELL - GAP, CELL - GAP, 0.02, empty);
             }
             for (int i = 0; i < 3; i++) {
-                rect(TRAY_U[i], TRAY_V, 0.64, 0.64, 0.015, SLOT);
-                for (int k = 0; k < 4; k++) tray[i][k] = rect(TRAY_U[i], TRAY_V, SMALL - 0.02, SMALL - 0.02, 0.03, NONE);
+                tile(TRAY_U[i], TRAY_V, 0.64, 0.64, 0.015, drawn ? empty : SLOT);
+                for (int k = 0; k < 4; k++) tray[i][k] = tile(TRAY_U[i], TRAY_V, SMALL - 0.02, SMALL - 0.02, 0.03, NONE);
             }
             for (int k = 0; k < 4; k++) {
-                moving[k] = rect(0, 0, CELL - GAP, CELL - GAP, 0.05, NONE);
+                moving[k] = tile(0, 0, CELL - GAP, CELL - GAP, 0.05, NONE);
                 moving[k].setTeleportDuration(2);
             }
-            // de quoi recevoir les clics droits (a main nue, le jeu n'en envoie pas dans le vide) : une rangee de boites devant le tableau
-            for (double u = -WIDTH / 2 + 0.25; u < WIDTH / 2; u += 0.5) {
-                Interaction box = centre.getWorld().spawn(spot(u, -HEIGHT / 2, 0.1), Interaction.class, t -> {
-                    t.setPersistent(false);
-                    t.setVisibleByDefault(false);
-                    t.setInteractionWidth(0.5f);
-                    t.setInteractionHeight((float) HEIGHT);
-                    t.setResponsive(false);
-                });
-                player.showEntity(plugin, box);
-                all.add(box);
-            }
+            boxes();
         }
 
         int[] coverage() {
@@ -208,19 +143,19 @@ public final class Tablet implements Listener {
         /** Les couleurs de la grille et des pieces en attente, d'apres l'etat. */
         void draw() {
             int[] g = coverage();
-            for (int k = 0; k < g.length; k++) cells[k].setBackgroundColor(g[k] == 0 ? EMPTY : g[k] % 2 == 1 ? GOLD : FADED);
+            for (int k = 0; k < g.length; k++) paint(cells[k], g[k] == 0 ? empty : g[k] % 2 == 1 ? gold : faded);
             for (int i = 0; i < 3; i++) {
                 int w = width(pieces[i]), h = height(pieces[i]);
                 for (int k = 0; k < 4; k++) {
                     boolean shown = at[i] < 0 && held != i && k < pieces[i].length;
-                    tray[i][k].setBackgroundColor(shown ? GOLD : NONE);
+                    paint(tray[i][k], shown ? gold : NONE);
                     if (!shown) continue;
                     int[] c = pieces[i][k];
                     double u = TRAY_U[i] - w * SMALL / 2 + (c[0] + 0.5) * SMALL, v = TRAY_V + h * SMALL / 2 - (c[1] + 0.5) * SMALL;
                     tray[i][k].teleport(spot(u, v - (SMALL - 0.02) / 2, 0.03));
                 }
             }
-            for (int k = 0; k < 4; k++) moving[k].setBackgroundColor(held >= 0 && k < pieces[held].length ? HELD : NONE);
+            for (int k = 0; k < 4; k++) paint(moving[k], held >= 0 && k < pieces[held].length ? carried : NONE);
             follow();
         }
 
@@ -246,21 +181,6 @@ public final class Tablet implements Listener {
                 int[] c = pieces[held][k];
                 moving[k].teleport(spot(left + (c[0] + 0.5) * CELL, top - (c[1] + 0.5) * CELL - (CELL - GAP) / 2, 0.05));
             }
-        }
-
-        /** Ou le regard coupe le tableau. */
-        void aim() {
-            Location eye = player.getEyeLocation();
-            Vector d = eye.getDirection();
-            double facing = d.dot(normal);
-            aimed = false;
-            if (facing > -0.05) return;
-            double t = centre.toVector().subtract(eye.toVector()).dot(normal) / facing;
-            if (t < 0 || t > 12) return;
-            Vector hit = eye.toVector().add(d.multiply(t)).subtract(centre.toVector());
-            cu = hit.dot(right);
-            cv = hit.getY();
-            aimed = Math.abs(cu) < WIDTH / 2 + 0.5 && Math.abs(cv) < HEIGHT / 2 + 0.5;
         }
 
         /** La piece en attente que vise le joueur, ou -1. */
@@ -316,15 +236,11 @@ public final class Tablet implements Listener {
 
         void win() {
             solvedAt = Bukkit.getCurrentTick();
-            for (int k = 0; k < cells.length; k++) if (target[k]) cells[k].setBackgroundColor(Color.fromARGB(255, 255, 240, 170));
+            for (int k = 0; k < cells.length; k++) if (target[k]) paint(cells[k], Color.fromARGB(255, 255, 240, 170));
             player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1f);
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1.5f);
         }
 
-        void remove() {
-            all.forEach(Entity::remove);
-            all.clear();
-        }
     }
 
     private static int width(int[][] s) { int w = 0; for (int[] c : s) w = Math.max(w, c[0] + 1); return w; }
@@ -371,7 +287,7 @@ public final class Tablet implements Listener {
     private void tick() {
         for (Board b : new ArrayList<>(boards.values())) {
             Player p = b.player;
-            if (!p.isOnline() || p.isDead() || !p.getWorld().equals(b.centre.getWorld()) || p.getLocation().distanceSquared(b.centre) > 81) { close(p); continue; }
+            if (b.lost()) { close(p); continue; }
             if (b.solvedAt >= 0) {
                 if (Bukkit.getCurrentTick() - b.solvedAt > 25) { close(p); b.solved.accept(p); }
                 continue;

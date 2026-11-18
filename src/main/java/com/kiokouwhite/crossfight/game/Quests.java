@@ -858,7 +858,8 @@ public final class Quests implements Listener {
 
     /** Pour les essais (/cf enigme <nom>) : une enigme a trois blocs et demi devant le joueur, sans quete. */
     public void tryPuzzle(Player p, String kind) {
-        if (kind.equals("tablette")) { tryTablet(p); return; }
+        tablet.close(p);
+        if (kind.equals("tablette")) { puzzles.close(p); tryTablet(p); return; }
         Vector look = p.getLocation().getDirection().setY(0);
         if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
         puzzles.open(p, kind, p.getLocation().add(look.normalize().multiply(4.2)), who -> Msg.send(who, "<green>Énigme résolue."));

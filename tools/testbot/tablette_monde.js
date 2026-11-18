@@ -15,7 +15,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const p = bot.entity.position.clone();
   const affichages = () => Object.values(bot.entities).filter(e => e.name === 'text_display' || e.name === 'interaction').length;
   const avant = affichages();
-  bot.chat('/cf tablette'); await sleep(1500);
+  bot.chat('/cf enigme tablette'); await sleep(1500);
   console.log('affichages apparus :', affichages() - avant);
   // regard vers +Z : le tableau est a 3,5 blocs, son milieu 2 blocs au-dessus des pieds ; la droite du joueur est -X
   const point = (u, v) => new Vec3(p.x - u, p.y + 2.0 + v, p.z + 3.5);

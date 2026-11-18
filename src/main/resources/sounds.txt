@@ -269,6 +269,7 @@ ability.yuki_insatiable
 ability.yuki_snow
 ability.yuki_ult
 font.bulle
+font.enigme
 font.espace_blanc
 font.logo
 font.menu

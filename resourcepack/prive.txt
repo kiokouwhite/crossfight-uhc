@@ -32,6 +32,7 @@ ability.omori_porte
 ability.omori_rafale
 ability.omori_texte
 ability.omori_vaincu
+font.enigme
 font.espace_blanc
 font.menu
 font.panneau_omori
