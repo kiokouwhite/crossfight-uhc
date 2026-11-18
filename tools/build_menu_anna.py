@@ -197,12 +197,30 @@ def main():
             slot(d, 8 + 18 * col, 36 + 36 * k)
     im.save(ROOT / "textures" / "font" / "menu_anna4.png")
 
+    # 5. Le marchand d'Anna (Central Town) : la couverture a gauche, quatre objets a droite (cases 14, 16, 32, 34), l'horloge dessous (case 51).
+    im, d = card()
+    d.rectangle([1, 4, 87, 126], fill=GOLD_DARK)
+    d.rectangle([87, 4, 88, 126], fill=GOLD_DEEP)
+    panel(d, 6, 14, 81, 124, 6)
+    book(im, d, 30, 30)
+    text(im, 44 - width("ANNA", 2) // 2, 60, "ANNA", 2)
+    text(im, 44 - width("MARCHAND") // 2, 82, "MARCHAND", 1, violet)
+    d.line([(20, 94), (68, 94)], fill=SLATE_LIGHT)
+    text(im, 44 - width("DIAMANTS") // 2, 100, "DIAMANTS", 1, green)
+    panel(d, 93, 14, 171, 125, 2)
+    text(im, 125 - width("ETALAGE") // 2, 22, "ETALAGE", 1)
+    for col, row in ((5, 1), (7, 1), (5, 3), (7, 3)):
+        slot(d, 8 + 18 * col, 18 + 18 * row)
+    slot(d, 8 + 18 * 6, 18 + 18 * 5)
+    im.save(ROOT / "textures" / "font" / "menu_anna5.png")
+
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -8}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H, "ascent": 13, "chars": ["\ue000"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H, "ascent": 13, "chars": ["\ue001"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H, "ascent": 13, "chars": ["\ue002"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H, "ascent": 13, "chars": ["\ue003"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H, "ascent": 13, "chars": ["\ue004"]},
     ]}
     (ROOT / "font" / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
     print("menu_anna.png, menu_anna2.png, menu_anna3.png, menu_anna4.png", im.size)

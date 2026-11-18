@@ -184,6 +184,24 @@ def main():
             im.alpha_composite(slot, (8 + 18 * col, 36 + 36 * k))
     keep(im, OUT.with_name("menu_anna4.png"))
 
+    # 5. Le marchand d'Anna (Central Town) : la carte a gauche, quatre objets a droite, et l'horloge du prochain etalage.
+    im = window(mine)
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 90, 122), (2, 8))
+    for k, name in enumerate(("Icon_09", "Icon_13", "Icon_10")):
+        im.alpha_composite(sprite("Mini icons", name), (19 + 20 * k, 24))
+    write(im, 47, 46, "ANNA", title, (236, 170, 60, 255), BROWN)
+    im.alpha_composite(sprite("Dividers", "Divider_05"), (23, 62))
+    write(im, 47, 79, "Marchand", bold, BROWN)
+    im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (14, 100))
+    write(im, 47, 103, "en diamants", text, BROWN)
+    write(im, 124, 22, "Étalage", text, NAVY)
+    for col, row in ((5, 1), (7, 1), (5, 3), (7, 3)):
+        im.alpha_composite(slot, (8 + 18 * col, 18 + 18 * row))            # les cases 14, 16, 32 et 34
+    im.alpha_composite(sprite("Dividers", "Divider_05"), (100, 58))
+    write(im, 124, 95, "prochain étalage", text, NAVY)
+    im.alpha_composite(slot, (8 + 18 * 6, 18 + 18 * 5))                    # la case 51 : l'horloge
+    keep(im, OUT.with_name("menu_anna5.png"))
+
     # la police : celle du pack public, calee pour une image plus grande que le coffre
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -(8 + MARGIN)}},
@@ -191,6 +209,7 @@ def main():
         {"type": "bitmap", "file": "crossfight:font/menu_anna2.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue001"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna3.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue002"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue003"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue004"]},
     ]}
     fonts = OUT.parent.parent.parent / "font"
     fonts.mkdir(parents=True, exist_ok=True)

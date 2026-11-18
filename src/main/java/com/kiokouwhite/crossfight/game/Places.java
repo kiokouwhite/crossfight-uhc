@@ -780,7 +780,8 @@ public final class Places implements Listener {
 
     /** Le marchand change d'etalage toutes les dix minutes. */
     private static final long STOCK_TIME = 10 * 60 * 1000L;
-    private static final int[] STOCK_SLOTS = {10, 12, 14, 16};
+    private static final int[] STOCK_SLOTS = {14, 16, 32, 34};
+    private static final int STOCK_CLOCK = 51;
     /** Ce qu'il vend en ce moment : quatre objets de lootbox differents, chacun tire aux chances des lootbox. */
     private final List<String> stock = new ArrayList<>();
     private long stockAt;
@@ -827,9 +828,10 @@ public final class Places implements Listener {
 
     /** Le menu du marchand : ses quatre objets du moment, leur prix en diamants, et le temps avant le prochain etalage. */
     private final class Shop implements InventoryHolder {
-        final Inventory inv = Bukkit.createInventory(this, 27, Component.text("Marchand"));
+        final Inventory inv;
 
         Shop(Player p) {
+            inv = Bukkit.createInventory(this, 54, dressed(p, '\uE004', "Anna - le marchand"));
             List<String> now = stock();
             int have = 0;
             for (ItemStack it : p.getInventory().getContents()) if (it != null && it.getType() == Material.DIAMOND) have += it.getAmount();
@@ -849,7 +851,7 @@ public final class Places implements Listener {
                 inv.setItem(STOCK_SLOTS[i], it);
             }
             long left = Math.max(0, STOCK_TIME - (System.currentTimeMillis() - stockAt));
-            inv.setItem(22, named(new ItemStack(Material.CLOCK), "<gold>Nouvel étalage dans " + Msg.time((int) (left / 1000)),
+            inv.setItem(STOCK_CLOCK, named(new ItemStack(Material.CLOCK), "<gold>Nouvel étalage dans " + Msg.time((int) (left / 1000)),
                     "<gray>Quatre objets de lootbox, changés toutes les 10 minutes.", "<gray>Plus un objet est rare, plus il coûte de diamants.", "<gray>Un seul de chaque par étalage."));
         }
 

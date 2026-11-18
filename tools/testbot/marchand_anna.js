@@ -19,6 +19,6 @@ const flat = c => { if (c == null) return ''; if (typeof c === 'string') return 
   bot.chat('/cf quete finir central_town'); await sleep(1500); if (bot.currentWindow) bot.closeWindow(bot.currentWindow);
   console.log('remerciement :', (said.filter(t => /boutique/.test(t)).pop() || '').slice(-140));
   win = null; bot.useOn(anna); await sleep(1500);
-  console.log('apres la quete :', win ? 'etalage "' + flat(win.title) + '", objets aux cases ' + [10, 12, 14, 16].filter(s => win.slots[s]).join(' ') : 'pas d\'etalage');
+  console.log('apres la quete :', win ? 'etalage "' + flat(win.title) + '", objets aux cases ' + [14, 16, 32, 34].filter(s => win.slots[s]).join(' ') : 'pas d\'etalage');
   bot.quit(); setTimeout(() => process.exit(0), 400);
 })();
