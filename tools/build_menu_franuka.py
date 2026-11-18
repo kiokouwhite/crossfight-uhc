@@ -164,7 +164,7 @@ def main():
         im.alpha_composite(slot, (8 + 18 * 5, 18 + 18 * row))
         pen = ImageDraw.Draw(im)
         pen.fontmode = "1"
-        pen.text((118, 20 + 18 * row), name, font=bold, fill=(40, 100, 60, 255) if good else (150, 44, 60, 255))
+        pen.text((119, 21 + 18 * row), name, font=text, fill=(40, 100, 60, 255) if good else (150, 44, 60, 255))    # la petite police du pack
     keep(im, OUT.with_name("menu_anna3.png"))
 
     # la police : celle du pack public, calee pour une image plus grande que le coffre
