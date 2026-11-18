@@ -61,6 +61,7 @@ music.omori_calme_boucle 172250 172000 omori_calme_boucle
 music.omori_violent 391622 391372 omori_violent_boucle
 music.omori_violent_boucle 167776 167526 omori_violent_boucle
 overlay.minecraft
+overlay.ultime
 select.card.byleth
 select.card.corrin
 select.card.marth

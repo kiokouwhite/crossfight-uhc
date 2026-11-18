@@ -47,7 +47,7 @@ public final class EffectHud implements Listener {
     /** Les familles d'effets, dans l'ordre d'affichage (le meme que tools/build_overlays.py). */
     static final List<String> BONUS = List.of("vitesse", "force", "resistance", "regeneration", "invisibilite", "absorption", "saut");
     static final List<String> MALUS = List.of("lenteur", "faiblesse", "poison", "cecite", "wither", "feu", "entrave");
-    static final int HEAD = 5, LEGS = 7;
+    static final int HEAD = 5, LEGS = 7, FEET = 8;
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, State> states = new HashMap<>();
@@ -55,7 +55,7 @@ public final class EffectHud implements Listener {
 
     private static final class State {
         Set<String> bonus = Set.of(), malus = Set.of();
-        String bonusImage, malusImage;
+        String bonusImage, malusImage, ultImage;
         boolean shown;
         final Map<String, Long> lastSound = new HashMap<>();
     }
@@ -95,10 +95,10 @@ public final class EffectHud implements Listener {
             st.bonus = bonus;
             st.malus = malus;
             String bi = image("bonus", BONUS, bonus), mi = image("malus", MALUS, malus);
-            boolean changed = !java.util.Objects.equals(bi, st.bonusImage) || !java.util.Objects.equals(mi, st.malusImage);
             st.bonusImage = bi;
             st.malusImage = mi;
-            if (bi == null && mi == null) {
+            st.ultImage = active ? ultimate(p) : null;
+            if (bi == null && mi == null && st.ultImage == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
@@ -109,9 +109,10 @@ public final class EffectHud implements Listener {
     }
 
     private void send(Player p, State st) {
-        st.shown = ClientSlots.show(p, new int[]{HEAD, LEGS}, new ItemStack[]{
-                st.bonusImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.bonusImage + "_" + frame()),
-                st.malusImage == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, st.malusImage + "_" + frame())});
+        st.shown = ClientSlots.show(p, new int[]{HEAD, LEGS, FEET}, new ItemStack[]{
+                st.bonusImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, folder() + st.bonusImage + "_" + frame()),
+                st.malusImage == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, folder() + st.malusImage + "_" + frame()),
+                st.ultImage == null ? p.getInventory().getBoots() : overlayItem(EquipmentSlot.FEET, st.ultImage)});
     }
 
     /**
@@ -121,8 +122,9 @@ public final class EffectHud implements Listener {
     public ItemStack shownIn(Player p, int slot) {
         State st = states.get(p.getUniqueId());
         if (st == null) return null;
-        if (slot == HEAD && st.bonusImage != null) return overlayItem(EquipmentSlot.HEAD, st.bonusImage + "_" + frame());
-        if (slot == LEGS && st.malusImage != null) return overlayItem(EquipmentSlot.LEGS, st.malusImage + "_" + frame());
+        if (slot == HEAD && st.bonusImage != null) return overlayItem(EquipmentSlot.HEAD, folder() + st.bonusImage + "_" + frame());
+        if (slot == LEGS && st.malusImage != null) return overlayItem(EquipmentSlot.LEGS, folder() + st.malusImage + "_" + frame());
+        if (slot == FEET && st.ultImage != null) return overlayItem(EquipmentSlot.FEET, st.ultImage);
         return null;
     }
 
@@ -141,6 +143,19 @@ public final class EffectHud implements Listener {
         return com.kiokouwhite.crossfight.util.Sounds.has("overlay.minecraft") ? "overlay_mc/" : "overlay/";
     }
 
+    /**
+     * L'orbe de l'ultime, en bas a gauche de l'ecran (avec le pack d'interface : tools/build_ultime_franuka.py) : il se
+     * remplit par vingtiemes avec la charge ; plein, il brille (deux images qui alternent). Porte par la case des bottes.
+     * Null sans le pack, ou si le joueur n'a pas de personnage.
+     */
+    private String ultimate(Player p) {
+        if (!plugin.getConfig().getBoolean("hud.ultime", true) || !com.kiokouwhite.crossfight.util.Sounds.has("overlay.ultime") || !com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p)) return null;
+        CfPlayer cf = plugin.players().get(p);
+        if (cf == null || cf.character() == null) return null;
+        if (cf.isUltimateReady()) return "overlay_ult/ult_pret_" + (tick / 10 % 2);
+        return String.format("overlay_ult/ult_%02d", Math.max(0, Math.min(19, (int) (cf.ultimateCharge() / 5))));
+    }
+
     /** Images par boucle (tools/build_overlays.py : FRAMES). */
     static final int FRAMES = 16;
 
@@ -153,7 +168,7 @@ public final class EffectHud implements Listener {
         return items.computeIfAbsent(slot + ":" + image, k -> {
             ItemStack it = ItemStack.of(Material.PAPER);
             it.setData(DataComponentTypes.ITEM_MODEL, Key.key("crossfight", "hidden"));
-            it.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slot).cameraOverlay(Key.key("crossfight", folder() + image)).build());
+            it.setData(DataComponentTypes.EQUIPPABLE, Equippable.equippable(slot).cameraOverlay(Key.key("crossfight", image)).build());
             it.setData(DataComponentTypes.TOOLTIP_DISPLAY, TooltipDisplay.tooltipDisplay().hideTooltip(true).build());
             return it;
         }).clone();

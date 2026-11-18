@@ -307,6 +307,7 @@ music.omori_calme_boucle
 music.omori_violent
 music.omori_violent_boucle
 overlay.minecraft
+overlay.ultime
 select.card.byleth
 select.card.corrin
 select.card.marth
