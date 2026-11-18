@@ -21,7 +21,7 @@ from build_menu_franuka import ONE, ROOT, nine, sprite, wide  # noqa: E402
 
 OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "font"
 # les tailles des tableaux, en blocs (les memes, dans le meme ordre, que Panel.WINDOWS)
-SIZES = [(5.0, 3.2), (3.6, 3.6), (4.4, 3.5), (5.0, 3.7)]
+SIZES = [(5.0, 3.2), (3.6, 3.6), (4.4, 3.5), (5.0, 3.7), (4.2, 3.9)]
 DENSITY = 32
 BANNERS = [64, 96, 128, 160, 192]
 

@@ -44,7 +44,7 @@ final class Breakout extends PanelGame {
     int shown = -1;
 
     Breakout(CrossfightPlugin plugin, Player player, Location pillar, Random random, IntSupplier total, int goal, Runnable caught) {
-        super(plugin, player, pillar, 3.6, 3.6, who -> { });
+        super(plugin, player, pillar, 4.2, 3.9, who -> { });
         this.random = random;
         this.total = total;
         this.goal = goal;
@@ -58,9 +58,10 @@ final class Breakout extends PanelGame {
 
     void build() {
         backdrop();
-        count = label(0, TOP + 0.22, "", 0.7f);
+        count = label(0, TOP + 0.42, "", 0.7f);
         label(0, -height / 2 + 0.06, "<yellow>Vise <gray>: la raquette   <yellow>Clic <gray>: lancer   <yellow>Accroupi <gray>: fermer", 0.55f);
-        plate(0, (TOP + FLOOR) / 2 + 0.06, RIGHT - LEFT + 0.14, TOP - FLOOR + 0.02);
+        // le cadre du terrain : plus grand que le mur, sa bordure reste hors des briques
+        plate(0, (TOP + 0.2 + FLOOR - 0.12) / 2, RIGHT - LEFT + 0.5, TOP + 0.2 - (FLOOR - 0.12));
         for (int k = 0; k < bricks.length; k++) bricks[k] = tile(brickU(k), brickV(k), BRICK_W - 0.03, BRICK_H - 0.03, 0.03, NONE);
         paddle = rect(0, PADDLE_V, PADDLE_W, PADDLE_H, 0.04, drawn ? Color.fromARGB(255, 62, 66, 110) : Color.fromARGB(255, 230, 230, 240));
         paddle.setTeleportDuration(1);
