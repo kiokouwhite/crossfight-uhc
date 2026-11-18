@@ -289,6 +289,7 @@ model.falchion
 model.yumi_fujin
 music.forge_anemone
 music.forge_glow
+music.forge_grin
 music.forge_installation
 music.forge_metal_crusher
 music.omori_calme
