@@ -53,7 +53,7 @@ import java.util.UUID;
  */
 public final class Quests implements Listener {
 
-    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE, FISH }
+    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE, FISH, BREAKOUT }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
     public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
@@ -64,7 +64,7 @@ public final class Quests implements Listener {
             Map.entry("shiganshina", new Quest("La chasse au Titan", "Anna", "Bonjour, Héros ! Je suis Anna. J'allais rouvrir la forge du quartier, mais un Titan s'est installé devant la porte… Il faudra cent coups pour l'abattre, et il ne se laissera pas faire : esquive sa charge et ses pierres, détourne les yeux quand il te fixe, et fuis quand il te court après. Débarrasse-m'en, et la forge est à toi !", Kind.TITAN, 100, Material.IRON_SWORD, "coups", "Tu l'as terrassé ! La forge du quartier rouvre, et ici on forge en musique : reviens me parler, choisis un air et frappe le métal en rythme. Neuf airs, du plus facile au plus difficile ; mieux tu frappes, plus tu forges de fer, d'or et de diamants. De quoi t'équiper sans descendre à la mine !")),
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
             Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une énigme différente : une tablette de pièces dorées, un circuit à rebrancher, un objet à refaire sur une table de craft, et un puzzle à reformer. Résous-la, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : reparle-moi, et tu trouveras quatre objets de lootbox à acheter en diamants. L'étalage change toutes les dix minutes, jusqu'à la fin de la partie !")),
-            Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Je comptais vendre les fruits de ces jardins, mais la Fissure les a éparpillés partout… Cueille-m'en huit, et tu ne manqueras plus jamais de vivres !", Kind.COLLECT, 8, Material.APPLE, "fruits", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
+            Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Les pommes de ces jardins sont prises dans un mur de briques… Parle-moi pour jouer au casse-briques : casse les briques, rattrape les pommes qui en tombent. Quinze pommes, et tu ne manqueras plus jamais de vivres !", Kind.BREAKOUT, 15, Material.APPLE, "pommes", "Quelle belle récolte ! Tu ne manqueras plus de rien : la borne, juste à côté, t'offre 12 steaks toutes les 8 minutes, jusqu'à la fin de la partie !")),
             Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
             Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces", "Mon vaisseau est sauvé, merci ! En échange, les trésors de ce bois sont à ton équipe : cinq pièces y sont cachées, trouve-les pour gagner tes récompenses !")),
@@ -191,7 +191,8 @@ public final class Quests implements Listener {
             else Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.thanks());
             return;
         }
-        if (r == null) { start(p, place, npc); return; }
+        if (r == null) { start(p, place, npc); r = run(p, place); if (r == null || q.kind() != Kind.BREAKOUT) return; }
+        if (q.kind() == Kind.BREAKOUT) { breakout(p, r, q, npc); return; }
         if (q.kind() == Kind.CARRY && p.getUniqueId().equals(r.carrier)) { deliver(r, q, p); return; }
         if (q.kind() == Kind.FISH) giveRod(p);
         Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
@@ -866,10 +867,32 @@ public final class Quests implements Listener {
         tablet.open(p, p.getLocation().add(look.normalize().multiply(4.2)), who -> Msg.send(who, "<green>Tablette résolue."));
     }
 
+    /** Le casse-briques d'Arcadia : il se dresse devant Anna ; chaque pomme rattrapee compte pour l'equipe, la quinzieme finit la quete. */
+    private void breakout(Player p, Run r, Quest q, Location npc) {
+        if (puzzles.isOpen(p)) return;
+        Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>" + q.says());
+        puzzles.openBreakout(p, npc != null ? npc : r.home, () -> r.done, q.count(), () -> {
+            if (r.finished) return;
+            r.done++;
+            tell(r, q);
+            if (r.done >= q.count()) {
+                for (Player m : members(r.team)) puzzles.close(m);
+                finish(r, q);
+            }
+        });
+    }
+
     /** Pour les essais (/cf enigme <nom>) : une enigme a trois blocs et demi devant le joueur, sans quete. */
     public void tryPuzzle(Player p, String kind) {
         tablet.close(p);
         if (kind.equals("tablette")) { puzzles.close(p); tryTablet(p); return; }
+        if (kind.equals("briques")) {
+            Vector ahead = p.getLocation().getDirection().setY(0);
+            if (ahead.lengthSquared() < 0.01) ahead = new Vector(0, 0, 1);
+            int[] got = {0};
+            puzzles.openBreakout(p, p.getLocation().add(ahead.normalize().multiply(4.2)), () -> got[0], 15, () -> { if (++got[0] >= 15) { puzzles.close(p); Msg.send(p, "<green>Quinze pommes : épreuve réussie."); } });
+            return;
+        }
         Vector look = p.getLocation().getDirection().setY(0);
         if (look.lengthSquared() < 0.01) look = new Vector(0, 0, 1);
         puzzles.open(p, kind, p.getLocation().add(look.normalize().multiply(4.2)), who -> Msg.send(who, "<green>Énigme résolue."));

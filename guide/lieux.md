@@ -23,7 +23,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Shiganshina | La chasse au Titan | Abattre un Titan en cent coups, en esquivant ses cinq attaques | Forge : on y forge en musique chez Anna, pour du fer, de l'or et des diamants |
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
 | Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant l'énigme de chacun | Marchand : Anna vend quatre objets de lootbox contre des diamants, et change d'étalage toutes les dix minutes |
-| Arcadia | La récolte | Cueillir huit fruits | Nourriture : 12 steaks toutes les 8 minutes |
+| Arcadia | La récolte | Rattraper quinze pommes au casse-briques | Nourriture : 12 steaks toutes les 8 minutes |
 | Terrace | L'ascension | Atteindre le sommet du lieu | De l'expérience tant que tu restes dans le lieu |
 | Beacon | L'initiation | Retrouver quatre reliques | À chaque événement Lootbox, une caisse tombe ici |
 | Forest of Hope | Les pièces du vaisseau | Rapporter trois pièces à Anna, une par une | La chasse aux pièces cachées du lieu |
@@ -49,7 +49,9 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **Le Titan (Shiganshina).** Il se tourne lentement vers le joueur le plus proche et écrase ceux qui restent à ses pieds. Frappe-le de dos, ou d'en haut : de face, tes coups ne comptent pas. À plusieurs, l'un attire son regard pendant que l'autre frappe.
 
-**Les objets à trouver (Pearl, Arcadia, Beacon).** Ils brillent, entourés de jaune, et tintent quand tu approches : plus le son est fort, plus tu es près. Il suffit de passer dessus.
+**Le casse-briques (Arcadia).** Parle à Anna : un mur de briques se dresse devant toi. Ta raquette suit ton viseur, un clic lance la balle. Beaucoup de briques cachent une pomme : quand elle tombe, rattrape-la avec la raquette. Toutes les pommes de ton équipe s'additionnent, et à quinze le lieu est à vous. Si la balle t'échappe, elle revient sur la raquette : tu ne perds rien.
+
+**Les objets à trouver (Pearl, Beacon).** Ils brillent, entourés de jaune, et tintent quand tu approches : plus le son est fort, plus tu es près. Il suffit de passer dessus.
 
 **Les énigmes des piliers (Central Town).** Quatre piliers éteints apparaissent autour d'Anna, et chacun cache une énigme différente. Un clic droit sur un pilier dresse un tableau devant toi : tu y joues en visant et en cliquant, et tu le fermes en t'accroupissant. Résous l'énigme, et le pilier se rallume.
 

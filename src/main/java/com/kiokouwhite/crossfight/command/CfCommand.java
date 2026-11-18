@@ -140,11 +140,11 @@ public final class CfCommand implements TabExecutor {
                         // Raccourci : /cf pearl glowing = /cf quete montrer pearl
                         if (sender instanceof Player) return onCommand(sender, cmd, label, new String[]{"quete", "montrer", "pearl"});
                     }
-                    case "enigme", "enigmes", "circuit", "etabli", "puzzle" -> {
+                    case "enigme", "enigmes", "circuit", "etabli", "puzzle", "briques" -> {
                         // Essayer une enigme des piliers de Central Town, sans la quete : /cf enigme <tablette|circuit|etabli|puzzle>
                         if (!(sender instanceof Player sp)) return true;
                         String kind = args[0].toLowerCase().startsWith("enigme") ? (args.length > 1 ? args[1].toLowerCase() : "") : args[0].toLowerCase();
-                        if (!kind.equals("tablette") && !com.kiokouwhite.crossfight.game.Puzzles.KINDS.contains(kind)) { Msg.send(sender, "<yellow>/cf enigme <tablette|circuit|etabli|puzzle>"); return true; }
+                        if (!kind.equals("tablette") && !kind.equals("briques") && !com.kiokouwhite.crossfight.game.Puzzles.KINDS.contains(kind)) { Msg.send(sender, "<yellow>/cf enigme <tablette|circuit|etabli|puzzle|briques>"); return true; }
                         plugin.quests().tryPuzzle(sp, kind);
                         return true;
                     }
@@ -943,7 +943,7 @@ public final class CfCommand implements TabExecutor {
                 case "tp" -> out.add("quete");
                 case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); out.add("resultat"); }
                 case "pearl" -> out.add("glowing");
-                case "enigme", "enigmes" -> out.addAll(List.of("tablette", "circuit", "etabli", "puzzle"));
+                case "enigme", "enigmes" -> out.addAll(List.of("tablette", "circuit", "etabli", "puzzle", "briques"));
                 case "marchand" -> out.add("nouveau");
                 case "evenement", "evenements" -> { out.add("tirer"); out.add("arreter"); out.addAll(plugin.placeEvents().places()); }
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));

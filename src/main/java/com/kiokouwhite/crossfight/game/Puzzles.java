@@ -56,6 +56,14 @@ public final class Puzzles implements Listener {
         Msg.actionBar(p, g.hint());
     }
 
+    /** Ouvre le casse-briques d'Arcadia a ce joueur : {@code total} dit ou en est son equipe, {@code caught} est appele a chaque pomme rattrapee. */
+    public void openBreakout(Player p, Location pillar, java.util.function.IntSupplier total, int goal, Runnable caught) {
+        close(p);
+        PanelGame g = new Breakout(plugin, p, pillar, new Random(), total, goal, caught);
+        games.put(p.getUniqueId(), g);
+        Msg.actionBar(p, g.hint());
+    }
+
     public boolean isOpen(Player p) {
         return games.containsKey(p.getUniqueId());
     }
