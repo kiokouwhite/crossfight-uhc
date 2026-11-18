@@ -179,7 +179,7 @@ def main():
     im.alpha_composite(wide(sprite("Title banners", "BannerSmall_03C_Normal"), 66), (14, 100))
     write(im, 47, 103, "en musique", text, BROWN)
     for k, (name, color) in enumerate((("Facile", (40, 100, 60, 255)), ("Moyen", (176, 110, 30, 255)), ("Difficile", (150, 44, 60, 255)))):
-        write(im, 133, 23 + 36 * k, name, bold, color)                 # en gras : dans la petite police du pack, « ff » se lit mal
+        write(im, 133, 24 + 36 * k, name, text, color)                 # la petite police du pack
         for col in (5, 6, 7):
             im.alpha_composite(slot, (8 + 18 * col, 36 + 36 * k))
     keep(im, OUT.with_name("menu_anna4.png"))
