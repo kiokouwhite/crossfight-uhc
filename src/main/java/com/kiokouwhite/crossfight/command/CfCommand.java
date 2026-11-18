@@ -144,6 +144,12 @@ public final class CfCommand implements TabExecutor {
                         // Essayer le concert d'Anna : /cf rythme (le menu) ou /cf rythme <musique> (la jouer tout de suite)
                         if (!(sender instanceof Player sp)) return true;
                         if (args.length < 2) { plugin.rhythm().open(sp); return true; }
+                        if (args[1].equalsIgnoreCase("resultat")) {
+                            int percent = 92;
+                            try { if (args.length > 2) percent = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) { }
+                            plugin.rhythm().preview(sp, percent);
+                            return true;
+                        }
                         if (args[1].equalsIgnoreCase("recharger")) { Msg.send(sender, "<green>Musiques importées : <white>" + plugin.rhythm().reload()); return true; }
                         var song = plugin.rhythm().find(args[1]);
                         if (song != null) { plugin.rhythm().start(sp, song); return true; }
@@ -904,7 +910,7 @@ public final class CfCommand implements TabExecutor {
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
                 case "quete", "quetes" -> out.addAll(List.of("liste", "tp", "lancer", "montrer", "finir", "parler", "oublier", "placer", "replacer"));
                 case "tp" -> out.add("quete");
-                case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); }
+                case "rythme", "concert", "forge" -> { out.addAll(plugin.rhythm().ids()); out.add("recharger"); out.add("resultat"); }
                 case "pearl" -> out.add("glowing");
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {

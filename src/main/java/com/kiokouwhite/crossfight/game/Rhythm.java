@@ -224,6 +224,7 @@ public final class Rhythm implements Listener {
         int imported = reload();
         if (imported > 0) plugin.getLogger().info("Forge : " + imported + " musique(s) importee(s).");
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 100L, 1L);
+        Bukkit.getScheduler().runTaskTimer(plugin, this::showResults, 100L, 1L);
     }
 
     // ------------------------------------------------------------------ les musiques
@@ -389,6 +390,7 @@ public final class Rhythm implements Listener {
     /** Lance une musique pour ce joueur : le tableau se pose devant lui, un decompte, puis les notes. */
     public void start(Player p, Song song) {
         stop(p, false);
+        closeResult(p);
         Play play = new Play(p, song);
         plays.put(p.getUniqueId(), play);
         if (play.held < 4) p.getInventory().setHeldItemSlot(8);      // les touches 1 a 4 doivent changer de case pour se voir
@@ -629,7 +631,7 @@ public final class Rhythm implements Listener {
         }
     }
 
-    /** La musique est finie : la note, et ce qu'elle rapporte de plus que la meilleure note d'avant. */
+    /** La musique est finie : la note, ce qu'elle rapporte de plus que la meilleure note d'avant, et le panneau de resultat. */
     private void finish(Play play) {
         Player p = play.player;
         double share = play.score / (play.notes.size() * 300.0);
@@ -638,22 +640,134 @@ public final class Rhythm implements Listener {
         stop(p, false);
         Msg.send(p, "<gold>" + song.title() + " <gray>: <white>" + Math.round(share * 100) + " % <gray>(" + play.perfect + " parfaits, " + play.good + " bien, " + play.ok + " justes, " + play.missed
                 + " manquées ; plus long combo : " + play.best + ")");
-        if (grade < 0) {
-            p.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<red>Raté"), Msg.mm("<gray>Il faut " + Math.round(NEEDED[0] * 100) + " % pour un C")));
-            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1f, 0.6f);
-            return;
-        }
-        p.showTitle(net.kyori.adventure.title.Title.title(Msg.mm("<gold><bold>" + GRADES[grade]), Msg.mm("<white>" + song.title())));
-        p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.2f);
         Map<String, Integer> mine = grades.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>());
         Integer before = mine.get(song.id());
-        if (before != null && before >= grade) { Msg.send(p, "<gray>Tu avais déjà " + (before > grade ? "mieux" : "cette note") + " à cette musique : rien de plus à gagner pour l'instant."); return; }
-        mine.put(song.id(), grade);
-        int[] now = REWARDS[song.level()][grade], had = before == null ? new int[3] : REWARDS[song.level()][before];
-        int[] gain = {Math.max(0, now[0] - had[0]), Math.max(0, now[1] - had[1]), Math.max(0, now[2] - had[2])};
-        Material[] what = {Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND};
-        for (int k = 0; k < 3; k++) if (gain[k] > 0) p.getInventory().addItem(new ItemStack(what[k], gain[k])).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
-        Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note rapporte la différence." : ""));
+        if (grade < 0) Msg.send(p, "<red>Raté : <gray>il faut " + Math.round(NEEDED[0] * 100) + " % pour un C.");
+        else if (before != null && before >= grade) Msg.send(p, "<gray>Tu avais déjà " + (before > grade ? "mieux" : "cette note") + " à cette musique : rien de plus à gagner pour l'instant.");
+        else {
+            mine.put(song.id(), grade);
+            int[] now = REWARDS[song.level()][grade], had = before == null ? new int[3] : REWARDS[song.level()][before];
+            int[] gain = {Math.max(0, now[0] - had[0]), Math.max(0, now[1] - had[1]), Math.max(0, now[2] - had[2])};
+            Material[] what = {Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND};
+            for (int k = 0; k < 3; k++) if (gain[k] > 0) p.getInventory().addItem(new ItemStack(what[k], gain[k])).values().forEach(left -> p.getWorld().dropItem(p.getLocation(), left));
+            Msg.send(p, "<green>Note " + GRADES[grade] + " : tu as forgé <white>" + (reward(gain).isEmpty() ? "rien de plus" : reward(gain)) + "<green>." + (grade < 2 ? " <gray>Une meilleure note rapporte la différence." : ""));
+        }
+        results.put(p.getUniqueId(), new Result(play, share, grade, before));
+    }
+
+    // ------------------------------------------------------------------ le panneau de resultat
+
+    /** Combien de ticks l'anneau met a se remplir, et combien le panneau reste ensuite. */
+    private static final int COUNT = 50, HOLD = 140;
+
+    /**
+     * Le panneau de resultat, a la place du tableau : un anneau se remplit jusqu'au score, la note en son centre monte
+     * quand il franchit un palier, et la recompense de ce palier s'allume. Les materiaux sont deja donnes (finish) : le
+     * panneau ne fait que le montrer.
+     */
+    private final class Result {
+        final Play play;
+        final double share;
+        final int grade;
+        final Integer before;
+        final List<Entity> shown = new ArrayList<>();
+        final TextDisplay[] lines = new TextDisplay[3];
+        TextDisplay ring, percent, letter;
+        int tick, reached = -1;
+
+        Result(Play play, double share, int grade, Integer before) {
+            this.play = play;
+            this.share = share;
+            this.grade = grade;
+            this.before = before;
+            Song song = play.song;
+            if (play.drawn) shown.add(image(play, spot(0, 0, 0.12), ''));
+            else shown.add(text(play, spot(0, 0, 0.12), " ", Color.fromARGB(215, 16, 16, 28), 33f, 30f));
+            shown.add(text(play, spot(0, 190, 0), LEVEL_COLORS[song.level()] + song.title(), Color.fromARGB(0, 0, 0, 0), 1.3f, 1.3f));
+            ring = play.drawn ? image(play, spot(0, 118, 0.04), '') : text(play, spot(0, 150, 0.04), "", Color.fromARGB(0, 0, 0, 0), 1.4f, 1.4f);
+            shown.add(ring);
+            letter = text(play, spot(0, 136, 0), "", Color.fromARGB(0, 0, 0, 0), 3.4f, 3.4f);
+            letter.setShadowed(true);
+            shown.add(letter);
+            percent = text(play, spot(0, 100, 0), "", Color.fromARGB(0, 0, 0, 0), 1.9f, 1.9f);
+            shown.add(percent);
+            for (int g = 0; g < 3; g++) {
+                lines[g] = text(play, spot(0, 79 - 16 * g + (play.drawn ? 2 : 0), 0), "", Color.fromARGB(0, 0, 0, 0), 1.05f, 1.05f);
+                shown.add(lines[g]);
+                line(g, false);
+            }
+            TextDisplay counts = text(play, spot(0, 14, 0), "", Color.fromARGB(0, 0, 0, 0), 1f, 1f);
+            counts.text(lettered(play, "<white>Parfait " + play.perfect + "  Bien " + play.good + "\n<gray>Juste " + play.ok + "  Raté " + play.missed + "  combo " + play.best));
+            shown.add(counts);
+        }
+
+        /** Un point du panneau : `x` pixels a droite de son milieu, `y` pixels au-dessus de son bas, `back` blocs derriere. */
+        Location spot(double x, double y, double back) {
+            return play.base.clone().add(play.right.clone().multiply(x * PIXEL)).add(play.start.getDirection().setY(0).normalize().multiply(back)).add(0, (y - 40) * PIXEL, 0);
+        }
+
+        /** La ligne d'une note : eteinte tant que l'anneau n'y est pas, allumee ensuite ; « deja recu » si le joueur l'avait. */
+        void line(int g, boolean lit) {
+            // en abrege : la ligne doit tenir dans la largeur du panneau
+            String what = reward(REWARDS[play.song.level()][g]).replace(" diamants", " diam.").replace(" diamant", " diam.").replace(", ", "  ");
+            boolean had = before != null && before >= g;
+            lines[g].text(lettered(play, lit ? "<gold>" + GRADES[g] + "  " + (had ? "<gray>" : "<white>") + what + (had ? " (déjà)" : "") : "<dark_gray>" + GRADES[g] + "  " + what));
+        }
+
+        void remove() {
+            shown.forEach(Entity::remove);
+            shown.clear();
+        }
+    }
+
+    private final Map<UUID, Result> results = new HashMap<>();
+
+    /** Pour les essais (/cf rythme resultat <score>) : le panneau de resultat, comme si le joueur venait de finir avec ce score. Rien n'est donne. */
+    public void preview(Player p, int percent) {
+        stop(p, false);
+        closeResult(p);
+        Play play = new Play(p, songs.get(0));
+        double share = Math.max(0, Math.min(100, percent)) / 100.0;
+        play.perfect = (int) Math.round(play.notes.size() * share);
+        play.missed = play.notes.size() - play.perfect;
+        play.best = play.perfect;
+        results.put(p.getUniqueId(), new Result(play, share, share >= NEEDED[2] ? 2 : share >= NEEDED[1] ? 1 : share >= NEEDED[0] ? 0 : -1, null));
+    }
+
+    private void closeResult(Player p) {
+        Result r = results.remove(p.getUniqueId());
+        if (r != null) r.remove();
+    }
+
+    /** Chaque tick : l'anneau qui se remplit, les paliers franchis, puis le panneau qui s'en va. */
+    private void showResults() {
+        for (Result r : new ArrayList<>(results.values())) {
+            Player p = r.play.player;
+            if (!p.isOnline() || !p.getWorld().equals(r.play.start.getWorld()) || p.getLocation().distanceSquared(r.play.start) > 100 || r.tick > COUNT + HOLD) { closeResult(p); continue; }
+            if (r.tick <= COUNT) {
+                // le score monte vite, puis ralentit en arrivant
+                double x = r.tick / (double) COUNT, value = r.share * (1 - (1 - x) * (1 - x));
+                if (r.tick == COUNT) value = r.share;
+                int frame = Math.max(0, Math.min(50, (int) Math.floor(value * 50 + 1e-6)));
+                if (r.play.drawn) r.ring.text(Component.text(String.valueOf((char) (0xE500 + frame))).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, "rythme")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
+                else r.ring.text(Msg.mm("<gold>" + "▮".repeat(frame / 5) + "<dark_gray>" + "▯".repeat(10 - frame / 5)));
+                r.percent.text(lettered(r.play, "<white>" + Math.round(value * 100) + " %"));
+                if (r.tick % 3 == 0 && r.tick < COUNT) p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 0.5f, (float) (0.8 + value));
+                // un palier franchi : la note monte, sa recompense s'allume
+                while (r.reached < 2 && value >= NEEDED[r.reached + 1]) {
+                    r.reached++;
+                    r.line(r.reached, true);
+                    r.letter.text(lettered(r.play, (r.reached == 2 ? "<aqua>" : r.reached == 1 ? "<green>" : "<gold>") + GRADES[r.reached]));
+                    p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_USE, 0.9f, 1.2f + 0.25f * r.reached);
+                    p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1f + 0.3f * r.reached);
+                }
+                if (r.tick == COUNT) {
+                    if (r.grade < 0) { r.letter.text(lettered(r.play, "<red>D")); p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_DIDGERIDOO, 1f, 0.6f); }
+                    else p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.2f);
+                }
+            }
+            r.tick++;
+        }
     }
 
     @EventHandler
@@ -672,11 +786,14 @@ public final class Rhythm implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         stop(e.getPlayer(), false);
+        closeResult(e.getPlayer());
     }
 
     /** Une partie commence, ou le plugin s'arrete : tout repart de zero. */
     public void reset() {
         for (Play play : new ArrayList<>(plays.values())) stop(play.player, false);
+        for (Result r : new ArrayList<>(results.values())) r.remove();
+        results.clear();
         grades.clear();
     }
 

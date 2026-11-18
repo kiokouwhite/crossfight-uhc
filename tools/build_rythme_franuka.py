@@ -66,6 +66,12 @@ def main():
         font = ImageFont.truetype(base.DIGITS, 13)
         d.text((16 - round(d.textlength(str(k + 1), font=font) / 2) - 1, 10), str(k + 1), font=font, fill=tuple(base.COLORS[k]) + (255,))
         one.save(OUT / f"rythme_touche_{k}.png")
+    # le panneau de resultat : la meme fenetre, un fond sombre dedans (comme les couloirs), le rond de l'anneau et les trois lignes
+    from PIL import ImageDraw as _Draw
+    res = nine(sprite("Background boxes", "BGbox_01B"), W + 12, H + 12).crop((6, 6, W + 6, H + 6))
+    _Draw.Draw(res).rectangle([10, 8, W - 11, H - 12], fill=(44, 46, 82, 255))
+    base.result_lines(res, (30, 32, 62, 255))
+    res.save(OUT / "rythme_resultat.png")
     button = sprite("Buttons", "Button_02B_Normal").crop((7, 1, 25, 16))        # 18 x 15 : le bouton sans ses marges
     for k, turn in enumerate((0.95, 0.60, 0.35, 0.12)):                        # rose, bleu, vert, or
         note = Image.new("RGBA", (base.NOTE_W, base.NOTE_H), (0, 0, 0, 0))

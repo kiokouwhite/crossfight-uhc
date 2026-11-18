@@ -11,6 +11,8 @@ fois (un pixel d'image = 0,035 bloc) :
   quatre notes, 24 x 16, une couleur par couloir ;
   l'eclat d'une note frappee, 32 x 32 (une etoile blanche qui grossit et disparait) ;
   quatre touches enfoncees, 32 x 32, que le plugin pose un instant sur celles du tableau quand le joueur appuie ;
+  le panneau de resultat, de la taille du tableau, et l'anneau du score (64 x 64, 51 images, de vide a plein, avec une
+  encoche a chaque palier : 55, 75 et 90 centiemes) ;
   le faisceau d'un couloir, 25 x 160 : de la lumiere qui monte de la ligne et s'eteint vers le haut, blanche, que le
   plugin teinte a la couleur du couloir.
 Ici, tout est dessine pixel par pixel ; dans le pack complet, tools/build_rythme_franuka.py compose les memes images
@@ -18,6 +20,7 @@ Ici, tout est dessine pixel par pixel ; dans le pack complet, tools/build_rythme
 Ecrit resourcepack/assets/crossfight/font/rythme.json et textures/font/rythme_*.png.
 """
 import json
+import math
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
@@ -49,11 +52,43 @@ def digits(im, color, y, dx=0, size=14):
         d.text((cx - round(d.textlength(str(k + 1), font=font) / 2) + dx, y), str(k + 1), font=font, fill=color)
 
 
+NEEDED = (55, 75, 90)            # le score qu'il faut pour un C, un B, un A (game/Rhythm.java a les memes)
+
+
+def rings(out):
+    """L'anneau du score, 64 x 64, en 51 images : il se remplit dans le sens des aiguilles, et change de couleur a chaque palier."""
+    for k in range(51):
+        value = k * 2
+        ring = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
+        d = ImageDraw.Draw(ring)
+        d.arc([2, 2, 61, 61], 0, 360, fill=(24, 20, 28, 255), width=9)
+        d.arc([3, 3, 60, 60], 0, 360, fill=(70, 66, 92, 255), width=7)
+        color = (240, 80, 110) if value < NEEDED[0] else (250, 200, 70) if value < NEEDED[1] else (110, 220, 130) if value < NEEDED[2] else (120, 220, 250)
+        if value > 0:
+            d.arc([3, 3, 60, 60], -90, -90 + 360 * value / 100, fill=color + (255,), width=7)
+        for mark in NEEDED:                                   # les trois paliers : une encoche claire en travers de l'anneau
+            a = math.radians(-90 + 360 * mark / 100)
+            d.line([(31.5 + math.cos(a) * 21, 31.5 + math.sin(a) * 21), (31.5 + math.cos(a) * 31, 31.5 + math.sin(a) * 31)], fill=(255, 244, 226, 255), width=2)
+        ring.putpixel((63, 63), (255, 255, 255, 2))           # largeur fixe
+        ring.save(out / f"rythme_anneau_{k:02d}.png")
+
+
+def result_lines(im, dark):
+    """Sur le panneau de resultat : le rond ou se pose l'anneau, et trois lignes pour les recompenses."""
+    d = ImageDraw.Draw(im)
+    d.ellipse([W // 2 - 34, H - 184, W // 2 + 33, H - 117], fill=dark)
+    for row in range(3):
+        d.rectangle([14, H - 92 + 16 * row, W - 15, H - 92 + 16 * row + 13], fill=dark)
+
+
 def write_font(folder):
     providers = [{"type": "bitmap", "file": "crossfight:font/rythme_tableau.png", "height": H, "ascent": H, "chars": [""]}]
     providers += [{"type": "bitmap", "file": f"crossfight:font/rythme_note_{k}.png", "height": NOTE_H, "ascent": NOTE_H, "chars": [chr(0xE401 + k)]} for k in range(4)]
     # une touche enfoncee par couloir : elle recouvre un instant la touche du tableau
     providers += [{"type": "bitmap", "file": f"crossfight:font/rythme_touche_{k}.png", "height": 32, "ascent": 32, "chars": [chr(0xE407 + k)]} for k in range(4)]
+    # le panneau de resultat, et l'anneau du score : une image par deux centiemes, de vide a plein
+    providers.append({"type": "bitmap", "file": "crossfight:font/rythme_resultat.png", "height": H, "ascent": H, "chars": ["\ue40b"]})
+    providers += [{"type": "bitmap", "file": f"crossfight:font/rythme_anneau_{k:02d}.png", "height": 64, "ascent": 64, "chars": [chr(0xE500 + k)]} for k in range(51)]
     providers.append({"type": "bitmap", "file": "crossfight:font/rythme_eclat.png", "height": 32, "ascent": 32, "chars": ["\ue405"]})
     providers.append({"type": "bitmap", "file": "crossfight:font/rythme_faisceau.png", "height": 160, "ascent": 160, "chars": ["\ue406"]})
     (folder / "rythme.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")
@@ -94,7 +129,6 @@ def main():
     burst = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     b = ImageDraw.Draw(burst)
     for k in range(8):
-        import math
         a = math.pi * k / 4
         length = 15 if k % 2 == 0 else 10
         b.line([(16, 16), (16 + round(math.cos(a) * length), 16 + round(math.sin(a) * length))], fill=(255, 226, 120, 255), width=3)
@@ -110,6 +144,13 @@ def main():
             beam.putpixel((x, y), (255, 255, 255, max(1 if x == 24 and y == 159 else 0, round(190 * (1 - up) ** 1.6 * edge))))
     beam.putpixel((24, 159), (255, 255, 255, max(2, beam.getpixel((24, 159))[3])))
     beam.save(out / "rythme_faisceau.png")
+    rings(out)
+    res = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    r = ImageDraw.Draw(res)
+    r.rounded_rectangle([0, 0, W - 1, H - 1], radius=5, fill=(232, 184, 62, 255), outline=(24, 20, 28, 255))
+    r.rounded_rectangle([4, 4, W - 5, H - 5], radius=3, fill=(52, 48, 68, 255), outline=(24, 20, 28, 255))
+    result_lines(res, (34, 32, 48, 255))
+    res.save(out / "rythme_resultat.png")
     write_font(ROOT / "font")
     print("tableau", (W, H), "et quatre notes", (NOTE_W, NOTE_H))
 
