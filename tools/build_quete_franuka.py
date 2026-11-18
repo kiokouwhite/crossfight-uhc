@@ -85,7 +85,7 @@ def gauges():
     return out
 
 
-LINE1, LINE2 = 44, 33            # hauteur du haut de chaque ligne au-dessus de la ligne de base du titre
+LINE1, LINE2 = 46, 36            # hauteur du haut de chaque ligne au-dessus de la ligne de base du titre
 
 
 BODY = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"   # une police libre, grasse : la police de texte du pack, toute petite, se lisait mal
