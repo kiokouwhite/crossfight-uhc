@@ -25,7 +25,7 @@ final class Breakout extends PanelGame {
 
     private static final int COLS = 8, ROWS = 5, APPLES = 12;
     /** Le terrain, en blocs depuis le milieu du tableau. */
-    private static final double LEFT = -1.6, RIGHT = 1.6, TOP = 1.15, FLOOR = -1.45, PADDLE_V = -1.2, PADDLE_W = 0.85, PADDLE_H = 0.1;
+    private static final double LEFT = -1.6, RIGHT = 1.6, TOP = 1.05, FLOOR = -1.38, PADDLE_V = -1.14, PADDLE_W = 0.85, PADDLE_H = 0.1;
     private static final double BRICK_W = (RIGHT - LEFT) / COLS, BRICK_H = 0.17, BALL = 0.12, DROP = 0.03;
     private static final Color[] ROW = {Color.fromARGB(255, 222, 70, 80), Color.fromARGB(255, 240, 150, 60), Color.fromARGB(255, 246, 204, 70), Color.fromARGB(255, 110, 200, 110), Color.fromARGB(255, 90, 160, 230)};
 
@@ -44,7 +44,7 @@ final class Breakout extends PanelGame {
     int shown = -1;
 
     Breakout(CrossfightPlugin plugin, Player player, Location pillar, Random random, IntSupplier total, int goal, Runnable caught) {
-        super(plugin, player, pillar, 4.2, 3.9, who -> { });
+        super(plugin, player, pillar, 4.4, 3.6, who -> { });
         this.random = random;
         this.total = total;
         this.goal = goal;
@@ -58,10 +58,10 @@ final class Breakout extends PanelGame {
 
     void build() {
         backdrop();
-        count = label(0, TOP + 0.42, "", 0.7f);
+        count = label(0, TOP + 0.3, "", 0.7f);
         label(0, -height / 2 + 0.06, "<yellow>Vise <gray>: la raquette   <yellow>Clic <gray>: lancer   <yellow>Accroupi <gray>: fermer", 0.55f);
         // le cadre du terrain : plus grand que le mur, sa bordure reste hors des briques
-        plate(0, (TOP + 0.2 + FLOOR - 0.12) / 2, RIGHT - LEFT + 0.5, TOP + 0.2 - (FLOOR - 0.12));
+        plate(0, (TOP + 0.2 + FLOOR - 0.02) / 2, RIGHT - LEFT + 0.5, TOP + 0.2 - (FLOOR - 0.02));
         for (int k = 0; k < bricks.length; k++) bricks[k] = tile(brickU(k), brickV(k), BRICK_W - 0.03, BRICK_H - 0.03, 0.03, NONE);
         paddle = rect(0, PADDLE_V, PADDLE_W, PADDLE_H, 0.04, drawn ? Color.fromARGB(255, 62, 66, 110) : Color.fromARGB(255, 230, 230, 240));
         paddle.setTeleportDuration(1);
