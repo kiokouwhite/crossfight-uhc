@@ -118,16 +118,29 @@ final class Jigsaw extends PanelGame {
         boxes();
     }
 
-    /** Pose les points d'une piece, son coin haut gauche en (u, v). */
-    void move(int i, double u, double v, double depth) {
-        if (painted) { pieces[i][0].teleport(spot(u + PIECE / 2, v - PIECE, depth)); return; }
-        for (int k = 0; k < K * K; k++) pieces[i][k].teleport(spot(u + (k % K + 0.5) * PX, v - (k / K + 0.5) * PX - (PX + 0.004) / 2, depth));
+    /** Dans le tas, les pieces sont plus petites : elles tiennent dans leur cadre. */
+    private static final double HOME_SCALE = 0.8;
+
+    /** Pose une piece, son coin haut gauche en (u, v), a cette echelle (1 : sa taille dans le cadre). */
+    void move(int i, double u, double v, double depth, double f) {
+        if (painted) {
+            resize(pieces[i][0], PIECE * f, PIECE * f);
+            pieces[i][0].teleport(spot(u + PIECE * f / 2, v - PIECE * f, depth));
+            return;
+        }
+        double px = PX * f;
+        for (int k = 0; k < K * K; k++) {
+            resize(pieces[i][k], px + 0.004, px + 0.004);
+            pieces[i][k].teleport(spot(u + (k % K + 0.5) * px, v - (k / K + 0.5) * px - (px + 0.004) / 2, depth));
+        }
     }
+
+    void move(int i, double u, double v, double depth) { move(i, u, v, depth, 1); }
 
     /** Remet une piece ou elle doit etre : sur sa case du cadre, ou a sa place dans le tas. */
     void place(int i) {
         if (slot[i] >= 0) move(i, frameU(slot[i]), frameV(slot[i]), 0.035);
-        else move(i, homeU(home[i]), homeV(home[i]), 0.035);
+        else move(i, homeU(home[i]) + PIECE * (1 - HOME_SCALE) / 2, homeV(home[i]) - PIECE * (1 - HOME_SCALE) / 2, 0.035, HOME_SCALE);
     }
 
     int slotAt() {

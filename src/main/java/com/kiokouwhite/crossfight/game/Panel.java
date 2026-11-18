@@ -37,6 +37,7 @@ abstract class Panel {
     /** Les couleurs du tableau : une case vide, visee, pleine (doree), annulee, la piece qu'on tient, le fond d'une tuile sombre. */
     final Color empty, pointed, gold, faded, carried, dark;
     private final java.util.Map<java.util.UUID, net.kyori.adventure.text.Component> images = new java.util.HashMap<>();
+    private final java.util.Map<java.util.UUID, int[]> sizes = new java.util.HashMap<>();
     /** Avec le pack : les textes sont dans sa police (celle du panneau de quete), pas dans celle du jeu. */
     final boolean lettered;
 
@@ -110,11 +111,19 @@ abstract class Panel {
             t.setShadowed(false);
             t.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), (float) (DROP / 40.0 * sy), 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
         });
+        sizes.put(d.getUniqueId(), new int[]{w, h});
         images.put(d.getUniqueId(), net.kyori.adventure.text.Component.text(String.valueOf(glyph)).font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, font)));
         paint(d, tint);
         player.showEntity(plugin, d);
         all.add(d);
         return d;
+    }
+
+    /** Change la taille d'un rectangle ou d'une image : a x b blocs. (Il reste pose par le milieu de son bas.) */
+    void resize(TextDisplay d, double a, double b) {
+        int[] px = sizes.get(d.getUniqueId());
+        float sx = (float) (a / (px == null ? W0 : px[0] / 40.0)), sy = (float) (b / (px == null ? H0 : px[1] / 40.0));
+        d.setTransformation(new Transformation(new Vector3f((float) (-OFF * sx), px == null ? 0 : (float) (DROP / 40.0 * sy), 0), new Quaternionf(), new Vector3f(sx, sy, 1), new Quaternionf()));
     }
 
     /** Le fond du tableau : la fenetre du pack, ou un rectangle bleu nuit. */

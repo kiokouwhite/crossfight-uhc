@@ -89,7 +89,12 @@ final class Circuit extends PanelGame {
         backdrop();
         plate(0, TOP - N * CELL / 2, N * CELL + 0.06, N * CELL + 0.06);
         label(0, TOP + 0.3, "<aqua>Amène le courant aux deux lampes", 0.7f);
-        label(0, TOP + 0.1, "<gold>■ <gray>source   <red>■ <gray>lampe éteinte   <green>■ <gray>lampe allumée", 0.5f);
+        // la legende : un carre de couleur et son nom (dans la police du tableau, qui n'a pas de carre plein)
+        Object[][] legend = {{-1.29, -1.0, SOURCE, "source"}, {-0.64, -0.14, LAMP_OFF, "lampe éteinte"}, {0.46, 0.96, LAMP_ON, "lampe allumée"}};
+        for (Object[] l : legend) {
+            rect((double) l[0], TOP + 0.17, 0.09, 0.09, 0.03, (Color) l[2]);
+            label((double) l[1], TOP + 0.1, "<gray>" + l[3], 0.5f);
+        }
         label(0, -height / 2 + 0.06, "<yellow>Clic <gray>: tourner la tuile   <yellow>Accroupi <gray>: fermer", 0.6f);
         for (int c = 0; c < N * N; c++) {
             tiles[c] = tile(tu(c), tv(c), CELL - 0.04, CELL - 0.04, 0.02, dark);

@@ -95,6 +95,8 @@ public final class Quests implements Listener {
     private final Map<UUID, Catch> catches = new HashMap<>();
     private final Tablet tablet;
     private final Puzzles puzzles;
+    /** Le pilier que chaque joueur ne voit plus, le temps de son epreuve. */
+    private final Map<UUID, List<Entity>> hiddenPillars = new HashMap<>();
     /** Par equipe (ou par joueur sans equipe) puis par lieu. */
     private final Map<String, Map<String, Run>> runs = new HashMap<>();
 
@@ -313,6 +315,13 @@ public final class Quests implements Listener {
     private int beat;
 
     private void tick() {
+        // une epreuve fermee (resolue ou non) : son pilier reparait
+        hiddenPillars.entrySet().removeIf(e -> {
+            Player p = Bukkit.getPlayer(e.getKey());
+            if (p != null && (tablet.isOpen(p) || puzzles.isOpen(p))) return false;
+            if (p != null) for (Entity x : e.getValue()) if (x.isValid()) p.showEntity(plugin, x);
+            return true;
+        });
         beat++;
         for (Map<String, Run> m : runs.values()) for (Run r : new ArrayList<>(m.values())) {
             if (r.finished) continue;
@@ -881,6 +890,10 @@ public final class Quests implements Listener {
         // chaque pilier a son enigme : la tablette, le circuit, l'etabli, le puzzle
         int index = t.length > 2 && t[2].matches("\\d+") ? Integer.parseInt(t[2]) % 4 : 0;
         java.util.function.BiConsumer<Location, java.util.function.Consumer<Player>> puzzle = index == 0 ? (at, done) -> tablet.open(p, at, done) : (at, done) -> puzzles.open(p, Puzzles.KINDS.get(index - 1), at, done);
+        // tant que son epreuve est ouverte, le joueur ne voit plus ce pilier (ni sa lueur, ni son etiquette) : rien ne gene le tableau
+        List<Entity> gone = new ArrayList<>();
+        for (Entity x : r.things) if (x.getLocation().getBlockX() == clicked.getLocation().getBlockX() && x.getLocation().getBlockZ() == clicked.getLocation().getBlockZ()) { p.hideEntity(plugin, x); gone.add(x); }
+        hiddenPillars.put(p.getUniqueId(), gone);
         puzzle.accept(clicked.getLocation(), who -> {
             if (r.finished || !clicked.isValid()) return;
             // Le pilier se rallume : il n'a plus rien a demander.
