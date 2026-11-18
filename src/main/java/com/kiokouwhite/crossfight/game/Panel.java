@@ -28,7 +28,7 @@ abstract class Panel {
     private static final double W0 = 0.125, H0 = 0.25, OFF = 0.0125;
     static final Color NONE = Color.fromARGB(0, 0, 0, 0);
     /** Les tailles de tableau qui ont leur fenetre dans le pack (tools/build_enigmes_franuka.py, meme ordre), a 32 points par bloc. */
-    private static final double[][] WINDOWS = {{5.0, 3.2}, {3.6, 3.6}, {4.4, 3.5}, {5.0, 3.7}, {4.4, 3.6}};
+    private static final double[][] WINDOWS = {{5.0, 3.2}, {3.6, 3.6}, {4.4, 3.5}, {5.0, 3.7}, {5.2, 3.6}};
     /** Ou tombe le bas d'une image de la police, en points de l'image, sous le point ou l'affichage est pose. */
     private static final double DROP = -2;
 

@@ -44,7 +44,7 @@ final class Breakout extends PanelGame {
     int shown = -1;
 
     Breakout(CrossfightPlugin plugin, Player player, Location pillar, Random random, IntSupplier total, int goal, Runnable caught) {
-        super(plugin, player, pillar, 4.4, 3.6, who -> { });
+        super(plugin, player, pillar, 5.2, 3.6, who -> { });
         this.random = random;
         this.total = total;
         this.goal = goal;
