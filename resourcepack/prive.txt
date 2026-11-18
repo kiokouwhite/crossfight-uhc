@@ -48,6 +48,7 @@ music.forge_censored 116497
 music.forge_glow 125472
 music.forge_grin 163397
 music.forge_metal_crusher 63216
+music.forge_pumpin_junkies 269453
 music.omori_calme 262104 261854 omori_calme_boucle
 music.omori_calme_boucle 172250 172000 omori_calme_boucle
 music.omori_violent 391622 391372 omori_violent_boucle

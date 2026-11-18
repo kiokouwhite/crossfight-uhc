@@ -292,6 +292,7 @@ music.forge_censored
 music.forge_glow
 music.forge_grin
 music.forge_metal_crusher
+music.forge_pumpin_junkies
 music.omori_calme
 music.omori_calme_boucle
 music.omori_violent
