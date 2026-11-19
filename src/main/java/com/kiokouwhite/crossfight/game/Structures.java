@@ -116,6 +116,9 @@ public final class Structures implements Listener {
 
     /** Le nom d'un lieu tel qu'on l'annonce : son titre, ou "beacon_academy" -> "Beacon academy". */
     public String title(String name) {
+        // un nom donne dans la configuration (structures.noms), ou celui que le plugin donne a ce lieu
+        String own = plugin.getConfig().getString("structures.noms." + name, name.equals(Headquarters.PLACE) ? "Quartier général" : null);
+        if (own != null && !own.isBlank()) return own;
         Sheet s = sheet(name);
         if (s != null && !s.title().isEmpty()) return s.title();
         String t = name.replace('_', ' ');

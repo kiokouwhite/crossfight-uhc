@@ -53,7 +53,7 @@ import java.util.UUID;
  */
 public final class Quests implements Listener {
 
-    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, CLIMB, PUZZLE, FISH, BREAKOUT }
+    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, CLIMB, PUZZLE, FISH, BREAKOUT, OFFER }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
     public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
@@ -68,7 +68,7 @@ public final class Quests implements Listener {
             Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… J'ai planté des drapeaux tout le long de la montée : passe par chacun d'eux, puis atteins celui du sommet. Un seul d'entre vous suffit.", Kind.CLIMB, 5, Material.RED_BANNER, "drapeaux", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
             Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces", "Mon vaisseau est sauvé, merci ! En échange, les trésors de ce bois sont à ton équipe : cinq pièces y sont cachées, trouve-les pour gagner tes récompenses !")),
-            Map.entry("jouki", new Quest("Le sommet de la pagode", "Anna", "Bonjour, Héros ! Je suis Anna. Ici, je n'ai rien à vendre… mais on raconte que la vue, tout en haut de la pagode, vaut tous les trésors. Monte, et dis-moi si c'est vrai !", Kind.REACH, 1, Material.BELL, "sommet", "Alors, cette vue ? Je te l'avais dit : elle vaut tous les trésors… et c'est bien le seul que j'aie à t'offrir ici !")));
+            Map.entry("jouki", new Quest("Quartier général", "Anna", "Bonjour, Héros ! Je suis Anna. Ce quartier général est à louer : 5 diamants, 10 pommes dorées ou 20 niveaux, et il est à ton équipe. D'ici, ta carte montre tous les joueurs, tu ouvres leur fiche et tu les traques à la boussole. Une seule équipe le tient à la fois !", Kind.OFFER, 1, Material.FILLED_MAP, "", "")));
 
     /** Ou en est une equipe dans la quete d'un lieu. */
     private static final class Run {
@@ -117,6 +117,12 @@ public final class Quests implements Listener {
     public boolean on() { return plugin.getConfig().getBoolean("structures.quetes", true); }
 
     /** L'equipe d'un joueur, pour les quetes : son equipe, ou lui seul s'il n'en a pas (essais hors partie). */
+    /** La cle de l'equipe d'un joueur ("e3"), ou la sienne s'il est seul. */
+    public String teamKey(Player p) { return teamOf(p); }
+
+    /** Le nom d'une equipe, d'apres sa cle, pour les annonces. */
+    public String teamLabel(String team) { return teamName(team); }
+
     private String teamOf(Player p) {
         Team t = plugin.teams().teamOf(p);
         return t != null ? "e" + t.id() : p.getUniqueId().toString();
@@ -152,6 +158,7 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null || !on()) return null;
         Run r = run(p, place);
+        if (q.kind() == Kind.OFFER) { String[] st = plugin.headquarters().state(p); return new String[]{q.title(), st[0], st[1], plugin.headquarters().owns(p) ? "10" : "0"}; }
         // (le quatrieme : ou en est la quete, en dixiemes, pour la jauge du panneau)
         if (r == null) return new String[]{q.title(), "parle à Anna", "#7a4a12", "0"};
         if (r.finished && r.pending) return new String[]{q.title(), "choisis qui part", "#a02020", "10"};
@@ -182,6 +189,8 @@ public final class Quests implements Listener {
         Quest q = QUESTS.get(place);
         if (q == null) return;
         if (!plugin.game().isRunning() && !p.hasPermission("crossfight.admin")) { Msg.send(p, "<yellow>" + q.giver() + " <gray>: <white>Revenez pendant la partie."); return; }
+        // le quartier general : pas de quete, une offre
+        if (q.kind() == Kind.OFFER) { plugin.headquarters().talk(p); return; }
         Run r = run(p, place);
         if (r != null && r.finished && r.pending) { openEject(p, r); return; }
         if (r != null && r.finished) {

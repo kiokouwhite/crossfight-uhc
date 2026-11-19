@@ -1098,6 +1098,7 @@ public final class Places implements Listener {
     /** Une partie commence : les delais et les comptes de pieces repartent de zero. */
     public void newGame() {
         plugin.placeEvents().clear();
+        plugin.headquarters().reset();
         stock.clear();
         bought.clear();
         plugin.quests().reset();

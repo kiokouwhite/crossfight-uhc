@@ -158,6 +158,22 @@ public final class CfCommand implements TabExecutor {
                         if (sender instanceof Player sp) plugin.places().openWheel(sp);
                         return true;
                     }
+                    case "qg" -> {
+                        // Le quartier general : /cf qg (parler a Anna), prendre (sans payer), liberer, voir <joueur> (sa fiche)
+                        if (!(sender instanceof Player sp)) return true;
+                        var hq = plugin.headquarters();
+                        if (args.length < 2) { hq.talk(sp); return true; }
+                        switch (args[1].toLowerCase()) {
+                            case "prendre" -> hq.grant(sp);
+                            case "liberer" -> { hq.reset(); Msg.send(sender, "<gray>Le quartier général est libre."); }
+                            case "voir" -> {
+                                Player t = args.length > 2 ? Bukkit.getPlayerExact(args[2]) : null;
+                                if (t == null) Msg.send(sender, "<red>Usage : /cf qg voir <joueur>"); else hq.open(sp, t);
+                            }
+                            default -> Msg.send(sender, "<yellow>/cf qg [prendre|liberer|voir <joueur>]");
+                        }
+                        return true;
+                    }
                     case "marchand" -> {
                         // Essayer le marchand de Central Town : /cf marchand (son etalage), /cf marchand nouveau (un nouvel etalage tout de suite)
                         if (args.length > 1 && args[1].equalsIgnoreCase("nouveau")) { plugin.places().restock(); Msg.send(sender, "<gray>Nouvel étalage."); }
@@ -950,6 +966,7 @@ public final class CfCommand implements TabExecutor {
                 case "pearl" -> out.add("glowing");
                 case "enigme", "enigmes" -> out.addAll(List.of("tablette", "circuit", "etabli", "puzzle", "briques"));
                 case "marchand" -> out.add("nouveau");
+                case "qg" -> out.addAll(List.of("prendre", "liberer", "voir"));
                 case "evenement", "evenements" -> { out.add("tirer"); out.add("arreter"); out.addAll(plugin.placeEvents().places()); }
                 case "structure", "structures", "lieu", "lieux" -> out.addAll(List.of("liste", "monde", "fiche", "placer", "disperser", "barrieres"));
                 case "desactiver", "activer" -> {

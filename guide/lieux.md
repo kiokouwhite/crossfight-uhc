@@ -27,7 +27,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Terrace | L'ascension | Monter au sommet en passant par tous les drapeaux | De l'expérience tant que tu restes dans le lieu |
 | Beacon | L'initiation | Retrouver quatre reliques | À chaque événement Lootbox, une caisse tombe ici |
 | Forest of Hope | Les pièces du vaisseau | Rapporter trois pièces à Anna, une par une | La chasse aux pièces cachées du lieu |
-| Jouki | Le sommet de la pagode | Monter tout en haut | Rien, sinon la vue |
+| Quartier général | (pas de quête) | Payer Anna : 5 diamants, 10 pommes dorées ou 20 niveaux | La carte montre tous les joueurs ; on ouvre leur fiche et on les traque |
 
 ## Le détail des quêtes
 
@@ -64,7 +64,7 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **La montée aux drapeaux (Terrace).** Cinq drapeaux brillent le long de la montée, visibles à travers les murs ; le dernier est tout en haut. Passe par les quatre premiers, dans l'ordre que tu veux, puis atteins celui du sommet : il ne compte que si tu as passé tous les autres. Un seul membre de l'équipe suffit.
 
-**Le sommet (Jouki).** Un repère lumineux marque le point à atteindre. Un seul membre de l'équipe suffit.
+**Le quartier général.** Au centre de la map, pas de quête : Anna le loue à ton équipe contre 5 diamants, 10 pommes dorées ou 20 niveaux. Une seule équipe le tient à la fois, et une autre peut vous le reprendre en payant. Tant que tu es dedans, ta carte montre tous les autres joueurs en rouge. Fais un clic droit avec la carte, amène la croix sur un joueur et clique : sa fiche s'ouvre, avec son équipement, son inventaire, ses vies et ses kills. Tu peux y prendre une boussole qui pointe vers lui. Attention : un joueur traqué en est averti.
 
 ## Les potions d'Anna (Pearl)
 

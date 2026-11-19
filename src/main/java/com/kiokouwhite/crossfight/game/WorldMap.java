@@ -229,7 +229,7 @@ public final class WorldMap implements Listener {
             return;
         }
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-        if (!isMap(e.getItem()) || !admin(p) || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
+        if (!isMap(e.getItem()) || !(admin(p) || plugin.headquarters().seesAll(p)) || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
         if (Bukkit.getCurrentTick() - rested.getOrDefault(p.getUniqueId(), -100) < ARMED) { e.setCancelled(true); return; }
         // Une porte, un coffre, un levier : le clic est pour eux.
         if (e.getAction() == Action.RIGHT_CLICK_BLOCK && e.getClickedBlock() != null && e.getClickedBlock().getType().isInteractable()) return;
@@ -279,7 +279,7 @@ public final class WorldMap implements Listener {
             Player p = Bukkit.getPlayer(entry.getKey());
             Aim aim = entry.getValue();
             if (p == null) { it.remove(); continue; }
-            String end = !holds(p) ? "<gray>Visee annulee : la carte n'est plus dans ta main." : !admin(p) ? "<gray>Visee annulee."
+            String end = !holds(p) ? "<gray>Visee annulee : la carte n'est plus dans ta main." : !(admin(p) || plugin.headquarters().seesAll(p)) ? "<gray>Visee annulee."
                     : now - aim.since > PATIENCE ? "<gray>Visee annulee : trop longue." : null;
             if (end != null) { it.remove(); drop(p, aim, end); continue; }
             Location at = p.getLocation();
@@ -307,8 +307,26 @@ public final class WorldMap implements Listener {
         int[] at = pointed(aim);
         String name = nameAt(w, at[0], at[1]);
         boolean out = !w.getWorldBorder().isInside(new Location(w, at[0] + 0.5, 64, at[1] + 0.5));
+        if (!admin(p) && plugin.headquarters().seesAll(p)) {
+            Player near = nearest(p, aim);
+            Msg.actionBar(p, near == null ? "<gray>Vise la marque rouge d'un joueur" : "<red>" + near.getName() + " <gray>- clic : ouvrir sa fiche");
+            return;
+        }
         Msg.actionBar(p, "<white>x " + at[0] + "  z " + at[1] + (name != null ? " <gray>- <gold>" + name : "") + (out ? " <gray>- <red>hors de la bordure" : "")
                 + " <gray>- clic : s'y teleporter");
+    }
+
+    /** Le joueur dont la marque est la plus proche de la croix (a douze positions au plus), ou null. */
+    private Player nearest(Player p, Aim aim) {
+        double scale = scale();
+        Player best = null;
+        double low = 12;
+        for (Player t : plugin.headquarters().targets(p)) {
+            double u = (SIZE / 2.0 + t.getLocation().getX() * scale) * 2 - 128, v = (SIZE / 2.0 + t.getLocation().getZ() * scale) * 2 - 128;
+            double far = Math.hypot(u - aim.u, v - aim.v);
+            if (far < low) { low = far; best = t; }
+        }
+        return best;
     }
 
     /** La visee s'arrete sans teleportation : le regard d'avant est rendu, la croix quitte la carte. */
@@ -323,6 +341,13 @@ public final class WorldMap implements Listener {
     private void jump(Player p, Aim aim) {
         aims.remove(p.getUniqueId());
         rested.put(p.getUniqueId(), Bukkit.getCurrentTick());
+        // Au quartier general, la croix designe un joueur : sa fiche s'ouvre (un admin, lui, se teleporte).
+        if (!admin(p) && plugin.headquarters().seesAll(p)) {
+            Player near = nearest(p, aim);
+            drop(p, aim, near == null ? "<gray>Aucun joueur sous la croix." : "<gold>" + near.getName());
+            if (near != null) plugin.headquarters().open(p, near);
+            return;
+        }
         World w = plugin.game().world();
         int[] at = pointed(aim);
         String name = nameAt(w, at[0], at[1]);
@@ -434,6 +459,9 @@ public final class WorldMap implements Listener {
                 cursors.addCursor(new MapCursor(at(mate.getLocation().getX(), scale), at(mate.getLocation().getZ(), scale), (byte) 8, MapCursor.Type.BLUE_MARKER, true,
                         Component.text(mate.getName())));
             }
+            // Au quartier general, pour l'equipe qui le tient : tous les autres joueurs en vie, en rouge, avec leur nom.
+            if (plugin.headquarters().seesAll(p)) for (Player t : plugin.headquarters().targets(p))
+                cursors.addCursor(new MapCursor(at(t.getLocation().getX(), scale), at(t.getLocation().getZ(), scale), (byte) 8, MapCursor.Type.RED_MARKER, true, Component.text(t.getName())));
             float yaw = p.getLocation().getYaw();
             yaw += yaw < 0 ? -8 : 8;
             cursors.addCursor(new MapCursor(at(p.getLocation().getX(), scale), at(p.getLocation().getZ(), scale), (byte) ((int) (yaw * 16 / 360) & 15), MapCursor.Type.PLAYER, true));
