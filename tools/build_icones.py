@@ -204,7 +204,7 @@ RECIPES = {
             ("Relâchement de Rage", "hannah_ult", "Warrior 25 vert"),
         ],
         "Kaze Lewis": [
-            ("Power Hit", "kaze_powerhit", "Warrior 12 noir"),
+            ("Power Hit", "kaze_powerhit", "Objets 3220"),
             ("Prise en traître", "kaze_prise", "Rogue 6 noir"),
             ("Goût du risque", "kaze_risque", "Rogue 10 noir"),
             ("Amour du danger", "kaze_ult", "Warrior 12 noir"),
