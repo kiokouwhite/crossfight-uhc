@@ -26,7 +26,7 @@ COLOURS = {
 }
 
 # Les licences dont la planche est validee : seules leurs icones vont dans le pack.
-VALIDATED = ["Fire Emblem", "RWBY", "Valorant"]
+VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK"]
 
 # licence -> personnage -> [(capacite, identifiant dans le plugin, recette)]
 RECIPES = {
@@ -137,11 +137,35 @@ RECIPES = {
             ("Pro de l'équipement tridimensionnel", "livai_ult", "Acolyte 24 gris"),
         ],
     },
+    "unOrdinary": {
+        "Arlo": [
+            ("Aura", "arlo_jauge", "Acolyte 32 or"),
+            ("Barrière", "arlo_barriere", "Acolyte 14 or"),
+            ("Barrière Ultime", "arlo_barriere_ultime", "Warrior 27 or"),
+            ("Bulle géante", "arlo_ult", "Wizard 28 or"),
+        ],
+        "John": [
+            ("Absorption d'aura", "john_absorption", "Wizard 27 rouge"),
+            ("Allez vous faire f*utre", "john_ult", "Wizard 11 rouge"),
+        ],
+        "Remi": [
+            ("Dash électrique", "remi_dash", "Rogue 32 rose"),
+            ("Électricité", "remi_electricite", "Wizard 14 rose"),
+            ("Électrocution", "remi_electrocution", "Wizard 5 rose"),
+            ("Dôme électrique", "remi_ult", "Wizard 24 rose"),
+        ],
+        "Seraphina": [
+            ("Retour dans le temps", "seraphina_retour", "Acolyte 30 violet"),
+            ("Choc Temporel", "seraphina_choc", "Warrior 17 violet"),
+            ("Arrêt Temporel", "seraphina_arret", "Wizard 12 violet"),
+            ("Explosion temporelle", "seraphina_ult", "Wizard 30 violet"),
+        ],
+    },
 }
 
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
-DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95),
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0),
            # Neon : ombres bleu neon, lumieres jaunes.
            "neon": ("or", [(0.0, (14, 16, 70)), (0.3, (30, 70, 235)), (0.55, (0, 200, 255)), (0.68, (70, 220, 255)), (0.72, (255, 232, 70)), (1.0, (255, 255, 225))])}
 
