@@ -2,7 +2,7 @@
 
 Chaque équipe reçoit une licence tirée au sort parmi celles de son format, puis chacun y choisit son personnage.
 
-Chaque personnage suit une voie (Destruction, Harmonie, Chasse ou Nihilité), a une arme, des pouvoirs et un ultime. Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts. Sous chaque pouvoir, une courte vidéo le montre en jeu.
+Chaque personnage suit une voie (Destruction, Harmonie, Chasse ou Nihilité), a une arme, des pouvoirs et un ultime. Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts.
 
 ## [Équipe de trois](equipe-de-trois.md)
 

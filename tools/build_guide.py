@@ -298,7 +298,6 @@ La bannière « Choisir son équipe » du lobby fait la même chose que les comm
 
 
 DATA = ROOT / "tools" / "guide_capacites.json"
-VIDEOS = OUT / "videos"
 FORMAT_PAGES = {"TRIO": ("equipe-de-trois", "Équipe de trois"), "DUO": ("groupe-duo", "Groupe duo"), "SOLO": ("personnage-solitaire", "Personnage solitaire")}
 FORMAT_TEXT = {
     "TRIO": "Les équipes de trois reçoivent une de ces licences ; chaque joueur y choisit un personnage différent.",
@@ -344,17 +343,12 @@ def accent(text):
 
 
 def ability_block(a, depth, video_root):
-    """Une capacité à la manière de l'ancien GitBook : titre, (type) description, temps de chargement, vidéo."""
+    """Une capacité à la manière de l'ancien GitBook : titre, (type) description, temps de chargement."""
     lines = [f"{'#' * depth} {accent(a['name'])}", ""]
     kind = "" if a["type"] == "Ultime" else f"({a['type']}) "
     lines += [kind + accent(a["description"]), ""]
     if a["cooldown"]:
         lines += [f"Temps de chargement : {duration(a['cooldown'])}", ""]
-    clip = VIDEOS / a["character"] / f"{a['id']}.mp4"
-    if clip.exists():
-        rel = "../" * video_root + f"videos/{a['character']}/{a['id']}.mp4"
-        raw = f"https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/{a['character']}/{a['id']}.mp4"
-        lines += [f'{{% file src="{rel}" %}}', f"{accent(a['name'])} en jeu", "{% endfile %}", "", f"[▶ Voir la vidéo]({raw})", ""]
     return lines
 
 
@@ -365,8 +359,7 @@ def characters_pages(summary):
     index = ["# Les personnages", "",
              "Chaque équipe reçoit une licence tirée au sort parmi celles de son format, puis chacun y choisit son personnage.", "",
              "Chaque personnage suit une voie (Destruction, Harmonie, Chasse ou Nihilité), a une arme, des pouvoirs et un ultime. "
-             "Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts. "
-             "Sous chaque pouvoir, une courte vidéo le montre en jeu.", ""]
+             "Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts.", ""]
     count = 0
     for fmt in ("TRIO", "DUO", "SOLO"):
         fslug, ftitle = FORMAT_PAGES[fmt]
@@ -436,15 +429,9 @@ def characters_pages(summary):
 
 
 def main():
-    videos = None
-    if VIDEOS.exists():          # les vidéos ne se refont pas : on les garde de côté pendant qu'on regénère
-        videos = OUT.parent / ".guide_videos_tmp"
-        shutil.move(str(VIDEOS), str(videos))
     if OUT.exists():
         shutil.rmtree(OUT)
     (OUT / "personnages").mkdir(parents=True)
-    if videos:
-        shutil.move(str(videos), str(VIDEOS))
     for name, text in PAGES.items():
         (OUT / name).write_text(text.replace("%LOOTBOX%", lootbox_table()), encoding="utf-8")
     summary = ["# Sommaire", "", "* [Crossfight UHC](README.md)", "* [Rejoindre une partie](commencer.md)", "* [Le déroulement d'une partie](deroulement.md)",
@@ -452,8 +439,7 @@ def main():
     count = characters_pages(summary)
     summary.append("* [Les commandes du joueur](commandes.md)")
     (OUT / "SUMMARY.md").write_text("\n".join(summary) + "\n", encoding="utf-8")
-    clips = len(list(VIDEOS.rglob("*.mp4"))) if VIDEOS.exists() else 0
-    print(f"guide/ : {count} personnages, {clips} vidéos")
+    print(f"guide/ : {count} personnages")
 
 
 if __name__ == "__main__":

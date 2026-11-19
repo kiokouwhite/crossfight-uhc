@@ -10,21 +10,9 @@ Voie de la Nihilite
 
 Temps de chargement : 10 secondes
 
-{% file src="../../../videos/seraphina/seraphina_retour.mp4" %}
-Retour dans le temps en jeu
-{% endfile %}
-
-[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/seraphina/seraphina_retour.mp4)
-
 ### Choc Temporel
 
 (Passif) Tous les 6 coups infligés, l'adversaire touche est immobilisé pendant 2 secondes.
-
-{% file src="../../../videos/seraphina/seraphina_choc.mp4" %}
-Choc Temporel en jeu
-{% endfile %}
-
-[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/seraphina/seraphina_choc.mp4)
 
 ### Arret Temporel
 
@@ -32,20 +20,8 @@ Choc Temporel en jeu
 
 Temps de chargement : 15 secondes
 
-{% file src="../../../videos/seraphina/seraphina_arret.mp4" %}
-Arret Temporel en jeu
-{% endfile %}
-
-[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/seraphina/seraphina_arret.mp4)
-
 ## Ultime
 
 ### Explosion temporelle
 
 Une explosion temporelle part de Seraphina : l'onde grise progressivement le sol sur 30 blocs et immobilisé 5 secondes chaque ennemi qu'elle atteint.
-
-{% file src="../../../videos/seraphina/seraphina_ult.mp4" %}
-Explosion temporelle en jeu
-{% endfile %}
-
-[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/seraphina/seraphina_ult.mp4)

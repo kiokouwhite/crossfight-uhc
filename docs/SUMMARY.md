@@ -24,7 +24,7 @@
   * [Logo du tableau](architecture/logo-du-tableau.md)
   * [Skins des personnages](architecture/skins-des-personnages.md)
   * [Armure invisible](architecture/armure-invisible.md)
-  * [Guide du joueur et vidéos des capacités](architecture/guide-du-joueur-et-videos-des-capacites.md)
+  * [Guide du joueur](architecture/guide-du-joueur.md)
   * [Icônes des capacités](architecture/icones-des-capacites.md)
   * [Passifs en haut à gauche de l'écran](architecture/passifs-en-haut-a-gauche-de-l-ecran.md)
   * [Sons d'effets et orbe de l'ultime](architecture/sons-d-effets-et-orbe-de-l-ultime.md)
