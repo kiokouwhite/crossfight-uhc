@@ -93,10 +93,10 @@ RECIPES = {
             ("Tempête de Lames", "jett_ult", "Rogue 27 bleu"),
         ],
         "Neon": [
-            ("Vitesse Supérieure", "neon_vitesse", "Rogue 3 or"),
-            ("Éclair Relais", "neon_relais", "Wizard 14 or"),
-            ("Voie Rapide", "neon_voie", "Wizard 20 or"),
-            ("Surmultipliée", "neon_ult", "Wizard 32 or"),
+            ("Vitesse Supérieure", "neon_vitesse", "Rogue 3 neon"),
+            ("Éclair Relais", "neon_relais", "Wizard 14 neon"),
+            ("Voie Rapide", "neon_voie", "Wizard 20 neon"),
+            ("Surmultipliée", "neon_ult", "Wizard 32 neon"),
         ],
         "Sage": [
             ("Orbe de Soin", "sage_soin", "Acolyte 3 vert"),
@@ -115,7 +115,9 @@ RECIPES = {
 
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
-DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95)}
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95),
+           # Neon : ombres bleu neon, lumieres jaunes.
+           "neon": ("or", [(0.0, (14, 16, 70)), (0.3, (30, 70, 235)), (0.55, (0, 200, 255)), (0.68, (70, 220, 255)), (0.72, (255, 232, 70)), (1.0, (255, 255, 225))])}
 
 
 def icon(recipe: str) -> Image.Image:
@@ -141,6 +143,16 @@ def icon_of(recipe: str, size: int) -> Image.Image:
                 r, g, b, a = px[x, y]
                 h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
                 # Les gris (lames, contours clairs) gardent leur teinte : seule la couleur fonce.
+                if shift[0:1] and isinstance(shift[1], list):
+                    # Degrade par luminosite : les ombres dans une couleur, les lumieres dans une autre.
+                    if sat > 0.15:
+                        lum, stops = (0.299 * r + 0.587 * g + 0.114 * b) / 255, shift[1]
+                        for (l0, c0), (l1, c1) in zip(stops, stops[1:]):
+                            if lum <= l1 or (l1, c1) == stops[-1]:
+                                t = max(0, min(1, (lum - l0) / (l1 - l0)))
+                                px[x, y] = tuple(round(c0[k] + (c1[k] - c0[k]) * t) for k in range(3)) + (a,)
+                                break
+                    continue
                 if sat > 0.15: h, sat, v = (h + shift[1]) % 1, min(1, sat * shift[2]), v * shift[3]
                 r, g, b = colorsys.hsv_to_rgb(h, sat, v)
                 px[x, y] = (round(r * 255), round(g * 255), round(b * 255), a)
