@@ -70,8 +70,8 @@ RECIPES = {
             ("Invocation", "weiss_ult", "Wizard 9 bleu"),
         ],
         "Blake Belladonna": [
-            ("Ombre", "blake_ombre", "Rogue 16 violet"),
-            ("Discrétion", "blake_discretion", "Rogue 20 violet"),
+            ("Ombre", "blake_ombre", "Rogue 20 violet"),
+            ("Discrétion", "blake_discretion", "Rogue 16 violet"),
             ("Effacement", "blake_effacement", "Rogue 9 violet"),
             ("Instinct Animal", "blake_ult", "Rogue 13 violet"),
         ],
