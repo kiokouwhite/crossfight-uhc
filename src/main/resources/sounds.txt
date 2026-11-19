@@ -291,6 +291,11 @@ glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon
 glyph.vent
+icone.arlo_barriere
+icone.arlo_barriere_ultime
+icone.arlo_enfermement
+icone.arlo_etouffement
+icone.arlo_ult
 icone.armin_annulation
 icone.armin_regroupement
 icone.armin_strategie
@@ -315,6 +320,8 @@ icone.jett_courant
 icone.jett_flottement
 icone.jett_ult
 icone.jett_vent
+icone.john_absorption
+icone.john_ult
 icone.livai_assaut
 icone.livai_camarades
 icone.livai_charge
@@ -331,6 +338,10 @@ icone.neon_relais
 icone.neon_ult
 icone.neon_vitesse
 icone.neon_voie
+icone.remi_dash
+icone.remi_electricite
+icone.remi_electrocution
+icone.remi_ult
 icone.ruby_petales_lent
 icone.ruby_petales_rapide
 icone.ruby_ult
@@ -340,6 +351,10 @@ icone.sage_barriere
 icone.sage_lenteur
 icone.sage_soin
 icone.sage_ult
+icone.seraphina_arret
+icone.seraphina_choc
+icone.seraphina_retour
+icone.seraphina_ult
 icone.sova_drone
 icone.sova_electro
 icone.sova_reco

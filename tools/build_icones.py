@@ -26,7 +26,7 @@ COLOURS = {
 }
 
 # Les licences dont la planche est validee : seules leurs icones vont dans le pack.
-VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK"]
+VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK", "unOrdinary"]
 
 # licence -> personnage -> [(capacite, identifiant dans le plugin, recette)]
 RECIPES = {
@@ -160,6 +160,30 @@ RECIPES = {
             ("Choc Temporel", "seraphina_choc", "Warrior 17 violet"),
             ("Arrêt Temporel", "seraphina_arret", "Objets 3230"),
             ("Explosion temporelle", "seraphina_ult", "Wizard 12 violet"),
+        ],
+    },
+    "Earth Delta": {
+        "Hano": [
+            ("Tomes enchantés", "hano_tomes", "Wizard 23 bleu"),
+            ("Maîtresse de la Connaissance", "hano_ult", "Acolyte 25 bleu"),
+        ],
+        "Kishi": [
+            ("Explosion Aveuglante", "kishi_explosion", "Acolyte 18 or"),
+            ("Aura Lumineuse", "kishi_aura", "Acolyte 32 or"),
+            ("Lumière Étincelante", "kishi_lumiere", "Acolyte 2 or"),
+            ("Paradis blanc", "kishi_ult", "Acolyte 9 gris"),
+        ],
+        "Kura": [
+            ("Voie de l'assassin", "kura_assassin", "Rogue 6 rouge"),
+            ("Ruée Mortelle", "kura_ruee", "Warrior 9 rouge"),
+            ("Meurtre Parfait", "kura_meurtre", "Warrior 18 rouge"),
+            ("Reine du Crime", "kura_reine", "Acolyte 26 rouge"),
+            ("Récompense méritée", "kura_recompense", "Rogue 7 rouge"),
+            ("Pluie de Couteaux", "kura_ult", "Rogue 27 rouge"),
+        ],
+        "Taka": [
+            ("Multi-Arme", "taka_multiarme", "Warrior 2 vert"),
+            ("Multi-Invocation", "taka_ult", "Acolyte 24 vert"),
         ],
     },
 }
