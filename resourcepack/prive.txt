@@ -45,6 +45,10 @@ font.quete_recul
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon
+icone.aida_bulle
+icone.aida_clone
+icone.aida_eponge
+icone.aida_ult
 icone.arlo_barriere
 icone.arlo_barriere_ultime
 icone.arlo_enfermement
@@ -66,6 +70,10 @@ icone.corrin_eau
 icone.corrin_gardien
 icone.corrin_sang
 icone.corrin_ult
+icone.crystal_cristal
+icone.crystal_patin
+icone.crystal_surcharge
+icone.crystal_ult
 icone.eirika_absorption
 icone.eirika_effroi
 icone.eirika_marque
@@ -78,6 +86,10 @@ icone.hannah_abnegation
 icone.hannah_protection
 icone.hannah_resister
 icone.hannah_ult
+icone.hiro_consumation
+icone.hiro_dash
+icone.hiro_grenade
+icone.hiro_ult
 icone.jett_courant
 icone.jett_flottement
 icone.jett_ult
@@ -118,6 +130,10 @@ icone.netsu_ailes
 icone.netsu_jetee
 icone.netsu_papillons
 icone.netsu_ult
+icone.pinkou_cocon
+icone.pinkou_ronces
+icone.pinkou_ult
+icone.pinkou_vigne
 icone.remi_dash
 icone.remi_electricite
 icone.remi_electrocution
@@ -135,6 +151,7 @@ icone.seraphina_arret
 icone.seraphina_choc
 icone.seraphina_retour
 icone.seraphina_ult
+icone.solo_burst_yuki
 icone.sova_drone
 icone.sova_electro
 icone.sova_reco
@@ -155,6 +172,11 @@ icone.yang_brulure
 icone.yang_colere
 icone.yang_incendie
 icone.yang_ult
+icone.yuki_desesperee
+icone.yuki_insaisissable
+icone.yuki_insatiable
+icone.yuki_souffrante
+icone.yuki_ult
 model.falchion
 model.yumi_fujin
 music.forge_aegleseeker 147692
