@@ -30,4 +30,4 @@ Temps de chargement : 30 secondes
 
 ### Amour du danger
 
-Un coup énorme sur l'adversaire le plus proche (10 blocs) : 1 cœur a 10 blocs, jusqu'à 9 cœurs à 1 bloc.
+Un coup énorme sur l'adversaire le plus proche (10 blocs) : 1 cœur à 10 blocs, jusqu'à 9 cœurs à 1 bloc.

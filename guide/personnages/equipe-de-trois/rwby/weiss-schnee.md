@@ -18,7 +18,7 @@ Temps de chargement : 15 secondes
 
 ### Glyphs (Type 2)
 
-(Actif) Rouge : flèche qui enflamme une zone de 5x5. Bleu : patinoire 10x10 avec Vitesse (10 s). Jaune : eclair sur tous les ennemis a 10 blocs. Cyan : cercle de verre qui tire 5 flèches a effet. Blanche : l'ennemi le plus proche est retenu un instant puis s'envole de 10 blocs. Violette : l'ennemi le plus proche est retenu un instant puis le sol s'ouvre sous lui, il tombe 10 blocs plus bas.
+(Actif) Rouge : flèche qui enflamme une zone de 5x5. Bleu : patinoire 10x10 avec Vitesse (10 s). Jaune : eclair sur tous les ennemis à 10 blocs. Cyan : cercle de verre qui tire 5 flèches a effet. Blanche : l'ennemi le plus proche est retenu un instant puis s'envole de 10 blocs. Violette : l'ennemi le plus proche est retenu un instant puis le sol s'ouvre sous lui, il tombe 10 blocs plus bas.
 
 Temps de chargement : 15 secondes
 

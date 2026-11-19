@@ -18,7 +18,7 @@ Voie de la Destruction
 
 ### Grenade Enflammée
 
-(Actif) 15 Puissance : grenade à 5 blocs qui enflamme son chemin, explosion de 4 blocs. 40 : grenade a 10 blocs, explosion de 10. 70 : explosion de 12 avec de la lave. 100 : une boule qui explose tous les 2 blocs sur 20 blocs, puis une explosion de 20.
+(Actif) 15 Puissance : grenade à 5 blocs qui enflamme son chemin, explosion de 4 blocs. 40 : grenade à 10 blocs, explosion de 10. 70 : explosion de 12 avec de la lave. 100 : une boule qui explose tous les 2 blocs sur 20 blocs, puis une explosion de 20.
 
 Temps de chargement : 3 secondes
 

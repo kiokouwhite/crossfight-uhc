@@ -30,7 +30,7 @@ Temps de chargement : 15 secondes
 
 ### Désespérée
 
-(Actif) Tous les ennemis a 30 blocs subissent un effet selon la vie de Yuki : moins de 7.5 cœurs Lenteur, moins de 5 Cécité, moins de 2.5 Obscurité, moins de 1 cœur Obscurité, Lenteur III et Faiblesse III.
+(Actif) Tous les ennemis à 30 blocs subissent un effet selon la vie de Yuki : moins de 7.5 cœurs Lenteur, moins de 5 Cécité, moins de 2.5 Obscurité, moins de 1 cœur Obscurité, Lenteur III et Faiblesse III.
 
 Temps de chargement : 20 secondes
 
@@ -39,3 +39,7 @@ Temps de chargement : 20 secondes
 ### Parfaite | Imparfaite
 
 Pendant 20 secondes, tous les ennemis de la carte ont Obscurité et Lenteur II ; Yuki perd temporairement 7.5 cœurs.
+
+### Burst : Monstre
+
+(Second ultime) Yuki perd définitivement 7 cœurs : énorme explosion sur 50 blocs, les ennemis à 10 blocs perdent définitivement 9 cœurs. Se charge à 1000 % de dégâts infligés, compteur conservé entre les morts.

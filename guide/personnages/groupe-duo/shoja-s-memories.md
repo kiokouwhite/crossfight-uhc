@@ -2,7 +2,7 @@
 
 ## Particularité
 
-Synergie : second ultime commun à la paire, charge a 200 % de dégâts infligés par les deux.
+Synergie : second ultime commun à la paire, charge à 200 % de dégâts infligés par les deux.
 
 ## Commun à la licence
 

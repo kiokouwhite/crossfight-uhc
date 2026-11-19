@@ -14,7 +14,7 @@ Voie de la Nihilite
 
 ### Flèche de reconnaissance
 
-(Actif) Sova bande son arc : la ou la flèche se plante, elle émet 3 impulsions pendant 6 secondes qui revelent et ralentissent les ennemis a 40 blocs.
+(Actif) Sova bande son arc : la ou la flèche se plante, elle émet 3 impulsions pendant 6 secondes qui revelent et ralentissent les ennemis à 40 blocs.
 
 Temps de chargement : 40 secondes
 

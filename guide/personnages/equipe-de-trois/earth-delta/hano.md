@@ -52,7 +52,7 @@ Temps de chargement : 30 secondes
 
 ### Envolée Céleste
 
-(Actif) Hano et l'adversaire le plus proche sont projetés a 10 blocs dans les airs. Hano ne subit jamais de dégâts de chute.
+(Actif) Hano et l'adversaire le plus proche sont projetés à 10 blocs dans les airs. Hano ne subit jamais de dégâts de chute.
 
 Temps de chargement : 30 secondes
 
@@ -90,7 +90,7 @@ Temps de chargement : 30 secondes
 
 ### Projection
 
-(Actif) L'adversaire le plus proche (10 blocs) est projeté a 10 blocs.
+(Actif) L'adversaire le plus proche (10 blocs) est projeté à 10 blocs.
 
 Temps de chargement : 30 secondes
 
@@ -130,7 +130,7 @@ Temps de chargement : 30 secondes
 
 ### Concentration Ultime
 
-(Actif) Hano reste immobile 10 secondes, puis inflige Wither II à tous les adversaires a 30 blocs.
+(Actif) Hano reste immobile 10 secondes, puis inflige Wither II à tous les adversaires à 30 blocs.
 
 Temps de chargement : 30 secondes
 

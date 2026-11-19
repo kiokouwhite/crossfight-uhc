@@ -30,4 +30,4 @@ Temps de chargement : 15 secondes
 
 ### Vision Trigonométrique
 
-Pendant 30 secondes : portée 4 et Speed II, la distance de chaque ennemi a 100 blocs s'affiche au-dessus de lui, et un clic droit en visant un ennemi téléporte Netsu à 4 blocs de lui.
+Pendant 30 secondes : portée 4 et Speed II, la distance de chaque ennemi à 100 blocs s'affiche au-dessus de lui, et un clic droit en visant un ennemi téléporte Netsu à 4 blocs de lui.

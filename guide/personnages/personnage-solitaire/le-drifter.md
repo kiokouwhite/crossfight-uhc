@@ -35,3 +35,7 @@ Temps de chargement : 10 secondes
 ### Affronter ses demons
 
 Judgement tombe sur l'adversaire le plus proche (10 blocs) : 0 à 9 cœurs selon la barre de santé (plus elle est basse, plus il frappe fort).
+
+### Burst : Monde en Ruine
+
+(Second ultime) Tous les adversaires à 40 blocs sont téléportés avec le Drifter dans l'arène finale : il y a Force III, Résistance II et Speed II, sans les effets de sa santé. Il en sort en tuant tous ses adversaires, ou en mourant sans perdre de vie. Se charge à 1000 % de dégâts infligés, compteur conservé entre les morts.

@@ -32,4 +32,4 @@ Temps de chargement : 25 secondes
 
 ### Multi-Invocation
 
-Taka invoque 10 armes au hasard a 50 blocs autour d'elle pendant 1 minute : indestructibles, elles ne peuvent pas être lancées par la Multi-Arme.
+Taka invoque 10 armes au hasard à 50 blocs autour d'elle pendant 1 minute : indestructibles, elles ne peuvent pas être lancées par la Multi-Arme.

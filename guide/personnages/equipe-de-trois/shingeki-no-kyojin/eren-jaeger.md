@@ -10,7 +10,7 @@ Voie de la Destruction
 
 ### Charge tridimensionnelle
 
-(Actif) Eren dash vers l'adversaire le plus proche a 15 blocs maximum.
+(Actif) Eren dash vers l'adversaire le plus proche à 15 blocs maximum.
 
 Temps de chargement : 20 secondes
 

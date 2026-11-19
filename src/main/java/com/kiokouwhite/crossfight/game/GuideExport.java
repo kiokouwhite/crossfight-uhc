@@ -56,8 +56,14 @@ public final class GuideExport {
                     if (!firstAbility) out.append(',');
                     firstAbility = false;
                     int cd = a instanceof ActiveAbility act ? act.cooldownSeconds() : 0;
-                    out.append("\n  {\"id\":").append(q(a.id())).append(",\"name\":").append(q(a.name()))
-                       .append(",\"type\":").append(q(a.type().label())).append(",\"description\":").append(q(a.description()))
+                    String name = a.name(), text = a.description();
+                    // Le Burst est un objet commun aux solitaires, mais chacun a le sien : son nom et son effet.
+                    if (a == com.kiokouwhite.crossfight.character.solo.Solo.ITEM && c instanceof com.kiokouwhite.crossfight.character.solo.Solo.Burst b) {
+                        name = "Burst : " + b.burstName();
+                        text = b.burstDescription() + " Se charge a 1000 % de degats infliges, compteur conserve entre les morts.";
+                    }
+                    out.append("\n  {\"id\":").append(q(a.id())).append(",\"name\":").append(q(name))
+                       .append(",\"type\":").append(q(a.type().label())).append(",\"description\":").append(q(text))
                        .append(",\"cooldown\":").append(cd).append(",\"weapon\":").append(a.isWeaponBound())
                        .append(",\"item\":").append(a.hasItem()).append(",\"icon\":").append(q(a.icon().getKey().getKey())).append('}');
                 }

@@ -24,7 +24,7 @@ Temps de chargement : 15 minutes
 
 ### Déchaînement d'Épine
 
-(Actif) Byleth balaie un grand arc avec son épée-fouet : les ennemis dans la zone de 5 blocs devant elle sont éjectés a 10 blocs et perdent 3 cœurs.
+(Actif) Byleth balaie un grand arc avec son épée-fouet : les ennemis dans la zone de 5 blocs devant elle sont éjectés à 10 blocs et perdent 3 cœurs.
 
 Temps de chargement : 20 secondes
 
@@ -32,4 +32,4 @@ Temps de chargement : 20 secondes
 
 ### Les Ténèbres se consumeront elles-mêmes
 
-Téléporte les ennemis a 20 blocs dans une autre dimension avec Byleth. Ils n'en sortent que si elle meurt, ce qui ne lui coûte pas de vie.
+Téléporte les ennemis à 20 blocs dans une autre dimension avec Byleth. Ils n'en sortent que si elle meurt, ce qui ne lui coûte pas de vie.

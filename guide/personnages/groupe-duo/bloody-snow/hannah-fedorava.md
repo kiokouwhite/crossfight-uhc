@@ -22,7 +22,7 @@ Temps de chargement : 5 secondes
 
 ### Abnégation Enrageante
 
-(Actif) Les adversaires a 10 blocs sont provoqués pendant 10 secondes : ils ne peuvent attaquer qu'Hannah.
+(Actif) Les adversaires à 10 blocs sont provoqués pendant 10 secondes : ils ne peuvent attaquer qu'Hannah.
 
 Temps de chargement : 30 secondes
 

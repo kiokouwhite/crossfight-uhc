@@ -8,7 +8,7 @@
 
 ### Équipement tridimensionnel
 
-(Activable) Clic droit : lance un grappin a 30 blocs ; la ou il s'accroche, tu es tire dans les airs. Style Haine : si le grappin attrape un adversaire, Eren lui fonce dessus et lui inflige 2 cœurs à l'impact (10 s). Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.
+(Activable) Clic droit : lance un grappin à 30 blocs ; la ou il s'accroche, tu es tire dans les airs. Style Haine : si le grappin attrape un adversaire, Eren lui fonce dessus et lui inflige 2 cœurs à l'impact (10 s). Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.
 
 ## Personnages
 

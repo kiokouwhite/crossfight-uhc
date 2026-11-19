@@ -28,4 +28,4 @@ Temps de chargement : 20 secondes
 
 ### Les Vagues Bleues de l'Ocean Gris
 
-Corrin plante ses bras dans le sol, immobile 1,5 s : une vraie vague de 10 blocs de large se dresse et déferle sur 40 blocs (10 blocs/s) dans la direction ou elle regarde. Les ennemis touches sont éjectés a 30 blocs de haut et ont Lenteur III pendant 10 secondes.
+Corrin plante ses bras dans le sol, immobile 1,5 s : une vraie vague de 10 blocs de large se dresse et déferle sur 40 blocs (10 blocs/s) dans la direction ou elle regarde. Les ennemis touches sont éjectés à 30 blocs de haut et ont Lenteur III pendant 10 secondes.

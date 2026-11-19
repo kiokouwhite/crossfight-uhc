@@ -16,7 +16,7 @@ Temps de chargement : 10 secondes
 
 ### Arret Temporel
 
-(Actif) Seraphina arrête le temps a 10 blocs : les ennemis sont immobilisés et aveuglés 3 secondes, elle gagne Vitesse III, mais ne peut pas les frapper pendant ce temps.
+(Actif) Seraphina arrête le temps à 10 blocs : les ennemis sont immobilisés et aveuglés 3 secondes, elle gagne Vitesse III, mais ne peut pas les frapper pendant ce temps.
 
 Temps de chargement : 15 secondes
 

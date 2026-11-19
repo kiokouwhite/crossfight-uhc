@@ -19,3 +19,7 @@ Voie de la Destruction
 ### Couronne Angélique | Araignée Maléfique
 
 Plus de 5 cœurs : Couronne Angélique, Shoja vole et régénère pendant 20 secondes. 5 cœurs ou moins : Araignée Maléfique, Vitesse II et Force IV pendant 20 secondes, mais elle perd 1 cœur toutes les 2 secondes.
+
+### Burst : Dieu du monde | Dieu des enfers
+
+(Second ultime) Plus de 5 cœurs : Dieu du monde, Shoja reste immobile 10 secondes puis gagne une vie. 5 cœurs ou moins : Dieu des enfers, elle perd définitivement 4 cœurs et a Force IV jusqu'à sa mort. Se charge à 1000 % de dégâts infligés, compteur conservé entre les morts.

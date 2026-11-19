@@ -16,7 +16,7 @@ Temps de chargement : 15 secondes
 
 ### Sus à la Cible
 
-(Actif) Menu des adversaires a 100 blocs : la cible choisie est en surbrillance 1 minute et Mikasa gagne Speed 30 secondes. Si Eren à moins de 5 cœurs, Mikasa gagne aussi Force contre cette cible.
+(Actif) Menu des adversaires à 100 blocs : la cible choisie est en surbrillance 1 minute et Mikasa gagne Speed 30 secondes. Si Eren à moins de 5 cœurs, Mikasa gagne aussi Force contre cette cible.
 
 Temps de chargement : 1 minute
 
