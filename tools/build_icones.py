@@ -198,22 +198,22 @@ RECIPES = {
             ("Exécution Atroce", "eirika_ult", "Rogue 13 nuit"),
         ],
         "Hannah Fedorava": [
-            ("Résister pour mieux régner", "hannah_resister", "Warrior 27 feu"),
-            ("Protection chevaleresque", "hannah_protection", "Acolyte 14 feu"),
-            ("Abnégation Enrageante", "hannah_abnegation", "Warrior 22 feu"),
-            ("Relâchement de Rage", "hannah_ult", "Warrior 25 feu"),
+            ("Résister pour mieux régner", "hannah_resister", "Warrior 27 vert"),
+            ("Protection chevaleresque", "hannah_protection", "Acolyte 14 vert"),
+            ("Abnégation Enrageante", "hannah_abnegation", "Warrior 22 vert"),
+            ("Relâchement de Rage", "hannah_ult", "Warrior 25 vert"),
         ],
         "Kaze Lewis": [
-            ("Power Hit", "kaze_powerhit", "Warrior 12 vert"),
-            ("Prise en traître", "kaze_prise", "Rogue 6 vert"),
-            ("Goût du risque", "kaze_risque", "Rogue 10 vert"),
-            ("Amour du danger", "kaze_ult", "Warrior 5 vert"),
+            ("Power Hit", "kaze_powerhit", "Warrior 12 noir"),
+            ("Prise en traître", "kaze_prise", "Rogue 6 noir"),
+            ("Goût du risque", "kaze_risque", "Rogue 10 noir"),
+            ("Amour du danger", "kaze_ult", "Warrior 5 noir"),
         ],
         "Netsu Lewis": [
-            ("Nuée de Papillons", "netsu_papillons", "Rogue 9 rose"),
-            ("Ailes Éphémères", "netsu_ailes", "Wizard 1 rose"),
-            ("Jetée Éclatante", "netsu_jetee", "Warrior 15 rose"),
-            ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rose"),
+            ("Nuée de Papillons", "netsu_papillons", "Rogue 9 rouge"),
+            ("Ailes Éphémères", "netsu_ailes", "Wizard 1 rouge"),
+            ("Jetée Éclatante", "netsu_jetee", "Warrior 15 rouge"),
+            ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rouge"),
         ],
     },
 }
@@ -224,6 +224,8 @@ HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
 DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0), "nuit": ("bleu", 0.04, 1.15, 0.42),
+           # Noir : les couleurs passent en gris tres sombres, les lumieres en gris clair.
+           "noir": ("violet", [(0.0, (6, 6, 9)), (0.3, (26, 26, 32)), (0.6, (72, 72, 84)), (1.0, (205, 205, 215))]),
            # Neon : ombres bleu neon, lumieres jaunes.
            "neon": ("or", [(0.0, (14, 16, 70)), (0.3, (30, 70, 235)), (0.55, (0, 200, 255)), (0.68, (70, 220, 255)), (0.72, (255, 232, 70)), (1.0, (255, 255, 225))])}
 
@@ -291,7 +293,7 @@ def icon_of(recipe: str, size: int) -> Image.Image:
                 # Les gris (lames, contours clairs) gardent leur teinte : seule la couleur fonce.
                 if shift[0:1] and isinstance(shift[1], list):
                     # Degrade par luminosite : les ombres dans une couleur, les lumieres dans une autre.
-                    if sat > 0.15:
+                    if sat > 0.05:
                         lum, stops = (0.299 * r + 0.587 * g + 0.114 * b) / 255, shift[1]
                         for (l0, c0), (l1, c1) in zip(stops, stops[1:]):
                             if lum <= l1 or (l1, c1) == stops[-1]:
