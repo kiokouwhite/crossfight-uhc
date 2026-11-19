@@ -259,7 +259,7 @@ RECIPES = {
             ("Nature Éternelle", "pinkou_ult", "Objets 3639 rose-pale"),
         ],
         "Aida": [
-            ("Bulle d'eau", "aida_bulle", "Acolyte 30 bleu"),
+            ("Bulle d'eau", "aida_bulle", "Objets 3085"),
             ("Clone d'eau", "aida_clone", "Rogue 15 bleu"),
             ("Éponge Capacitive", "aida_eponge", "Warrior 22 bleu"),
             ("Pluie bouillante", "aida_ult", "Wizard 19 bleu"),
