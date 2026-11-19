@@ -26,7 +26,7 @@ COLOURS = {
 }
 
 # Les licences dont la planche est validee : seules leurs icones vont dans le pack.
-VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK", "unOrdinary", "Earth Delta"]
+VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK", "unOrdinary", "Earth Delta", "Bloody Snow"]
 # Dans une licence validee, les capacites encore en attente (Hano : une icone par tome, a faire).
 PENDING = {"hano_tomes", "hano_ult"}
 
