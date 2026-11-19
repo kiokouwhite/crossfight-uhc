@@ -140,7 +140,7 @@ RECIPES = {
     "unOrdinary": {
         "Arlo": [
             ("Barrière", "arlo_barriere", "Acolyte 14 or"),
-            ("Barrière Ultime", "arlo_barriere_ultime", "Warrior 27 or"),
+            ("Barrière Ultime", "arlo_barriere_ultime", "Acolyte 15 or"),
             ("Enfermement", "arlo_enfermement", "Wizard 28 or"),
             ("Étouffement", "arlo_etouffement", "Acolyte 21 or"),
             ("Bulle géante", "arlo_ult", "Wizard 21 or"),
