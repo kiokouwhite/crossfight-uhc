@@ -26,7 +26,9 @@ COLOURS = {
 }
 
 # Les licences dont la planche est validee : seules leurs icones vont dans le pack.
-VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK", "unOrdinary"]
+VALIDATED = ["Fire Emblem", "RWBY", "Valorant", "SNK", "unOrdinary", "Earth Delta"]
+# Dans une licence validee, les capacites encore en attente (Hano : une icone par tome, a faire).
+PENDING = {"hano_tomes", "hano_ult"}
 
 # licence -> personnage -> [(capacite, identifiant dans le plugin, recette)]
 RECIPES = {
@@ -188,6 +190,32 @@ RECIPES = {
             ("Multi-Invocation", "taka_ult", "Acolyte 24 vert"),
         ],
     },
+    "Bloody Snow": {
+        "Eirika Fischer": [
+            ("Marque de Sang", "eirika_marque", "Wizard 3 rouge"),
+            ("Absorption de sang", "eirika_absorption", "Acolyte 1 rouge"),
+            ("Effroi sanglant", "eirika_effroi", "Wizard 11 rouge"),
+            ("Exécution Atroce", "eirika_ult", "Acolyte 21 rouge"),
+        ],
+        "Hannah Fedorava": [
+            ("Résister pour mieux régner", "hannah_resister", "Warrior 27 feu"),
+            ("Protection chevaleresque", "hannah_protection", "Acolyte 14 feu"),
+            ("Abnégation Enrageante", "hannah_abnegation", "Warrior 22 feu"),
+            ("Relâchement de Rage", "hannah_ult", "Warrior 25 feu"),
+        ],
+        "Kaze Lewis": [
+            ("Power Hit", "kaze_powerhit", "Warrior 12 vert"),
+            ("Prise en traître", "kaze_prise", "Rogue 6 vert"),
+            ("Goût du risque", "kaze_risque", "Rogue 10 vert"),
+            ("Amour du danger", "kaze_ult", "Warrior 5 vert"),
+        ],
+        "Netsu Lewis": [
+            ("Nuée de Papillons", "netsu_papillons", "Rogue 9 rose"),
+            ("Ailes Éphémères", "netsu_ailes", "Wizard 1 rose"),
+            ("Jetée Éclatante", "netsu_jetee", "Warrior 15 rose"),
+            ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rose"),
+        ],
+    },
 }
 
 
@@ -314,6 +342,7 @@ def build():
     for licence in VALIDATED:
         for abilities in RECIPES[licence].values():
             for _, ident, recipe in abilities:
+                if ident in PENDING: continue
                 icon(recipe).save(folders[0] / f"{ident}.png")
                 (folders[1] / f"{ident}.json").write_text(json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": f"crossfight:item/icone/{ident}"}}))
                 (folders[2] / f"{ident}.json").write_text(json.dumps({"model": {"type": "minecraft:model", "model": f"crossfight:item/icone/{ident}"}}))

@@ -76,6 +76,16 @@ icone.jett_ult
 icone.jett_vent
 icone.john_absorption
 icone.john_ult
+icone.kishi_aura
+icone.kishi_explosion
+icone.kishi_lumiere
+icone.kishi_ult
+icone.kura_assassin
+icone.kura_meurtre
+icone.kura_recompense
+icone.kura_reine
+icone.kura_ruee
+icone.kura_ult
 icone.livai_assaut
 icone.livai_camarades
 icone.livai_charge
@@ -113,6 +123,10 @@ icone.sova_drone
 icone.sova_electro
 icone.sova_reco
 icone.sova_ult
+icone.taka_axe
+icone.taka_spear
+icone.taka_sword
+icone.taka_ult
 icone.takumi_contre
 icone.takumi_furie
 icone.takumi_ult
