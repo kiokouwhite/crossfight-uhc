@@ -119,7 +119,7 @@ RECIPES = {
             ("Titan Assaillant", "eren_ult", "Wizard 11 vert"),
         ],
         "Armin Arlert": [
-            ("Regroupement Militaire", "armin_regroupement", "Warrior 30 or"),
+            ("Regroupement Militaire", "armin_regroupement", "Rogue 5 or"),
             ("Stratégie", "armin_strategie", "Wizard 23 or"),
             ("Annulation Tactique", "armin_annulation", "Rogue 12 or"),
             ("Abnégation", "armin_ult", "Wizard 12 or"),
