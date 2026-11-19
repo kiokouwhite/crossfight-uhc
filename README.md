@@ -632,21 +632,67 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 
 ## Feuille de route
 
-- [x] Socle UHC : équipes, licences, vies, PvP, restrictions, scoreboard
-- [x] Moteur de capacités et Ultime
-- [x] Fire Emblem : Soutien C à S, Marth, Corrin, Takumi, Byleth
-- [x] RWBY : Ultimes en Duo, Ruby, Yang, Weiss, Blake
-- [x] Valorant : crédits et boutique de 17 armes à feu, paliers d'armes blanches, Neon, Sage, Sova, Jett
-- [x] Shingeki no Kyojin : équipement tridimensionnel et gaz, Eren (et ses 7 titans), Mikasa, Livaï, Armin
-- [x] unOrdinary : épées d'Aura à crafter, Arlo, John (absorption), Remi, Seraphina
-- [x] Earth Delta : mutations à chaque mort, Kishi, Kura, Taka, Hano (28 tomes)
-- [x] Synergies des groupes duo ; Armed Blue Gunvolt : Gunvolt, Acura, Kirin, Asimov
-- [x] Shoja's Memories : Hiro, Pinkou, Aïda, Crystal
-- [x] Bloody Snow : Netsu, Kaze, Hannah, Eirika
-- [x] Personnages solitaires et Burst : Yuki, le Drifter, Shoja (arbre de 59 capacités)
-- [x] Sons : pack de ressources, bruitages libres par capacité, système de voix et de musiques de combat
+Où en est le projet, ce qu'il reste, et dans quel ordre le prendre. Mise à jour à chaque étape.
+
+### Ce qui est fait
+
+- [x] Socle UHC : équipes, licences, vies, PvP, restrictions, tableau de bord, administrateurs de partie et règles
+- [x] Moteur de capacités et Ultime ; les 39 personnages des dix licences (Fire Emblem, RWBY, Valorant, Shingeki no Kyojin, unOrdinary, Earth Delta, Armed Blue Gunvolt, Shoja's Memories, Bloody Snow, solitaires)
+- [x] Sons : pack de ressources, bruitages par capacité, système de voix et de musiques de combat
+- [x] Événements : Lootbox, Regna Ferox, Omori, événement des lieux (un lieu renforcé, un affaibli, toutes les 20 minutes)
+- [x] Map : génération, minerais multipliés, lieux posés sur la map, monde déchiré autour d'eux, carte de la map
+- [x] Lieux, quêtes et récompenses :
+
+  | Lieu | Quête | Récompense | État |
+  |---|---|---|---|
+  | Garreg Mach | pêche (10 poissons) | enchantements d'Anna | refait |
+  | Shiganshina | Titan en cent coups | forge en musique | refait |
+  | Pearl | perles à ramasser | potions d'Anna | quête d'origine |
+  | Central Town | quatre énigmes (tablette, circuit, établi, puzzle) | marchand d'objets de lootbox | refait |
+  | Arcadia | casse-briques (15 pommes) | roulette de pommes dorées | refait |
+  | Terrace | montée par cinq drapeaux | expérience dans le lieu | refait |
+  | Quartier général | une offre à payer | carte des joueurs, fiches, traque | refait |
+  | Beacon | quatre reliques à ramasser | lootbox garantie | quête d'origine |
+  | Forest of Hope | trois pièces à rapporter | chasse aux pièces | quête d'origine |
+
+- [x] Interface : menus d'Anna, panneau de quête et sa jauge, épreuves, orbe de l'ultime, avec le pack d'interface
+
+### 1. Vérifier en vraie partie (le plus urgent)
+
+Presque tout a été essayé avec des bots ou seul dans le client, jamais dans une partie à plusieurs. Avant d'ajouter du contenu, une partie d'essai complète dira ce qui tient.
+
+- [ ] Une partie entière à plusieurs joueurs, du lancement à la victoire
+- [ ] Durée des quêtes à la main : casse-briques, Titan, pêche, énigmes, montée aux drapeaux (accessibilité des drapeaux)
+- [ ] Synchronisation des musiques de la forge avec leurs notes
+- [ ] Valeurs à régler après essai : dégâts du Titan, prix du marchand, lots de la roulette, bonus et malus de l'événement des lieux, récompenses de la forge
+- [ ] Limite de deux équipes par lieu et menu d'éviction, à plusieurs équipes
+- [ ] Quartier général en partie : joueurs éliminés retirés de la carte, reprise du lieu
+
+### 2. Finir les lieux
+
+- [ ] Pearl, Beacon et Forest of Hope : les trois dernières quêtes d'origine, à refaire comme les autres (ou à garder)
+- [ ] Récompenses de Beacon et de Forest of Hope à revoir dans le même esprit
+- [ ] Lieux Lotus et Glitch : fichiers manquants
+- [ ] Décider : tous les lieux à chaque partie, ou une partie tirée au sort
+
+### 3. Événements à concevoir
+
+- [ ] Match Found (prévu au quartier général)
+- [ ] Judgement
+
+### 4. Habillage et contenu
+
 - [ ] Voix des personnages et musiques (fichiers à fournir), répliques des passifs à déclencheur
-- [ ] Lootbox, Regna Ferox, Match Found, Judgement, Omori
+- [ ] Armes en 3D : intégrer en jeu les modèles une fois retouchés (seuls la Falchion et le Yumi Fujin le sont)
+- [ ] Menus encore nus : l'offre et la fiche du quartier général
+- [ ] Reste du pack d'interface : boutons, cases à cocher, grimoire, cases à pictogramme
+- [ ] GitBook : images et vidéos par personnage et par capacité (commencé, en attente)
+
+### 5. Avant d'ouvrir à d'autres joueurs
+
+- [ ] Équilibrage des 39 personnages après plusieurs parties
+- [ ] Guide du joueur relu de bout en bout
+- [ ] Hébergement du pack complet et procédure d'installation du serveur
 
 ### Combat façon 1.8
 
