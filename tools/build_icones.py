@@ -26,10 +26,10 @@ COLOURS = {
 RECIPES = {
     "Fire Emblem": {
         "Byleth": [
-            ("Épée du Créateur", "Warrior 13 vert"),
-            ("Emblème de Feu", "Acolyte 21 vert"),
-            ("Tutorat", "Wizard 23 vert"),
-            ("Déchaînement d'Épine", "Warrior 1 vert"),
+            ("Épée du Créateur", "Warrior 13 or"),
+            ("Emblème de Feu", "Acolyte 21 or"),
+            ("Tutorat", "Wizard 23 or"),
+            ("Déchaînement d'Épine", "Warrior 1 or"),
             ("Les Ténèbres se consumeront elles-mêmes", "Wizard 21 violet"),
         ],
         "Corrin": [
@@ -40,11 +40,11 @@ RECIPES = {
             ("Les Vagues Bleues de l'Océan Gris", "Wizard 29 bleu"),
         ],
         "Marth": [
-            ("Falchion", "Acolyte 11 or"),
-            ("Contre", "Warrior 27 or"),
-            ("Charisme", "Acolyte 26 or"),
-            ("Esprit du Leader", "Warrior 30 or"),
-            ("Coup Critique", "Warrior 2 or"),
+            ("Falchion", "Acolyte 11 bleu-fonce"),
+            ("Contre", "Warrior 27 bleu-fonce"),
+            ("Charisme", "Acolyte 26 bleu-fonce"),
+            ("Esprit du Leader", "Warrior 30 bleu-fonce"),
+            ("Coup Critique", "Warrior 2 bleu-fonce"),
         ],
         "Takumi": [
             ("Yumi Fujin", "Rogue 29 cramoisi"),
@@ -57,10 +57,27 @@ RECIPES = {
 }
 
 
+# Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68)}
+
+
 def icon(recipe: str) -> Image.Image:
     pack, number, colour = recipe.split()
-    block = COLOURS[pack].index(colour)
-    return Image.open(PACKS / f"{pack} Skills" / "Original" / "32" / f"{block * 32 + int(number)}.png").convert("RGBA")
+    shift = DERIVED.get(colour)
+    block = COLOURS[pack].index(shift[0] if shift else colour)
+    im = Image.open(PACKS / f"{pack} Skills" / "Original" / "32" / f"{block * 32 + int(number)}.png").convert("RGBA")
+    if shift:
+        import colorsys
+        px = im.load()
+        for y in range(im.height):
+            for x in range(im.width):
+                r, g, b, a = px[x, y]
+                h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+                # Les gris (lames, contours clairs) gardent leur teinte : seule la couleur fonce.
+                if sat > 0.15: h, sat, v = (h + shift[1]) % 1, min(1, sat * shift[2]), v * shift[3]
+                r, g, b = colorsys.hsv_to_rgb(h, sat, v)
+                px[x, y] = (round(r * 255), round(g * 255), round(b * 255), a)
+    return im
 
 
 def preview(out: Path, licence: str):
