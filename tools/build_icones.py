@@ -96,18 +96,18 @@ RECIPES = {
             ("Vitesse Supérieure", "neon_vitesse", "Rogue 3 neon"),
             ("Éclair Relais", "neon_relais", "Wizard 14 neon"),
             ("Voie Rapide", "neon_voie", "Wizard 20 neon"),
-            ("Surmultipliée", "neon_ult", "Wizard 32 neon"),
+            ("Surmultipliée", "neon_ult", "Acolyte 32 neon"),
         ],
         "Sage": [
             ("Orbe de Soin", "sage_soin", "Acolyte 3 vert"),
             ("Orbe de Lenteur", "sage_lenteur", "Wizard 13 vert"),
-            ("Orbe Barrière", "sage_barriere", "Wizard 17 vert"),
+            ("Orbe Barrière", "sage_barriere", "Cube vert"),
             ("Résurrection", "sage_ult", "Acolyte 9 vert"),
         ],
         "Sova": [
             ("Électroflèche", "sova_electro", "Rogue 29 bleu-fonce"),
             ("Flèche de reconnaissance", "sova_reco", "Rogue 8 bleu-fonce"),
-            ("Drone Rapace", "sova_drone", "Rogue 19 bleu-fonce"),
+            ("Drone Rapace", "sova_drone", "Animaux 31"),
             ("Fureur du Chasseur", "sova_ult", "Wizard 19 bleu-fonce"),
         ],
     },
@@ -130,7 +130,27 @@ def icon(recipe: str) -> Image.Image:
     return icon_of(recipe, 32)
 
 
+def cube(colour: str) -> Image.Image:
+    """Un cube vu de trois quarts, dessine ici (aucun pack n'en a), dans les tons d'une couleur des packs."""
+    ref = icon_of(f"Acolyte 3 {colour}", 32)
+    tones = sorted({p[:3] for p in ref.getdata() if p[3] > 200}, key=lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2])
+    pick = lambda t: tones[min(len(tones) - 1, round(t * (len(tones) - 1)))] + (255,)
+    im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    top, left, right = [(15, 3), (27, 9), (15, 15), (4, 9)], [(4, 9), (15, 15), (15, 28), (4, 22)], [(16, 15), (27, 9), (27, 22), (16, 28)]
+    d.polygon(top, fill=pick(0.85)); d.polygon(left, fill=pick(0.55)); d.polygon(right, fill=pick(0.3))
+    for face in (top, left, right): d.line(face + face[:1], fill=pick(0.0))
+    d.line([(6, 9), (15, 5), (24, 9)], fill=pick(1.0))          # l'arete du haut, eclairee
+    d.line([(6, 12), (6, 20)], fill=pick(0.8))                    # un reflet sur la face gauche
+    d.point([(8, 14), (8, 15)], fill=pick(1.0))
+    return im
+
+
 def icon_of(recipe: str, size: int) -> Image.Image:
+    if recipe.startswith("Animaux "):      # le pack d'animaux : un seul jeu de couleurs
+        return Image.open(PACKS.parents[2] / "Pets_and_Animals" / "Original" / str(size) / f"{recipe.split()[1]}.png").convert("RGBA")
+    if recipe.startswith("Cube "):
+        return cube(recipe.split()[1])
     pack, number, colour = recipe.split()
     shift = DERIVED.get(colour)
     block = COLOURS[pack].index(shift[0] if shift else colour)
