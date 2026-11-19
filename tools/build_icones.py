@@ -40,7 +40,7 @@ RECIPES = {
         "Marth": [
             ("Contre", "Warrior 27 bleu-fonce"),
             ("Charisme", "Acolyte 26 bleu-fonce"),
-            ("Esprit du Leader", "Warrior 30 bleu-fonce"),
+            ("Esprit du Leader", "Acolyte 9 bleu-fonce"),
             ("Coup Critique", "Warrior 2 bleu-fonce"),
         ],
         "Takumi": [
