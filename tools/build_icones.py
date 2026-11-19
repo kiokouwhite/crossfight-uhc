@@ -121,7 +121,7 @@ RECIPES = {
         "Armin Arlert": [
             ("Regroupement Militaire", "armin_regroupement", "Rogue 5 or"),
             ("Stratégie", "armin_strategie", "Wizard 23 or"),
-            ("Annulation Tactique", "armin_annulation", "Rogue 12 or"),
+            ("Annulation Tactique", "armin_annulation", "Warrior 24 or"),
             ("Abnégation", "armin_ult", "Wizard 12 or"),
         ],
         "Mikasa Ackerman": [
