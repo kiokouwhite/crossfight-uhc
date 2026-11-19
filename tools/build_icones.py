@@ -276,7 +276,7 @@ RECIPES = {
             ("Souffrante", "yuki_souffrante", "Rogue 11 blanc-motif"),
             ("Insatiable", "yuki_insatiable", "Acolyte 21 blanc"),
             ("Insaisissable", "yuki_insaisissable", "Objets 3234 blanc [12,8,30,32]"),
-            ("Désespérée", "yuki_desesperee", "Wizard 11 blanc"),
+            ("Désespérée", "yuki_desesperee", "Warrior 28 blanc"),
             ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 blanc"),
             # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
             ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 blanc"),
