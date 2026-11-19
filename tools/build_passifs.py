@@ -87,35 +87,52 @@ def spark(im, x, y):
         d.point((x + dx, y + dy), fill=(255, 200, 80, 200))
 
 
-PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (255, 214, 120, 255), (120, 100, 90, 220)
+def stretch(img, w, h, b):
+    """Etire une piece du pack a w x h en gardant ses bords (b pixels) intacts : les coins tels quels, le reste etire."""
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    sw, sh = img.size
+    cols = ((0, b, 0, b), (b, sw - b, b, w - b), (sw - b, sw, w - b, w))
+    rows = ((0, b, 0, b), (b, sh - b, b, h - b), (sh - b, sh, h - b, h))
+    for sx1, sx2, dx1, dx2 in cols:
+        for sy1, sy2, dy1, dy2 in rows:
+            if dx2 > dx1 and dy2 > dy1:
+                out.alpha_composite(img.crop((sx1, sy1, sx2, sy2)).resize((dx2 - dx1, dy2 - dy1), Image.NEAREST), (dx1, dy1))
+    return out
 
 
 def render(character, mask, text, rec, font):
+    """Tout vient du pack d'interface : cases (Item slots), panneau (Background boxes), eclat (Mini icons), filet (Dividers)."""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
+    slot_off, slot_on = sprite("Item slots", "Slot_02_Empty"), sprite("Item slots", "Slot_03_Empty")
+    panel = sprite("Background boxes", "BGbox_01B")
+    star = sprite("Mini icons", "Icon_01_Selected")
+    rule_on, rule_off = sprite("Dividers", "Divider_07"), sprite("Dividers", "Divider_03")
     y = MARGIN
     for i, a in enumerate(passives(character)):
         lit = bool(mask & (1 << i))
         lines = wrap(a["description"], font, TEXT_W) if text else []
-        h = CELL if not text else max(CELL, 30 + len(lines) * 18 + 4)
+        h = CELL if not text else max(CELL, 38 + len(lines) * 18 + 10)
         if text:
-            # Le panneau du texte, sombre et translucide, borde d'un filet.
-            d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=EDGE if lit else DIM_EDGE)
-        d.rectangle([MARGIN, y, MARGIN + CELL - 1, y + CELL - 1], fill=PANEL, outline=EDGE if lit else DIM_EDGE)
+            im.alpha_composite(nine(panel, CELL + 10 + TEXT_W + 14, h), (MARGIN, y))
+        cell = stretch(slot_on if lit else slot_off, CELL, CELL, 4)
+        im.alpha_composite(cell, (MARGIN, y))
         icon = icon_for(a, rec)
         if not lit:
             icon = ImageEnhance.Color(icon).enhance(0.25)
-            icon = ImageEnhance.Brightness(icon).enhance(0.55)
+            icon = ImageEnhance.Brightness(icon).enhance(0.6)
         im.alpha_composite(icon, (MARGIN + 4, y + 4))
         if lit:
-            d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(255, 236, 160, 120))
-            spark(im, MARGIN + CELL - 5, y + 5)
+            im.alpha_composite(star, (MARGIN + CELL - star.width + 2, y - 2))
         if text:
-            tx = MARGIN + CELL + 6
-            d.text((tx, y + 2), a["name"], font=font, fill=GOLD if lit else (215, 195, 150, 255))
+            tx = MARGIN + CELL + 8
+            # Texte sombre sur le panneau clair du pack, comme dans les menus d'Anna.
+            d.text((tx, y + 7), a["name"], font=font, fill=(176, 84, 22, 255) if lit else (62, 66, 110, 255))
+            rule = rule_on if lit else rule_off
+            im.alpha_composite(rule.resize((TEXT_W, rule.height), Image.NEAREST), (tx, y + 31))
             for k, line in enumerate(lines):
-                d.text((tx, y + 28 + k * 18), line, font=font, fill=WHITE)
+                d.text((tx, y + 36 + k * 18), line, font=font, fill=(40, 34, 56, 255))
         y += h + 4
     return im
 
