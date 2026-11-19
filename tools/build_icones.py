@@ -261,7 +261,7 @@ RECIPES = {
         "Aida": [
             ("Bulle d'eau", "aida_bulle", "Objets 3085"),
             ("Clone d'eau", "aida_clone", "Objets 3759"),
-            ("Éponge Capacitive", "aida_eponge", "Warrior 22 bleu"),
+            ("Éponge Capacitive", "aida_eponge", "Wizard 18 bleu"),
             ("Pluie bouillante", "aida_ult", "Objets 3086"),
         ],
         "Crystal": [
