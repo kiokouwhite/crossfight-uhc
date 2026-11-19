@@ -253,10 +253,10 @@ RECIPES = {
             ("Détonation Imminente", "hiro_ult", "Wizard 30 feu"),
         ],
         "Pinkou": [
-            ("Cocon Mortel", "pinkou_cocon", "Wizard 28 rose"),
-            ("Armure de Ronces", "pinkou_ronces", "Acolyte 27 rose"),
-            ("Vigne Incapacitante", "pinkou_vigne", "Wizard 22 rose"),
-            ("Nature Éternelle", "pinkou_ult", "Acolyte 16 rose"),
+            ("Cocon Mortel", "pinkou_cocon", "Wizard 28 rose-pale"),
+            ("Armure de Ronces", "pinkou_ronces", "Acolyte 27 rose-pale"),
+            ("Vigne Incapacitante", "pinkou_vigne", "Wizard 22 rose-pale"),
+            ("Nature Éternelle", "pinkou_ult", "Acolyte 16 rose-pale"),
         ],
         "Aida": [
             ("Bulle d'eau", "aida_bulle", "Acolyte 30 bleu"),
@@ -278,7 +278,7 @@ RECIPES = {
 HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
-DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0), "nuit": ("bleu", 0.04, 1.15, 0.42),
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0), "rose-pale": ("feu", -0.14, 0.45, 1.15), "nuit": ("bleu", 0.04, 1.15, 0.42),
            # Noir : les couleurs passent en gris tres sombres, les lumieres en gris clair.
            "noir": ("violet", [(0.0, (6, 6, 9)), (0.3, (26, 26, 32)), (0.6, (72, 72, 84)), (1.0, (205, 205, 215))]),
            # Neon : ombres bleu neon, lumieres jaunes.
@@ -374,7 +374,7 @@ def icon_of(recipe: str, size: int) -> Image.Image:
                                 px[x, y] = tuple(round(c0[k] + (c1[k] - c0[k]) * t) for k in range(3)) + (a,)
                                 break
                     continue
-                if sat > 0.15: h, sat, v = (h + shift[1]) % 1, min(1, sat * shift[2]), v * shift[3]
+                if sat > 0.15: h, sat, v = (h + shift[1]) % 1, min(1, sat * shift[2]), min(1, v * shift[3])
                 r, g, b = colorsys.hsv_to_rgb(h, sat, v)
                 px[x, y] = (round(r * 255), round(g * 255), round(b * 255), a)
     return im
