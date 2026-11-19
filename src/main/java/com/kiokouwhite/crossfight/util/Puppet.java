@@ -280,7 +280,18 @@ public final class Puppet {
             d.setTeleportDuration(1);
             d.setViewRange(1.5f);
             if (setup != null) setup.accept(d);
+            // En vue a la premiere personne, les pieces du pantin sont dans la camera : son joueur ne les voit pas.
+            if (hiddenFromOwner()) player.hideEntity(CrossfightPlugin.get(), d);
         });
+    }
+
+    /**
+     * Le joueur ne voit pas son propre pantin (animations.voir-son-pantin: false, par defaut) : le serveur ne sait
+     * pas s'il est en vue exterieure, et a la premiere personne le pantin lui boucherait la vue. Le pilote d'un
+     * mannequin (mode d'essai a la troisieme personne) le voit toujours.
+     */
+    private boolean hiddenFromOwner() {
+        return player != null && !MannequinPlayer.isProxy(player) && !CrossfightPlugin.get().getConfig().getBoolean("animations.voir-son-pantin", false);
     }
 
     private Location anchor() {
@@ -408,7 +419,7 @@ public final class Puppet {
         // tout de suite s'il change de case (l'ancienne retrouve son objet, la nouvelle est masquee).
         if (ownItemsHidden && player != null) {
             int now = player.getInventory().getHeldItemSlot();
-            if (now != heldSlot) { heldSlot = now; player.updateInventory(); hideOwnItems(player); }
+            if (now != heldSlot) { heldSlot = now; player.updateInventory(); hideOwnItems(player, !hiddenFromOwner()); }
             else if (age % 4 == 1) hideOwnItems(player);
         }
         Location at = anchor();
@@ -515,7 +526,7 @@ public final class Puppet {
         // qui le concerne, il affiche ce que contient son propre inventaire. On lui envoie donc, a lui seul,
         // des cases d'armure vides et un objet invisible a la place de ce qu'il tient ; son vrai inventaire
         // n'est pas touche et lui est renvoye tel quel a la fin.
-        if (player != null && !MannequinPlayer.isProxy(player) && hideOwnItems(player)) {
+        if (player != null && !MannequinPlayer.isProxy(player) && hideOwnItems(player, !hiddenFromOwner())) {
             ownItemsHidden = true;
             heldSlot = player.getInventory().getHeldItemSlot();
             restore.add(() -> { if (player.isOnline()) player.updateInventory(); });
@@ -543,14 +554,16 @@ public final class Puppet {
      * invisible dans la case qu'il tient et dans sa main gauche, sans toucher a son vrai inventaire.
      * L'API de Paper n'a pas d'equivalent : on passe par les classes du serveur.
      */
-    private static boolean hideOwnItems(Player p) {
+    private static boolean hideOwnItems(Player p, boolean hands) {
         var inv = p.getInventory();
         // L'orbe de l'ultime (objet invisible de la case des bottes) reste : il ne se dessine pas sur le corps.
         var hud = CrossfightPlugin.get().effectHud();
-        int[] slots = {5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45};
-        ItemStack[] items = {null, null, null, hud == null ? null : hud.shownIn(p, 8),
+        ItemStack orb = hud == null ? null : hud.shownIn(p, 8);
+        // Sans pantin a ses yeux, le joueur garde ce qu'il tient : sa vue a la premiere personne ne change pas.
+        int[] slots = hands ? new int[]{5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45} : new int[]{5, 6, 7, 8};
+        ItemStack[] items = hands ? new ItemStack[]{null, null, null, orb,
                 inv.getItemInMainHand().getType().isAir() ? null : invisibleItem(),
-                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()};
+                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()} : new ItemStack[]{null, null, null, orb};
         boolean ok = ClientSlots.show(p, slots, items);
         if (!ok && !ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme."); }
         return ok;

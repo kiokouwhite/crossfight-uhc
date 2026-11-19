@@ -214,6 +214,11 @@ restrictions:
   max-protection-diamond: 2
   max-protection-iron: 3
 
+# Pendant une animation, le joueur est remplace par un pantin articule. Lui-meme ne le voit pas : a la premiere
+# personne, le pantin lui boucherait la vue. true : il le voit aussi (utile seulement en vue exterieure, F5).
+animations:
+  voir-son-pantin: false
+
 # Un son quand on recoit un bonus ou un malus.
 hud:
   effets: true

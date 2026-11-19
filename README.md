@@ -428,7 +428,7 @@ Minecraft dessine en plein écran l'image `camera_overlay` d'un objet porté (co
 
 ### Animations (modèle articulé)
 
-Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur.
+Minecraft ne permet pas de plier librement les membres d'un joueur. Pour une pose sur mesure, le joueur devient invisible un instant et un pantin à son image prend la pose à sa place : tête, torse, bras, jambes et objet tenu sont sept objets affichés (`ItemDisplay`), chacun centré sur son articulation, que `util/Puppet.java` fait tourner et suivre le joueur. Le joueur lui-même ne voit pas son pantin : à la première personne, les pièces seraient dans sa caméra et lui boucheraient la vue (le serveur ne sait pas s'il est en vue extérieure) ; il garde donc sa vue habituelle et ce qu'il tient en main, seule son armure lui est masquée. `animations.voir-son-pantin: true` dans `config.yml` le lui montre aussi, pour jouer en vue extérieure (F5).
 
 - `python3 tools/add_skin.py skin.png <personnage> [--prive]` fabrique le modèle à partir d'un skin Minecraft 64×64 (bras fins détectés). Avec `--prive`, il reste hors du dépôt, comme les voix officielles.
 - Les poses sont dans `src/main/resources/poses.txt` (angles de chaque partie, en degrés).
