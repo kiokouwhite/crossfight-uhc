@@ -212,7 +212,7 @@ RECIPES = {
         "Netsu Lewis": [
             ("Nuée de Papillons", "netsu_papillons", "Papillon"),
             ("Ailes Éphémères", "netsu_ailes", "Wizard 1 rouge"),
-            ("Jetée Éclatante", "netsu_jetee", "Warrior 15 rouge"),
+            ("Jetée Éclatante", "netsu_jetee", "Rogue 30 rouge"),
             ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rouge"),
         ],
     },
