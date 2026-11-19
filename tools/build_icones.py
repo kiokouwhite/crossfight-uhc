@@ -236,10 +236,10 @@ RECIPES = {
             ("Voltaic Chain", "asimov_ult", "Wizard 13 bleu"),
         ],
         "Kirin": [
-            ("Jet de Talisman", "kirin_talisman", "Wizard 16 rouge"),
-            ("Arc Chain", "kirin_arc", "Wizard 26 rouge"),
-            ("Slash", "kirin_slash", "Warrior 1 rouge"),
-            ("92nd Hit Rite - Divine Ruin Arc", "kirin_ult", "Acolyte 11 rouge"),
+            ("Jet de Talisman", "kirin_talisman", "Wizard 16 rose"),
+            ("Arc Chain", "kirin_arc", "Wizard 26 rose"),
+            ("Slash", "kirin_slash", "Warrior 1 rose"),
+            ("92nd Hit Rite - Divine Ruin Arc", "kirin_ult", "Acolyte 11 rose"),
         ],
         "Duo": [
             ("Synergie", "duo_synergie", "Acolyte 4 bleu"),
