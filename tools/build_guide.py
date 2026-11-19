@@ -38,7 +38,7 @@ def licences():
             if not who:
                 continue
             skills = []
-            for m in re.finditer(r'super\("([a-z0-9_]+)",\s*"([^"]+)",\s*"((?:[^"\\]|\\.)*)"\s*,\s*Material\.\w+(?:,\s*(\d+))?', text):
+            for m in re.finditer(r'(?:super|new \w+)\("([a-z0-9_]+)",\s*"([^"]+)",\s*"((?:[^"\\]|\\.)*)"\s*,\s*Material\.\w+(?:,\s*(\d+))?', text):
                 cooldown = int(m.group(4)) if m.group(4) and int(m.group(4)) > 0 else None
                 skills.append((m.group(2), m.group(3).replace('\\"', '"'), cooldown))
             people.append((who.group(2), skills))

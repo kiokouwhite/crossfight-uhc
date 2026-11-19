@@ -6,6 +6,8 @@ Format : **Équipe de trois**.
 
 | Capacité | Ce qu'elle fait | Recharge |
 |---|---|---|
+| **Enfermement** | Clic droit vers un adversaire : il est enferme dans une bulle doree infranchissable (5 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles. | - |
+| **Etouffement** | Clic droit vers un adversaire : une toute petite bulle le plaque au sol, il perd 1 coeur par seconde (10 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles. | - |
 | **Aura** | La jauge d'Arlo : 100 points, +3 par seconde. Les barrieres et les cages la consomment. | - |
 | **Barriere** | Un disque dore qui suit Arlo : tant qu'il est actif (5 d'Aura par seconde), Arlo ne prend que la moitie des degats. | - |
 | **Barriere Ultime** | Une bulle doree autour d'Arlo : tant qu'elle est active (10 d'Aura par seconde), il ne prend aucun degat et celui qui tente de le blesser les prend a sa place. | - |

@@ -50,8 +50,8 @@ public final class Arlo extends Character implements Listener {
         addAbility(new AuraGauge());
         addAbility(new Barriere());
         addAbility(new BarriereUltime());
-        addAbility(new Enfermement(false));
-        addAbility(new Enfermement(true));
+        addAbility(new Enfermement("arlo_enfermement", "Enfermement", "Clic droit vers un adversaire : il est enferme dans une bulle doree infranchissable (5 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles.", Material.GLASS, false));
+        addAbility(new Enfermement("arlo_etouffement", "Etouffement", "Clic droit vers un adversaire : une toute petite bulle le plaque au sol, il perd 1 coeur par seconde (10 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles.", Material.TINTED_GLASS, true));
         setUltimate(new BulleGeante());
     }
 
@@ -271,11 +271,8 @@ public final class Arlo extends Character implements Listener {
     /** Enfermement (5/s par cage) et Etouffement (10/s par cage, 1 coeur par seconde). */
     static final class Enfermement extends ActiveAbility implements CustomUse {
         final boolean suffocate;
-        Enfermement(boolean suffocate) {
-            super(suffocate ? "arlo_etouffement" : "arlo_enfermement", suffocate ? "Etouffement" : "Enfermement",
-                    suffocate ? "Clic droit vers un adversaire : une toute petite bulle le plaque au sol, il perd 1 coeur par seconde (10 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles."
-                              : "Clic droit vers un adversaire : il est enferme dans une bulle doree infranchissable (5 d'Aura par seconde). Accroupi + clic droit sur lui : relache. Plusieurs bulles possibles.",
-                    suffocate ? Material.TINTED_GLASS : Material.GLASS, 0);
+        Enfermement(String id, String name, String description, Material icon, boolean suffocate) {
+            super(id, name, description, icon, 0);
             this.suffocate = suffocate;
         }
         @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit : enfermer  <gray>|  <yellow>Accroupi + clic : liberer"); }
