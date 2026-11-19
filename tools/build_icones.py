@@ -156,7 +156,7 @@ RECIPES = {
             ("Dôme électrique", "remi_ult", "Wizard 24 rose"),
         ],
         "Seraphina": [
-            ("Retour dans le temps", "seraphina_retour", "Acolyte 30 violet"),
+            ("Retour dans le temps", "seraphina_retour", "Objets 342 violet"),
             ("Choc Temporel", "seraphina_choc", "Warrior 17 violet"),
             ("Arrêt Temporel", "seraphina_arret", "Wizard 12 violet"),
             ("Explosion temporelle", "seraphina_ult", "Wizard 30 violet"),
@@ -164,6 +164,9 @@ RECIPES = {
     },
 }
 
+
+# Teintes pour recolorer les bleus d'un objet de la grande collection.
+HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
 DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0),
@@ -201,7 +204,19 @@ def icon_of(recipe: str, size: int) -> Image.Image:
     if recipe.startswith("Animaux "):      # le pack d'animaux : un seul jeu de couleurs
         return Image.open(PACKS.parents[2] / "Pets_and_Animals" / "Original" / str(size) / f"{recipe.split()[1]}.png").convert("RGBA")
     if recipe.startswith("Objets "):       # la grande collection d'objets : a<n>.png en 16, b<n>.png en 32
-        return Image.open(PACKS.parents[1] / "Separated_Files" / "Separated Files" / f"{size}x{size}" / f"{ {16: 'a', 32: 'b', 64: 'c'}[size] }{recipe.split()[1]}.png").convert("RGBA")
+        parts = recipe.split()
+        im = Image.open(PACKS.parents[1] / "Separated_Files" / "Separated Files" / f"{size}x{size}" / f"{ {16: 'a', 32: 'b', 64: 'c'}[size] }{parts[1]}.png").convert("RGBA")
+        if len(parts) > 2:                 # "Objets 342 violet" : ses bleus (le sable d'un sablier) passent a cette teinte
+            import colorsys
+            hue, px = HUES[parts[2]], im.load()
+            for y in range(im.height):
+                for x in range(im.width):
+                    r, g, bl, al = px[x, y]
+                    h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, bl / 255)
+                    if 0.45 <= h <= 0.70 and sat > 0.2:
+                        r, g, bl = colorsys.hsv_to_rgb(hue, sat, v)
+                        px[x, y] = (round(r * 255), round(g * 255), round(bl * 255), al)
+        return im
     if recipe.startswith("Cube "):
         return cube(recipe.split()[1])
     pack, number, colour = recipe.split()
