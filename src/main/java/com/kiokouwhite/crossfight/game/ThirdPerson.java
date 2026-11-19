@@ -415,6 +415,11 @@ public final class ThirdPerson implements Listener {
                 org.bukkit.block.Block b = w.getBlockAt(hx + dx, hy + dy, hz + dz);
                 if (!b.getType().isAir() && b.getType() != Material.LIGHT) b.setType(Material.AIR, false);
             }
+            // Le sol du plateau (une capacite peut l'avoir change en magma, en glace...) : de l'herbe partout.
+            for (int dx = -24; dx <= 24; dx++) for (int dz = -24; dz <= 24; dz++) {
+                org.bukkit.block.Block b = w.getBlockAt(hx + dx, hy - 1, hz + dz);
+                if (!b.getType().isAir() && b.getType() != Material.GRASS_BLOCK) b.setType(Material.GRASS_BLOCK, false);
+            }
             // Entre deux prises : chacun a sa place, la camera soignee et debarrassee de ses effets.
             if (s.body != null && s.body.isValid()) s.body.teleport(s.home);
             // Un peu de biais et plus pres que d'habitude : le mannequin remplit mieux l'image.

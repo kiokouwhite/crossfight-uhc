@@ -38,12 +38,30 @@ Barrière Ultime en jeu
 
 (Actif) Clic droit vers un adversaire : il est enfermé dans une bulle dorée infranchissable (5 d'Aura par seconde). Accroupi + clic droit sur lui : relâche. Plusieurs bulles possibles.
 
+{% file src="../../../videos/arlo/arlo_enfermement.mp4" %}
+Enfermement en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/arlo/arlo_enfermement.mp4)
+
 ### Étouffement
 
 (Actif) Clic droit vers un adversaire : une toute petite bulle le plaque au sol, il perd 1 cœur par seconde (10 d'Aura par seconde). Accroupi + clic droit sur lui : relâche. Plusieurs bulles possibles.
+
+{% file src="../../../videos/arlo/arlo_etouffement.mp4" %}
+Étouffement en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/arlo/arlo_etouffement.mp4)
 
 ## Ultime
 
 ### Bulle géante
 
 Pendant 1 minute, une cage de verre indestructible de 30 blocs de rayon apparait autour d'Arlo. Ses alliés à l'intérieur gagnent Force.
+
+{% file src="../../../videos/arlo/arlo_ult.mp4" %}
+Bulle géante en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/arlo/arlo_ult.mp4)

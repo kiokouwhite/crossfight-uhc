@@ -35,3 +35,9 @@ Temps de chargement : 10 secondes
 ### Affronter ses demons
 
 Judgement tombe sur l'adversaire le plus proche (10 blocs) : 0 à 9 cœurs selon la barre de santé (plus elle est basse, plus il frappe fort).
+
+{% file src="../../videos/drifter/drifter_ult.mp4" %}
+Affronter ses demons en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/drifter/drifter_ult.mp4)
