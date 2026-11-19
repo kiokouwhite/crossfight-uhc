@@ -20,7 +20,8 @@ import java.util.UUID;
 
 /**
  * Les passifs, en haut a gauche de l'ecran : l'icone de chacun, eteinte au repos, allumee quand il agit ;
- * au moment ou il s'allume, la fleche verte monte en s'animant (six images de 2 ticks) avec un son. Un passif agit soit le temps d'un declenchement ({@link #flash}), soit tant qu'une condition
+ * au moment ou il s'allume, la fleche verte monte en s'animant (six images de 2 ticks) avec un son ; quand il
+ * s'eteint, la croix rouge claque de la meme facon, avec un son plus grave. Un passif agit soit le temps d'un declenchement ({@link #flash}), soit tant qu'une condition
  * tient ({@link #setActive}). /cf passif show ajoute a cote de chaque icone le texte qui rappelle ce qu'il fait.
  *
  * Comme l'orbe de l'ultime, c'est une image de plein ecran (camera_overlay) portee dans la case du casque,
@@ -37,6 +38,8 @@ public final class PassiveHud {
     /** Les passifs allumes au dernier passage, et le debut de l'animation de la fleche (un passif vient de s'allumer). */
     private static final Map<UUID, Set<String>> WAS_LIT = new HashMap<>();
     private static final Map<UUID, Long> ANIM = new HashMap<>();
+    /** Le debut de l'animation de la croix (un passif vient de s'eteindre). */
+    private static final Map<UUID, Long> ANIM_OFF = new HashMap<>();
     /** Six etapes de 2 ticks (tools/build_passifs.py, FRAMES). */
     private static final int FRAMES = 6;
     private static final long FRAME_MS = 100L;
@@ -101,9 +104,17 @@ public final class PassiveHud {
             p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, org.bukkit.SoundCategory.PLAYERS, 0.6f, 1.6f);
             p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, org.bukkit.SoundCategory.PLAYERS, 0.35f, 1.4f);
         }
+        // Un passif qui s'eteint : la croix rouge claque, avec un son plus grave.
+        if (before != null && !now.containsAll(before)) {
+            ANIM_OFF.put(p.getUniqueId(), System.currentTimeMillis());
+            p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_BASS, org.bukkit.SoundCategory.PLAYERS, 0.5f, 0.8f);
+        }
         String key = "passif/" + c.id() + "_" + mask + "_" + (showsText(p) ? 1 : 0);
-        long since = System.currentTimeMillis() - ANIM.getOrDefault(p.getUniqueId(), 0L);
-        if (mask != 0 && since < FRAMES * FRAME_MS) key += "_" + (1 + since / FRAME_MS);
+        long t = System.currentTimeMillis(), on = ANIM.getOrDefault(p.getUniqueId(), 0L), off = ANIM_OFF.getOrDefault(p.getUniqueId(), 0L);
+        boolean all = mask == (1 << list.size()) - 1;
+        // La plus recente des deux animations (fleche ou croix), si elle n'est pas finie.
+        if (on >= off && mask != 0 && t - on < FRAMES * FRAME_MS) key += "_" + (1 + (t - on) / FRAME_MS);
+        else if (off > on && !all && t - off < FRAMES * FRAME_MS) key += "_x" + (1 + (t - off) / FRAME_MS);
         return key;
     }
 
@@ -112,5 +123,6 @@ public final class PassiveHud {
         ACTIVE.remove(p.getUniqueId());
         WAS_LIT.remove(p.getUniqueId());
         ANIM.remove(p.getUniqueId());
+        ANIM_OFF.remove(p.getUniqueId());
     }
 }

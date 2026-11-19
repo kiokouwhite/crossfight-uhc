@@ -34,6 +34,8 @@ BADGE = 22                        # la fleche verte / la croix rouge d'activatio
 # L'animation de la fleche quand un passif s'allume (hud/PassiveHud : une image par etape, 2 ticks chacune) :
 # (decalage vertical, opacite de la fleche, halo vert, eclat). L'etape 0 est la fleche au repos.
 FRAMES = [(9, 0.35, 0, False), (4, 0.8, 70, False), (-3, 1.0, 150, True), (-5, 1.0, 120, True), (-2, 1.0, 60, False), (0, 1.0, 0, False)]
+# La croix quand un passif s'eteint (etapes "x1".."x6") : (taille, decalage horizontal, halo rouge).
+CROSS = [(0.35, 0, 0), (0.75, 0, 70), (1.3, 0, 150), (1.15, -2, 110), (1.0, 2, 50), (1.0, 0, 0)]
 FONT = SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"
 GOLD, WHITE, SHADOW = (255, 214, 120, 255), (245, 240, 230, 255), (30, 20, 25, 255)
 
@@ -94,7 +96,7 @@ def spark(im, x, y):
 PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (255, 214, 120, 255), (120, 100, 90, 220)
 
 
-def render(character, mask, text, rec, font, frame=0):
+def render(character, mask, text, rec, font, frame=0, cross=0):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
@@ -134,6 +136,19 @@ def render(character, mask, text, rec, font, frame=0):
             if sparkle:
                 spark(im, ax + BADGE - 1, ay + dy + 2)
                 spark(im, ax + 2, ay + dy + 6)
+        elif not lit and cross:
+            size, dx, glow = CROSS[cross - 1]
+            cx, cy = ax + BADGE // 2 + dx, ay + BADGE // 2
+            if glow:      # un halo rouge qui claque derriere la croix
+                halo = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                hd = ImageDraw.Draw(halo)
+                for r, op in ((15, glow // 3), (12, glow // 2), (9, glow)):
+                    hd.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 70, 60, op))
+                im.alpha_composite(halo)
+            n = max(4, round(BADGE * size))
+            big = build_icones.icon_of("Objets 136", 32)
+            big = big.crop(big.getbbox()).resize((n, n), Image.NEAREST)
+            im.alpha_composite(big, (cx - n // 2, cy - n // 2))
         else:
             im.alpha_composite(arrow, (ax, ay))
         if text:
@@ -172,6 +187,10 @@ def main():
                 # Les etapes de l'animation, quand au moins un passif est allume.
                 for frame in range(1, len(FRAMES) + 1) if mask else ():
                     render(c, mask, text, rec, font, frame).save(OUT / f"{c['id']}_{mask}_{text}_{frame}.png", optimize=True)
+                    count += 1
+                # ... et celles de la croix, quand au moins un passif est eteint.
+                for frame in range(1, len(CROSS) + 1) if mask != (1 << len(passives(c))) - 1 else ():
+                    render(c, mask, text, rec, font, cross=frame).save(OUT / f"{c['id']}_{mask}_{text}_x{frame}.png", optimize=True)
                     count += 1
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
