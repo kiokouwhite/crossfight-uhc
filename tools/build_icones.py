@@ -3,7 +3,7 @@
 
 Usage :  python3 tools/build_icones.py --apercu image.png [licence]
 
-Une recette designe un dessin d'un pack de competences et sa couleur : "Wizard 23 vert". Chaque pack
+Une recette designe un dessin d'un pack de competences et sa couleur : "Wizard 23 vert", ou une fusion "fond + motif". Chaque pack
 contient 32 dessins, declines dans plusieurs couleurs (fichiers Original/32/<n>.png, un bloc de 32 par couleur).
 Pour l'instant l'outil ne fait que la planche d'apercu, a valider avant de passer les icones en jeu.
 """
@@ -26,28 +26,24 @@ COLOURS = {
 RECIPES = {
     "Fire Emblem": {
         "Byleth": [
-            ("Épée du Créateur", "Warrior 13 or"),
-            ("Emblème de Feu", "Acolyte 21 or"),
+            ("Emblème de Feu", "Warrior 27 or + Acolyte 3 feu"),
             ("Tutorat", "Wizard 23 or"),
             ("Déchaînement d'Épine", "Warrior 1 or"),
             ("Les Ténèbres se consumeront elles-mêmes", "Wizard 21 violet"),
         ],
         "Corrin": [
-            ("Yato", "Acolyte 10 bleu"),
             ("Dragon Gardien", "Rogue 31 bleu"),
             ("Sang Draconique", "Wizard 3 cramoisi"),
             ("Dragon de l'eau", "Wizard 8 bleu"),
             ("Les Vagues Bleues de l'Océan Gris", "Wizard 29 bleu"),
         ],
         "Marth": [
-            ("Falchion", "Acolyte 11 bleu-fonce"),
             ("Contre", "Warrior 27 bleu-fonce"),
             ("Charisme", "Acolyte 26 bleu-fonce"),
             ("Esprit du Leader", "Warrior 30 bleu-fonce"),
             ("Coup Critique", "Warrior 2 bleu-fonce"),
         ],
         "Takumi": [
-            ("Yumi Fujin", "Rogue 29 cramoisi"),
             ("Contre Rapproché", "Warrior 10 cramoisi"),
             ("Vengeance", "Warrior 23 cramoisi"),
             ("Furie", "Wizard 11 cramoisi"),
@@ -62,10 +58,20 @@ DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68)}
 
 
 def icon(recipe: str) -> Image.Image:
+    """Une recette, ou une fusion "fond + motif" : le motif, pris en 16 pixels, est pose au centre du fond."""
+    if " + " in recipe:
+        base, mark = recipe.split(" + ")
+        im = icon(base)
+        im.alpha_composite(icon_of(mark, 16), (8, 8))
+        return im
+    return icon_of(recipe, 32)
+
+
+def icon_of(recipe: str, size: int) -> Image.Image:
     pack, number, colour = recipe.split()
     shift = DERIVED.get(colour)
     block = COLOURS[pack].index(shift[0] if shift else colour)
-    im = Image.open(PACKS / f"{pack} Skills" / "Original" / "32" / f"{block * 32 + int(number)}.png").convert("RGBA")
+    im = Image.open(PACKS / f"{pack} Skills" / "Original" / str(size) / f"{block * 32 + int(number)}.png").convert("RGBA")
     if shift:
         import colorsys
         px = im.load()
@@ -104,7 +110,8 @@ def preview(out: Path, licence: str):
             lines.append(line)
             for k, text in enumerate(lines[:3]):
                 draw.text((x + (cell_w - draw.textlength(text, font=font)) / 2, y + 38 + 32 * zoom + 6 + k * 18), text, font=font, fill=(225, 228, 240, 255))
-            draw.text((x + (cell_w - draw.textlength(recipe, font=font)) / 2, y + 38 + 32 * zoom + 6 + 3 * 18), recipe, font=font, fill=(130, 136, 160, 255))
+            for k, text in enumerate(recipe.replace(" + ", " +\n").split("\n")):
+                draw.text((x + (cell_w - draw.textlength(text, font=font)) / 2, y + 38 + 32 * zoom + 6 + (2 + k) * 18), text, font=font, fill=(130, 136, 160, 255))
     sheet.save(out)
     print(out, sheet.size)
 
