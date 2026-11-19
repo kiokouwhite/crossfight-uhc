@@ -195,7 +195,7 @@ RECIPES = {
             ("Marque de Sang", "eirika_marque", "Objets 2835 nuit"),
             ("Absorption de sang", "eirika_absorption", "Acolyte 1 nuit"),
             ("Effroi sanglant", "eirika_effroi", "Wizard 11 nuit"),
-            ("Exécution Atroce", "eirika_ult", "Acolyte 21 nuit"),
+            ("Exécution Atroce", "eirika_ult", "Rogue 13 nuit"),
         ],
         "Hannah Fedorava": [
             ("Résister pour mieux régner", "hannah_resister", "Warrior 27 feu"),
