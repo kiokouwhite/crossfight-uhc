@@ -253,7 +253,7 @@ RECIPES = {
             ("Détonation Imminente", "hiro_ult", "Wizard 30 feu"),
         ],
         "Pinkou": [
-            ("Cocon Mortel", "pinkou_cocon", "Wizard 28 rose-pale"),
+            ("Cocon Mortel", "pinkou_cocon", "Acolyte 15 rose-pale"),
             ("Armure de Ronces", "pinkou_ronces", "Acolyte 27 rose-pale"),
             ("Vigne Incapacitante", "pinkou_vigne", "Wizard 22 rose-pale"),
             ("Nature Éternelle", "pinkou_ult", "Acolyte 16 rose-pale"),
