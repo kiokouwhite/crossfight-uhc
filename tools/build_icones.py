@@ -200,6 +200,8 @@ def cube(colour: str) -> Image.Image:
 def icon_of(recipe: str, size: int) -> Image.Image:
     if recipe.startswith("Animaux "):      # le pack d'animaux : un seul jeu de couleurs
         return Image.open(PACKS.parents[2] / "Pets_and_Animals" / "Original" / str(size) / f"{recipe.split()[1]}.png").convert("RGBA")
+    if recipe.startswith("Objets "):       # la grande collection d'objets : a<n>.png en 16, b<n>.png en 32
+        return Image.open(PACKS.parents[1] / "Separated_Files" / "Separated Files" / f"{size}x{size}" / f"{ {16: 'a', 32: 'b', 64: 'c'}[size] }{recipe.split()[1]}.png").convert("RGBA")
     if recipe.startswith("Cube "):
         return cube(recipe.split()[1])
     pack, number, colour = recipe.split()
