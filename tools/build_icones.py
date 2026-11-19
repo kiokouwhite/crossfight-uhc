@@ -171,7 +171,7 @@ RECIPES = {
             ("Explosion Aveuglante", "kishi_explosion", "Acolyte 18 or"),
             ("Aura Lumineuse", "kishi_aura", "Acolyte 32 or"),
             ("Lumière Étincelante", "kishi_lumiere", "Acolyte 2 or"),
-            ("Paradis blanc", "kishi_ult", "Acolyte 9 gris"),
+            ("Paradis blanc", "kishi_ult", "Objets 2606"),
         ],
         "Kura": [
             ("Voie de l'assassin", "kura_assassin", "Rogue 6 rouge"),
