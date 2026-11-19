@@ -192,7 +192,7 @@ RECIPES = {
     },
     "Bloody Snow": {
         "Eirika Fischer": [
-            ("Marque de Sang", "eirika_marque", "Objets 2835 rouge"),
+            ("Marque de Sang", "eirika_marque", "Objets 2835 nuit"),
             ("Absorption de sang", "eirika_absorption", "Acolyte 1 nuit"),
             ("Effroi sanglant", "eirika_effroi", "Wizard 11 nuit"),
             ("Exécution Atroce", "eirika_ult", "Acolyte 21 nuit"),
@@ -262,12 +262,16 @@ def icon_of(recipe: str, size: int) -> Image.Image:
         im = Image.open(PACKS.parents[1] / "Separated_Files" / "Separated Files" / f"{size}x{size}" / f"{ {16: 'a', 32: 'b', 64: 'c'}[size] }{parts[1]}.png").convert("RGBA")
         if len(parts) > 2:                 # "Objets 342 violet" : ses bleus (le sable d'un sablier) passent a cette teinte
             import colorsys
-            hue, px = HUES[parts[2]], im.load()
+            hue, px = HUES.get(parts[2]), im.load()
             for y in range(im.height):
                 for x in range(im.width):
                     r, g, bl, al = px[x, y]
                     h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, bl / 255)
                     if 0.45 <= h <= 0.70 and sat > 0.2:
+                        if parts[2] == "nuit":          # ses bleus foncent, comme la couleur derivee du meme nom
+                            r, g, bl = colorsys.hsv_to_rgb((h + 0.04) % 1, min(1, sat * 1.15), v * 0.42)
+                            px[x, y] = (round(r * 255), round(g * 255), round(bl * 255), al)
+                            continue
                         r, g, bl = colorsys.hsv_to_rgb(hue, sat * 0.55, min(1, v * 1.08))     # adouci, dans les tons des packs
                         px[x, y] = (round(r * 255), round(g * 255), round(bl * 255), al)
         return im
