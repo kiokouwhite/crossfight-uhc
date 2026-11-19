@@ -19,8 +19,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Les passifs, en haut a gauche de l'ecran : l'icone de chacun, eteinte au repos, allumee (avec un petit eclat)
- * quand il agit. Un passif agit soit le temps d'un declenchement ({@link #flash}), soit tant qu'une condition
+ * Les passifs, en haut a gauche de l'ecran : l'icone de chacun, eteinte au repos, allumee quand il agit ;
+ * au moment ou il s'allume, la fleche verte monte en s'animant (six images de 2 ticks) avec un son. Un passif agit soit le temps d'un declenchement ({@link #flash}), soit tant qu'une condition
  * tient ({@link #setActive}). /cf passif show ajoute a cote de chaque icone le texte qui rappelle ce qu'il fait.
  *
  * Comme l'orbe de l'ultime, c'est une image de plein ecran (camera_overlay) portee dans la case du casque,
@@ -34,6 +34,12 @@ public final class PassiveHud {
     private static final long FLASH_MS = 2000L;
     private static final Map<UUID, Map<String, Long>> FLASH = new HashMap<>();
     private static final Map<UUID, Set<String>> ACTIVE = new HashMap<>();
+    /** Les passifs allumes au dernier passage, et le debut de l'animation de la fleche (un passif vient de s'allumer). */
+    private static final Map<UUID, Set<String>> WAS_LIT = new HashMap<>();
+    private static final Map<UUID, Long> ANIM = new HashMap<>();
+    /** Six etapes de 2 ticks (tools/build_passifs.py, FRAMES). */
+    private static final int FRAMES = 6;
+    private static final long FRAME_MS = 100L;
     private static NamespacedKey textKey;
 
     /** Les passifs affiches d'un personnage, dans l'ordre (les memes que l'outil des images). */
@@ -86,12 +92,25 @@ public final class PassiveHud {
         List<Ability> list = shown(c);
         if (list.isEmpty()) return null;
         int mask = 0;
-        for (int i = 0; i < list.size(); i++) if (lit(p.getUniqueId(), list.get(i).id())) mask |= 1 << i;
-        return "passif/" + c.id() + "_" + mask + "_" + (showsText(p) ? 1 : 0);
+        Set<String> now = new HashSet<>();
+        for (int i = 0; i < list.size(); i++) if (lit(p.getUniqueId(), list.get(i).id())) { mask |= 1 << i; now.add(list.get(i).id()); }
+        // Un passif qui s'allume : la fleche monte en s'animant, avec un son.
+        Set<String> before = WAS_LIT.put(p.getUniqueId(), now);
+        if (before != null && !before.containsAll(now)) {
+            ANIM.put(p.getUniqueId(), System.currentTimeMillis());
+            p.playSound(p.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_CHIME, org.bukkit.SoundCategory.PLAYERS, 0.6f, 1.6f);
+            p.playSound(p.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, org.bukkit.SoundCategory.PLAYERS, 0.35f, 1.4f);
+        }
+        String key = "passif/" + c.id() + "_" + mask + "_" + (showsText(p) ? 1 : 0);
+        long since = System.currentTimeMillis() - ANIM.getOrDefault(p.getUniqueId(), 0L);
+        if (mask != 0 && since < FRAMES * FRAME_MS) key += "_" + (1 + since / FRAME_MS);
+        return key;
     }
 
     public static void forget(Player p) {
         FLASH.remove(p.getUniqueId());
         ACTIVE.remove(p.getUniqueId());
+        WAS_LIT.remove(p.getUniqueId());
+        ANIM.remove(p.getUniqueId());
     }
 }

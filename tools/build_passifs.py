@@ -31,6 +31,9 @@ MARGIN = 8
 CELL = 40                         # la case de l'icone (32 x 32 au milieu)
 TEXT_W = 250                      # largeur du texte a cote des icones
 BADGE = 22                        # la fleche verte / la croix rouge d'activation
+# L'animation de la fleche quand un passif s'allume (hud/PassiveHud : une image par etape, 2 ticks chacune) :
+# (decalage vertical, opacite de la fleche, halo vert, eclat). L'etape 0 est la fleche au repos.
+FRAMES = [(9, 0.35, 0, False), (4, 0.8, 70, False), (-3, 1.0, 150, True), (-5, 1.0, 120, True), (-2, 1.0, 60, False), (0, 1.0, 0, False)]
 FONT = SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"
 GOLD, WHITE, SHADOW = (255, 214, 120, 255), (245, 240, 230, 255), (30, 20, 25, 255)
 
@@ -91,7 +94,7 @@ def spark(im, x, y):
 PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (255, 214, 120, 255), (120, 100, 90, 220)
 
 
-def render(character, mask, text, rec, font):
+def render(character, mask, text, rec, font, frame=0):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
@@ -116,7 +119,23 @@ def render(character, mask, text, rec, font):
         # Version 32 x 32 (plus detaillee), rognee puis ramenee a 22 px : elle deborde un peu de la case.
         arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 32)
         arrow = arrow.crop(arrow.getbbox()).resize((BADGE, BADGE), Image.NEAREST)
-        im.alpha_composite(arrow, (MARGIN + CELL - BADGE + 3, y + CELL - BADGE))
+        ax, ay = MARGIN + CELL - BADGE + 3, y + CELL - BADGE
+        if lit and frame:
+            dy, alpha, glow, sparkle = FRAMES[frame - 1]
+            if glow:      # un halo vert qui pulse derriere la fleche
+                halo = Image.new("RGBA", im.size, (0, 0, 0, 0))
+                hd = ImageDraw.Draw(halo)
+                for r, op in ((15, glow // 3), (12, glow // 2), (9, glow)):
+                    hd.ellipse([ax + BADGE // 2 - r, ay + dy + BADGE // 2 - r, ax + BADGE // 2 + r, ay + dy + BADGE // 2 + r], fill=(90, 255, 120, op))
+                im.alpha_composite(halo)
+            if alpha < 1:
+                arrow.putalpha(arrow.getchannel("A").point(lambda v: int(v * alpha)))
+            im.alpha_composite(arrow, (ax, ay + dy))
+            if sparkle:
+                spark(im, ax + BADGE - 1, ay + dy + 2)
+                spark(im, ax + 2, ay + dy + 6)
+        else:
+            im.alpha_composite(arrow, (ax, ay))
         if text:
             tx = MARGIN + CELL + 6
             d.text((tx, y + 2), a["name"], font=font, fill=GOLD if lit else (215, 195, 150, 255))
@@ -150,6 +169,10 @@ def main():
             for text in (0, 1):
                 render(c, mask, text, rec, font).save(OUT / f"{c['id']}_{mask}_{text}.png", optimize=True)
                 count += 1
+                # Les etapes de l'animation, quand au moins un passif est allume.
+                for frame in range(1, len(FRAMES) + 1) if mask else ():
+                    render(c, mask, text, rec, font, frame).save(OUT / f"{c['id']}_{mask}_{text}_{frame}.png", optimize=True)
+                    count += 1
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
 
