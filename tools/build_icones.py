@@ -216,6 +216,35 @@ RECIPES = {
             ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rouge"),
         ],
     },
+    "Armed Blue Gunvolt": {
+        "Gunvolt": [
+            ("Champ Électrique", "gv_champ", "Wizard 14 bleu"),
+            ("Chaîne de Télesquive", "gv_telesquive", "Warrior 18 bleu"),
+            ("Dash Azur", "gv_dash", "Rogue 31 bleu"),
+            ("Astrasphère", "gv_ult", "Rogue 5 bleu"),
+        ],
+        "Acura": [
+            ("Avenger Dash", "acura_dash", "Warrior 15 gris"),
+            ("Envolée Lumineuse", "acura_envolee", "Acolyte 22 gris"),
+            ("Ex Weapon", "acura_ex", "Rogue 14 gris"),
+            ("Twin Shredder", "acura_ult", "Warrior 4 gris"),
+        ],
+        "Asimov": [
+            ("Septimal Dash", "asimov_dash", "Wizard 1 cramoisi"),
+            ("Electric Shotgun", "asimov_shotgun", "Rogue 29 cramoisi"),
+            ("Kunai Tourelle", "asimov_turret", "Rogue 23 cramoisi"),
+            ("Voltaic Chain", "asimov_ult", "Wizard 13 cramoisi"),
+        ],
+        "Kirin": [
+            ("Jet de Talisman", "kirin_talisman", "Wizard 16 rouge"),
+            ("Arc Chain", "kirin_arc", "Wizard 26 rouge"),
+            ("Slash", "kirin_slash", "Warrior 1 rouge"),
+            ("92nd Hit Rite - Divine Ruin Arc", "kirin_ult", "Acolyte 11 rouge"),
+        ],
+        "Duo": [
+            ("Synergie", "duo_synergie", "Acolyte 4 bleu"),
+        ],
+    },
 }
 
 
