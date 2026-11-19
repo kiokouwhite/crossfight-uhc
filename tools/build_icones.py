@@ -158,8 +158,8 @@ RECIPES = {
         "Seraphina": [
             ("Retour dans le temps", "seraphina_retour", "Objets 342 violet"),
             ("Choc Temporel", "seraphina_choc", "Warrior 17 violet"),
-            ("Arrêt Temporel", "seraphina_arret", "Wizard 12 violet"),
-            ("Explosion temporelle", "seraphina_ult", "Wizard 30 violet"),
+            ("Arrêt Temporel", "seraphina_arret", "Rogue 22 violet"),
+            ("Explosion temporelle", "seraphina_ult", "Wizard 12 violet"),
         ],
     },
 }
