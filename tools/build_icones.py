@@ -126,7 +126,7 @@ RECIPES = {
         ],
         "Mikasa Ackerman": [
             ("Assommage", "mikasa_assommage", "Warrior 5 rouge"),
-            ("Sus à la Cible", "mikasa_cible", "Wizard 26 rouge"),
+            ("Sus à la Cible", "mikasa_cible", "Rogue 6 rouge"),
             ("Loyauté Ackermann", "mikasa_loyaute", "Acolyte 3 rouge"),
             ("Je le sauverai", "mikasa_ult", "Acolyte 1 rouge"),
         ],
