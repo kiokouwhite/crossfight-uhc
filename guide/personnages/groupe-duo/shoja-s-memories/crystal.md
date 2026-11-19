@@ -10,6 +10,12 @@ Voie de la Nihilite
 
 Temps de chargement : 15 secondes
 
+{% file src="../../../videos/crystal/crystal_lance.mp4" %}
+Lance Adamante en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/crystal/crystal_lance.mp4)
+
 ## Pouvoirs
 
 ### Patin a glace
@@ -18,11 +24,23 @@ Temps de chargement : 15 secondes
 
 Temps de chargement : 10 secondes
 
+{% file src="../../../videos/crystal/crystal_patin.mp4" %}
+Patin a glace en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/crystal/crystal_patin.mp4)
+
 ### Crystallization
 
 (Actif) Crystal perd 3 cœurs : l'ennemi le plus proche (10 blocs) est immobilisé pendant 3 secondes.
 
 Temps de chargement : 5 secondes
+
+{% file src="../../../videos/crystal/crystal_cristal.mp4" %}
+Crystallization en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/crystal/crystal_cristal.mp4)
 
 ### Surcharge de Flux
 
@@ -30,8 +48,20 @@ Temps de chargement : 5 secondes
 
 Temps de chargement : 15 secondes
 
+{% file src="../../../videos/crystal/crystal_surcharge.mp4" %}
+Surcharge de Flux en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/crystal/crystal_surcharge.mp4)
+
 ## Ultime
 
 ### Oeil pour Oeil
 
 Crystal perd 8 cœurs : tous les adversaires de la carte subissent Wither III, Lenteur II et Faiblesse IV pendant 10 secondes.
+
+{% file src="../../../videos/crystal/crystal_ult.mp4" %}
+Oeil pour Oeil en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/crystal/crystal_ult.mp4)

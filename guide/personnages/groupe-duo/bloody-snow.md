@@ -10,6 +10,12 @@ Synergie : second ultime commun à la paire, charge a 200 % de dégâts infligé
 
 (Actif) Second ultime commun au duo : se charge avec les dégâts infligés par les deux partenaires (200 %). L'effet depend de la paire.
 
+{% file src="../../videos/netsu/duo_synergie.mp4" %}
+Synergie en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/netsu/duo_synergie.mp4)
+
 ## Personnages
 
 * [Netsu Lewis](bloody-snow/netsu-lewis.md) : Voie de la Destruction

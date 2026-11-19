@@ -8,6 +8,12 @@ Voie de l'Harmonie
 
 (Passif) Les cœurs infligés par Pinkou sont repartis en soins entre elle et son allié.
 
+{% file src="../../../videos/pinkou/pinkou_rapiere.mp4" %}
+Rapière Curative en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/pinkou/pinkou_rapiere.mp4)
+
 ## Pouvoirs
 
 ### Cocon Mortel
@@ -16,11 +22,23 @@ Voie de l'Harmonie
 
 Temps de chargement : 20 secondes
 
+{% file src="../../../videos/pinkou/pinkou_cocon.mp4" %}
+Cocon Mortel en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/pinkou/pinkou_cocon.mp4)
+
 ### Armure de Ronces
 
 (Actif) Clic droit sur un allié (10 blocs) : une armure de ronces l'entoure pendant 10 secondes, Thorns IV (qui le frappe perd 2 cœurs).
 
 Temps de chargement : 30 secondes
+
+{% file src="../../../videos/pinkou/pinkou_ronces.mp4" %}
+Armure de Ronces en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/pinkou/pinkou_ronces.mp4)
 
 ### Vigne Incapacitante
 
@@ -28,8 +46,20 @@ Temps de chargement : 30 secondes
 
 Temps de chargement : 15 secondes
 
+{% file src="../../../videos/pinkou/pinkou_vigne.mp4" %}
+Vigne Incapacitante en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/pinkou/pinkou_vigne.mp4)
+
 ## Ultime
 
 ### Nature Éternelle
 
 Pinkou s'enfermé dans un cocon énorme et couvre le sol de ronces sur 12 blocs pendant 15 secondes : les ennemis qui y marchent ont Poison 5 secondes, ses alliés régénèrent.
+
+{% file src="../../../videos/pinkou/pinkou_ult.mp4" %}
+Nature Éternelle en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/pinkou/pinkou_ult.mp4)

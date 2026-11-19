@@ -24,6 +24,7 @@
   * [Logo du tableau](architecture/logo-du-tableau.md)
   * [Skins des personnages](architecture/skins-des-personnages.md)
   * [Armure invisible](architecture/armure-invisible.md)
+  * [Guide du joueur et vidéos des capacités](architecture/guide-du-joueur-et-videos-des-capacites.md)
   * [Icônes des capacités](architecture/icones-des-capacites.md)
   * [Sons d'effets et orbe de l'ultime](architecture/sons-d-effets-et-orbe-de-l-ultime.md)
   * [Animations (modèle articulé)](architecture/animations-modele-articule.md)
