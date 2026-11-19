@@ -110,7 +110,10 @@ def render(character, mask, text, rec, font):
         im.alpha_composite(icon, (MARGIN + 4, y + 4))
         if lit:
             d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(255, 236, 160, 120))
-            spark(im, MARGIN + CELL - 5, y + 5)
+        # La fleche du pack d'icones, en bas a droite de la case : verte vers le haut quand le passif agit,
+        # rouge vers le bas quand il est au repos.
+        arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 3268", 16)
+        im.alpha_composite(arrow, (MARGIN + CELL - 17, y + CELL - 17))
         if text:
             tx = MARGIN + CELL + 6
             d.text((tx, y + 2), a["name"], font=font, fill=GOLD if lit else (215, 195, 150, 255))
