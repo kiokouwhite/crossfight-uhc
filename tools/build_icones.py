@@ -280,7 +280,7 @@ HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
 DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0),
            # Rose pale contraste (Pinkou) : ombres prune foncees, lumieres presque blanches.
-           "rose-pale": ("feu", [(0.0, (45, 12, 38)), (0.25, (120, 40, 90)), (0.5, (220, 110, 160)), (0.75, (255, 185, 212)), (1.0, (255, 248, 252))]), "nuit": ("bleu", 0.04, 1.15, 0.42),
+           "rose-pale": ("feu", [(0.0, (35, 10, 30)), (0.2, (95, 30, 75)), (0.45, (200, 90, 145)), (0.7, (250, 170, 205)), (1.0, (255, 250, 252))]), "nuit": ("bleu", 0.04, 1.15, 0.42),
            # Noir : les couleurs passent en gris tres sombres, les lumieres en gris clair.
            "noir": ("violet", [(0.0, (6, 6, 9)), (0.3, (26, 26, 32)), (0.6, (72, 72, 84)), (1.0, (205, 205, 215))]),
            # Neon : ombres bleu neon, lumieres jaunes.
