@@ -101,13 +101,13 @@ RECIPES = {
         "Sage": [
             ("Orbe de Soin", "sage_soin", "Acolyte 3 vert"),
             ("Orbe de Lenteur", "sage_lenteur", "Wizard 13 vert"),
-            ("Orbe Barrière", "sage_barriere", "Cube vert"),
+            ("Orbe Barrière", "sage_barriere", "Wizard 17 vert"),
             ("Résurrection", "sage_ult", "Acolyte 9 vert"),
         ],
         "Sova": [
             ("Électroflèche", "sova_electro", "Rogue 29 bleu-fonce"),
             ("Flèche de reconnaissance", "sova_reco", "Rogue 8 bleu-fonce"),
-            ("Drone Rapace", "sova_drone", "Animaux 31"),
+            ("Drone Rapace", "sova_drone", "Animaux 14"),
             ("Fureur du Chasseur", "sova_ult", "Wizard 19 bleu-fonce"),
         ],
     },
