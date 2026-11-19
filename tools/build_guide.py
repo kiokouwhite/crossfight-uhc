@@ -352,7 +352,8 @@ def ability_block(a, depth, video_root):
     clip = VIDEOS / a["character"] / f"{a['id']}.mp4"
     if clip.exists():
         rel = "../" * video_root + f"videos/{a['character']}/{a['id']}.mp4"
-        lines += [f'{{% file src="{rel}" %}}', f"{a['name']} en jeu", "{% endfile %}", ""]
+        raw = f"https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/{a['character']}/{a['id']}.mp4"
+        lines += [f'{{% file src="{rel}" %}}', f"{accent(a['name'])} en jeu", "{% endfile %}", "", f"[▶ Voir la vidéo]({raw})", ""]
     return lines
 
 

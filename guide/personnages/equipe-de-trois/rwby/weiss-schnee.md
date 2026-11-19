@@ -8,6 +8,12 @@ Voie de la Destruction
 
 (Intervertible) Clic droit : change le type de Dust (Rouge, Bleu, Jaune, Cyan, Blanche, Violette). Il modifie les trois Glyphs. Accroupi pour revenir en arrière.
 
+{% file src="../../../videos/weiss/weiss_myrtenaster.mp4" %}
+Myrtenaster en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/weiss/weiss_myrtenaster.mp4)
+
 ## Pouvoirs
 
 ### Glyphs (Type 1)
@@ -16,18 +22,42 @@ Voie de la Destruction
 
 Temps de chargement : 15 secondes
 
+{% file src="../../../videos/weiss/weiss_glyphs1.mp4" %}
+Glyphs (Type 1) en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/weiss/weiss_glyphs1.mp4)
+
 ### Glyphs (Type 2)
 
 (Actif) Rouge : flèche qui enflamme une zone de 5x5. Bleu : patinoire 10x10 avec Vitesse (10 s). Jaune : eclair sur tous les ennemis a 10 blocs. Cyan : cercle de verre qui tire 5 flèches a effet. Blanche : l'ennemi le plus proche est retenu un instant puis s'envole de 10 blocs. Violette : l'ennemi le plus proche est retenu un instant puis le sol s'ouvre sous lui, il tombe 10 blocs plus bas.
 
 Temps de chargement : 15 secondes
 
+{% file src="../../../videos/weiss/weiss_glyphs2.mp4" %}
+Glyphs (Type 2) en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/weiss/weiss_glyphs2.mp4)
+
 ### Glyphs (passif)
 
 (Passif) Rouge : 25 % de chance d'enflammer. Bleu : Vitesse 0.5. Jaune : 10 % de chance de foudroyer qui la touche. Cyan : Résistance 0.5. Blanche : Recul I. Violette : 25 % de chance de ralentir.
+
+{% file src="../../../videos/weiss/weiss_glyphs_passif.mp4" %}
+Glyphs (passif) en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/weiss/weiss_glyphs_passif.mp4)
 
 ## Ultime
 
 ### Invocation
 
 Weiss rappelle un ennemi que son équipe a définitivement vaincu : il rejoint son équipe avec une vie, sans pouvoir porter de plastron et avec Faiblesse.
+
+{% file src="../../../videos/weiss/weiss_ult.mp4" %}
+Invocation en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/weiss/weiss_ult.mp4)

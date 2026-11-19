@@ -14,6 +14,12 @@ Pas d'arme attitrée : armes blanches par paliers (tous les 3 kills) et armes a 
 
 (Actif) Clic droit : tirer avec l'arme a feu en main. Accroupi + clic droit : recharger.
 
+{% file src="../../videos/neon/valorant_gun.mp4" %}
+Arme a feu en jeu
+{% endfile %}
+
+[▶ Voir la vidéo](https://github.com/kiokouwhite/crossfight-uhc/raw/main/guide/videos/neon/valorant_gun.mp4)
+
 ## Personnages
 
 * [Neon](valorant/neon.md) : Voie de la Chasse

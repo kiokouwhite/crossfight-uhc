@@ -13,3 +13,4 @@ prive/
 __pycache__/
 tools/socle/donnees/
 tools/socle/resultats/
+*.raw.mkv
