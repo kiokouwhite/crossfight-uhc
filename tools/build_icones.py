@@ -273,13 +273,13 @@ RECIPES = {
     },
     "Solitaires": {
         "Yuki": [
-            ("Souffrante", "yuki_souffrante", "Rogue 11 cramoisi"),
-            ("Insatiable", "yuki_insatiable", "Acolyte 21 cramoisi"),
-            ("Insaisissable", "yuki_insaisissable", "Rogue 20 cramoisi"),
-            ("Désespérée", "yuki_desesperee", "Wizard 11 cramoisi"),
-            ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 cramoisi"),
+            ("Souffrante", "yuki_souffrante", "Rogue 11 blanc"),
+            ("Insatiable", "yuki_insatiable", "Acolyte 21 blanc"),
+            ("Insaisissable", "yuki_insaisissable", "Rogue 20 blanc"),
+            ("Désespérée", "yuki_desesperee", "Wizard 11 blanc"),
+            ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 blanc"),
             # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
-            ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 cramoisi"),
+            ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 blanc"),
         ],
     },
 }
@@ -290,6 +290,8 @@ HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
 DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0),
+           # Blanc (Yuki) : la neige, ombres gris bleu, lumieres blanches.
+           "blanc": ("violet", [(0.0, (22, 24, 34)), (0.15, (70, 76, 96)), (0.35, (165, 172, 192)), (0.55, (225, 230, 240)), (1.0, (255, 255, 255))]),
            # Rose pale contraste (Pinkou) : ombres prune foncees, lumieres presque blanches.
            "rose-pale": ("feu", [(0.0, (35, 10, 30)), (0.2, (95, 30, 75)), (0.45, (200, 90, 145)), (0.7, (250, 170, 205)), (1.0, (255, 250, 252))]), "nuit": ("bleu", 0.04, 1.15, 0.42),
            # Noir : les couleurs passent en gris tres sombres, les lumieres en gris clair.
