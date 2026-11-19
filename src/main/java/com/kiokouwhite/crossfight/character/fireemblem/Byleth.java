@@ -294,6 +294,8 @@ public final class Byleth extends Character implements Listener {
         }
 
         private final Map<UUID, Progress> progress = new HashMap<>();
+        /** Les eleves fictifs du mode test (un joueur seul) : leur progression n'a aucun effet. */
+        private final Map<String, Progress> placeholders = new HashMap<>();
         private static final String[] CATEGORIES = {"Maitrise d'arme", "Entrainement physique", "Amelioration de capacite"};
 
         Tutorat() {
@@ -317,12 +319,23 @@ public final class Byleth extends Character implements Listener {
                     if (Effects.isAlly(p, e)) allies.add(e);
                 }
             }
-            if (allies.isEmpty()) {
-                Msg.actionBar(p, "<red>Tutorat : aucun allie en vie.");
-                return false;
-            }
             // Etape 1 : choisir l'allie a former.
             List<ChoiceMenu.Option> options = new ArrayList<>();
+            if (allies.isEmpty()) {
+                if (!plugin().game().isTest()) {
+                    Msg.actionBar(p, "<red>Tutorat : aucun allie en vie.");
+                    return false;
+                }
+                // Mode test, seul : trois eleves fictifs, pour voir les menus et la lecture. Rien n'est applique.
+                for (int k = 0; k < 3; k++) {
+                    String name = "Eleve fictif " + (k + 1);
+                    Progress pr = placeholders.computeIfAbsent(p.getUniqueId() + ":" + k, u -> new Progress());
+                    List<String> lore = new ArrayList<>();
+                    for (int i = 0; i < 3; i++) lore.add("<gray>" + CATEGORIES[i] + " : <white>" + pr.level[i] + "/4 <dark_gray>(" + (int) pr.xp[i] + " XP)");
+                    lore.add("<dark_gray>Mode test : aucun effet reel");
+                    options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, name, lore, () -> chooseCategory(p, null, name, pr, st)));
+                }
+            }
             for (org.bukkit.entity.LivingEntity ally : allies) {
                 Progress pr = progress.computeIfAbsent(ally.getUniqueId(), u -> new Progress());
                 List<String> lore = new ArrayList<>();
@@ -331,7 +344,7 @@ public final class Byleth extends Character implements Listener {
                         ? "<gray>Distance : " + (int) ally.getLocation().distance(p.getLocation()) + " blocs"
                         : "<gray>Dans une autre dimension");
                 options.add(new ChoiceMenu.Option(ally instanceof Player ? Material.PLAYER_HEAD : Material.ZOMBIE_HEAD,
-                        allyName(ally), lore, () -> chooseCategory(p, ally, pr, st)));
+                        allyName(ally), lore, () -> chooseCategory(p, ally, allyName(ally), pr, st)));
             }
             startReading(p);
             ChoiceMenu.open(p, "<dark_gray>Tutorat : quel allie former ?", options,
@@ -341,9 +354,9 @@ public final class Byleth extends Character implements Listener {
         }
 
         /** Etape 2 : choisir la categorie. */
-        private void chooseCategory(Player p, org.bukkit.entity.LivingEntity ally, Progress pr, AbilityState st) {
-            if (!ally.isValid() || ally.isDead()) {
-                Msg.actionBar(p, "<red>Tutorat : " + allyName(ally) + " n'est plus disponible.");
+        private void chooseCategory(Player p, org.bukkit.entity.LivingEntity ally, String name, Progress pr, AbilityState st) {
+            if (ally != null && (!ally.isValid() || ally.isDead())) {
+                Msg.actionBar(p, "<red>Tutorat : " + name + " n'est plus disponible.");
                 st.clearCooldown();
                 stopReading(p, 0);
                 return;
@@ -356,9 +369,9 @@ public final class Byleth extends Character implements Listener {
                 options.add(new ChoiceMenu.Option(icons[i], CATEGORIES[i], List.of(
                         "<gray>" + desc[i],
                         "<white>Niveau " + pr.level[i] + "/4 <gray>(" + (int) pr.xp[i] + " XP)"),
-                        () -> teach(p, ally, pr, cat, st)));
+                        () -> teach(p, ally, name, pr, cat, st)));
             }
-            ChoiceMenu.open(p, "<dark_gray>Tutorat : " + allyName(ally), options,
+            ChoiceMenu.open(p, "<dark_gray>Tutorat : " + name, options,
                     pl -> { st.clearCooldown(); Msg.actionBar(pl, "<gray>Tutorat annule."); stopReading(pl, 0); });
         }
 
@@ -366,9 +379,9 @@ public final class Byleth extends Character implements Listener {
             return e instanceof Player pl ? pl.getName() : "Mannequin allie";
         }
 
-        private void teach(Player byleth, org.bukkit.entity.LivingEntity ally, Progress pr, int cat, AbilityState st) {
+        private void teach(Player byleth, org.bukkit.entity.LivingEntity ally, String name, Progress pr, int cat, AbilityState st) {
             if (pr.level[cat] >= 4) {
-                Msg.send(byleth, "<red>" + allyName(ally) + " est deja au niveau maximum en " + CATEGORIES[cat] + ".");
+                Msg.send(byleth, "<red>" + name + " est deja au niveau maximum en " + CATEGORIES[cat] + ".");
                 st.clearCooldown();
                 stopReading(byleth, 0);
                 return;
@@ -396,15 +409,16 @@ public final class Byleth extends Character implements Listener {
                     }
                 }
             }
-            Boosts.set(ally, "tutorat", new Boosts.Boost(pr.force, pr.speed, pr.resistance, pr.weapon));
-            Msg.send(byleth, "<gold>Tutorat : " + allyName(ally) + " gagne " + gain + " XP en " + CATEGORIES[cat]
+            if (ally != null) Boosts.set(ally, "tutorat", new Boosts.Boost(pr.force, pr.speed, pr.resistance, pr.weapon));
+            Msg.send(byleth, "<gold>Tutorat : " + name + " gagne " + gain + " XP en " + CATEGORIES[cat]
                     + " <gray>(niveau " + pr.level[cat] + ", " + (int) pr.xp[cat] + " XP)"
                     + (bonusText.isEmpty() ? "" : " <gray>- " + bonusText));
             if (ally instanceof Player ap) {
                 Msg.send(ap, "<gold>Byleth t'enseigne " + CATEGORIES[cat] + " : +" + gain + " XP"
                         + (bonusText.isEmpty() ? "" : " <gray>- niveau " + pr.level[cat] + " ! " + bonusText));
             }
-            ally.getWorld().playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+            var heard = ally != null ? ally : byleth;
+            heard.getWorld().playSound(heard.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
             // La lecon est donnee : elle lit encore un instant, puis referme son livre.
             stopReading(byleth, 30);
         }
