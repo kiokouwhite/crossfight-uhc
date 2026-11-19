@@ -182,7 +182,9 @@ RECIPES = {
             ("Pluie de Couteaux", "kura_ult", "Rogue 27 rouge"),
         ],
         "Taka": [
-            ("Multi-Arme", "taka_multiarme", "Warrior 2 vert"),
+            ("Épée Flottante", "taka_sword", "Wizard 21 vert + Objets 4937"),
+            ("Lance Volante", "taka_spear", "Wizard 21 vert + Objets 4951"),
+            ("Hache Tournoyante", "taka_axe", "Wizard 21 vert + Objets 4955"),
             ("Multi-Invocation", "taka_ult", "Acolyte 24 vert"),
         ],
     },

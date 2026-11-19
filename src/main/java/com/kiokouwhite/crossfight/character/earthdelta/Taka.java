@@ -70,9 +70,9 @@ public final class Taka extends Character implements Listener {
     public Taka() {
         super("taka", "Taka", Voie.CHASSE, Material.IRON_AXE);
         addAbility(new MultiArme().bindToWeapon());
-        addAbility(new Invocation(Kind.SWORD, 15, 3, 0));
-        addAbility(new Invocation(Kind.SPEAR, 20, 2, 1));
-        addAbility(new Invocation(Kind.AXE, 25, 1, 2));
+        addAbility(new Invocation("taka_sword", "Epee Flottante", "Taka plante une epee dans le sol : quand un adversaire s'approche a 2 blocs, elle jaillit et le frappe (1 coeur, une fois par seconde) puis se replante. Detruite apres 2 coups ou 1 minute. 3 maximum.", Material.IRON_SWORD, 15, Kind.SWORD, 3, 0));
+        addAbility(new Invocation("taka_spear", "Lance Volante", "Debloquee apres 1 vie perdue. Une lance fait des allers-retours sur 5 blocs : 1.5 coeur par touche. Detruite apres 3 coups ou 1 minute. 2 maximum.", Material.TRIDENT, 20, Kind.SPEAR, 2, 1));
+        addAbility(new Invocation("taka_axe", "Hache Tournoyante", "Debloquee apres 2 vies perdues. Une hache tournoie autour de Taka : 2 coeurs par touche. Detruite apres 4 coups ou 1 minute. 1 maximum.", Material.IRON_AXE, 25, Kind.AXE, 1, 2));
         setUltimate(new MultiInvocation());
     }
 
@@ -309,12 +309,8 @@ public final class Taka extends Character implements Listener {
 
     static final class Invocation extends ActiveAbility {
         final Kind kind; final int max; final int livesNeeded;
-        Invocation(Kind kind, int cd, int max, int livesNeeded) {
-            super("taka_" + kind.name().toLowerCase(), kind.label, switch (kind) {
-                case SWORD -> "Taka plante une epee dans le sol : quand un adversaire s'approche a 2 blocs, elle jaillit et le frappe (1 coeur, une fois par seconde) puis se replante. Detruite apres 2 coups ou 1 minute. 3 maximum.";
-                case SPEAR -> "Debloquee apres 1 vie perdue. Une lance fait des allers-retours sur 5 blocs : 1.5 coeur par touche. Detruite apres 3 coups ou 1 minute. 2 maximum.";
-                case AXE -> "Debloquee apres 2 vies perdues. Une hache tournoie autour de Taka : 2 coeurs par touche. Detruite apres 4 coups ou 1 minute. 1 maximum.";
-            }, kind.item, cd);
+        Invocation(String id, String name, String description, Material icon, int cd, Kind kind, int max, int livesNeeded) {
+            super(id, name, description, icon, cd);
             this.kind = kind; this.max = max; this.livesNeeded = livesNeeded;
         }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {

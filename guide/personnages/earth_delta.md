@@ -34,5 +34,8 @@ Format : **Équipe de trois**.
 
 | Capacité | Ce qu'elle fait | Recharge |
 |---|---|---|
+| **Epee Flottante** | Taka plante une epee dans le sol : quand un adversaire s'approche a 2 blocs, elle jaillit et le frappe (1 coeur, une fois par seconde) puis se replante. Detruite apres 2 coups ou 1 minute. 3 maximum. | 15 s |
+| **Lance Volante** | Debloquee apres 1 vie perdue. Une lance fait des allers-retours sur 5 blocs : 1.5 coeur par touche. Detruite apres 3 coups ou 1 minute. 2 maximum. | 20 s |
+| **Hache Tournoyante** | Debloquee apres 2 vies perdues. Une hache tournoie autour de Taka : 2 coeurs par touche. Detruite apres 4 coups ou 1 minute. 1 maximum. | 25 s |
 | **Multi-Arme** | Clic droit : toutes les armes invoquees foncent sur l'adversaire le plus proche (10 blocs) et infligent 1 coeur chacune. | - |
 | **Multi-Invocation** | Taka invoque 10 armes au hasard a 50 blocs autour d'elle pendant 1 minute : indestructibles, elles ne peuvent pas etre lancees par la Multi-Arme. | - |
