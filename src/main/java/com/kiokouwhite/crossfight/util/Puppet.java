@@ -158,7 +158,8 @@ public final class Puppet {
     public static Puppet show(org.bukkit.entity.LivingEntity p, String character, ItemStack heldItem, String pose, float zoom) {
         if (!available(character) || !POSES.containsKey(pose)) return null;
         Puppet old = ACTIVE.remove(p.getUniqueId());
-        if (old != null) old.remove();
+        if (old != null) old.remove(false);
+        clearLinger(p.getUniqueId());
         Puppet pu = new Puppet(p);
         pu.zoom = zoom;
         Location at = pu.anchor();
@@ -555,20 +556,43 @@ public final class Puppet {
         return ok;
     }
 
-    /** Retire le pantin et fait reapparaitre le joueur. */
-    public void remove() {
+    /** Pieces d'un pantin fini, gardees le temps que le joueur reapparaisse chez les clients. */
+    private static final Map<UUID, List<ItemDisplay>> LINGER = new HashMap<>();
+    private static final long LINGER_TICKS = 3L;
+
+    private static void clearLinger(UUID id) {
+        List<ItemDisplay> left = LINGER.remove(id);
+        if (left != null) for (ItemDisplay d : left) d.remove();
+    }
+
+    /**
+     * Retire le pantin et fait reapparaitre le joueur. Le joueur reapparait d'abord ; les pieces du pantin
+     * restent quelques ticks dans leur derniere pose, sinon il n'y a plus rien a l'ecran le temps que la fin
+     * de l'invisibilite et l'equipement arrivent chez les clients.
+     */
+    public void remove() { remove(true); }
+
+    private void remove(boolean linger) {
         if (task != null) { task.cancel(); task = null; }
         ACTIVE.remove(entity.getUniqueId(), this);
-        for (ItemDisplay d : parts.values()) d.remove();
-        if (held != null) held.remove();
-        if (second != null) second.remove();
+        List<ItemDisplay> left = new ArrayList<>(parts.values());
+        if (held != null) left.add(held);
+        if (second != null) left.add(second);
         if (addedInvisibility && player != null && player.isOnline()) player.removePotionEffect(PotionEffectType.INVISIBILITY);
         if (madeInvisible && entity.isValid()) entity.setInvisible(false);
         for (Runnable r : restore) r.run();
         restore.clear();
+        UUID id = entity.getUniqueId();
+        clearLinger(id);
+        if (!linger || !alive() || !CrossfightPlugin.get().isEnabled()) { for (ItemDisplay d : left) d.remove(); return; }
+        LINGER.put(id, left);
+        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> {
+            if (LINGER.remove(id, left)) for (ItemDisplay d : left) d.remove();
+        }, LINGER_TICKS);
     }
 
     public static void removeAll() {
-        for (Puppet pu : new ArrayList<>(ACTIVE.values())) pu.remove();
+        for (Puppet pu : new ArrayList<>(ACTIVE.values())) pu.remove(false);
+        for (UUID id : new ArrayList<>(LINGER.keySet())) clearLinger(id);
     }
 }
