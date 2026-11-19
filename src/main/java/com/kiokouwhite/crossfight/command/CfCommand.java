@@ -701,6 +701,13 @@ public final class CfCommand implements TabExecutor {
                         int n = plugin.testMode().clearTerrain();
                         Msg.send(sender, "<green>Terrain de test nettoye <gray>(" + n + " blocs remis en place, entites retirees).");
                     }
+                    case "tournage" -> {
+                        // /cf tournage liste : les capacites en JSON (guide) ; /cf tournage <joueur> <id|frappe> : le mannequin la lance.
+                        if (args.length > 1 && args[1].equalsIgnoreCase("liste")) { Msg.send(sender, "<green>" + com.kiokouwhite.crossfight.game.GuideExport.write(plugin)); return true; }
+                        Player who = args.length > 2 ? Bukkit.getPlayerExact(args[1]) : null;
+                        if (who == null) { Msg.send(sender, "<red>Usage : /cf tournage liste | /cf tournage <joueur> <capacite|frappe>"); return true; }
+                        Msg.send(sender, "<gray>Tournage : " + plugin.testMode().thirdPerson().castFor(who, args[2]));
+                    }
                     case "change" -> {
                         if (!(sender instanceof Player sp)) return true;
                         if (!plugin.testMode().isTester(sp)) { Msg.send(sp, "<red>Disponible uniquement en mode test (/cf test)."); return true; }

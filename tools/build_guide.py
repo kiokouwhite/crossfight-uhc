@@ -8,6 +8,7 @@ Les pages générales sont écrites ici. Les pages des personnages sont tirées 
 descriptions et leurs temps de recharge), et la table des objets de Lootbox du README : relancer le script après un
 changement les met à jour. gitbook-docs.yaml, à la racine, déclare les deux espaces au site GitBook.
 """
+import json
 import re
 import shutil
 from pathlib import Path
@@ -295,36 +296,162 @@ La bannière « Choisir son équipe » du lobby fait la même chose que les comm
 """
 
 
+DATA = ROOT / "tools" / "guide_capacites.json"
+VIDEOS = OUT / "videos"
+FORMAT_PAGES = {"TRIO": ("equipe-de-trois", "Équipe de trois"), "DUO": ("groupe-duo", "Groupe duo"), "SOLO": ("personnage-solitaire", "Personnage solitaire")}
+FORMAT_TEXT = {
+    "TRIO": "Les équipes de trois reçoivent une de ces licences ; chaque joueur y choisit un personnage différent.",
+    "DUO": "Les équipes de deux reçoivent une de ces licences ; chaque joueur y choisit un personnage différent.",
+    "SOLO": "Les joueurs seuls choisissent un de ces personnages, qui n'appartiennent à aucune licence.",
+}
+VOIES = {"Destruction": "Voie de la Destruction", "Harmonie": "Voie de l'Harmonie", "Chasse": "Voie de la Chasse", "Nihilite": "Voie de la Nihilité", "Nihilité": "Voie de la Nihilité"}
+
+
+def slug(text):
+    import unicodedata
+    text = unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]+", "-", text).strip("-")
+
+
+def licence_title(name):
+    return name.title().replace("'S", "'s").replace("Rwby", "RWBY").replace("Unordinary", "unOrdinary").replace(" No ", " no ")
+
+
+def duration(seconds):
+    m, s = divmod(seconds, 60)
+    if m and s:
+        return f"{m} minute{'s' if m > 1 else ''} {s}"
+    if m:
+        return f"{m} minute{'s' if m > 1 else ''}"
+    return f"{s} secondes"
+
+
+ACCENTS = {'abnegation': 'abnégation', 'achete': 'acheté', 'achetees': 'achetées', 'agilite': 'agilité', 'aleatoire': 'aléatoire', 'aleatoires': 'aléatoires', 'allie': 'allié', 'allies': 'alliés', 'ameliorees': 'améliorées', 'angelique': 'angélique', 'apres': 'après', 'araignee': 'araignée', 'araignees': 'araignées', 'arbalete': 'arbalète', 'arrete': 'arrête', 'arreter': 'arrêter', 'arriere': 'arrière', 'astrasphere': 'astrasphère', 'attitree': 'attitrée', 'augmentee': 'augmentée', 'aveugles': 'aveuglés', 'balaie': 'balaie', 'barriere': 'barrière', 'barrieres': 'barrières', 'bordee': 'bordée', 'brulante': 'brûlante', 'brulure': 'brûlure', 'capacite': 'capacité', 'capacites': 'capacités', 'carre': 'carré', 'categorie': 'catégorie', 'cecite': 'cécité', 'celeste': 'céleste', 'cerbere': 'cerbère', 'chaine': 'chaîne', 'chaines': 'chaînes', 'choisie': 'choisie', 'coeur': 'cœur', 'coeurs': 'cœurs', 'colere': 'colère', 'cone': 'cône', 'cones': 'cônes', 'consommees': 'consommées', 'coordonnees': 'coordonnées', 'cote': 'côté', 'coute': 'coûte', 'cratere': 'cratère', 'credits': 'crédits', 'cree': 'crée', 'debloquee': 'débloquée', 'dechainement': 'déchaînement', 'decharge': 'décharge', 'decolle': 'décolle', 'deferle': 'déferle', 'definitivement': 'définitivement', 'degat': 'dégât', 'degats': 'dégâts', 'demoniaque': 'démoniaque', 'deplace': 'déplace', 'derniere': 'dernière', 'derriere': 'derrière', 'desarmante': 'désarmante', 'desesperee': 'désespérée', 'detruite': 'détruite', 'differents': 'différents', 'dome': 'dôme', 'dore': 'doré', 'doree': 'dorée', 'dorees': 'dorées', 'doublees': 'doublées', 'eclatante': 'éclatante', 'eclate': 'éclate', 'effondrement': 'effondrement', 'egale': 'égale', 'ejecte': 'éjecte', 'ejectes': 'éjectés', 'electricite': 'électricité', 'electrique': 'électrique', 'electriques': 'électriques', 'electrise': 'électrisé', 'electrises': 'électrisés', 'electrocution': 'électrocution', 'electrofleche': 'électroflèche', 'elements': 'éléments', 'elimine': 'élimine', 'eliminee': 'éliminée', 'embleme': 'emblème', 'emeraude': 'émeraude', 'emet': 'émet', 'enchantes': 'enchantés', 'energie': 'énergie', 'enferme': 'enfermé', 'enflammee': 'enflammée', 'enorme': 'énorme', 'envolee': 'envolée', 'epee': 'épée', 'ephemeres': 'éphémères', 'epine': 'épine', 'epines': 'épines', 'eponge': 'éponge', 'equipe': 'équipe', 'equipees': 'équipées', 'equipement': 'équipement', 'etait': 'était', 'etend': 'étend', 'eternelle': 'éternelle', 'etincelante': 'étincelante', 'etouffement': 'étouffement', 'etre': 'être', 'evolue': 'évolue', 'execution': 'exécution', 'fige': 'fige', 'fleche': 'flèche', 'fleches': 'flèches', 'geante': 'géante', 'grise': 'grise', 'hades': 'hadès', 'immobilise': 'immobilisé', 'immobilises': 'immobilisés', 'immortalite': 'immortalité', 'immunise': 'immunisé', 'immunite': 'immunité', 'imperissable': 'impérissable', 'incassables': 'incassables', 'infliges': 'infligés', 'instantanement': 'instantanément', 'invoquees': 'invoquées', 'invulnerable': 'invulnérable', 'jetee': 'jetée', 'legue': 'lègue', 'lumiere': 'lumière', 'loyaute': 'loyauté', 'machoire': 'mâchoire', 'maitresse': 'maîtresse', 'malefique': 'maléfique', 'marquees': 'marquées', 'mecanique': 'mécanique', 'meme': 'même', 'memes': 'mêmes', 'merite': 'mérite', 'meritee': 'méritée', 'moitie': 'moitié', 'nausee': 'nausée', 'nuee': 'nuée', 'obscurite': 'obscurité', 'perdue': 'perdue', 'petales': 'pétales', 'portee': 'portée', 'possede': 'possède', 'projete': 'projeté', 'projetes': 'projetés', 'provoques': 'provoqués', 'rapiere': 'rapière', 'rapproche': 'rapproché', 'reapparaitre': 'réapparaître', 'recompense': 'récompense', 'recu': 'reçu', 'recupere': 'récupère', 'regagne': 'regagne', 'regenere': 'régénère', 'regenerent': 'régénèrent', 'regenerer': 'régénérer', 'relache': 'relâche', 'relachement': 'relâchement', 'renvoyes': 'renvoyés', 'resistance': 'résistance', 'ressuscite': 'ressuscite', 'retiree': 'retirée', 'revele': 'révèle', 'ruee': 'ruée', 'sante': 'santé', 'seule': 'seule', 'sphere': 'sphère', 'strategie': 'stratégie', 'superieure': 'supérieure', 'supplementaire': 'supplémentaire', 'supplementaires': 'supplémentaires', 'surmultipliee': 'surmultipliée', 'systeme': 'système', 'teleporte': 'téléporte', 'telesquive': 'télesquive', 'telesquives': 'télesquives', 'tempete': 'tempête', 'tenebres': 'ténèbres', 'trainee': 'traînée', 'traitre': 'traître', 'tres': 'très', 'trigonometrique': 'trigonométrique', 'troisieme': 'troisième', 'utilises': 'utilisés', 'verrouillee': 'verrouillée', 'violette': 'violette', 'voles': 'volés', 'vraie': 'vraie', 'ecran': 'écran', 'elle': 'elle', 'frappe': 'frappe', 'lancees': 'lancées', 'marques': 'marques', 'premiere': 'première', 'derniers': 'derniers', 'entierement': 'entièrement', 'deja': 'déjà', 'ete': 'été', 'periode': 'période', 'precedente': 'précédente', 'reussit': 'réussit', 'necessaire': 'nécessaire', 'esquive': 'esquive', 'interieur': 'intérieur', 'exterieur': 'extérieur', 'reduit': 'réduit', 'reduite': 'réduite', 'reduits': 'réduits', 'genere': 'génère', 'generee': 'générée', 'degage': 'dégage', 'debut': 'début', 'debloque': 'débloque', 'debloquees': 'débloquées', 'enchainement': 'enchaînement', 'eloigne': 'éloigne', 'eleve': 'élève', 'evite': 'évite', 'etat': 'état', 'etats': 'états', 'detruit': 'détruit', 'detruire': 'détruire', 'depense': 'dépense', 'depasse': 'dépasse', 'decoupe': 'découpe', 'decouvre': 'découvre', 'declenche': 'déclenche', 'declencher': 'déclencher', 'demarre': 'démarre', 'deplacement': 'déplacement', 'desactiver': 'désactiver', 'desactive': 'désactive', 'arrive': 'arrive', 'celle': 'celle', 'Livai': 'Livaï', 'Aida': 'Aïda'}
+
+
+def accent(text):
+    """Les textes du plugin sont sans accents (polices du jeu) : on les rend au guide."""
+    def fix(m):
+        w = m.group(0)
+        r = ACCENTS.get(w.lower())
+        if not r:
+            return w
+        return r[0].upper() + r[1:] if w[0].isupper() else r
+    text = re.sub(r"[A-Za-z]+", fix, text)
+    # "a" preposition : devant une distance, un article ou "moins", c'est "à".
+    return re.sub(r"\b([Aa]) (?=(moins|tous|toutes|tout|l'|la |le |les |\d|son |sa |ses |chaque|cote|côté|travers|leur|partir|nouveau|usage|sa |portée|distance|peine|elle|lui|eux|vie|mort|chaque|droite|gauche|terre|hauteur|volonté|jamais|nouveau)\b)", lambda m: ("À" if m.group(1) == "A" else "à") + " ", text)
+
+
+def ability_block(a, depth, video_root):
+    """Une capacité à la manière de l'ancien GitBook : titre, (type) description, temps de chargement, vidéo."""
+    lines = [f"{'#' * depth} {accent(a['name'])}", ""]
+    kind = "" if a["type"] == "Ultime" else f"({a['type']}) "
+    lines += [kind + accent(a["description"]), ""]
+    if a["cooldown"]:
+        lines += [f"Temps de chargement : {duration(a['cooldown'])}", ""]
+    clip = VIDEOS / a["character"] / f"{a['id']}.mp4"
+    if clip.exists():
+        rel = "../" * video_root + f"videos/{a['character']}/{a['id']}.mp4"
+        lines += [f'{{% file src="{rel}" %}}', f"{a['name']} en jeu", "{% endfile %}", ""]
+    return lines
+
+
+def characters_pages(summary):
+    """Une page par format, par licence et par personnage, comme l'ancien GitBook."""
+    data = json.loads(DATA.read_text(encoding="utf-8"))
+    base = OUT / "personnages"
+    index = ["# Les personnages", "",
+             "Chaque équipe reçoit une licence tirée au sort parmi celles de son format, puis chacun y choisit son personnage.", "",
+             "Chaque personnage suit une voie (Destruction, Harmonie, Chasse ou Nihilité), a une arme, des pouvoirs et un ultime. "
+             "Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts. "
+             "Sous chaque pouvoir, une courte vidéo le montre en jeu.", ""]
+    count = 0
+    for fmt in ("TRIO", "DUO", "SOLO"):
+        fslug, ftitle = FORMAT_PAGES[fmt]
+        licences = [l for l in data if l["team"] == fmt]
+        if not licences:
+            continue
+        summary.append(f"  * [{ftitle}](personnages/{fslug}.md)")
+        index += [f"## [{ftitle}]({fslug}.md)", ""]
+        fpage = [f"# {ftitle}", "", FORMAT_TEXT[fmt], ""]
+        for l in licences:
+            lname = licence_title(l["name"])
+            lslug = slug(lname)
+            people = l["characters"]
+            # Ce que tous les personnages de la licence ont en commun (épée d'aura, boutique...) va sur la page de la licence.
+            shared = [a for a in people[0]["abilities"] if all(any(b["id"] == a["id"] for b in c["abilities"]) for c in people)] if len(people) > 1 else []
+            shared_ids = {a["id"] for a in shared}
+            if fmt == "SOLO":
+                lpath, depth = f"{fslug}", 1
+            else:
+                summary.append(f"    * [{lname}](personnages/{fslug}/{lslug}.md)")
+                lpath, depth = f"{fslug}/{lslug}", 2
+                lpage = [f"# {lname}", ""]
+                if l.get("particularite"):
+                    lpage += ["## Particularité", "", accent(l["particularite"]), ""]
+                if shared:
+                    lpage[len(lpage):] = ["## Commun à la licence", ""]
+                    for a in shared:
+                        lpage += ability_block(dict(a, character=people[0]["id"]), 3, 2)
+                lpage += ["## Personnages", ""] + [f"* [{c['name']}]({lslug}/{slug(c['name'])}.md) : {accent(c["voie"])}" for c in people] + [""]
+                (base / fslug).mkdir(parents=True, exist_ok=True)
+                (base / fslug / f"{lslug}.md").write_text("\n".join(lpage), encoding="utf-8")
+                fpage.append(f"* [{lname}]({fslug}/{lslug}.md) : " + ", ".join(c["name"] for c in people))
+                index.append(f"* [{lname}]({fslug}/{lslug}.md) : " + ", ".join(c["name"] for c in people))
+            for c in people:
+                count += 1
+                cslug = slug(c["name"])
+                own = [dict(a, character=c["id"]) for a in c["abilities"] if a["id"] not in shared_ids]
+                weapon = [a for a in own if a["weapon"]]
+                ult = [a for a in own if a["type"] == "Ultime"]
+                powers = [a for a in own if not a["weapon"] and a["type"] != "Ultime"]
+                page = [f"# {accent(c['name'])}", "", accent(c["voie"]), ""]
+                if weapon or c.get("weapon"):
+                    page += ["## Arme", "", f"### {accent(c.get('weapon') or 'Arme')}", ""]
+                    for a in weapon:
+                        block = ability_block(a, 4, depth + 1)
+                        page += block[2:] if accent(a["name"]) == accent(c.get("weapon") or "") else block
+                if powers:
+                    page += ["## Pouvoirs", ""]
+                    for a in powers:
+                        page += ability_block(a, 3, depth + 1)
+                if ult:
+                    page += ["## Ultime", ""]
+                    for a in ult:
+                        page += ability_block(a, 3, depth + 1)
+                folder = base / lpath if fmt != "SOLO" else base / fslug
+                folder.mkdir(parents=True, exist_ok=True)
+                (folder / f"{cslug}.md").write_text("\n".join(page), encoding="utf-8")
+                rel = f"{lpath}/{cslug}.md"
+                summary.append(("      " if fmt != "SOLO" else "    ") + f"* [{c['name']}](personnages/{rel})")
+                if fmt == "SOLO":
+                    fpage.append(f"* [{c['name']}]({fslug}/{cslug}.md) : {accent(c["voie"])}")
+                    index.append(f"* [{c['name']}]({fslug}/{cslug}.md)")
+        index.append("")
+        (base / f"{fslug}.md").write_text("\n".join(fpage) + "\n", encoding="utf-8")
+    (base / "README.md").write_text("\n".join(index) + "\n", encoding="utf-8")
+    return count
+
+
 def main():
+    videos = None
+    if VIDEOS.exists():          # les vidéos ne se refont pas : on les garde de côté pendant qu'on regénère
+        videos = OUT.parent / ".guide_videos_tmp"
+        shutil.move(str(VIDEOS), str(videos))
     if OUT.exists():
         shutil.rmtree(OUT)
     (OUT / "personnages").mkdir(parents=True)
+    if videos:
+        shutil.move(str(videos), str(VIDEOS))
     for name, text in PAGES.items():
         (OUT / name).write_text(text.replace("%LOOTBOX%", lootbox_table()), encoding="utf-8")
-    all_ = licences()
-    index = ["# Les personnages", "", "Chaque équipe reçoit une licence tirée au sort parmi celles de son format, puis chacun y choisit son personnage.", "",
-             "Les capacités s'utilisent au clic droit, objet en main. Le temps de recharge est indiqué quand il y en a un ; « Ultime » se charge en donnant et en recevant des dégâts.", "",
-             "| Licence | Format | Personnages |", "|---|---|---|"]
     summary = ["# Sommaire", "", "* [Crossfight UHC](README.md)", "* [Rejoindre une partie](commencer.md)", "* [Le déroulement d'une partie](deroulement.md)",
                "* [Les lieux et les quêtes d'Anna](lieux.md)", "* [Les événements](evenements.md)", "* [Les personnages](personnages/README.md)"]
-    count = 0
-    for lid, name, fmt, people in all_:
-        index.append(f"| [{name}]({lid}.md) | {fmt} | {', '.join(p[0] for p in people)} |")
-        summary.append(f"  * [{name}](personnages/{lid}.md)")
-        page = [f"# {name}", "", f"Format : **{fmt}**.", ""]
-        for who, skills in people:
-            count += 1
-            page += [f"## {who}", ""]
-            if skills:
-                page += ["| Capacité | Ce qu'elle fait | Recharge |", "|---|---|---|"]
-                for sname, desc, cd in skills:
-                    page.append(f"| **{sname}** | {desc.replace('|', '/')} | {str(cd) + ' s' if cd else '-'} |")
-            page.append("")
-        (OUT / "personnages" / f"{lid}.md").write_text("\n".join(page), encoding="utf-8")
-    (OUT / "personnages" / "README.md").write_text("\n".join(index) + "\n", encoding="utf-8")
+    count = characters_pages(summary)
     summary.append("* [Les commandes du joueur](commandes.md)")
     (OUT / "SUMMARY.md").write_text("\n".join(summary) + "\n", encoding="utf-8")
-    print(f"guide/ : {len(PAGES) + 1 + len(all_)} pages, {len(all_)} licences, {count} personnages")
+    clips = len(list(VIDEOS.rglob("*.mp4"))) if VIDEOS.exists() else 0
+    print(f"guide/ : {count} personnages, {clips} vidéos")
 
 
 if __name__ == "__main__":

@@ -2,17 +2,26 @@
 
 Chaque équipe reçoit une licence tirée au sort parmi celles de son format, puis chacun y choisit son personnage.
 
-Les capacités s'utilisent au clic droit, objet en main. Le temps de recharge est indiqué quand il y en a un ; « Ultime » se charge en donnant et en recevant des dégâts.
+Chaque personnage suit une voie (Destruction, Harmonie, Chasse ou Nihilité), a une arme, des pouvoirs et un ultime. Les pouvoirs actifs s'utilisent au clic droit, objet en main ; l'ultime se charge en donnant et en recevant des dégâts. Sous chaque pouvoir, une courte vidéo le montre en jeu.
 
-| Licence | Format | Personnages |
-|---|---|---|
-| [Bloody Snow](bloody_snow.md) | Groupe duo | Eirika Fischer, Hannah Fedorava, Kaze Lewis, Netsu Lewis |
-| [Earth Delta](earth_delta.md) | Équipe de trois | Hano, Kishi, Kura, Taka |
-| [Fire Emblem](fire_emblem.md) | Équipe de trois | Byleth, Corrin, Marth, Takumi |
-| [Armed Blue Gunvolt](gunvolt.md) | Groupe duo | Acura, Asimov, Gunvolt, Kirin |
-| [RWBY](rwby.md) | Équipe de trois | Blake Belladonna, Ruby Rose, Weiss Schnee, Yang Xiao Long |
-| [Shoja's Memories](shojas_memories.md) | Groupe duo | Aida, Crystal, Hiro, Pinkou |
-| [Shingeki no Kyojin](snk.md) | Équipe de trois | Armin Arlert, Eren Jaeger, Livai Ackerman, Mikasa Ackerman |
-| [Personnage Solitaire](solitaire.md) | Personnage solitaire | Le Drifter, Shoja, Yuki |
-| [unOrdinary](unordinary.md) | Équipe de trois | Arlo, John, Remi, Seraphina |
-| [Valorant](valorant.md) | Équipe de trois | Jett, Neon, Sage, Sova |
+## [Équipe de trois](equipe-de-trois.md)
+
+* [Fire Emblem](equipe-de-trois/fire-emblem.md) : Marth, Corrin, Takumi, Byleth
+* [RWBY](equipe-de-trois/rwby.md) : Ruby Rose, Yang Xiao Long, Weiss Schnee, Blake Belladonna
+* [Valorant](equipe-de-trois/valorant.md) : Neon, Sage, Sova, Jett
+* [Shingeki no Kyojin](equipe-de-trois/shingeki-no-kyojin.md) : Eren Jaeger, Mikasa Ackerman, Livai Ackerman, Armin Arlert
+* [unOrdinary](equipe-de-trois/unordinary.md) : Arlo, John, Remi, Seraphina
+* [Earth Delta](equipe-de-trois/earth-delta.md) : Kishi, Kura, Taka, Hano
+
+## [Groupe duo](groupe-duo.md)
+
+* [Armed Blue Gunvolt](groupe-duo/armed-blue-gunvolt.md) : Gunvolt, Acura, Kirin, Asimov
+* [Shoja's Memories](groupe-duo/shoja-s-memories.md) : Hiro, Pinkou, Aida, Crystal
+* [Bloody Snow](groupe-duo/bloody-snow.md) : Netsu Lewis, Kaze Lewis, Hannah Fedorava, Eirika Fischer
+
+## [Personnage solitaire](personnage-solitaire.md)
+
+* [Yuki](personnage-solitaire/yuki.md)
+* [Le Drifter](personnage-solitaire/le-drifter.md)
+* [Shoja](personnage-solitaire/shoja.md)
+

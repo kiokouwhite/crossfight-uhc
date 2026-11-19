@@ -397,6 +397,43 @@ public final class ThirdPerson implements Listener {
         if (AbilityEngine.isAbilityItem(item) || AbilityEngine.isWeaponItem(item)) command(p, s, item, true);
     }
 
+    /**
+     * Tournage des videos du guide : fait lancer au mannequin la capacite {@code id} comme si le testeur avait
+     * clique avec son objet (l'objet passe dans sa main pour qu'on le voie dans la barre). "frappe" : le
+     * mannequin frappe le testeur. L'ultime est d'abord recharge. Rend un message pour la console.
+     */
+    public String castFor(Player p, String id) {
+        Session s = sessions.get(p.getUniqueId());
+        if (s == null) return "pas en troisieme personne";
+        if (id.equalsIgnoreCase("frappe")) { face(s, p); strike(s, p); return "frappe"; }
+        if (id.equalsIgnoreCase("reset")) {
+            // Entre deux prises : chacun a sa place, la camera soignee et debarrassee de ses effets.
+            if (s.body != null && s.body.isValid()) s.body.teleport(s.home);
+            p.teleport(spot(s.home));
+            for (var e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
+            var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            p.setHealth(mh == null ? 20 : mh.getValue());
+            p.setFireTicks(0);
+            p.setFreezeTicks(0);
+            face(s, p);
+            return "reset";
+        }
+        var inv = p.getInventory();
+        int found = -1;
+        for (int i = 0; i < 36 && found < 0; i++) if (id.equals(Items.tag(inv.getItem(i), AbilityEngine.ABILITY_KEY))) found = i;
+        if (found < 0) return "objet introuvable : " + id;
+        if (found > 8) { ItemStack other = inv.getItem(8); inv.setItem(8, inv.getItem(found)); inv.setItem(found, other); found = 8; }
+        inv.setHeldItemSlot(found);
+        CfPlayer cf = plugin.players().get(s.pilot);
+        Character ch = cf.character();
+        Ability a = ch == null ? null : ch.ability(s.pilot, id);
+        if (a != null && a.type() == com.kiokouwhite.crossfight.ability.AbilityType.ULTIMATE) cf.setUltimateCharge(100);
+        if (a != null) plugin.abilities().state(s.pilot, a).clearCooldown();
+        s.lastUse = 0;
+        command(p, s, inv.getItem(found), true);
+        return "lance " + id;
+    }
+
     /** Vrai si le testeur vise le corps du mannequin, a portee de coup. */
     private boolean looksAtBody(Player p, Session s) {
         if (!p.getWorld().equals(s.body.getWorld())) return false;
