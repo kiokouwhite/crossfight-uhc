@@ -192,10 +192,10 @@ RECIPES = {
     },
     "Bloody Snow": {
         "Eirika Fischer": [
-            ("Marque de Sang", "eirika_marque", "Wizard 3 rouge"),
-            ("Absorption de sang", "eirika_absorption", "Acolyte 1 rouge"),
-            ("Effroi sanglant", "eirika_effroi", "Wizard 11 rouge"),
-            ("Exécution Atroce", "eirika_ult", "Acolyte 21 rouge"),
+            ("Marque de Sang", "eirika_marque", "Objets 2835 rouge"),
+            ("Absorption de sang", "eirika_absorption", "Acolyte 1 nuit"),
+            ("Effroi sanglant", "eirika_effroi", "Wizard 11 nuit"),
+            ("Exécution Atroce", "eirika_ult", "Acolyte 21 nuit"),
         ],
         "Hannah Fedorava": [
             ("Résister pour mieux régner", "hannah_resister", "Warrior 27 feu"),
@@ -223,7 +223,7 @@ RECIPES = {
 HUES = {"violet": 0.76, "rose": 0.9, "rouge": 0.0, "or": 0.12, "vert": 0.38}
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
-DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0),
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95), "rose": ("feu", -0.14, 0.85, 1.0), "nuit": ("bleu", 0.04, 1.15, 0.42),
            # Neon : ombres bleu neon, lumieres jaunes.
            "neon": ("or", [(0.0, (14, 16, 70)), (0.3, (30, 70, 235)), (0.55, (0, 200, 255)), (0.68, (70, 220, 255)), (0.72, (255, 232, 70)), (1.0, (255, 255, 225))])}
 
