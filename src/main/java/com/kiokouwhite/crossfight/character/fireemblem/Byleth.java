@@ -164,11 +164,11 @@ public final class Byleth extends Character implements Listener {
 
     static final class EpeeDuCreateur extends ActiveAbility implements com.kiokouwhite.crossfight.ability.EnemyCastable {
         EpeeDuCreateur() {
-            super(SWORD_ID, "Epee du Createur", "Clic droit : Byleth se fige et son epee s'etend tout droit sur 10 blocs (8 blocs/s) pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
+            super(SWORD_ID, "Epee du Createur", "Clic droit : Byleth se fige et son epee s'etend presque instantanement tout droit sur 10 blocs pour ramener le joueur attrape.", Material.DIAMOND_SWORD, 10);
         }
 
-        /** Avancee par tick : 8 blocs par seconde. */
-        private static final double SPEED_PER_TICK = 0.4;
+        /** Avancee par tick : les 10 blocs en 4 ticks (0,2 s). */
+        private static final double SPEED_PER_TICK = 2.5;
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
@@ -195,7 +195,7 @@ public final class Byleth extends Character implements Listener {
                 Location facing = caster.getLocation().clone();
                 facing.setDirection(lockedDir);
                 puppet.face(facing.getYaw());
-                puppet.pose("byleth_epee_tendue", 3);
+                puppet.pose("byleth_epee_tendue", 1);
                 puppet.endAfter(60, 4);
             }
             BoneWhip whip = new BoneWhip(false);
@@ -206,12 +206,13 @@ public final class Byleth extends Character implements Listener {
                 @Override public void run() {
                     if (!caster.isValid() || caster.isDead()) { clear(); cancel(); return; }
                     if (retracting) {
-                        length -= 1.5;
+                        length -= 2.5;
                         if (length <= 0) { clear(); cancel(); return; }
                         whip.layout(start(), lockedDir, length);
                         return;
                     }
-                    length += SPEED_PER_TICK;
+                    double from = length;
+                    length = Math.min(10, length + SPEED_PER_TICK);
                     Location eye = caster.getEyeLocation();
                     // Le fouet s'arrete sur un mur.
                     for (double d = 0.5; d <= length; d += 0.5) {
@@ -222,19 +223,24 @@ public final class Byleth extends Character implements Listener {
                         }
                     }
                     whip.layout(start(), lockedDir, length);
-                    Location tip = eye.clone().add(lockedDir.clone().multiply(length));
-                    for (org.bukkit.entity.LivingEntity enemy : Effects.within(tip, 1.2, isTarget)) {
-                        if (enemy == caster) continue;
-                        Vector pull = caster.getLocation().toVector().subtract(enemy.getLocation().toVector());
-                        double dist = pull.length();
-                        pull.normalize().multiply(Math.min(2.5, 0.4 + dist * 0.22)).setY(0.35);
-                        enemy.setVelocity(pull);
-                        enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
-                        enemy.getWorld().spawnParticle(Particle.CRIT, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.4, 0.3, 0.1);
-                        Effects.say(enemy, "<gold>Byleth t'attrape avec son epee !");
-                        Effects.say(caster, "<gold>Attrape !");
-                        retracting = true;
-                        return;
+                    // La pointe avance vite : on cherche la cible tout le long du troncon parcouru ce tick.
+                    for (double d = Math.min(from + 0.5, length); d <= length + 1e-6; d += 0.5) {
+                        Location tip = eye.clone().add(lockedDir.clone().multiply(d));
+                        for (org.bukkit.entity.LivingEntity enemy : Effects.within(tip, 1.2, isTarget)) {
+                            if (enemy == caster) continue;
+                            length = d;
+                            whip.layout(start(), lockedDir, length);
+                            Vector pull = caster.getLocation().toVector().subtract(enemy.getLocation().toVector());
+                            double dist = pull.length();
+                            pull.normalize().multiply(Math.min(2.5, 0.4 + dist * 0.22)).setY(0.35);
+                            enemy.setVelocity(pull);
+                            enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_FISHING_BOBBER_RETRIEVE, 1f, 0.7f);
+                            enemy.getWorld().spawnParticle(Particle.CRIT, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.4, 0.3, 0.1);
+                            Effects.say(enemy, "<gold>Byleth t'attrape avec son epee !");
+                            Effects.say(caster, "<gold>Attrape !");
+                            retracting = true;
+                            return;
+                        }
                     }
                     if (length >= 10) retracting = true;
                 }
