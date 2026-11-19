@@ -329,12 +329,32 @@ def butterfly() -> Image.Image:
     return im
 
 
+def gradient(im: Image.Image, stops) -> Image.Image:
+    """Degrade par luminosite : chaque pixel colore prend la couleur de sa luminosite (les gris restent)."""
+    import colorsys
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[1] <= 0.05:
+                continue
+            lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            for (l0, c0), (l1, c1) in zip(stops, stops[1:]):
+                if lum <= l1 or (l1, c1) == stops[-1]:
+                    t = max(0, min(1, (lum - l0) / (l1 - l0)))
+                    px[x, y] = tuple(round(c0[k] + (c1[k] - c0[k]) * t) for k in range(3)) + (a,)
+                    break
+    return im
+
+
 def icon_of(recipe: str, size: int) -> Image.Image:
     if recipe.startswith("Animaux "):      # le pack d'animaux : un seul jeu de couleurs
         return Image.open(PACKS.parents[2] / "Pets_and_Animals" / "Original" / str(size) / f"{recipe.split()[1]}.png").convert("RGBA")
     if recipe.startswith("Objets "):       # la grande collection d'objets : a<n>.png en 16, b<n>.png en 32
         parts = recipe.split()
         im = Image.open(PACKS.parents[1] / "Separated_Files" / "Separated Files" / f"{size}x{size}" / f"{ {16: 'a', 32: 'b', 64: 'c'}[size] }{parts[1]}.png").convert("RGBA")
+        if len(parts) > 2 and isinstance(DERIVED.get(parts[2], (0, 0))[1], list):
+            return gradient(im, DERIVED[parts[2]][1])    # "Objets 3640 rose-pale" : toutes ses couleurs, par luminosite
         if len(parts) > 2:                 # "Objets 342 violet" : ses bleus (le sable d'un sablier) passent a cette teinte
             import colorsys
             hue, px = HUES.get(parts[2]), im.load()
