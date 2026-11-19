@@ -214,7 +214,7 @@ def icon_of(recipe: str, size: int) -> Image.Image:
                     r, g, bl, al = px[x, y]
                     h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, bl / 255)
                     if 0.45 <= h <= 0.70 and sat > 0.2:
-                        r, g, bl = colorsys.hsv_to_rgb(hue, sat, v)
+                        r, g, bl = colorsys.hsv_to_rgb(hue, sat * 0.55, min(1, v * 1.08))     # adouci, dans les tons des packs
                         px[x, y] = (round(r * 255), round(g * 255), round(bl * 255), al)
         return im
     if recipe.startswith("Cube "):
