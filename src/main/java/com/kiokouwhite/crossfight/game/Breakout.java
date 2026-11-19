@@ -26,6 +26,8 @@ final class Breakout extends PanelGame {
     private static final int COLS = 8, ROWS = 5, APPLES = 12;
     /** Le terrain, en blocs depuis le milieu du tableau. */
     private static final double LEFT = -1.6, RIGHT = 1.6, TOP = 1.05, FLOOR = -1.38, PADDLE_V = -1.14, PADDLE_W = 0.85, PADDLE_H = 0.1;
+    /** Les bords du cadre (son interieur) : la balle y rebondit et la raquette va jusque-la ; le mur de briques, lui, est plus etroit. */
+    private static final double WALL = 2.13;
     private static final double BRICK_W = (RIGHT - LEFT) / COLS, BRICK_H = 0.17, BALL = 0.12, DROP = 0.03;
     private static final Color[] ROW = {Color.fromARGB(255, 222, 70, 80), Color.fromARGB(255, 240, 150, 60), Color.fromARGB(255, 246, 204, 70), Color.fromARGB(255, 110, 200, 110), Color.fromARGB(255, 90, 160, 230)};
 
@@ -121,8 +123,8 @@ final class Breakout extends PanelGame {
         double fromV = ballV;
         ballU += velU / 2;
         ballV += velV / 2;
-        if (ballU < LEFT + BALL / 2) { ballU = LEFT + BALL / 2; velU = Math.abs(velU); }
-        if (ballU > RIGHT - BALL / 2) { ballU = RIGHT - BALL / 2; velU = -Math.abs(velU); }
+        if (ballU < -WALL + BALL / 2) { ballU = -WALL + BALL / 2; velU = Math.abs(velU); }
+        if (ballU > WALL - BALL / 2) { ballU = WALL - BALL / 2; velU = -Math.abs(velU); }
         if (ballV > TOP - BALL / 2) { ballV = TOP - BALL / 2; velV = -Math.abs(velV); }
         if (velV < 0 && ballV <= PADDLE_V + PADDLE_H / 2 + BALL / 2 && fromV > PADDLE_V && Math.abs(ballU - paddleU) < PADDLE_W / 2 + BALL / 2) {
             // la raquette renvoie la balle d'autant plus de cote qu'elle la touche loin de son milieu
@@ -159,7 +161,7 @@ final class Breakout extends PanelGame {
     }
 
     @Override void onTick() {
-        if (aimed) paddleU = Math.max(LEFT + PADDLE_W / 2, Math.min(RIGHT - PADDLE_W / 2, cu));
+        if (aimed) paddleU = Math.max(-WALL + PADDLE_W / 2, Math.min(WALL - PADDLE_W / 2, cu));
         paddle.teleport(spot(paddleU, PADDLE_V - PADDLE_H / 2, 0.04));
         if (held) { ballU = paddleU; ballV = PADDLE_V + PADDLE_H / 2 + BALL / 2 + 0.01; }
         else { step(); if (!held) step(); }
