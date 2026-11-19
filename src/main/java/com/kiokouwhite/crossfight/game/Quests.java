@@ -53,7 +53,7 @@ import java.util.UUID;
  */
 public final class Quests implements Listener {
 
-    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, PUZZLE, FISH, BREAKOUT }
+    public enum Kind { COLLECT, CARRY, KILL, TITAN, REACH, CLIMB, PUZZLE, FISH, BREAKOUT }
 
     /** Une quete : son nom, qui la donne, ce qu'il dit, sa sorte, combien (objets, monstres), l'objet montre. */
     public record Quest(String title, String giver, String says, Kind kind, int count, Material icon, String thing, String thanks) {}
@@ -65,7 +65,7 @@ public final class Quests implements Listener {
             Map.entry("pearl", new Quest("Les perles englouties", "Anna", "Bonjour, Héros ! Je suis Anna, et je profite de la Fissure Temporelle pour faire des affaires. Hélas, pendant ma téléportation dans ce monde, j'ai perdu mes précieuses perles… Retrouve-les toutes les cinq, et je te promets une belle récompense !", Kind.COLLECT, 5, Material.HEART_OF_THE_SEA, "perles", "Mes perles ! Merci, Héros ! Comme promis, voici ta récompense : fais un clic droit sur moi et choisis une potion, c'est offert. Force, Vitesse, Poison, Faiblesse ou Lenteur : une toutes les 10 minutes, jusqu'à la fin de la partie !")),
             Map.entry("central_town", new Quest("Les quatre piliers", "Anna", "Bonjour, Héros ! Je suis Anna. Mon étal est prêt, mais la ville dort : ses quatre piliers se sont éteints autour de moi. Chacun cache une énigme différente : une tablette de pièces dorées, un circuit à rebrancher, un objet à refaire sur une table de craft, et un puzzle à reformer. Résous-la, et il se rallumera. Rallume-les tous les quatre, et ma boutique t'ouvre ses portes !", Kind.PUZZLE, 4, Material.AMETHYST_SHARD, "piliers", "Les quatre piliers brillent, la ville se réveille ! Ma boutique est ouverte : reparle-moi, et tu trouveras quatre objets de lootbox à acheter en diamants. L'étalage change toutes les dix minutes, jusqu'à la fin de la partie !")),
             Map.entry("arcadia", new Quest("La récolte", "Anna", "Bonjour, Héros ! Je suis Anna. Les pommes de ces jardins sont prises dans un mur de briques… Parle-moi pour jouer au casse-briques : casse les briques, rattrape les pommes qui en tombent. Quinze pommes, et tu ne manqueras plus jamais de vivres !", Kind.BREAKOUT, 15, Material.APPLE, "pommes", "Quelle belle récolte ! Reparle-moi toutes les dix minutes : ma roulette t'offrira de trois à dix pommes dorées, jusqu'à la fin de la partie !")),
-            Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… Atteins le sommet pour moi : un seul d'entre vous suffit.", Kind.REACH, 1, Material.FEATHER, "sommet", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
+            Map.entry("terrace", new Quest("L'ascension", "Anna", "Bonjour, Héros ! Je suis Anna. On dit que, de là-haut, on apprend plus en un regard qu'en mille combats. Je n'ai pas le pied assez sûr… J'ai planté des drapeaux tout le long de la montée : passe par chacun d'eux, puis atteins celui du sommet. Un seul d'entre vous suffit.", Kind.CLIMB, 5, Material.RED_BANNER, "drapeaux", "Tu l'as fait ! Désormais, ton équipe gagne de l'expérience rien qu'en restant ici, sur la terrasse, jusqu'à la fin de la partie !")),
             Map.entry("beacon", new Quest("L'initiation", "Anna", "Bonjour, Héros ! Je suis Anna. L'académie cache quatre reliques, et sans elles ses caisses de ravitaillement restent fermées. Retrouve-les, et la prochaine livraison tombera ici même !", Kind.COLLECT, 4, Material.GOLDEN_HORSE_ARMOR, "reliques", "Les quatre reliques, bravo ! Les caisses de ravitaillement sont rouvertes : à chaque vague, une caisse tombera ici même, à l'académie !")),
             Map.entry("forest_of_hope", new Quest("Les pièces du vaisseau", "Anna", "Bonjour, Héros ! Je suis Anna. Mon vaisseau s'est disloqué en traversant la Fissure, et trois de ses pièces sont tombées dans la forêt. Elles sont lourdes : rapporte-les-moi une par une, et les trésors de ce bois seront à toi !", Kind.CARRY, 3, Material.NETHERITE_SCRAP, "pièces", "Mon vaisseau est sauvé, merci ! En échange, les trésors de ce bois sont à ton équipe : cinq pièces y sont cachées, trouve-les pour gagner tes récompenses !")),
             Map.entry("jouki", new Quest("Le sommet de la pagode", "Anna", "Bonjour, Héros ! Je suis Anna. Ici, je n'ai rien à vendre… mais on raconte que la vue, tout en haut de la pagode, vaut tous les trésors. Monte, et dis-moi si c'est vrai !", Kind.REACH, 1, Material.BELL, "sommet", "Alors, cette vue ? Je te l'avais dit : elle vaut tous les trésors… et c'est bien le seul que j'aie à t'offrir ici !")));
@@ -277,6 +277,38 @@ public final class Quests implements Listener {
                     }));
                 }
             }
+            case CLIMB -> {
+                // La montee : un drapeau au sommet (le plus haut bloc du lieu), et les autres a des hauteurs regulieres
+                // entre Anna et lui, chacun sur le sol le plus proche de sa hauteur, pres de la ligne qui mene au sommet.
+                int best = Integer.MIN_VALUE, bx = 0, bz = 0;
+                List<int[]> ground = new ArrayList<>();
+                for (int x = box.x() + 1; x < box.x() + box.sx(); x += 2) for (int z = box.z() + 1; z < box.z() + box.sz(); z += 2) {
+                    if (plugin.structures().at(new Location(w, x, 0, z)) == null) continue;
+                    int y = w.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                    if (!w.getBlockAt(x, y, z).getType().isSolid() || !w.getBlockAt(x, y + 1, z).isPassable() || !w.getBlockAt(x, y + 2, z).isPassable()) continue;
+                    ground.add(new int[]{x, y, z});
+                    if (y > best) { best = y; bx = x; bz = z; }
+                }
+                r.target = new Location(w, bx + 0.5, best + 1, bz + 0.5);
+                int from = r.home.getBlockY(), flags = q.count() - 1;
+                List<Location> chosen = new ArrayList<>();
+                for (int k = 1; k <= flags; k++) {
+                    double want = from + (best + 1 - from) * (double) k / (flags + 1), t = (double) k / (flags + 1);
+                    double lx = r.home.getX() + (r.target.getX() - r.home.getX()) * t, lz = r.home.getZ() + (r.target.getZ() - r.home.getZ()) * t;
+                    int[] pick = null;
+                    double low = Double.MAX_VALUE;
+                    for (int[] g : ground) {
+                        boolean close = false;
+                        for (Location c : chosen) if (Math.hypot(c.getX() - g[0], c.getZ() - g[2]) < 6) { close = true; break; }
+                        if (close || Math.hypot(r.target.getX() - g[0], r.target.getZ() - g[2]) < 6) continue;
+                        double cost = Math.abs(g[1] + 1 - want) + 0.08 * Math.hypot(g[0] - lx, g[2] - lz);
+                        if (cost < low) { low = cost; pick = g; }
+                    }
+                    if (pick != null) chosen.add(new Location(w, pick[0] + 0.5, pick[1] + 1, pick[2] + 0.5));
+                }
+                for (Location c : chosen) r.spots.put(c, null);
+                r.spots.put(r.target.clone(), null);
+            }
             case REACH -> {
                 // Le sommet : le plus haut bloc du lieu, cherche de quatre en quatre.
                 int best = Integer.MIN_VALUE, bx = 0, bz = 0;
@@ -333,7 +365,7 @@ public final class Quests implements Listener {
             Quest q = QUESTS.get(r.place);
             List<Player> team = members(r.team);
             switch (q.kind()) {
-                case COLLECT, CARRY -> {
+                case COLLECT, CARRY, CLIMB -> {
                     Player carrier = r.carrier == null ? null : Bukkit.getPlayer(r.carrier);
                     if (r.carrier != null && (carrier == null || carrier.isDead() || carrier.getGameMode() == GameMode.SPECTATOR)) {
                         // Le porteur est tombe : la piece retourne ou elle etait.
@@ -350,7 +382,12 @@ public final class Quests implements Listener {
                     show(r, q);
                     for (Location at : new ArrayList<>(r.spots.keySet())) {
                         for (Player p : team) {
-                            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || !p.getWorld().equals(at.getWorld()) || p.getLocation().distanceSquared(at) > 4) continue;
+                            if (p.isDead() || p.getGameMode() == GameMode.SPECTATOR || !p.getWorld().equals(at.getWorld()) || p.getLocation().distanceSquared(at) > (q.kind() == Kind.CLIMB ? 9 : 4)) continue;
+                            // La montee : le drapeau du sommet ne compte qu'une fois tous les autres passes.
+                            if (q.kind() == Kind.CLIMB && at.equals(r.target) && r.spots.size() > 1) {
+                                if (beat % 4 == 0) Msg.actionBar(p, "<yellow>Il te reste " + (r.spots.size() - 1) + " drapeau" + (r.spots.size() > 2 ? "x" : "") + " plus bas : passe d'abord par eux.");
+                                continue;
+                            }
                             Entity e = r.spots.remove(at);
                             if (e != null) e.remove();
                             p.playSound(p.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1f, 1.2f);

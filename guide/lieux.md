@@ -24,7 +24,7 @@ Chaque équipe fait sa propre quête. Une autre équipe ne peut pas te la voler,
 | Pearl | Les perles englouties | Retrouver cinq perles au cœur de la ville | Une potion offerte par Anna, toutes les 10 minutes |
 | Central Town | Les quatre piliers | Rallumer quatre piliers en résolvant l'énigme de chacun | Marchand : Anna vend quatre objets de lootbox contre des diamants, et change d'étalage toutes les dix minutes |
 | Arcadia | La récolte | Rattraper quinze pommes au casse-briques | Roulette : toutes les dix minutes, Anna te fait gagner de 3 à 10 pommes dorées |
-| Terrace | L'ascension | Atteindre le sommet du lieu | De l'expérience tant que tu restes dans le lieu |
+| Terrace | L'ascension | Monter au sommet en passant par tous les drapeaux | De l'expérience tant que tu restes dans le lieu |
 | Beacon | L'initiation | Retrouver quatre reliques | À chaque événement Lootbox, une caisse tombe ici |
 | Forest of Hope | Les pièces du vaisseau | Rapporter trois pièces à Anna, une par une | La chasse aux pièces cachées du lieu |
 | Jouki | Le sommet de la pagode | Monter tout en haut | Rien, sinon la vue |
@@ -62,7 +62,9 @@ Les récompenses s'additionnent : chaque note que tu atteins te donne la sienne.
 
 **Les pièces du vaisseau (Forest of Hope).** Tu n'en portes qu'une à la fois, et tu es ralenti tant que tu la portes. Si tu meurs, la pièce retourne où elle était.
 
-**Les sommets (Terrace, Jouki).** Un repère lumineux marque le point à atteindre. Un seul membre de l'équipe suffit.
+**La montée aux drapeaux (Terrace).** Cinq drapeaux brillent le long de la montée, visibles à travers les murs ; le dernier est tout en haut. Passe par les quatre premiers, dans l'ordre que tu veux, puis atteins celui du sommet : il ne compte que si tu as passé tous les autres. Un seul membre de l'équipe suffit.
+
+**Le sommet (Jouki).** Un repère lumineux marque le point à atteindre. Un seul membre de l'équipe suffit.
 
 ## Les potions d'Anna (Pearl)
 
