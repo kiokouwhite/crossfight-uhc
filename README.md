@@ -418,6 +418,10 @@ Minecraft n'affiche qu'un skin signé par Mojang : `python3 tools/sign_skins.py 
 
 L'armure portée n'est plus dessinée sur le corps : on voit le skin du personnage, pour le joueur comme pour les autres. Dès qu'un joueur enfile une pièce, le plugin remplace le modèle à dessiner (composant `equippable`, champ `asset_id`) par un modèle vide du pack (`equipment/hidden.json`) : elle protège autant, garde son icône et ses enchantements, mais ne se voit plus une fois portée. Le changement est inscrit dans l'objet : une pièce déjà portée reste invisible même si on la donne à quelqu'un d'autre. `armor.hidden: false` dans `config.yml` arrête de modifier les nouvelles pièces. Les élytres ne sont pas concernés.
 
+### Icônes des capacités
+
+Les objets des capacités peuvent porter une icône au lieu d'un objet de Minecraft. Les icônes viennent de packs d'icônes achetés, rangés dans `prive/icones/` (jamais versionnés) : `tools/build_icones.py` contient une recette par capacité, soit un dessin d'un pack dans une couleur (`Wizard 23 or`), soit une fusion d'un fond et d'un motif plus petit posé au centre (`Warrior 27 or + Acolyte 3 feu` : un bouclier et un cœur), avec quelques couleurs dérivées quand le pack ne les a pas (bleu foncé, rouge). `python3 tools/build_icones.py --apercu image.png [licence]` fait la planche d'une licence, à valider ; sans argument, l'outil écrit les icônes des licences validées (`VALIDATED`) dans le pack complet, et le plugin donne à l'objet de la capacité le modèle `icone/<identifiant>` quand le pack le déclare (`Ability.createItem`). Les armes n'ont pas d'icône. Validée : Fire Emblem.
+
 ### Sons d'effets et orbe de l'ultime
 
 Un son prévient le joueur quand il reçoit un nouveau bonus (vitesse, force, résistance, régénération, invisibilité, absorption, saut) ou un nouveau malus (lenteur, faiblesse, poison, cécité, wither, feu, entrave), au plus une fois toutes les 2 secondes par effet ; `hud.effets: false` dans `config.yml` le coupe. Les icônes qui montaient sur les bords de l'écran ont été retirées.

@@ -142,6 +142,12 @@ def glyphs(base: Path):
     return {"glyph." + f.stem for f in folder.glob("*.png")} if folder.is_dir() else set()
 
 
+def icons(base: Path):
+    """Les icones de capacites (tools/build_icones.py) : "icone.<identifiant>"."""
+    folder = base / "assets" / NS / "items" / "icone"
+    return {"icone." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
+
+
 def models(base: Path):
     """Les modeles 3D d'armes (tools/build_falchion.py, tools/build_armes.py) : "model.<nom>"."""
     folder = base / "assets" / NS / "models" / "item"
@@ -248,7 +254,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms, private_loops = set(), {}, {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _, private_loops = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE) | fonts(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE) | fonts(PRIVATE) | icons(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}

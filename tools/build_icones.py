@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """Icones des capacites, prises dans les packs d'icones achetes (prive/icones/, jamais versionnes).
 
-Usage :  python3 tools/build_icones.py --apercu image.png [licence]
+Usage :  python3 tools/build_icones.py                              ecrit les icones dans le pack complet
+         python3 tools/build_icones.py --apercu image.png [licence]   planche d'apercu d'une licence
 
 Une recette designe un dessin d'un pack de competences et sa couleur : "Wizard 23 vert", ou une fusion "fond + motif". Chaque pack
 contient 32 dessins, declines dans plusieurs couleurs (fichiers Original/32/<n>.png, un bloc de 32 par couleur).
-Pour l'instant l'outil ne fait que la planche d'apercu, a valider avant de passer les icones en jeu.
+Les icones vont dans resourcepack-prive/ (images achetees, jamais versionnees) : une image, un modele et une
+definition d'objet "icone/<identifiant>" par capacite. tools/build_pack.py les declare ("icone.<identifiant>") et le
+plugin donne ce modele a l'objet de la capacite quand le pack complet le contient.
 """
 import sys
 from pathlib import Path
@@ -22,39 +25,71 @@ COLOURS = {
     "Acolyte": ["or", "feu", "bleu", "vert", "brun", "cramoisi", "violet", "gris"],
 }
 
-# licence -> personnage -> [(capacite, recette)]
+# Les licences dont la planche est validee : seules leurs icones vont dans le pack.
+VALIDATED = ["Fire Emblem"]
+
+# licence -> personnage -> [(capacite, identifiant dans le plugin, recette)]
 RECIPES = {
     "Fire Emblem": {
         "Byleth": [
-            ("Emblème de Feu", "Warrior 27 or + Acolyte 3 feu"),
-            ("Tutorat", "Wizard 23 or"),
-            ("Déchaînement d'Épine", "Warrior 1 or"),
-            ("Les Ténèbres se consumeront elles-mêmes", "Wizard 21 violet"),
+            ("Emblème de Feu", "byleth_embleme", "Warrior 27 or + Acolyte 3 feu"),
+            ("Tutorat", "byleth_tutorat", "Wizard 23 or"),
+            ("Déchaînement d'Épine", "byleth_epine", "Warrior 1 or"),
+            ("Les Ténèbres se consumeront elles-mêmes", "byleth_ult", "Wizard 21 violet"),
         ],
         "Corrin": [
-            ("Dragon Gardien", "Acolyte 14 bleu"),
-            ("Sang Draconique", "Wizard 3 cramoisi"),
-            ("Dragon de l'eau", "Wizard 8 bleu"),
-            ("Les Vagues Bleues de l'Océan Gris", "Wizard 29 bleu"),
+            ("Dragon Gardien", "corrin_gardien", "Acolyte 14 bleu"),
+            ("Sang Draconique", "corrin_sang", "Wizard 3 cramoisi"),
+            ("Dragon de l'eau", "corrin_eau", "Wizard 8 bleu"),
+            ("Les Vagues Bleues de l'Océan Gris", "corrin_ult", "Wizard 29 bleu"),
         ],
         "Marth": [
-            ("Contre", "Warrior 27 bleu-fonce"),
-            ("Charisme", "Acolyte 26 bleu-fonce"),
-            ("Esprit du Leader", "Acolyte 9 bleu-fonce"),
-            ("Coup Critique", "Warrior 2 bleu-fonce"),
+            ("Contre", "marth_contre", "Warrior 27 bleu-fonce"),
+            ("Charisme", "marth_charisme", "Acolyte 26 bleu-fonce"),
+            ("Esprit du Leader", "marth_leader", "Acolyte 9 bleu-fonce"),
+            ("Coup Critique", "marth_ult", "Warrior 2 bleu-fonce"),
         ],
         "Takumi": [
-            ("Contre Rapproché", "Warrior 10 cramoisi"),
-            ("Vengeance", "Warrior 23 cramoisi"),
-            ("Furie", "Wizard 11 cramoisi"),
-            ("Rayon Démoniaque", "Wizard 19 cramoisi"),
+            ("Contre Rapproché", "takumi_contre", "Warrior 10 cramoisi"),
+            ("Vengeance", "takumi_vengeance", "Warrior 23 cramoisi"),
+            ("Furie", "takumi_furie", "Wizard 11 cramoisi"),
+            ("Rayon Démoniaque", "takumi_ult", "Wizard 19 cramoisi"),
+        ],
+    },
+    "RWBY": {
+        "Ruby Rose": [
+            ("Explosion de Pétales (rapide)", "ruby_petales_rapide", "Rogue 32 rouge"),
+            ("Explosion de Pétales (lent)", "ruby_petales_lent", "Wizard 30 rouge"),
+            ("Yeux d'Argent", "ruby_yeux", "Acolyte 25 gris"),
+            ("Rush du Chaperon Rouge", "ruby_ult", "Warrior 3 rouge"),
+        ],
+        "Weiss Schnee": [
+            ("Glyphs (Type 1)", "weiss_glyphs1", "Wizard 17 bleu"),
+            ("Glyphs (Type 2)", "weiss_glyphs2", "Wizard 26 bleu"),
+            ("Glyphs (passif)", "weiss_glyphs_passif", "Wizard 18 bleu"),
+            ("Invocation", "weiss_ult", "Wizard 9 bleu"),
+        ],
+        "Blake Belladonna": [
+            ("Ombre", "blake_ombre", "Rogue 16 violet"),
+            ("Discrétion", "blake_discretion", "Rogue 20 violet"),
+            ("Effacement", "blake_effacement", "Rogue 9 violet"),
+            ("Instinct Animal", "blake_ult", "Rogue 13 violet"),
+        ],
+        "Yang Xiao Long": [
+            ("Brûlure", "yang_brulure", "Wizard 7 or"),
+            ("Incendie Interne", "yang_incendie", "Wizard 21 or"),
+            ("Colère Flamboyante", "yang_colere", "Warrior 25 or"),
+            ("Courroux Impérissable", "yang_ult", "Wizard 12 or"),
+        ],
+        "Duo": [
+            ("Ultime en Duo", "rwby_duo", "Acolyte 4 or"),
         ],
     },
 }
 
 
 # Couleurs absentes des packs, derivees d'une couleur existante : (base, decalage de teinte, saturation, luminosite).
-DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68)}
+DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1, 0.95)}
 
 
 def icon(recipe: str) -> Image.Image:
@@ -97,7 +132,7 @@ def preview(out: Path, licence: str):
     for r, (name, abilities) in enumerate(people.items()):
         y = r * (cell_h + 40) + 10
         draw.text((14, y), name, font=bold, fill=(255, 255, 255, 255))
-        for c, (ability, recipe) in enumerate(abilities):
+        for c, (ability, _, recipe) in enumerate(abilities):
             x = c * cell_w + 10
             im = icon(recipe).resize((32 * zoom, 32 * zoom), Image.NEAREST)
             sheet.alpha_composite(im, (x + (cell_w - 32 * zoom) // 2, y + 38))
@@ -116,8 +151,28 @@ def preview(out: Path, licence: str):
     print(out, sheet.size)
 
 
+def build():
+    import json, shutil
+    assets = ROOT / "resourcepack-prive" / "assets" / "crossfight"
+    folders = [assets / "textures" / "item" / "icone", assets / "models" / "item" / "icone", assets / "items" / "icone"]
+    for f in folders:
+        if f.is_dir(): shutil.rmtree(f)
+        f.mkdir(parents=True)
+    count = 0
+    for licence in VALIDATED:
+        for abilities in RECIPES[licence].values():
+            for _, ident, recipe in abilities:
+                icon(recipe).save(folders[0] / f"{ident}.png")
+                (folders[1] / f"{ident}.json").write_text(json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": f"crossfight:item/icone/{ident}"}}))
+                (folders[2] / f"{ident}.json").write_text(json.dumps({"model": {"type": "minecraft:model", "model": f"crossfight:item/icone/{ident}"}}))
+                count += 1
+    print(f"{count} icones de capacites dans resourcepack-prive/")
+
+
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "--apercu":
         preview(Path(sys.argv[2]), sys.argv[3] if len(sys.argv) > 3 else "Fire Emblem")
+    elif len(sys.argv) == 1:
+        build()
     else:
         print(__doc__)

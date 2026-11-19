@@ -45,6 +45,22 @@ font.quete_recul
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon
+icone.byleth_embleme
+icone.byleth_epine
+icone.byleth_tutorat
+icone.byleth_ult
+icone.corrin_eau
+icone.corrin_gardien
+icone.corrin_sang
+icone.corrin_ult
+icone.marth_charisme
+icone.marth_contre
+icone.marth_leader
+icone.marth_ult
+icone.takumi_contre
+icone.takumi_furie
+icone.takumi_ult
+icone.takumi_vengeance
 model.falchion
 model.yumi_fujin
 music.forge_aegleseeker 147692

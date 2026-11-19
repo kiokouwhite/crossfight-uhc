@@ -98,6 +98,12 @@ public abstract class Ability {
         // Un item de capacite ne ressemble jamais a une arme (sauf s'il en est une, comme un arc a bander).
         ItemStack item = Items.of(vanillaUse() ? icon : Items.safeIcon(icon), "<gold>" + name, lore);
         Items.tag(item, AbilityEngine.ABILITY_KEY, id);
+        // L'icone de la capacite, quand le pack complet en a une (tools/build_icones.py).
+        if (com.kiokouwhite.crossfight.util.Sounds.has("icone." + id)) {
+            var meta = item.getItemMeta();
+            meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/" + id));
+            item.setItemMeta(meta);
+        }
         return Items.unbreakable(item);
     }
 
