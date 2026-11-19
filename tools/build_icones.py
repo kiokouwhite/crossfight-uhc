@@ -32,7 +32,7 @@ RECIPES = {
             ("Les Ténèbres se consumeront elles-mêmes", "Wizard 21 violet"),
         ],
         "Corrin": [
-            ("Dragon Gardien", "Acolyte 23 bleu + Wizard 8 bleu"),
+            ("Dragon Gardien", "Acolyte 14 bleu"),
             ("Sang Draconique", "Wizard 3 cramoisi"),
             ("Dragon de l'eau", "Wizard 8 bleu"),
             ("Les Vagues Bleues de l'Océan Gris", "Wizard 29 bleu"),
