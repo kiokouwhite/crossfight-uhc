@@ -85,6 +85,12 @@ public final class Solo {
             super("solo_burst", "Burst", "Second ultime des solitaires : se charge a 1000 % de degats infliges, compteur conserve entre les morts. L'effet depend du personnage.", AbilityType.ACTIVE, Material.NETHER_STAR);
         }
         @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit : lancer le Burst"); }
+        /** Chaque solitaire a l'icone de son propre Burst (icone/solo_burst_<perso>), sinon l'icone commune. */
+        @Override public org.bukkit.inventory.ItemStack createItem(com.kiokouwhite.crossfight.character.Character owner) {
+            org.bukkit.inventory.ItemStack item = createItem();
+            if (owner != null) iconModel(item, id() + "_" + owner.id());
+            return item;
+        }
         static Burst burstOf(CfPlayer cf) { return cf.character() instanceof Burst b ? b : null; }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
             boolean free = plugin().game().isTest();

@@ -99,12 +99,19 @@ public abstract class Ability {
         ItemStack item = Items.of(vanillaUse() ? icon : Items.safeIcon(icon), "<gold>" + name, lore);
         Items.tag(item, AbilityEngine.ABILITY_KEY, id);
         // L'icone de la capacite, quand le pack complet en a une (tools/build_icones.py).
-        if (com.kiokouwhite.crossfight.util.Sounds.has("icone." + id)) {
-            var meta = item.getItemMeta();
-            meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/" + id));
-            item.setItemMeta(meta);
-        }
+        iconModel(item, id);
         return Items.unbreakable(item);
+    }
+
+    /** L'item de la capacite pour ce personnage : une capacite commune peut y prendre une icone a lui. */
+    public ItemStack createItem(com.kiokouwhite.crossfight.character.Character owner) { return createItem(); }
+
+    /** Pose l'icone "icone/<cle>" du pack complet sur l'item, si le pack l'a. */
+    protected static void iconModel(ItemStack item, String key) {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("icone." + key)) return;
+        var meta = item.getItemMeta();
+        meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/" + key));
+        item.setItemMeta(meta);
     }
 
     /** Lignes de lore supplementaires (temps de chargement, modes...). */

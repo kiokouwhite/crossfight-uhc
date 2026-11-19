@@ -114,7 +114,7 @@ public final class AbilityEngine implements Listener {
         for (Ability a : ch.abilities()) {
             if (!a.hasItem()) continue;
             if (slot == 8) slot = 9; // le slot 8 est reserve a l'ultime
-            inv.setItem(slot++, a.createItem());
+            inv.setItem(slot++, a.createItem(ch));
         }
         if (ch.ultimate() != null) {
             inv.setItem(8, ch.ultimate().createItem());

@@ -278,9 +278,8 @@ RECIPES = {
             ("Insaisissable", "yuki_insaisissable", "Rogue 20 cramoisi"),
             ("Désespérée", "yuki_desesperee", "Wizard 11 cramoisi"),
             ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 cramoisi"),
-        ],
-        "Commun": [
-            ("Burst", "solo_burst", "Acolyte 18 cramoisi"),
+            # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
+            ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 cramoisi"),
         ],
     },
 }
