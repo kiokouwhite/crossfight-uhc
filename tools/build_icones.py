@@ -245,6 +245,32 @@ RECIPES = {
             ("Synergie", "duo_synergie", "Acolyte 4 bleu"),
         ],
     },
+    "Shoja's Memories": {
+        "Hiro": [
+            ("Dash Explosif", "hiro_dash", "Wizard 32 feu"),
+            ("Grenade Enflammée", "hiro_grenade", "Wizard 3 feu"),
+            ("Consumation Ardente", "hiro_consumation", "Acolyte 12 feu"),
+            ("Détonation Imminente", "hiro_ult", "Wizard 30 feu"),
+        ],
+        "Pinkou": [
+            ("Cocon Mortel", "pinkou_cocon", "Wizard 28 rose"),
+            ("Armure de Ronces", "pinkou_ronces", "Acolyte 27 rose"),
+            ("Vigne Incapacitante", "pinkou_vigne", "Wizard 22 rose"),
+            ("Nature Éternelle", "pinkou_ult", "Acolyte 16 rose"),
+        ],
+        "Aida": [
+            ("Bulle d'eau", "aida_bulle", "Acolyte 30 bleu"),
+            ("Clone d'eau", "aida_clone", "Rogue 15 bleu"),
+            ("Éponge Capacitive", "aida_eponge", "Warrior 22 bleu"),
+            ("Pluie bouillante", "aida_ult", "Wizard 19 bleu"),
+        ],
+        "Crystal": [
+            ("Patin à glace", "crystal_patin", "Rogue 3 violet"),
+            ("Crystallization", "crystal_cristal", "Wizard 17 violet"),
+            ("Surcharge de Flux", "crystal_surcharge", "Wizard 31 violet"),
+            ("Œil pour Œil", "crystal_ult", "Rogue 19 violet"),
+        ],
+    },
 }
 
 
