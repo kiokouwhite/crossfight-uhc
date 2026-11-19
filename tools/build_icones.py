@@ -210,7 +210,7 @@ RECIPES = {
             ("Amour du danger", "kaze_ult", "Warrior 12 noir"),
         ],
         "Netsu Lewis": [
-            ("Nuée de Papillons", "netsu_papillons", "Rogue 9 rouge"),
+            ("Nuée de Papillons", "netsu_papillons", "Papillon"),
             ("Ailes Éphémères", "netsu_ailes", "Wizard 1 rouge"),
             ("Jetée Éclatante", "netsu_jetee", "Warrior 15 rouge"),
             ("Vision Trigonométrique", "netsu_ult", "Acolyte 25 rouge"),
@@ -256,6 +256,22 @@ def cube(colour: str) -> Image.Image:
     return im
 
 
+def butterfly() -> Image.Image:
+    """Un papillon rouge vu de face, dessine ici : aucun pack n'en a (Nuee de Papillons de Netsu)."""
+    im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    out, mid, light, body = (70, 10, 25, 255), (200, 30, 45, 255), (255, 110, 110, 255), (40, 20, 30, 255)
+    for wing in ([(15, 15), (5, 4), (2, 8), (4, 15)], [(17, 15), (27, 4), (30, 8), (28, 15)],
+                 [(15, 16), (6, 19), (5, 26), (11, 27)], [(17, 16), (26, 19), (27, 26), (21, 27)]):
+        d.polygon(wing, fill=mid, outline=out)
+    d.polygon([(14, 13), (6, 6), (5, 10), (8, 14)], fill=light)
+    d.polygon([(18, 13), (26, 6), (27, 10), (24, 14)], fill=light)
+    d.rectangle([15, 9, 16, 26], fill=body)
+    d.line([(15, 9), (12, 4)], fill=body)
+    d.line([(16, 9), (19, 4)], fill=body)
+    return im
+
+
 def icon_of(recipe: str, size: int) -> Image.Image:
     if recipe.startswith("Animaux "):      # le pack d'animaux : un seul jeu de couleurs
         return Image.open(PACKS.parents[2] / "Pets_and_Animals" / "Original" / str(size) / f"{recipe.split()[1]}.png").convert("RGBA")
@@ -277,6 +293,8 @@ def icon_of(recipe: str, size: int) -> Image.Image:
                         r, g, bl = colorsys.hsv_to_rgb(hue, sat * 0.55, min(1, v * 1.08))     # adouci, dans les tons des packs
                         px[x, y] = (round(r * 255), round(g * 255), round(bl * 255), al)
         return im
+    if recipe == "Papillon":
+        return butterfly()
     if recipe.startswith("Cube "):
         return cube(recipe.split()[1])
     pack, number, colour = recipe.split()
