@@ -420,7 +420,7 @@ public final class Puppet {
         if (ownItemsHidden && player != null) {
             int now = player.getInventory().getHeldItemSlot();
             if (now != heldSlot) { heldSlot = now; player.updateInventory(); hideOwnItems(player, !hiddenFromOwner()); }
-            else if (age % 4 == 1) hideOwnItems(player);
+            else if (age % 4 == 1) hideOwnItems(player, !hiddenFromOwner());
         }
         Location at = anchor();
         for (ItemDisplay d : parts.values()) d.teleport(at);
