@@ -214,6 +214,20 @@ def main():
     write(im, 88, 110, "son privilège ?", text, NAVY)
     keep(im, OUT.with_name("menu_anna6.png"))
 
+    # 7. La roulette d'Anna (Arcadia) : un grand bandeau, la rangee qui defile sur un cadre clair, deux fleches sur la case du milieu.
+    im = window(mine)
+    im.alpha_composite(wide(sprite("Title banners", "BannerMedium_05A"), 112), (32, 4))
+    write(im, 88, 12, "Roulette", title, (236, 170, 60, 255), BROWN)
+    im.alpha_composite(nine(sprite("Background boxes", "BGbox_01A"), 176 + 12, 40 + 12), (0 - 6, 42 - 6))
+    for col in range(9):
+        im.alpha_composite(slot, (8 + 18 * col, 18 + 18 * 2))              # les cases 18 a 26
+    im.alpha_composite(sprite("Cursors", "Tick01_Down"), (80, 34))         # la case du milieu : 22
+    im.alpha_composite(sprite("Cursors", "Tick01_Up"), (80, 70))
+    im.alpha_composite(sprite("Dividers", "Divider_02"), (64, 86))
+    write(im, 88, 98, "3 à 10 pommes dorées", text, NAVY)
+    write(im, 88, 110, "toutes les 10 minutes", text, BROWN)
+    keep(im, OUT.with_name("menu_anna7.png"))
+
     # la police : celle du pack public, calee pour une image plus grande que le coffre
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -(8 + MARGIN)}},
@@ -223,6 +237,7 @@ def main():
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue003"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue004"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna6.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue005"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna7.png", "height": H + 2 * MARGIN, "ascent": 13 + MARGIN, "chars": ["\ue006"]},
     ]}
     fonts = OUT.parent.parent.parent / "font"
     fonts.mkdir(parents=True, exist_ok=True)

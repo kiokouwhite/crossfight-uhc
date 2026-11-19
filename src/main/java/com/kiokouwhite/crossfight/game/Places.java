@@ -75,7 +75,7 @@ public final class Places implements Listener {
             Map.entry("rythme", new Use("Forge", Material.ANVIL, "on y forge en musique chez Anna : du fer, de l'or et des diamants selon la note")),
             Map.entry("potions", new Use("Potions", Material.BREWING_STAND, "une potion au choix chez Anna, toutes les 10 minutes")),
             Map.entry("marchand", new Use("Marchand", Material.EMERALD, "quatre objets de lootbox contre des diamants, changes toutes les 10 minutes")),
-            Map.entry("nourriture", new Use("Nourriture", Material.COOKED_BEEF, "12 steaks, toutes les 8 minutes")),
+            Map.entry("nourriture", new Use("Roulette", Material.GOLDEN_APPLE, "la roulette d'Anna : 3 a 10 pommes dorees, toutes les 10 minutes")),
             Map.entry("experience", new Use("Experience", Material.EXPERIENCE_BOTTLE, "de l'experience tant qu'on y reste")),
             Map.entry("lootbox", new Use("Lootbox", Material.ENDER_CHEST, "une lootbox garantie a l'evenement")));
 
@@ -366,7 +366,7 @@ public final class Places implements Listener {
             if (use == null) continue;
             String key = w.getName() + "/" + p.name();
             // (les potions n'ont pas de borne : c'est Anna qui tient boutique)
-            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement") && !use.equals("rythme") && !use.equals("marchand");
+            boolean station = !use.equals("experience") && !use.equals("lootbox") && !use.equals("chasse") && !use.equals("potions") && !use.equals("enchantement") && !use.equals("rythme") && !use.equals("marchand") && !use.equals("nourriture");
             if (use.equals("chasse")) hunt(w, p, running);
             boolean near = false;
             for (Player pl : w.getPlayers()) {
@@ -774,6 +774,94 @@ public final class Places implements Listener {
         p.getInventory().setItem(menu.slot, it);
         done(p, Sound.BLOCK_ENCHANTMENT_TABLE_USE, "<light_purple>" + enchantName(ench) + " " + ROMAN[level] + " <gray>(-" + cost + (cost > 1 ? " niveaux)" : " niveau)"));
         openEnchants(p);
+    }
+
+    // ------------------------------------------------------------------ la roulette d'Anna (Arcadia)
+
+    /** Une roulette toutes les dix minutes ; elle donne de 3 a 10 pommes dorees. */
+    private static final long WHEEL_WAIT = 10 * 60 * 1000L;
+    private static final int WHEEL_ROW = 18, WHEEL_CENTRE = 22, WHEEL_STEPS = 30;
+
+    /** La roulette ouverte chez un joueur : une rangee de piles de pommes dorees qui defile, de moins en moins vite, et s'arrete sur son lot. */
+    private final class Wheel implements InventoryHolder {
+        final Inventory inv;
+        final Player player;
+        final int[] strip = new int[WHEEL_STEPS + 9];
+        final int prize;
+        int step;
+        boolean paid;
+
+        Wheel(Player p) {
+            player = p;
+            inv = Bukkit.createInventory(this, 54, dressed(p, '\uE006', "Anna - la roulette"));
+            // l'evenement des lieux : renforce, de 6 a 10 ; affaibli, de 3 a 6
+            int mood = mood("nourriture"), low = mood > 0 ? 6 : 3, high = mood < 0 ? 6 : 10;
+            ThreadLocalRandom r = ThreadLocalRandom.current();
+            for (int i = 0; i < strip.length; i++) strip[i] = r.nextInt(low, high + 1);
+            prize = strip[WHEEL_STEPS + 4];                // ce qui sera au milieu a l'arret
+            draw();
+        }
+
+        void draw() {
+            for (int k = 0; k < 9; k++) {
+                int n = strip[step + k];
+                ItemStack it = named(new ItemStack(Material.GOLDEN_APPLE, n), "<gold>" + n + " pommes dorées");
+                if (k == 4 && step >= WHEEL_STEPS) { ItemMeta meta = it.getItemMeta(); meta.setEnchantmentGlintOverride(true); it.setItemMeta(meta); }
+                inv.setItem(WHEEL_ROW + k, it);
+            }
+        }
+
+        /** Un cran de plus, puis le suivant un peu plus tard (la roue ralentit) ; au dernier, le lot. */
+        void turn() {
+            if (paid) return;
+            if (step >= WHEEL_STEPS) { pay(); return; }
+            step++;
+            draw();
+            if (player.isOnline()) player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 0.5f, 0.9f + 0.03f * step);
+            long delay = step < 16 ? 2 : step < 24 ? 4 : step < 28 ? 7 : 11;
+            Bukkit.getScheduler().runTaskLater(plugin, this::turn, delay);
+        }
+
+        /** Donne le lot (une seule fois : a l'arret de la roue, ou si le joueur ferme avant). */
+        void pay() {
+            if (paid) return;
+            paid = true;
+            step = WHEEL_STEPS;
+            draw();
+            if (!player.isOnline()) return;
+            player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, prize)).values().forEach(i -> player.getWorld().dropItem(player.getLocation(), i));
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.3f);
+            Msg.send(player, "<gold>Roulette d'Anna : <white>" + prize + " pommes dorées<gold> ! <gray>La prochaine dans 10 minutes.");
+        }
+
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Ouvre la roulette d'Anna a ce joueur, s'il n'a pas deja joue dans les dix dernieres minutes. */
+    public void openWheel(Player p) {
+        long now = System.currentTimeMillis();
+        Long last = taken.get(p.getUniqueId() + "/roulette");
+        if (last != null && now - last < WHEEL_WAIT) {
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
+            Msg.send(p, "<yellow>Anna <gray>: <white>La roulette se repose : reviens dans " + Msg.time((int) ((WHEEL_WAIT - (now - last)) / 1000)) + ".");
+            return;
+        }
+        taken.put(p.getUniqueId() + "/roulette", now);
+        String notice = plugin.placeEvents().notice("nourriture");
+        if (notice != null) Msg.send(p, notice);
+        Wheel wheel = new Wheel(p);
+        p.openInventory(wheel.inv);
+        Bukkit.getScheduler().runTaskLater(plugin, wheel::turn, 10L);
+    }
+
+    @EventHandler
+    public void onWheel(InventoryClickEvent e) {
+        if (e.getInventory().getHolder() instanceof Wheel) e.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onWheelClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (e.getInventory().getHolder() instanceof Wheel wheel) wheel.pay();
     }
 
     // ------------------------------------------------------------------ le marchand de Central Town

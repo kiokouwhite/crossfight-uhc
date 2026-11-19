@@ -29,7 +29,7 @@ public final class PlaceEvents {
             "enchantement", new String[]{"enchantements gratuits", "enchantements deux fois plus chers"},
             "forge", new String[]{"réparations gratuites", "réparations deux fois plus chères"},
             "marchand", new String[]{"le marchand vend à moitié prix", "le marchand vend au double"},
-            "nourriture", new String[]{"24 steaks et une pomme dorée", "6 steaks seulement"},
+            "nourriture", new String[]{"la roulette donne de 6 à 10 pommes dorées", "la roulette ne donne que 3 à 6 pommes dorées"},
             "experience", new String[]{"expérience doublée", "expérience divisée par deux"},
             "lootbox", new String[]{"deux lootbox garanties au lieu d'une", "plus de lootbox garantie"},
             "chasse", new String[]{"4 diamants par pièce trouvée", "1 seul diamant par pièce trouvée"});

@@ -55,6 +55,7 @@ LETTERS = {
     "G": [".####", "#....", "#....", "#.###", "#...#", "#...#", ".###."],
     "Y": ["#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."],
     "Q": [".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"],
+    "3": ["####.", "....#", "....#", ".###.", "....#", "....#", "####."],
     " ": ["....."] * 7,
 }
 
@@ -223,6 +224,17 @@ def main():
         slot(d, 8 + 18 * col, 18 + 18 * 2)
     im.save(ROOT / "textures" / "font" / "menu_anna6.png")
 
+    # 7. La roulette d'Anna (Arcadia) : la rangee qui defile (cases 18 a 26), la case du milieu (22) encadree.
+    im, d = card()
+    panel(d, 6, 14, 169, 124, 6)
+    text(im, 88 - width("ROULETTE", 2) // 2, 22, "ROULETTE", 2)
+    d.rectangle([76, 50, 100, 74], fill=GOLD, outline=INK)
+    for col in range(9):
+        slot(d, 8 + 18 * col, 18 + 18 * 2)
+    text(im, 88 - width("3 A 10 POMMES") // 2, 88, "3 A 10 POMMES", 1, green)
+    text(im, 88 - width("1 / 10 MIN") // 2, 102, "1 / 10 MIN", 1, violet)
+    im.save(ROOT / "textures" / "font" / "menu_anna7.png")
+
     font = {"providers": [
         {"type": "space", "advances": {"\ue100": -8}},
         {"type": "bitmap", "file": "crossfight:font/menu_anna.png", "height": H, "ascent": 13, "chars": ["\ue000"]},
@@ -231,6 +243,7 @@ def main():
         {"type": "bitmap", "file": "crossfight:font/menu_anna4.png", "height": H, "ascent": 13, "chars": ["\ue003"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna5.png", "height": H, "ascent": 13, "chars": ["\ue004"]},
         {"type": "bitmap", "file": "crossfight:font/menu_anna6.png", "height": H, "ascent": 13, "chars": ["\ue005"]},
+        {"type": "bitmap", "file": "crossfight:font/menu_anna7.png", "height": H, "ascent": 13, "chars": ["\ue006"]},
     ]}
     (ROOT / "font" / "menu.json").write_text(json.dumps(font, ensure_ascii=True, indent=1), encoding="utf-8")
     print("menu_anna.png, menu_anna2.png, menu_anna3.png, menu_anna4.png", im.size)

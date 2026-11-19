@@ -153,6 +153,11 @@ public final class CfCommand implements TabExecutor {
                         if (sender instanceof Player sp) plugin.quests().tryTablet(sp);
                         return true;
                     }
+                    case "roulette" -> {
+                        // Essayer la roulette d'Anna (Arcadia), sans la quete
+                        if (sender instanceof Player sp) plugin.places().openWheel(sp);
+                        return true;
+                    }
                     case "marchand" -> {
                         // Essayer le marchand de Central Town : /cf marchand (son etalage), /cf marchand nouveau (un nouvel etalage tout de suite)
                         if (args.length > 1 && args[1].equalsIgnoreCase("nouveau")) { plugin.places().restock(); Msg.send(sender, "<gray>Nouvel étalage."); }
