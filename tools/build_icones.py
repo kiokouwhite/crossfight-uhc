@@ -277,7 +277,7 @@ RECIPES = {
             ("Insatiable", "yuki_insatiable", "Acolyte 21 blanc"),
             ("Insaisissable", "yuki_insaisissable", "Objets 3234 blanc [12,8,30,32]"),
             ("Désespérée", "yuki_desesperee", "Warrior 28 blanc"),
-            ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 blanc"),
+            ("Parfaite | Imparfaite", "yuki_ult", "Acolyte 9 blanc / Wizard 10 blanc"),
             # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
             ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 blanc"),
         ],
@@ -311,6 +311,11 @@ def icon(recipe: str) -> Image.Image:
         part = part.resize((round(part.width * k), round(part.height * k)), Image.NEAREST)
         im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
         im.alpha_composite(part, ((32 - part.width) // 2, (32 - part.height) // 2))
+        return im
+    if " / " in recipe:                    # "A / B" : moitie gauche de A, moitie droite de B (Parfaite | Imparfaite)
+        left, right = recipe.split(" / ")
+        im = icon(left)
+        im.paste(icon(right).crop((16, 0, 32, 32)), (16, 0))
         return im
     if " + " in recipe:
         base, mark = recipe.split(" + ")
