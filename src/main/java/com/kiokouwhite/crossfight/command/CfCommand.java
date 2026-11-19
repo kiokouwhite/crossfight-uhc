@@ -706,6 +706,15 @@ public final class CfCommand implements TabExecutor {
                         if (args.length > 1 && args[1].equalsIgnoreCase("liste")) { Msg.send(sender, "<green>" + com.kiokouwhite.crossfight.game.GuideExport.write(plugin)); return true; }
                         Player who = args.length > 2 ? Bukkit.getPlayerExact(args[1]) : null;
                         if (who == null) { Msg.send(sender, "<red>Usage : /cf tournage liste | /cf tournage <joueur> <capacite|frappe>"); return true; }
+                        com.kiokouwhite.crossfight.util.ChoiceMenu.autoPick = true;
+                        if (args[2].equalsIgnoreCase("perso") && args.length > 3) {
+                            Character c = plugin.characters().character(args[3]);
+                            if (c == null) { Msg.send(sender, "<red>Personnage inconnu."); return true; }
+                            who.closeInventory();
+                            plugin.testMode().change(who, c);
+                            Msg.send(sender, "<gray>Tournage : perso " + c.id());
+                            return true;
+                        }
                         Msg.send(sender, "<gray>Tournage : " + plugin.testMode().thirdPerson().castFor(who, args[2]));
                     }
                     case "change" -> {

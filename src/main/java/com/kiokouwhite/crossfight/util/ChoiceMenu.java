@@ -54,7 +54,21 @@ public final class ChoiceMenu implements Listener {
             inv.setItem(start + i * step, Items.of(o.icon(), "<gold><bold>" + o.name(), lore));
         }
         p.openInventory(inv);
+        if (autoPick && !options.isEmpty()) {
+            // Tournage des videos du guide : le menu reste un instant a l'ecran, puis le premier choix est pris.
+            Option first = options.get(0);
+            Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), () -> {
+                if (holder.done) return;
+                holder.done = true;
+                for (Player viewer : new ArrayList<>(Bukkit.getOnlinePlayers()))
+                    if (viewer.getOpenInventory().getTopInventory().getHolder() == holder) viewer.closeInventory();
+                first.action().run();
+            }, 30L);
+        }
     }
+
+    /** Vrai pendant le tournage des videos (/cf tournage) : chaque menu choisit tout seul sa premiere option. */
+    public static boolean autoPick;
 
     public static void open(Player p, String title, List<Option> options) {
         open(p, title, options, null);

@@ -406,10 +406,23 @@ public final class ThirdPerson implements Listener {
         Session s = sessions.get(p.getUniqueId());
         if (s == null) return "pas en troisieme personne";
         if (id.equalsIgnoreCase("frappe")) { face(s, p); strike(s, p); return "frappe"; }
-        if (id.equalsIgnoreCase("reset")) {
+        if (id.equalsIgnoreCase("reset") || id.equalsIgnoreCase("reset-proche")) {
+            p.closeInventory();
+            // Ce que les capacites precedentes ont laisse (eau, glace, verre, toiles...) autour du plateau.
+            org.bukkit.World w = s.home.getWorld();
+            int hx = s.home.getBlockX(), hy = s.home.getBlockY(), hz = s.home.getBlockZ();
+            for (int dx = -24; dx <= 24; dx++) for (int dz = -24; dz <= 24; dz++) for (int dy = 0; dy <= 14; dy++) {
+                org.bukkit.block.Block b = w.getBlockAt(hx + dx, hy + dy, hz + dz);
+                if (!b.getType().isAir() && b.getType() != Material.LIGHT) b.setType(Material.AIR, false);
+            }
             // Entre deux prises : chacun a sa place, la camera soignee et debarrassee de ses effets.
             if (s.body != null && s.body.isValid()) s.body.teleport(s.home);
-            p.teleport(spot(s.home));
+            // Un peu de biais et plus pres que d'habitude : le mannequin remplit mieux l'image.
+            Location cam = id.equalsIgnoreCase("reset") ? s.home.clone().add(1.3, 0, 2.7) : s.home.clone().add(0.9, 0, 1.9);
+            var kb = p.getAttribute(org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE);
+            if (kb != null) kb.setBaseValue(1.0);     // la camera ne recule pas sous les coups
+            cam.setDirection(s.home.clone().add(0, 1.0, 0).toVector().subtract(cam.clone().add(0, 1.62, 0).toVector()));
+            p.teleport(cam);
             for (var e : p.getActivePotionEffects()) p.removePotionEffect(e.getType());
             var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
             p.setHealth(mh == null ? 20 : mh.getValue());

@@ -58,7 +58,7 @@ def main():
         for c in licence["characters"]:
             if only and c["id"] not in only:
                 continue
-            chat("/cf change " + c["id"])
+            console("cf tournage Camera perso " + c["id"])
             time.sleep(4)
             for a in c["abilities"]:
                 if a["id"] in SKIP:
@@ -66,9 +66,10 @@ def main():
                 path = os.path.join(out, c["id"], a["id"] + ".mp4")
                 if os.path.exists(path):
                     continue
-                console("cf tournage Camera reset")
+                close = not (a["item"] and not a["weapon"])
+                console("cf tournage Camera " + ("reset-proche" if close else "reset"))
                 time.sleep(1.0)
-                if a["item"] and not a["weapon"]:
+                if not close:
                     seconds = 9 if a["type"] == "Ultime" else 7
                     record(path, seconds, lambda a=a: console("cf tournage Camera " + a["id"]))
                 else:
