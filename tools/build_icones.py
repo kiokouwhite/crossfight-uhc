@@ -113,7 +113,7 @@ RECIPES = {
     },
     "SNK": {
         "Eren Jaeger": [
-            ("Charge tridimensionnelle", "eren_charge", "Rogue 6 vert"),
+            ("Charge tridimensionnelle", "eren_charge", "Wizard 32 vert"),
             ("Élimination Morale", "eren_morale", "Acolyte 21 vert"),
             ("Titans primordiaux", "eren_titans", "Wizard 10 vert"),
             ("Titan Assaillant", "eren_ult", "Wizard 11 vert"),
