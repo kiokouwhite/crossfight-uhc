@@ -275,7 +275,7 @@ RECIPES = {
         "Yuki": [
             ("Souffrante", "yuki_souffrante", "Rogue 11 blanc-motif"),
             ("Insatiable", "yuki_insatiable", "Acolyte 21 blanc"),
-            ("Insaisissable", "yuki_insaisissable", "Rogue 20 blanc"),
+            ("Insaisissable", "yuki_insaisissable", "Objets 3234 blanc [12,8,30,32]"),
             ("Désespérée", "yuki_desesperee", "Wizard 11 blanc"),
             ("Parfaite | Imparfaite", "yuki_ult", "Rogue 13 blanc"),
             # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
@@ -304,6 +304,14 @@ DERIVED = {"bleu-fonce": ("bleu", 0.03, 1.2, 0.68), "rouge": ("feu", -0.05, 1.1,
 
 def icon(recipe: str) -> Image.Image:
     """Une recette, ou une fusion "fond + motif" : le motif, pris en 16 pixels, est pose au centre du fond."""
+    if recipe.endswith("]"):               # "Objets 3234 blanc [12,8,30,32]" : recadre puis agrandit pour remplir la case
+        recipe, box = recipe[:-1].split(" [")
+        part = icon(recipe).crop(tuple(int(v) for v in box.split(",")))
+        k = min(32 / part.width, 32 / part.height)
+        part = part.resize((round(part.width * k), round(part.height * k)), Image.NEAREST)
+        im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
+        im.alpha_composite(part, ((32 - part.width) // 2, (32 - part.height) // 2))
+        return im
     if " + " in recipe:
         base, mark = recipe.split(" + ")
         im = icon(base)
