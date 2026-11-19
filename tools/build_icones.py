@@ -279,7 +279,7 @@ RECIPES = {
             ("Désespérée", "yuki_desesperee", "Warrior 28 blanc"),
             ("Parfaite | Imparfaite", "yuki_ult", "Acolyte 9 blanc / Wizard 10 blanc"),
             # Chaque solitaire a son Burst a lui : icone solo_burst_<perso> (Solo.BurstItem).
-            ("Burst : Monstre", "solo_burst_yuki", "Wizard 8 blanc"),
+            ("Burst : Monstre", "solo_burst_yuki", "Acolyte 18 blanc"),
         ],
     },
 }
