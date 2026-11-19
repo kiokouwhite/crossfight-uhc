@@ -214,7 +214,7 @@ restrictions:
   max-protection-diamond: 2
   max-protection-iron: 3
 
-# Bonus et malus sur les bords de l'ecran (bande et icones, comme dans un jeu de tir) et un son quand on en recoit un.
+# Un son quand on recoit un bonus ou un malus.
 hud:
   effets: true
   # L'orbe de l'ultime, en bas a droite de l'ecran (avec le pack d'interface) : il se remplit avec la charge.

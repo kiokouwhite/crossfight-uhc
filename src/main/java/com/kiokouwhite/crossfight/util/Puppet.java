@@ -545,10 +545,10 @@ public final class Puppet {
      */
     private static boolean hideOwnItems(Player p) {
         var inv = p.getInventory();
-        // Les images de bonus/malus (objets invisibles du casque et des jambieres) restent : elles ne se dessinent pas sur le corps.
+        // L'orbe de l'ultime (objet invisible de la case des bottes) reste : il ne se dessine pas sur le corps.
         var hud = CrossfightPlugin.get().effectHud();
         int[] slots = {5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45};
-        ItemStack[] items = {hud == null ? null : hud.shownIn(p, 5), null, hud == null ? null : hud.shownIn(p, 7), null,
+        ItemStack[] items = {null, null, null, hud == null ? null : hud.shownIn(p, 8),
                 inv.getItemInMainHand().getType().isAir() ? null : invisibleItem(),
                 inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()};
         boolean ok = ClientSlots.show(p, slots, items);

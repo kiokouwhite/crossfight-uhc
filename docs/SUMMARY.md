@@ -24,7 +24,7 @@
   * [Logo du tableau](architecture/logo-du-tableau.md)
   * [Skins des personnages](architecture/skins-des-personnages.md)
   * [Armure invisible](architecture/armure-invisible.md)
-  * [Bonus et malus à l'écran](architecture/bonus-et-malus-a-l-ecran.md)
+  * [Sons d'effets et orbe de l'ultime](architecture/sons-d-effets-et-orbe-de-l-ultime.md)
   * [Animations (modèle articulé)](architecture/animations-modele-articule.md)
   * [Écran de sélection en 3D](architecture/ecran-de-selection-en-3d.md)
   * [Items de capacité](architecture/items-de-capacite.md)

@@ -1,0 +1,7 @@
+# Sons d'effets et orbe de l'ultime
+
+Un son prévient le joueur quand il reçoit un nouveau bonus (vitesse, force, résistance, régénération, invisibilité, absorption, saut) ou un nouveau malus (lenteur, faiblesse, poison, cécité, wither, feu, entrave), au plus une fois toutes les 2 secondes par effet ; `hud.effets: false` dans `config.yml` le coupe. Les icônes qui montaient sur les bords de l'écran ont été retirées.
+
+Minecraft dessine en plein écran l'image `camera_overlay` d'un objet porté (comme la vue à travers une citrouille) : c'est la technique de l'orbe de l'ultime (`hud/EffectHud.java`, `util/ClientSlots.java`). Rien en mode créatif ou spectateur.
+
+**L'orbe de l'ultime.** Avec le pack d'interface, un orbe au dragon (un cadre du pack) se tient en bas à droite de l'écran : il se remplit d'or avec la charge de l'ultime, par vingtièmes, et brille quand l'ultime est prêt. Une image de plein écran, vide sauf son coin, portée par un objet invisible que le joueur seul voit dans sa case de bottes (ses vraies bottes ne bougent pas). Images : `python3 tools/build_ultime_franuka.py` (`--apercu image.png`), dans `overlay_ult/` du pack complet. `hud.ultime: false` le coupe ; quand l'orbe est à l'écran, la charge n'est plus écrite ni au tableau de bord ni dans la barre des capacités ; sans le pack, pas d'orbe, et ces deux mentions restent.

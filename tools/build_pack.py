@@ -159,12 +159,9 @@ def fonts(base: Path):
 
 
 def overlays(base: Path):
-    """Les icones d'effets de Minecraft pour les bords de l'ecran (tools/build_overlays.py --minecraft)."""
-    folder = base / "assets" / NS / "textures" / "overlay_mc"
-    names = {"overlay.minecraft"} if folder.is_dir() and any(folder.glob("*.png")) else set()
-    # l'orbe de l'ultime (tools/build_ultime_franuka.py)
+    """L'orbe de l'ultime (tools/build_ultime_franuka.py)."""
     orb = base / "assets" / NS / "textures" / "overlay_ult"
-    return names | ({"overlay.ultime"} if orb.is_dir() and any(orb.glob("*.png")) else set())
+    return {"overlay.ultime"} if orb.is_dir() and any(orb.glob("*.png")) else set()
 
 
 def other_assets(base: Path):

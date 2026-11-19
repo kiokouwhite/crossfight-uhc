@@ -32,22 +32,17 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Les bonus et malus d'un joueur, sur les bords de son ecran (comme dans un jeu de tir) : a gauche la bande
- * et les icones de ses bonus, a droite celles de ses malus (deux au plus de chaque cote), et un son quand il
- * en recoit un nouveau. Les icones montent en file le long du bord et s'effacent en haut : chaque image de
- * plein ecran est une etape de la boucle, que le plugin fait defiler.
+ * Ce que le joueur voit en plus sur son ecran : un son quand il recoit un nouveau bonus ou malus
+ * (hud.effets: false le coupe), et l'orbe de son ultime en bas a droite.
  *
- * L'image est le "camera_overlay" d'un objet porte, que le jeu dessine en plein ecran (comme la vue a travers
- * une citrouille). Le joueur, et lui seul, voit un objet invisible dans sa case de casque (les bonus) et de
- * jambieres (les malus) : sa vraie armure ne bouge pas et protege toujours. Images : tools/build_overlays.py.
- * Rien en mode creatif ou spectateur (le client y ecrit lui-meme son inventaire). hud.effets: false coupe tout.
+ * L'orbe est le "camera_overlay" d'un objet porte, que le jeu dessine en plein ecran (comme la vue a travers
+ * une citrouille). Le joueur, et lui seul, voit un objet invisible dans sa case de bottes : ses vraies bottes
+ * ne bougent pas et protegent toujours. Rien en mode creatif ou spectateur (le client y ecrit lui-meme son
+ * inventaire).
  */
 public final class EffectHud implements Listener {
 
-    /** Les familles d'effets, dans l'ordre d'affichage (le meme que tools/build_overlays.py). */
-    static final List<String> BONUS = List.of("vitesse", "force", "resistance", "regeneration", "invisibilite", "absorption", "saut");
-    static final List<String> MALUS = List.of("lenteur", "faiblesse", "poison", "cecite", "wither", "feu", "entrave");
-    static final int HEAD = 5, LEGS = 7, FEET = 8;
+    static final int FEET = 8;
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, State> states = new HashMap<>();
@@ -55,7 +50,7 @@ public final class EffectHud implements Listener {
 
     private static final class State {
         Set<String> bonus = Set.of(), malus = Set.of();
-        String bonusImage, malusImage, ultImage;
+        String ultImage;
         boolean shown;
         final Map<String, Long> lastSound = new HashMap<>();
     }
@@ -94,53 +89,24 @@ public final class EffectHud implements Listener {
             }
             st.bonus = bonus;
             st.malus = malus;
-            String bi = image("bonus", BONUS, bonus), mi = image("malus", MALUS, malus);
-            st.bonusImage = bi;
-            st.malusImage = mi;
             st.ultImage = active ? ultimate(p) : null;
-            if (bi == null && mi == null && st.ultImage == null) {
+            if (st.ultImage == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
-            // Les icones montent le long du bord : une image de la boucle a chaque tick (ce qui renvoie aussi
-            // l'objet regulierement : un clic dans l'inventaire ou une mise a jour du serveur l'efface).
+            // Renvoye a chaque tick : un clic dans l'inventaire ou une mise a jour du serveur efface l'objet.
             send(p, st);
         }
     }
 
     private void send(Player p, State st) {
-        st.shown = ClientSlots.show(p, new int[]{HEAD, LEGS, FEET}, new ItemStack[]{
-                st.bonusImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, folder() + st.bonusImage + "_" + frame()),
-                st.malusImage == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, folder() + st.malusImage + "_" + frame()),
-                st.ultImage == null ? p.getInventory().getBoots() : overlayItem(EquipmentSlot.FEET, st.ultImage)});
+        st.shown = ClientSlots.show(p, new int[]{FEET}, new ItemStack[]{overlayItem(EquipmentSlot.FEET, st.ultImage)});
     }
 
-    /**
-     * Ce que le joueur doit voir dans sa case de casque (5) ou de jambieres (7) : l'objet de l'image de ses
-     * bonus ou malus, ou null s'il n'en a pas (sa vraie piece). Pour les animations qui masquent l'armure.
-     */
+    /** Ce que le joueur doit voir dans sa case de bottes (8) : l'orbe de l'ultime, ou null (ses vraies bottes). */
     public ItemStack shownIn(Player p, int slot) {
         State st = states.get(p.getUniqueId());
-        if (st == null) return null;
-        if (slot == HEAD && st.bonusImage != null) return overlayItem(EquipmentSlot.HEAD, folder() + st.bonusImage + "_" + frame());
-        if (slot == LEGS && st.malusImage != null) return overlayItem(EquipmentSlot.LEGS, folder() + st.malusImage + "_" + frame());
-        if (slot == FEET && st.ultImage != null) return overlayItem(EquipmentSlot.FEET, st.ultImage);
-        return null;
-    }
-
-    /** Le nom de l'image : "bonus_vitesse", "bonus_vitesse_force"... (les deux premiers dans l'ordre), ou null. */
-    static String image(String kind, List<String> order, Set<String> present) {
-        List<String> shown = new ArrayList<>();
-        for (String k : order) if (present.contains(k) && shown.size() < 2) shown.add(k);
-        return shown.isEmpty() ? null : kind + "_" + String.join("_", shown);
-    }
-
-    /**
-     * Le dossier des images : celles aux vraies icones de Minecraft quand le pack complet les contient (un
-     * dossier a part : le pack public envoye par le serveur ne les recouvre pas), sinon les dessins du pack public.
-     */
-    private static String folder() {
-        return com.kiokouwhite.crossfight.util.Sounds.has("overlay.minecraft") ? "overlay_mc/" : "overlay/";
+        return st != null && slot == FEET && st.ultImage != null ? overlayItem(EquipmentSlot.FEET, st.ultImage) : null;
     }
 
     /**
@@ -160,12 +126,6 @@ public final class EffectHud implements Listener {
     public boolean showsUltimate(Player p) {
         return plugin.getConfig().getBoolean("hud.ultime", true) && com.kiokouwhite.crossfight.util.Sounds.has("overlay.ultime") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
     }
-
-    /** Images par boucle (tools/build_overlays.py : FRAMES). */
-    static final int FRAMES = 16;
-
-    /** L'image de la boucle a montrer maintenant. */
-    private int frame() { return tick % FRAMES; }
 
     private final Map<String, ItemStack> items = new HashMap<>();
 
