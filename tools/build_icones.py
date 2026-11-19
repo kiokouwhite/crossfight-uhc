@@ -207,7 +207,7 @@ RECIPES = {
             ("Power Hit", "kaze_powerhit", "Warrior 12 noir"),
             ("Prise en traître", "kaze_prise", "Rogue 6 noir"),
             ("Goût du risque", "kaze_risque", "Rogue 10 noir"),
-            ("Amour du danger", "kaze_ult", "Warrior 5 noir"),
+            ("Amour du danger", "kaze_ult", "Warrior 12 noir"),
         ],
         "Netsu Lewis": [
             ("Nuée de Papillons", "netsu_papillons", "Rogue 9 rouge"),
