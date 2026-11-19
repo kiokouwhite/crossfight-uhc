@@ -134,7 +134,7 @@ RECIPES = {
             ("Charge Destructrice", "livai_charge", "Warrior 29 acier"),
             ("Assaut Impétueux", "livai_assaut", "Warrior 3 acier"),
             ("Mes camarades tombés au combat", "livai_camarades", "Acolyte 17 gris"),
-            ("Pro de l'équipement tridimensionnel", "livai_ult", "Warrior 7 acier"),
+            ("Pro de l'équipement tridimensionnel", "livai_ult", "Acolyte 24 gris"),
         ],
     },
 }
