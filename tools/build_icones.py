@@ -230,10 +230,10 @@ RECIPES = {
             ("Twin Shredder", "acura_ult", "Warrior 4 gris"),
         ],
         "Asimov": [
-            ("Septimal Dash", "asimov_dash", "Wizard 1 cramoisi"),
-            ("Electric Shotgun", "asimov_shotgun", "Rogue 29 cramoisi"),
-            ("Kunai Tourelle", "asimov_turret", "Rogue 23 cramoisi"),
-            ("Voltaic Chain", "asimov_ult", "Wizard 13 cramoisi"),
+            ("Septimal Dash", "asimov_dash", "Wizard 1 bleu"),
+            ("Electric Shotgun", "asimov_shotgun", "Rogue 29 bleu"),
+            ("Kunai Tourelle", "asimov_turret", "Rogue 23 bleu"),
+            ("Voltaic Chain", "asimov_ult", "Wizard 13 bleu"),
         ],
         "Kirin": [
             ("Jet de Talisman", "kirin_talisman", "Wizard 16 rouge"),
