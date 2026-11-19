@@ -131,7 +131,7 @@ RECIPES = {
             ("Je le sauverai", "mikasa_ult", "Acolyte 1 rouge"),
         ],
         "Livai Ackerman": [
-            ("Charge Destructrice", "livai_charge", "Warrior 16 acier"),
+            ("Charge Destructrice", "livai_charge", "Warrior 29 acier"),
             ("Assaut Impétueux", "livai_assaut", "Warrior 3 acier"),
             ("Mes camarades tombés au combat", "livai_camarades", "Acolyte 17 gris"),
             ("Pro de l'équipement tridimensionnel", "livai_ult", "Warrior 7 acier"),
