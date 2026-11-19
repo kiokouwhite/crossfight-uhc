@@ -30,6 +30,7 @@ W, H = 960, 540
 MARGIN = 8
 CELL = 40                         # la case de l'icone (32 x 32 au milieu)
 TEXT_W = 250                      # largeur du texte a cote des icones
+BADGE = 22                        # la fleche verte / la croix rouge d'activation
 FONT = SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"
 GOLD, WHITE, SHADOW = (255, 214, 120, 255), (245, 240, 230, 255), (30, 20, 25, 255)
 
@@ -112,8 +113,10 @@ def render(character, mask, text, rec, font):
             d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(255, 236, 160, 120))
         # La fleche du pack d'icones, en bas a droite de la case : verte vers le haut quand le passif agit,
         # une croix rouge quand il est au repos.
-        arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 16)
-        im.alpha_composite(arrow, (MARGIN + CELL - 17, y + CELL - 17))
+        # Version 32 x 32 (plus detaillee), rognee puis ramenee a 22 px : elle deborde un peu de la case.
+        arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 32)
+        arrow = arrow.crop(arrow.getbbox()).resize((BADGE, BADGE), Image.NEAREST)
+        im.alpha_composite(arrow, (MARGIN + CELL - BADGE + 3, y + CELL - BADGE))
         if text:
             tx = MARGIN + CELL + 6
             d.text((tx, y + 2), a["name"], font=font, fill=GOLD if lit else (215, 195, 150, 255))
