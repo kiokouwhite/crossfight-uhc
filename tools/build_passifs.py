@@ -111,8 +111,8 @@ def render(character, mask, text, rec, font):
         if lit:
             d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(255, 236, 160, 120))
         # La fleche du pack d'icones, en bas a droite de la case : verte vers le haut quand le passif agit,
-        # rouge vers le bas quand il est au repos.
-        arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 3268", 16)
+        # une croix rouge quand il est au repos.
+        arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 16)
         im.alpha_composite(arrow, (MARGIN + CELL - 17, y + CELL - 17))
         if text:
             tx = MARGIN + CELL + 6
