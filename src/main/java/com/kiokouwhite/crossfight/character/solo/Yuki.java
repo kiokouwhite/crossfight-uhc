@@ -116,11 +116,11 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
         @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "yuki_souffrante"); Boosts.remove(p, "yuki_snow"); }
     }
 
-    /** Le coup fatal la laisse a un demi-coeur pendant 15 secondes, sans regeneration. */
-    static final class Insatiable extends ActiveAbility {
-        Insatiable() { super("yuki_insatiable", "Insatiable", "Quand Yuki devrait mourir, elle reste a un demi-coeur pendant 15 secondes, sans pouvoir regenerer.", Material.TOTEM_OF_UNDYING, 300); }
-        @Override protected List<String> extraLore() { return List.of("<gray>Passif", "<yellow>Temps de chargement : <white>5 minutes"); }
-        @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) { Msg.actionBar(p, "<gray>Insatiable est un passif."); return false; }
+    /** Passif : le coup fatal la laisse a un demi-coeur pendant 15 secondes, sans regeneration (une fois toutes les 5 minutes). */
+    static final class Insatiable extends PassiveAbility {
+        static final int COOLDOWN = 300;
+        Insatiable() { super("yuki_insatiable", "Insatiable", "Quand Yuki devrait mourir, elle reste a un demi-coeur pendant 15 secondes, sans pouvoir regenerer. Une fois toutes les 5 minutes.", Material.TOTEM_OF_UNDYING); }
+        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { active(p, System.currentTimeMillis() < st.get("until", 0L)); }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
             if (System.currentTimeMillis() < st.get("until", 0L)) return "<red><bold>INSATIABLE</bold> <white>" + ((st.get("until", 0L) - System.currentTimeMillis()) / 1000 + 1) + "s";
             return st.onCooldown() ? "<gray>Insatiable <red>" + st.cooldownLeftSeconds() + "s" : "<green>Insatiable ✔";
@@ -134,7 +134,7 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
             victim.setHealth(1.0);
             st.set("until", System.currentTimeMillis() + 15000L);
             com.kiokouwhite.crossfight.util.Sounds.ability(victim, "yuki_insatiable");
-            st.startCooldown((int) Math.ceil(cooldownSeconds() * Solo.plugin().players().get(victim).cooldownFactor()));
+            st.startCooldown((int) Math.ceil(COOLDOWN * Solo.plugin().players().get(victim).cooldownFactor()));
             victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1, 0), 60, 0.5, 0.8, 0.5, 0.1);
             victim.getWorld().playSound(victim.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 1.5f);
             Msg.send(victim, "<red><bold>Insatiable :</bold> <white>tu tiens a un demi-coeur pendant 15 secondes !");

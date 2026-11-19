@@ -18,9 +18,7 @@ Temps de chargement : 15 secondes
 
 ### Insatiable
 
-(Actif) Quand Yuki devrait mourir, elle reste a un demi-cœur pendant 15 secondes, sans pouvoir régénérer.
-
-Temps de chargement : 5 minutes
+(Passif) Quand Yuki devrait mourir, elle reste a un demi-cœur pendant 15 secondes, sans pouvoir régénérer. Une fois toutes les 5 minutes.
 
 ### Insaisissable
 
