@@ -26,7 +26,7 @@ COLOURS = {
 }
 
 # Les licences dont la planche est validee : seules leurs icones vont dans le pack.
-VALIDATED = ["Fire Emblem", "RWBY"]
+VALIDATED = ["Fire Emblem", "RWBY", "Valorant"]
 
 # licence -> personnage -> [(capacite, identifiant dans le plugin, recette)]
 RECIPES = {
@@ -111,6 +111,33 @@ RECIPES = {
             ("Fureur du Chasseur", "sova_ult", "Wizard 19 bleu-fonce"),
         ],
     },
+    "SNK": {
+        "Eren Jaeger": [
+            ("Charge tridimensionnelle", "eren_charge", "Rogue 6 vert"),
+            ("Élimination Morale", "eren_morale", "Acolyte 21 vert"),
+            ("Titans primordiaux", "eren_titans", "Wizard 10 vert"),
+            ("Titan Assaillant", "eren_ult", "Wizard 11 vert"),
+        ],
+        "Armin Arlert": [
+            ("Regroupement Militaire", "armin_regroupement", "Warrior 30 or"),
+            ("Stratégie", "armin_strategie", "Wizard 23 or"),
+            ("Annulation Tactique", "armin_annulation", "Rogue 12 or"),
+            ("Abnégation", "armin_ult", "Wizard 12 or"),
+        ],
+        "Mikasa Ackerman": [
+            ("Assommage", "mikasa_assommage", "Warrior 5 rouge"),
+            ("Sus à la Cible", "mikasa_cible", "Wizard 26 rouge"),
+            ("Loyauté Ackermann", "mikasa_loyaute", "Acolyte 3 rouge"),
+            ("Je le sauverai", "mikasa_ult", "Acolyte 1 rouge"),
+        ],
+        "Livai Ackerman": [
+            ("Toupie", "livai_toupie", "Warrior 4 acier"),
+            ("Charge Destructrice", "livai_charge", "Warrior 16 acier"),
+            ("Assaut Impétueux", "livai_assaut", "Warrior 3 acier"),
+            ("Mes camarades tombés au combat", "livai_camarades", "Acolyte 17 gris"),
+            ("Pro de l'équipement tridimensionnel", "livai_ult", "Warrior 7 acier"),
+        ],
+    },
 }
 
 
@@ -133,7 +160,7 @@ def icon(recipe: str) -> Image.Image:
 def cube(colour: str) -> Image.Image:
     """Un cube vu de trois quarts, dessine ici (aucun pack n'en a), dans les tons d'une couleur des packs."""
     ref = icon_of(f"Acolyte 3 {colour}", 32)
-    tones = sorted({p[:3] for p in ref.getdata() if p[3] > 200}, key=lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2])
+    tones = sorted({p[:3] for p in ref.get_flattened_data() if p[3] > 200}, key=lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2])
     pick = lambda t: tones[min(len(tones) - 1, round(t * (len(tones) - 1)))] + (255,)
     im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
