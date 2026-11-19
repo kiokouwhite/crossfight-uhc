@@ -267,7 +267,7 @@ RECIPES = {
         "Crystal": [
             ("Patin à glace", "crystal_patin", "Rogue 3 violet"),
             ("Crystallization", "crystal_cristal", "Objets 2860 violet"),
-            ("Surcharge de Flux", "crystal_surcharge", "Wizard 31 violet"),
+            ("Surcharge de Flux", "crystal_surcharge", "Objets 3751 violet"),
             ("Œil pour Œil", "crystal_ult", "Rogue 19 violet"),
         ],
     },
