@@ -42,7 +42,7 @@ import java.util.UUID;
  */
 public final class EffectHud implements Listener {
 
-    static final int FEET = 8;
+    static final int HEAD = 5, FEET = 8;
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, State> states = new HashMap<>();
@@ -50,7 +50,7 @@ public final class EffectHud implements Listener {
 
     private static final class State {
         Set<String> bonus = Set.of(), malus = Set.of();
-        String ultImage;
+        String ultImage, passiveImage;
         boolean shown;
         final Map<String, Long> lastSound = new HashMap<>();
     }
@@ -90,7 +90,8 @@ public final class EffectHud implements Listener {
             st.bonus = bonus;
             st.malus = malus;
             st.ultImage = active ? ultimate(p) : null;
-            if (st.ultImage == null) {
+            st.passiveImage = active && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p) ? PassiveHud.image(p) : null;
+            if (st.ultImage == null && st.passiveImage == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
@@ -100,13 +101,18 @@ public final class EffectHud implements Listener {
     }
 
     private void send(Player p, State st) {
-        st.shown = ClientSlots.show(p, new int[]{FEET}, new ItemStack[]{overlayItem(EquipmentSlot.FEET, st.ultImage)});
+        st.shown = ClientSlots.show(p, new int[]{HEAD, FEET}, new ItemStack[]{
+                st.passiveImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.passiveImage),
+                st.ultImage == null ? p.getInventory().getBoots() : overlayItem(EquipmentSlot.FEET, st.ultImage)});
     }
 
-    /** Ce que le joueur doit voir dans sa case de bottes (8) : l'orbe de l'ultime, ou null (ses vraies bottes). */
+    /** Ce que le joueur doit voir dans sa case de casque (5 : ses passifs) ou de bottes (8 : l'orbe de l'ultime), ou null (sa vraie piece). */
     public ItemStack shownIn(Player p, int slot) {
         State st = states.get(p.getUniqueId());
-        return st != null && slot == FEET && st.ultImage != null ? overlayItem(EquipmentSlot.FEET, st.ultImage) : null;
+        if (st == null) return null;
+        if (slot == FEET && st.ultImage != null) return overlayItem(EquipmentSlot.FEET, st.ultImage);
+        if (slot == HEAD && st.passiveImage != null) return overlayItem(EquipmentSlot.HEAD, st.passiveImage);
+        return null;
     }
 
     /**
@@ -175,5 +181,6 @@ public final class EffectHud implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         states.remove(e.getPlayer().getUniqueId());
+        PassiveHud.forget(e.getPlayer());
     }
 }

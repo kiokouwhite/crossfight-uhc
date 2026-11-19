@@ -148,6 +148,7 @@ public final class Mikasa extends Character {
         }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             boolean low = erenLow(p);
+            active(p, low);
             SNK.boostIf(p, "mikasa_loyaute", low, new Boosts.Boost(1, 1, 1, 0));
             if (low && !st.get("warned", false)) { st.set("warned", true); Msg.actionBar(p, "<red>Eren est en danger ! Loyaute Ackermann active."); }
             if (!low) st.set("warned", false);

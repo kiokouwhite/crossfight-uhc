@@ -192,6 +192,7 @@ public final class Gunvolt extends Character implements Listener {
             st.set("dodges", d);
             if (d <= 0) st.set("backAt", System.currentTimeMillis() + 30000L);
             e.setCancelled(true);
+            signal(victim);
             World w = victim.getWorld();
             Location from = victim.getLocation();
             // La telesquive : un court deplacement de cote dans un eclair.

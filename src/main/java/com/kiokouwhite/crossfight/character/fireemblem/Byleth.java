@@ -271,6 +271,7 @@ public final class Byleth extends Character implements Listener {
         public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             double dmg = e.getFinalDamage();
             if (dmg <= 0) return;
+            signal(attacker);
             Bukkit.getScheduler().runTask(plugin(), () -> {
                 Effects.heal(attacker, dmg * 0.25);
                 for (var ally : Effects.alliesWithin(attacker, 10)) Effects.heal(ally, dmg * 0.10);

@@ -59,7 +59,7 @@ public final class GuideExport {
                     out.append("\n  {\"id\":").append(q(a.id())).append(",\"name\":").append(q(a.name()))
                        .append(",\"type\":").append(q(a.type().label())).append(",\"description\":").append(q(a.description()))
                        .append(",\"cooldown\":").append(cd).append(",\"weapon\":").append(a.isWeaponBound())
-                       .append(",\"item\":").append(a.hasItem()).append('}');
+                       .append(",\"item\":").append(a.hasItem()).append(",\"icon\":").append(q(a.icon().getKey().getKey())).append('}');
                 }
                 out.append("]}");
             }

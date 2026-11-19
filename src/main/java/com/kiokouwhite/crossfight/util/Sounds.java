@@ -105,6 +105,8 @@ public final class Sounds {
     /** Une capacite vient de reussir : son bruitage et sa replique. */
     public static void ability(Player p, String abilityId) {
         playOn(p, "ability." + abilityId, SoundCategory.PLAYERS, 1f);
+        // Le son d'un passif marque son declenchement : son icone s'allume en haut a gauche.
+        com.kiokouwhite.crossfight.hud.PassiveHud.flash(p, abilityId);
         voice(p, abilityId);
     }
 

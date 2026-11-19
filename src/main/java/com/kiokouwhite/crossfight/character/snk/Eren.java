@@ -246,7 +246,7 @@ public final class Eren extends Character implements Listener {
         @Override public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (!(victim instanceof Player v)) return;
             int kills = SNK.plugin().players().get(v).kills();
-            if (kills > 0) e.setDamage(e.getDamage() + 0.6 * kills);
+            if (kills > 0) { e.setDamage(e.getDamage() + 0.6 * kills); signal(attacker); }
         }
     }
 

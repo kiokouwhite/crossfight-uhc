@@ -103,6 +103,7 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
         Souffrante() { super("yuki_souffrante", "Souffrante", "Selon sa vie : moins de 7.5 coeurs, Vitesse ; moins de 5, Vitesse et Force ; moins de 3, Vitesse, Force et Resistance.", Material.SNOWBALL); }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             double hp = p.getHealth();
+            active(p, hp < 15);
             Boosts.Boost b = hp < 6 ? new Boosts.Boost(1, 1, 1, 0) : hp < 10 ? new Boosts.Boost(1, 1, 0, 0) : hp < 15 ? new Boosts.Boost(0, 1, 0, 0) : null;
             Boosts.Boost cur = Boosts.get(p, "yuki_souffrante");
             if (b == null) { if (cur != null) Boosts.remove(p, "yuki_souffrante"); }

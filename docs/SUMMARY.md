@@ -26,6 +26,7 @@
   * [Armure invisible](architecture/armure-invisible.md)
   * [Guide du joueur et vidéos des capacités](architecture/guide-du-joueur-et-videos-des-capacites.md)
   * [Icônes des capacités](architecture/icones-des-capacites.md)
+  * [Passifs en haut à gauche de l'écran](architecture/passifs-en-haut-a-gauche-de-l-ecran.md)
   * [Sons d'effets et orbe de l'ultime](architecture/sons-d-effets-et-orbe-de-l-ultime.md)
   * [Animations (modèle articulé)](architecture/animations-modele-articule.md)
   * [Écran de sélection en 3D](architecture/ecran-de-selection-en-3d.md)

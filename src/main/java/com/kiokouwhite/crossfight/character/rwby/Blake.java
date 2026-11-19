@@ -580,6 +580,7 @@ public final class Blake extends Character implements Listener {
 
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
+            active(p, Effects.enemiesWithin(p, 20).isEmpty());
             Stealth.hideFromAll(p, "blake_effacement", v -> Effects.isEnemy(p, v)
                     && (!v.getWorld().equals(p.getWorld()) || v.getLocation().distanceSquared(p.getLocation()) > 400));
         }

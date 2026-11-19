@@ -165,9 +165,14 @@ def fonts(base: Path):
 
 
 def overlays(base: Path):
-    """L'orbe de l'ultime (tools/build_ultime_franuka.py)."""
+    """L'orbe de l'ultime (tools/build_ultime_franuka.py) et les passifs (tools/build_passifs.py)."""
     orb = base / "assets" / NS / "textures" / "overlay_ult"
-    return {"overlay.ultime"} if orb.is_dir() and any(orb.glob("*.png")) else set()
+    names = {"overlay.ultime"} if orb.is_dir() and any(orb.glob("*.png")) else set()
+    # Les passifs en haut a gauche (tools/build_passifs.py) : "passif.<perso>".
+    passifs = base / "assets" / NS / "textures" / "passif"
+    if passifs.is_dir():
+        names |= {"passif." + f.stem[:-len("_0_0")] for f in passifs.glob("*_0_0.png")}
+    return names
 
 
 def other_assets(base: Path):

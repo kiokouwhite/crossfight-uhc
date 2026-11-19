@@ -201,6 +201,7 @@ public final class Kura extends Character {
         @Override public boolean showInBar(Player p, CfPlayer cf, AbilityState st) { return unlocked(p, 6); }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             refreshKnife(p);
+            active(p, unlocked(p, 6));
             if (!unlocked(p, 6)) { if (Boosts.get(p, "kura_reine") != null) Boosts.remove(p, "kura_reine"); return; }
             boolean alone = Effects.nearestEnemy(p, 10) == null;
             Boosts.Boost b = Boosts.get(p, "kura_reine");
@@ -241,6 +242,7 @@ public final class Kura extends Character {
         @Override public void onKill(Player killer, Player victim, AbilityState st) {
             if (!victim.getName().equals(st.get("bounty", null))) return;
             st.remove("bounty");
+            signal(killer);
             int force = Math.min(4, st.get("force", 0) + 1);
             st.set("force", force);
             Boosts.set(killer, "kura_prime", new Boosts.Boost(force, 0, 0, 0));

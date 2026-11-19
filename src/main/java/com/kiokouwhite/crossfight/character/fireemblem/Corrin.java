@@ -197,7 +197,9 @@ public final class Corrin extends Character {
 
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
-            if (!Effects.alliesWithin(p, 10).isEmpty()) Effects.refresh(p, PotionEffectType.RESISTANCE, 0, 45);
+            boolean near = !Effects.alliesWithin(p, 10).isEmpty();
+            active(p, near);
+            if (near) Effects.refresh(p, PotionEffectType.RESISTANCE, 0, 45);
         }
     }
 
@@ -294,6 +296,7 @@ public final class Corrin extends Character {
         public void tick(Player p, CfPlayer cf, AbilityState st) {
             Effects.refresh(p, PotionEffectType.DOLPHINS_GRACE, 3, 45);
             Effects.refresh(p, PotionEffectType.WATER_BREATHING, 0, 45);
+            active(p, p.isInWater());
             if (p.isInWater()) Effects.refresh(p, PotionEffectType.SPEED, 3, 45);
         }
     }

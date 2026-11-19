@@ -202,6 +202,7 @@ public final class Armin extends Character {
             int hits = st.get("hits", 0) + 1;
             if (hits < 5) { st.set("hits", hits); return; }
             st.set("hits", 0);
+            signal(attacker);
             World w = victim.getWorld();
             w.spawnParticle(Particle.DUST, victim.getLocation().add(0, 1.2, 0), 30, 0.4, 0.6, 0.4, 0, BLUE);
             w.spawnParticle(Particle.ENCHANTED_HIT, victim.getLocation().add(0, 1.2, 0), 15, 0.3, 0.5, 0.3, 0.1);

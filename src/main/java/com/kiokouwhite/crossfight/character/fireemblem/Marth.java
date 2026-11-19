@@ -239,6 +239,7 @@ public final class Marth extends Character {
 
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
+            active(p, true);
             Effects.refresh(p, PotionEffectType.SPEED, 0, 45);
             for (var ally : Effects.alliesWithin(p, 10)) Effects.refresh(ally, PotionEffectType.SPEED, 0, 45);
         }
@@ -251,6 +252,7 @@ public final class Marth extends Character {
 
         @Override
         public void tick(Player p, CfPlayer cf, AbilityState st) {
+            active(p, p.getHealth() > 10.0);
             if (p.getHealth() <= 10.0) return;
             for (var ally : Effects.alliesWithin(p, 1000)) Effects.refresh(ally, PotionEffectType.STRENGTH, 0, 45);
         }

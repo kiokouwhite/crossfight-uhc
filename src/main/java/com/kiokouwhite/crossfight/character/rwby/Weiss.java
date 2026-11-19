@@ -790,13 +790,20 @@ public final class Weiss extends Character implements Listener {
             renameWeapon(p, dust(p));
         }
 
+        /** Bleu et cyan agissent en continu (Vitesse, Resistance) : l'icone reste allumee. */
+        @Override
+        public void tick(Player p, CfPlayer cf, AbilityState st) {
+            int mode = dust(p);
+            active(p, mode == 1 || mode == 3);
+        }
+
         @Override
         public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (e.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
             switch (dust(attacker)) {
-                case 0 -> { if (Math.random() < 0.25) victim.setFireTicks(Math.max(victim.getFireTicks(), 80)); }
-                case 4 -> Bukkit.getScheduler().runTask(plugin(), () -> victim.setVelocity(victim.getVelocity().add(Effects.towards(attacker, victim).multiply(0.45).setY(0.1))));
-                case 5 -> { if (Math.random() < 0.25) Effects.give(victim, PotionEffectType.SLOWNESS, 0, 100); }
+                case 0 -> { if (Math.random() < 0.25) { victim.setFireTicks(Math.max(victim.getFireTicks(), 80)); signal(attacker); } }
+                case 4 -> { signal(attacker); Bukkit.getScheduler().runTask(plugin(), () -> victim.setVelocity(victim.getVelocity().add(Effects.towards(attacker, victim).multiply(0.45).setY(0.1)))); }
+                case 5 -> { if (Math.random() < 0.25) { Effects.give(victim, PotionEffectType.SLOWNESS, 0, 100); signal(attacker); } }
                 default -> { }
             }
         }
@@ -806,6 +813,7 @@ public final class Weiss extends Character implements Listener {
             if (dust(victim) != 2 || !(e instanceof EntityDamageByEntityEvent ede)) return;
             LivingEntity attacker = com.kiokouwhite.crossfight.listener.DamageListener.livingAttackerOf(ede.getDamager());
             if (attacker != null && attacker != victim && Math.random() < 0.10) {
+                signal(victim);
                 Bukkit.getScheduler().runTask(plugin(), () -> Effects.lightning(attacker, 4.0, victim));
             }
         }

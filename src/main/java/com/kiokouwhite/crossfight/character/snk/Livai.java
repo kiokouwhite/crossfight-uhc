@@ -189,6 +189,7 @@ public final class Livai extends Character {
                 CfPlayer m = SNK.plugin().players().get(u);
                 if (m == null || !m.isAlive()) dead++;
             }
+            active(p, dead > 0);
             Boosts.Boost b = dead <= 0 ? null : dead == 1 ? new Boosts.Boost(0, 1, 0, 0) : dead == 2 ? new Boosts.Boost(1, 1, 0, 0) : new Boosts.Boost(1, 1, 1, 0);
             if (b == null) { if (Boosts.get(p, "livai_camarades") != null) Boosts.remove(p, "livai_camarades"); }
             else if (st.get("dead", 0) != dead) Boosts.set(p, "livai_camarades", b);

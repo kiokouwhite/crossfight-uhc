@@ -123,6 +123,7 @@ public final class Kaze extends Character implements Listener {
             Player p = com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(en.getKey());
             if (p == null || System.currentTimeMillis() > en.getValue()) { POWER_HIT.remove(en.getKey()); if (p != null) Boosts.remove(p, "kaze_powerhit"); continue; }
             boolean alone = Effects.enemiesWithin(p, 10).size() <= 1;
+            com.kiokouwhite.crossfight.hud.PassiveHud.setActive(p, "kaze_powerhit", alone);
             boolean has = Boosts.get(p, "kaze_powerhit") != null;
             if (alone && !has) { Boosts.set(p, "kaze_powerhit", new Boosts.Boost(1, 1, 0, 0)); if ("kaze".equals(BloodySnow.characterId(p))) com.kiokouwhite.crossfight.util.Sounds.ability(p, "kaze_powerhit"); }
             else if (!alone && has) Boosts.remove(p, "kaze_powerhit");
