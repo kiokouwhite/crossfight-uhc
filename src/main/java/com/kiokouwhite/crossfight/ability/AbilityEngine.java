@@ -293,6 +293,8 @@ public final class AbilityEngine implements Listener {
                 st.setEnabled(false);
                 t.onDisable(p, cf, st);
                 Msg.send(p, "<red>" + t.name() + " s'est desactivee, barre vide.");
+                // Sa replique de jauge vide, si le pack en a une ("<capacite>_vide" : Neon, « il faut que je recharge »).
+                com.kiokouwhite.crossfight.util.Sounds.voice(p, t.id() + "_vide");
             }
         } else {
             st.setGauge(st.gauge() + t.regenPerSecond());

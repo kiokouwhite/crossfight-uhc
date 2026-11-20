@@ -44,6 +44,14 @@ voice.marth_kill 1853
 voice.marth_mort 2448
 voice.marth_selection 922
 voice.marth_ult 1151
+voice.neon_kill 910
+voice.neon_mort 1150
+voice.neon_relais 970
+voice.neon_selection 2730
+voice.neon_ult 1950
+voice.neon_vitesse 750
+voice.neon_vitesse_vide 930
+voice.neon_voie 980
 voice.ruby_crescent 937
 voice.ruby_duo_blake 927
 voice.ruby_duo_weiss 1019

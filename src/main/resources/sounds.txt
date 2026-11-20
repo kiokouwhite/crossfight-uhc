@@ -1298,6 +1298,14 @@ voice.marth_kill
 voice.marth_mort
 voice.marth_selection
 voice.marth_ult
+voice.neon_kill
+voice.neon_mort
+voice.neon_relais
+voice.neon_selection
+voice.neon_ult
+voice.neon_vitesse
+voice.neon_vitesse_vide
+voice.neon_voie
 voice.ruby_crescent
 voice.ruby_duo_blake
 voice.ruby_duo_weiss
