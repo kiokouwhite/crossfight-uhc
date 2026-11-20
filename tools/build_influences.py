@@ -16,6 +16,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_passifs as bp  # noqa: E402
+import build_actifs as ba  # noqa: E402
 from build_guide import accent  # noqa: E402
 
 OUT = bp.ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "influence"
@@ -63,10 +64,57 @@ FOR_YOU_SHORT = {
 # Ce que la capacite d'un adversaire vient de te faire, dit pour toi (le Contre de Marth) ; a defaut, sa description.
 FROM_ENEMY = {
     "marth_contre": "Vous avez frappé Marth pendant son Contre : vos dégâts vous sont renvoyés, vous êtes éjecté et immobilisé 1 seconde.",
+    "corrin_ult": "La vague de Corrin vous a emporté : éjecté à 30 blocs de haut, et Lenteur III pendant 10 secondes.",
+    "sage_lenteur": "Vous êtes sur les cristaux de Sage : Lenteur II tant que vous y restez.",
+    "takumi_yumi": "Une flèche de Takumi vous a touché : Lenteur pendant 10 secondes.",
+    "mikasa_assommage": "Mikasa vous a assommé : immobile et aveuglé pendant 3 secondes.",
+    "remi_electricite": "L'éclair de Remi vous a électrisé : immobilisé 2 secondes.",
+    "seraphina_arret": "Seraphina a arrêté le temps : immobilisé et aveuglé 3 secondes.",
+    "seraphina_choc": "Le Choc Temporel de Seraphina vous immobilise 2 secondes.",
+    "neon_relais": "L'Éclair Relais de Neon vous a pris : immobilisé 3 secondes.",
+    "sova_electro": "L'Électroflèche de Sova a explosé sur vous : 2 cœurs et immobilisé 1 seconde.",
+    "crystal_cristal": "Crystal vous a cristallisé : immobilisé 3 secondes.",
+    "crystal_surcharge": "La Surcharge de Flux de Crystal : Lenteur, Faiblesse et Wither II pendant 5 secondes.",
+    "crystal_ult": "Œil pour Œil de Crystal : Wither III, Lenteur II et Faiblesse IV pendant 10 secondes.",
+    "yuki_ult": "Yuki est Imparfaite : Obscurité et Lenteur II pendant 20 secondes.",
+    "aida_bulle": "Vous avez touché une bulle d'Aïda : immobilisé 3 secondes.",
+    "aida_jet": "Le jet d'eau d'Aïda vous a touché : Lenteur 5 secondes.",
 }
 FROM_ENEMY_SHORT = {
     "marth_contre": "Contre de Marth : dégâts renvoyés, éjection, stun 1 s",
+    "corrin_ult": "Vague de Corrin : éjection, Lenteur III 10 s",
+    "sage_lenteur": "Cristaux de Sage : Lenteur II",
+    "takumi_yumi": "Flèche de Takumi : Lenteur 10 s",
+    "mikasa_assommage": "Assommé par Mikasa : stun + Cécité 3 s",
+    "remi_electricite": "Électrisé par Remi : stun 2 s",
+    "seraphina_arret": "Arrêt Temporel : stun + Cécité 3 s",
+    "seraphina_choc": "Choc Temporel : stun 2 s",
+    "neon_relais": "Éclair Relais : stun 3 s",
+    "sova_electro": "Électroflèche : 2 PV, stun 1 s",
+    "crystal_cristal": "Cristallisé : stun 3 s",
+    "crystal_surcharge": "Surcharge : Lenteur + Faibl. + Wither II 5 s",
+    "crystal_ult": "Œil pour Œil : Wither III, Lent. II, Faibl. IV 10 s",
+    "yuki_ult": "Imparfaite : Obscurité + Lenteur II 20 s",
+    "aida_bulle": "Bulle d'Aïda : stun 3 s",
+    "aida_jet": "Jet d'Aïda : Lenteur 5 s",
 }
+
+# Les comptes a rebours dessines sur les cartes de droite (le plugin montre le palier au-dessus du temps restant),
+# pour les capacites qui posent un effet limite sur un autre joueur (lu dans les sources, comme build_actifs).
+SECONDS = list(range(1, 11)) + [15, 20, 30]
+
+
+def timed_on_others():
+    import re
+    selfv = r'(?:p|player|sp|self|caster|attacker|killer|owner)'
+    pat = re.compile(r'Effects\.(?:give|refresh)\((?!' + selfv + r'\b)|(?<![A-Za-z_])(?!' + selfv + r'\b)[A-Za-z_]+\.addPotionEffect\(|Effects\.root\((?!' + selfv + r'\b)|Effects\.freeze\(')
+    out = set()
+    for f in ba.SRC.rglob("*.java"):
+        for part in re.split(r'\n(?=\s*(?:public |private |protected )?(?:static )?(?:final )?class \w+)', f.read_text(encoding="utf-8")):
+            m = re.search(r'super\("([a-z0-9_]+)"', part)
+            if m and pat.search(part):
+                out.add(m.group(1))
+    return out
 
 
 def text_of(a, text=1, ally=True):
@@ -77,7 +125,7 @@ def text_of(a, text=1, ally=True):
     return FOR_YOU.get(a["id"]) or accent(a["description"])
 
 
-def render(a, who, row, text, ally, rec, font, slide=0.0):
+def render(a, who, row, text, ally, rec, font, slide=0.0, seconds=None, small=None):
     """Une carte, alignee a droite : l'icone au bord, le texte a sa gauche."""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
@@ -101,6 +149,8 @@ def render(a, who, row, text, ally, rec, font, slide=0.0):
     d.rectangle([x, y, x + CELL - 1, y + CELL - 1], fill=bp.PANEL, outline=edge)
     d.rectangle([x + 1, y + 1, x + CELL - 2, y + CELL - 2], outline=edge[:3] + (110,))
     im.alpha_composite(bp.icon_for(a, rec), (x + 4, y + 4))
+    if seconds:
+        ba.badge(im, x, y, seconds, small, edge)
     if slide:      # en glissement : decalee vers la droite, hors de l'ecran
         width = (CELL + 10 + TEXT_W + 6 if text else CELL) + MARGIN
         out = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -118,6 +168,8 @@ def main():
     data = json.loads(bp.DATA.read_text(encoding="utf-8"))
     rec = bp.recipes()
     font = ImageFont.truetype(str(bp.FONT), 24)
+    small = ImageFont.truetype(str(bp.FONT), 16)
+    timed = timed_on_others()
     pairs = [(a, c["name"]) for l in data for c in l["characters"] for a in c["abilities"]]
     seen, items = set(), []
     for a, who in pairs:                # une capacite commune (Synergie, Burst...) une seule fois
@@ -137,7 +189,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = []
     for a, who in items:
-        ing = [a, who, bp.TEXTS.get(a["id"]), rec.get(a["id"]), FOR_YOU.get(a["id"]), FOR_YOU_SHORT.get(a["id"]), FROM_ENEMY.get(a["id"]), FROM_ENEMY_SHORT.get(a["id"])]
+        ing = [a, who, bp.TEXTS.get(a["id"]), rec.get(a["id"]), FOR_YOU.get(a["id"]), FOR_YOU_SHORT.get(a["id"]), FROM_ENEMY.get(a["id"]), FROM_ENEMY_SHORT.get(a["id"]), a["id"] in timed]
         for side in sides(a):
             ally = side == "a"
             for text in (0, 1, 2):
@@ -149,6 +201,11 @@ def main():
                     for kind, fracs in steps + [("o", bp.SLIDE_OUT)]:
                         for k, f in enumerate(fracs, 1):
                             jobs.append((render, (a, who, row, text, ally, rec, font), dict(slide=f), f"{base}_{kind}{k}.png", bp.job_key(ing, row, text, ally, kind, k)))
+                    # Le compte a rebours : pour un adversaire toujours, pour un allie seulement si ce n'est pas un passif
+                    # (un passif d'allie se renouvelle sans cesse : le compte ne voudrait rien dire).
+                    if a["id"] in timed and (not ally or a["type"] != "Passif"):
+                        for sec in SECONDS:
+                            jobs.append((render, (a, who, row, text, ally, rec, font), dict(seconds=sec, small=small), f"{base}_s{sec}.png", bp.job_key(ing, row, text, ally, "s", sec)))
     count = bp.run_jobs(jobs, OUT)
     print(f"{count} images d'influences ({len(items)} capacites) dans resourcepack-prive/")
 

@@ -164,6 +164,8 @@ public final class InfluenceHud {
 
     /** Les comptes a rebours dessines (tools/build_actifs.py, SECONDS) : le palier au-dessus du temps restant. */
     private static final int[] SECONDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25, 30, 40, 50, 60, 90, 120};
+    /** Les paliers des cartes de droite (tools/build_influences.py, SECONDS). */
+    private static final int[] RIGHT_SECONDS = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30};
     private static final Map<UUID, String> SELF_SHOWN = new HashMap<>();
     private static final Map<UUID, Long> SELF_IN = new HashMap<>();
     private static final Map<UUID, Object[]> SELF_OUT = new HashMap<>();
@@ -268,10 +270,15 @@ public final class InfluenceHud {
         UUID u = p.getUniqueId();
         long now = System.currentTimeMillis();
         List<String> cur = new ArrayList<>();
+        Map<String, Integer> left = new HashMap<>();     // le temps qui reste a chaque carte, en secondes (0 : inconnu)
         if (HudPrefs.Pref.AUTRES.of(p)) for (Influence inf : live(BY, p)) {
             if (cur.size() == 2) break;
             String side = inf.ally ? "a" : "e";
-            if (Sounds.has("influence." + inf.ability + "." + side)) cur.add(inf.ability + "_" + side);
+            if (!Sounds.has("influence." + inf.ability + "." + side)) continue;
+            cur.add(inf.ability + "_" + side);
+            long until = 0;
+            for (long v : inf.keys.values()) if (v != Long.MAX_VALUE) until = Math.max(until, v);
+            left.put(inf.ability + "_" + side, until > now ? (int) Math.ceil((until - now) / 1000.0) : 0);
         }
         List<String> before = SHOWN.getOrDefault(u, List.of());
         if (!cur.isEmpty() && !before.contains(cur.get(0))) IN_AT.put(u, now);
@@ -289,6 +296,12 @@ public final class InfluenceHud {
                 String key = "influence/" + id[0] + "_" + r + "_" + text + "_" + id[1];
                 long since = now - IN_AT.getOrDefault(u, 0L);
                 if (r == 0 && since < SLIDE_IN * STEP_MS) key += "_i" + (1 + since / STEP_MS);
+                else {
+                    // Le compte a rebours de l'effet, si la carte en a les images (tools/build_influences.py, SECONDS).
+                    int rest = left.getOrDefault(cur.get(r), 0);
+                    if (rest > 0 && Sounds.has("influence." + id[0] + "." + id[1] + ".s"))
+                        for (int step : RIGHT_SECONDS) if (step >= rest) { key += "_s" + step; break; }
+                }
                 images.add(key);
             } else if (out[r] != null && now - outAt[r] < SLIDE_OUT * STEP_MS) {
                 String[] id = out[r].split("_(?=[ae]$)");

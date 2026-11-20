@@ -74,17 +74,17 @@ YATO = {"l": (2, 5), "t": (1, 5)}       # voie -> paliers de kills
 
 def yato_badge(im, kills, path):
     from PIL import ImageDraw, ImageFont
-    font = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"), 24)
+    font = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"), 16)
     first, last = YATO[path]
     label = f"{min(kills, last)}/{first if kills < first else last}"
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     cell = 40
-    # Une pastille lisible, a cheval sur le coin bas droit de l'icone de l'arme (en haut a gauche de l'ecran).
-    w = int(d.textlength(label, font=font)) + 8
-    x0, y0 = MARGIN + cell - w + 7, MARGIN + cell - 17         # dans la fenetre laissee par la carte (build_passifs.draw_weapon)
-    d.rectangle([x0, y0, x0 + w - 1, y0 + 15], fill=(18, 14, 22, 255), outline=(110, 225, 120, 255))
-    d.text((x0 + 4, y0 - 3), label, font=font, fill=(220, 255, 220, 255))
+    # Une pastille centree sous l'icone de l'arme, dans la fenetre laissee par la carte (build_passifs.draw_weapon).
+    w = int(d.textlength(label, font=font)) + 6
+    x0, y0 = MARGIN + (cell - w) // 2, MARGIN + 26
+    d.rectangle([x0, y0, x0 + w - 1, y0 + 12], fill=(18, 14, 22, 255), outline=(110, 225, 120, 255))
+    d.text((x0 + 3, y0 - 1), label, font=font, fill=(220, 255, 220, 255))
     return im
 
 

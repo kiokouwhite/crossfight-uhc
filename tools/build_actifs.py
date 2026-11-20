@@ -40,14 +40,15 @@ def self_buffers():
     return out
 
 
-def badge(im, x, y, seconds, small):
-    """Les secondes restantes, dans une pastille sombre en bas a droite de l'icone."""
+def badge(im, x, y, seconds, small, edge=None):
+    """Les secondes restantes, dans une pastille sombre en bas a droite de l'icone (liseret de la couleur de la carte)."""
+    edge = edge or EDGE
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     label = str(seconds)
     w = int(d.textlength(label, font=small)) + 6
     x0, y0 = x + CELL - w + 2, y + CELL - 15
-    d.rectangle([x0, y0, x0 + w - 1, y0 + 14], fill=(18, 14, 22, 235), outline=EDGE)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + 14], fill=(18, 14, 22, 235), outline=edge)
     d.text((x0 + 3, y0 + 1), label, font=small, fill=(255, 240, 180, 255))
 
 

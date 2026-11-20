@@ -186,6 +186,8 @@ def overlays(base: Path):
     if influences.is_dir():
         # "influence.<capacite>.<a|e>" : les camps dessines (allie, adversaire).
         names |= {"influence." + f.stem[:-len("_0_0_a")] + "." + f.stem[-1] for f in influences.glob("*_0_0_[ae].png")}
+        # "influence.<capacite>.<a|e>.s" : cette carte a les images de son compte a rebours.
+        names |= {"influence." + f.stem[:-len("_0_0_a_s1")] + "." + f.stem[-4] + ".s" for f in influences.glob("*_0_0_[ae]_s1.png")}
     # La carte d'un actif dont l'effet dure, sous les passifs (tools/build_actifs.py) : "actif.<perso>".
     actifs = base / "assets" / NS / "textures" / "actif"
     if actifs.is_dir():

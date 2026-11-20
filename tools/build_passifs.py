@@ -178,11 +178,13 @@ def draw_weapon(im, d, character, text, font, variant=""):
         d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=edge)
     d.rectangle([MARGIN, y, MARGIN + CELL - 1, y + CELL - 1], fill=PANEL, outline=edge)
     d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=edge[:3] + (120,))
-    im.alpha_composite(weapon_icon(character), (MARGIN + 4, y + 4))
     if variant:
-        # Une fenetre transparente au coin bas droit de l'icone : le badge d'avancement, porte par l'image de
-        # l'orbe (tools/build_ultime_franuka.py), se dessine dessous et doit se voir a travers.
-        im.paste((0, 0, 0, 0), (MARGIN + 1, y + CELL - 17, MARGIN + CELL + 8, y + CELL - 1))
+        # L'icone un peu plus petite, en haut de la case, et sous elle une fenetre transparente centree : le badge
+        # d'avancement, porte par l'image de l'orbe (tools/build_ultime_franuka.py), se dessine dessous et s'y voit.
+        im.alpha_composite(weapon_icon(character).resize((24, 24), Image.NEAREST), (MARGIN + 8, y + 3))
+        im.paste((0, 0, 0, 0), (MARGIN + 2, y + 26, MARGIN + CELL - 2, y + CELL - 1))
+    else:
+        im.alpha_composite(weapon_icon(character), (MARGIN + 4, y + 4))
     if text:
         tx = MARGIN + CELL + 6
         d.text((tx, y + 2), accent(character.get("weapon") or "Arme"), font=font, fill=(230, 232, 245, 255))
