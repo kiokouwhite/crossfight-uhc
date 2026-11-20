@@ -194,6 +194,10 @@ def overlays(base: Path):
         names |= {"actif." + f.stem[:-len("_0_0")] for f in actifs.glob("*_0_0.png")}
         # "actif.<perso>.<j>.s" : cet actif a les images de son compte a rebours.
         names |= {"actif." + f.stem[:-len("_0_s1")].rsplit("_", 1)[0] + "." + f.stem[:-len("_0_s1")].rsplit("_", 1)[1] + ".s" for f in actifs.glob("*_0_s1.png")}
+    # La petite case du second actif (actif2/) : "actif2.<perso>.<j>".
+    seconds = base / "assets" / NS / "textures" / "actif2"
+    if seconds.is_dir():
+        names |= {"actif2." + f.stem[:-len("_0")].rsplit("_", 1)[0] + "." + f.stem[:-len("_0")].rsplit("_", 1)[1] for f in seconds.glob("*_0.png")}
     return names
 
 

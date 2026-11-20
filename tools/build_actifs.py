@@ -80,6 +80,34 @@ def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon
     return im
 
 
+OUT2 = OUT.parent / "actif2"
+HUD_SPRITES = bp.ROOT / "resourcepack-prive" / "assets" / "minecraft" / "textures" / "gui" / "sprites" / "hud"
+
+
+def render_second(character, j, text, font, small, rec, seconds=None, weapon=False, variant=""):
+    """Le second actif en cours : une petite case (icone et secondes, sans texte) a droite de la carte du premier.
+    Elle est portee par la main gauche du joueur, cinquieme image du HUD (hud/EffectHud : OFFHAND)."""
+    a = bp.actives(character)[j]
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    y = MARGIN + bp.block_height(character, text, font, weapon, variant)
+    x = MARGIN + (CELL + 10 + TEXT_W + 6 if text else CELL) + 4
+    d.rectangle([x, y, x + CELL - 1, y + CELL - 1], fill=bp.PANEL, outline=EDGE)
+    d.rectangle([x + 1, y + 1, x + CELL - 2, y + CELL - 2], outline=(255, 240, 170, 120))
+    im.alpha_composite(bp.icon_for(a, rec), (x + 4, y + 4))
+    if seconds:
+        badge(im, x, y, seconds, small)
+    return im
+
+
+def hide_offhand_frame():
+    """La case de la main gauche a cote de la barre d'action devient invisible : le second actif y est porte par un
+    objet sans apparence, et son cadre vide clignoterait. Un vrai objet en main gauche se voit toujours, sans cadre."""
+    HUD_SPRITES.mkdir(parents=True, exist_ok=True)
+    for name in ("hotbar_offhand_left", "hotbar_offhand_right"):
+        Image.new("RGBA", (29, 24), (0, 0, 0, 0)).save(HUD_SPRITES / f"{name}.png")
+
+
 def main():
     data = json.loads(bp.DATA.read_text(encoding="utf-8"))
     rec = bp.recipes()
@@ -102,7 +130,9 @@ def main():
     if only:
         chars = [c for c in chars if c["id"] in only]
     OUT.mkdir(parents=True, exist_ok=True)
-    jobs = []
+    OUT2.mkdir(parents=True, exist_ok=True)
+    hide_offhand_frame()
+    jobs, jobs2 = [], []
     for c in chars:
         ing = bp.ingredients(c, rec) + [sorted(timed & {a["id"] for a in c["abilities"]})]
         for j in range(len(bp.actives(c))):
@@ -116,7 +146,15 @@ def main():
                         jobs.append((render, (c, j, text, font, small, rec), dict(slide=f, weapon=weapon, variant=v), f"{base}_{kind}{k}.png", bp.job_key(ing, j, text, weapon, v, kind, k)))
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
                     jobs.append((render, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, "s", sec)))
+                # La petite case du second actif (actif2/), pour ceux qui ont un compte a rebours.
+                if bp.actives(c)[j]["id"] in timed:
+                    base2 = OUT2 / f"{c['id']}_{j}_{code}{v}"
+                    jobs2.append((render_second, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base2}.png", bp.job_key(ing, j, text, weapon, v, "second")))
+                    for sec in SECONDS:
+                        jobs2.append((render_second, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base2}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, "second", sec)))
     count = bp.run_jobs(jobs, OUT, keep_others=bool(only))
+    count2 = bp.run_jobs(jobs2, OUT2, keep_others=bool(only))
+    print(f"{count2} images de second actif dans resourcepack-prive/")
     print(f"{count} images d'actifs ({len(chars)} personnages, {len(timed)} capacites avec compte a rebours) dans resourcepack-prive/")
 
 

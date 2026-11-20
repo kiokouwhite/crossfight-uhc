@@ -42,7 +42,7 @@ import java.util.UUID;
  */
 public final class EffectHud implements Listener {
 
-    static final int HEAD = 5, CHEST = 6, LEGS = 7, FEET = 8;
+    static final int HEAD = 5, CHEST = 6, LEGS = 7, FEET = 8, OFFHAND = 45;
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, State> states = new HashMap<>();
@@ -50,7 +50,8 @@ public final class EffectHud implements Listener {
 
     private static final class State {
         Set<String> bonus = Set.of(), malus = Set.of();
-        String ultImage, passiveImage, influence0, influence1;
+        String ultImage, passiveImage, influence0, influence1, active2;
+        boolean offhandShown;
         boolean shown;
         final Map<String, Long> lastSound = new HashMap<>();
     }
@@ -106,6 +107,12 @@ public final class EffectHud implements Listener {
             // Quatre images au plus (les cases d'armure) : la carte d'un actif a gauche passe avant la seconde ligne de droite.
             String self = pack ? InfluenceHud.selfImage(p) : null;
             st.influence1 = self != null ? self : inf.size() > 1 ? inf.get(1) : null;
+            // Une cinquieme image, portee par la main gauche quand elle est vide : le second actif en cours.
+            st.active2 = pack && self != null && p.getInventory().getItemInOffHand().getType().isAir() ? InfluenceHud.selfImage2(p) : null;
+            if (st.active2 == null && st.offhandShown) {
+                st.offhandShown = false;
+                ClientSlots.show(p, OFFHAND, p.getInventory().getItemInOffHand());
+            }
             if (st.ultImage == null && st.passiveImage == null && st.influence0 == null && st.influence1 == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 return;
@@ -121,6 +128,10 @@ public final class EffectHud implements Listener {
                 st.influence0 == null ? p.getInventory().getChestplate() : overlayItem(EquipmentSlot.CHEST, st.influence0),
                 st.influence1 == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, st.influence1),
                 st.ultImage == null ? p.getInventory().getBoots() : overlayItem(EquipmentSlot.FEET, st.ultImage)});
+        if (st.active2 != null && st.shown) {
+            ClientSlots.show(p, OFFHAND, overlayItem(EquipmentSlot.OFF_HAND, st.active2));
+            st.offhandShown = true;
+        }
     }
 
     /** Ce que le joueur doit voir dans sa case de casque (5 : ses passifs) ou de bottes (8 : l'orbe de l'ultime), ou null (sa vraie piece). */
@@ -131,6 +142,7 @@ public final class EffectHud implements Listener {
         if (slot == HEAD && st.passiveImage != null) return overlayItem(EquipmentSlot.HEAD, st.passiveImage);
         if (slot == CHEST && st.influence0 != null) return overlayItem(EquipmentSlot.CHEST, st.influence0);
         if (slot == LEGS && st.influence1 != null) return overlayItem(EquipmentSlot.LEGS, st.influence1);
+        if (slot == OFFHAND && st.active2 != null) return overlayItem(EquipmentSlot.OFF_HAND, st.active2);
         return null;
     }
 

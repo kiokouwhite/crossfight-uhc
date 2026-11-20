@@ -564,7 +564,7 @@ public final class Puppet {
         int[] slots = hands ? new int[]{5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45} : new int[]{5, 6, 7, 8};
         ItemStack[] items = hands ? new ItemStack[]{passives, infl0, infl1, orb,
                 inv.getItemInMainHand().getType().isAir() ? null : invisibleItem(),
-                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()} : new ItemStack[]{passives, infl0, infl1, orb};
+                inv.getItemInOffHand().getType().isAir() ? (hud == null ? null : hud.shownIn(p, 45)) : invisibleItem()} : new ItemStack[]{passives, infl0, infl1, orb};
         boolean ok = ClientSlots.show(p, slots, items);
         if (!ok && !ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme."); }
         return ok;

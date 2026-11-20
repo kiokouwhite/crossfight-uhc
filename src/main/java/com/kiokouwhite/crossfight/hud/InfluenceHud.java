@@ -171,6 +171,31 @@ public final class InfluenceHud {
     private static final Map<UUID, Object[]> SELF_OUT = new HashMap<>();
 
     /**
+     * Le second actif du joueur dont l'effet dure (celui d'avant le plus recent) : une petite case, icone et
+     * secondes, a droite de la carte du premier ("actif2/<perso>_<j>_<code>[_s<n>]"). Null s'il n'y en a pas.
+     */
+    public static String selfImage2(Player p) {
+        CfPlayer cf = CrossfightPlugin.get().players().get(p);
+        Character c = cf == null ? null : cf.character();
+        if (c == null || !HudPrefs.Pref.ACTIFS.of(p)) return null;
+        List<Influence> live = live(SELF, p);
+        if (live.size() < 2) return null;
+        Influence inf = live.get(1);
+        List<Ability> acts = PassiveHud.actives(c);
+        int j = -1;
+        for (int k = 0; k < acts.size(); k++) if (acts.get(k).id().equals(inf.ability)) j = k;
+        if (j < 0 || !Sounds.has("actif2." + c.id() + "." + j)) return null;
+        String id = "actif2/" + c.id() + "_" + j + "_" + PassiveHud.code(p, c, HudPrefs.Pref.ACTIFS_TEXTE);
+        long now = System.currentTimeMillis(), until = 0;
+        for (long v : inf.keys.values()) if (v != Long.MAX_VALUE) until = Math.max(until, v);
+        if (until > now) {
+            int left = (int) Math.ceil((until - now) / 1000.0);
+            for (int step : SECONDS) if (step >= left) return id + "_s" + step;
+        }
+        return id;
+    }
+
+    /**
      * La carte de l'actif du joueur dont l'effet dure (le plus recent), sous ses passifs a gauche :
      * "actif/<perso>_<j>_<texte>", qui glisse en arrivant (_i<etape>) et en partant (_o<etape>), avec les
      * secondes qui restent (_s<n>). Null s'il n'y en a pas.
