@@ -51,6 +51,32 @@ public final class Corrin extends Character {
         setUltimate(new VaguesBleues());
     }
 
+    /** La voie de la Yato ("light", "dark" ou null) et ses kills (d'equipe pour la Lumiere), pour le HUD. */
+    private String yatoPath(Player p) {
+        var a = ability("corrin_yato");
+        return a == null ? null : com.kiokouwhite.crossfight.CrossfightPlugin.get().abilities().state(p, a).get("path", null);
+    }
+
+    @Override
+    public String hudWeaponVariant(Player p) {
+        String path = yatoPath(p);
+        return "light".equals(path) ? "l" : "dark".equals(path) ? "t" : "";
+    }
+
+    @Override
+    public String hudOrbVariant(Player p) {
+        String path = yatoPath(p);
+        if (path == null) return "";
+        var plugin = com.kiokouwhite.crossfight.CrossfightPlugin.get();
+        CfPlayer cf = plugin.players().get(p);
+        int kills = 0;
+        if ("light".equals(path)) {
+            Team t = cf.team();
+            if (t != null) for (UUID u : t.members()) { CfPlayer m = plugin.players().get(u); if (m != null) kills += m.kills(); }
+        } else kills = cf.kills();
+        return "yato_" + ("light".equals(path) ? "l" : "t") + Math.min(5, kills);
+    }
+
     @Override
     public ItemStack createWeapon() {
         return Weapons.melee(Material.GOLDEN_SWORD, 8.5, "<gold><bold>Yato", List.of());

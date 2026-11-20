@@ -15,7 +15,7 @@ from pathlib import Path
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_menu_franuka import ONE, ROOT, sprite  # noqa: E402
+from build_menu_franuka import ONE, ROOT, SRC, sprite  # noqa: E402
 
 OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "overlay_ult"
 W, H = 960, 540
@@ -67,6 +67,27 @@ def screen(piece):
     return im
 
 
+# L'avancement de la Yato de Corrin (hud : Character.hudOrbVariant) : un badge "kills / prochain palier" en bas
+# a droite de l'icone de l'arme, en haut a gauche. Porte par l'image de l'orbe, pour ne pas multiplier celles des passifs.
+YATO = {"l": (2, 5), "t": (1, 5)}       # voie -> paliers de kills
+
+
+def yato_badge(im, kills, path):
+    from PIL import ImageDraw, ImageFont
+    font = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"), 24)
+    first, last = YATO[path]
+    label = f"{min(kills, last)}/{first if kills < first else last}"
+    d = ImageDraw.Draw(im)
+    d.fontmode = "1"
+    cell = 40
+    # Une pastille lisible, a cheval sur le coin bas droit de l'icone de l'arme (en haut a gauche de l'ecran).
+    w = int(d.textlength(label, font=font)) + 8
+    x0, y0 = MARGIN + cell - w + 7, MARGIN + cell - 17         # dans la fenetre laissee par la carte (build_passifs.draw_weapon)
+    d.rectangle([x0, y0, x0 + w - 1, y0 + 15], fill=(18, 14, 22, 255), outline=(110, 225, 120, 255))
+    d.text((x0 + 4, y0 - 3), label, font=font, fill=(220, 255, 220, 255))
+    return im
+
+
 def main():
     if not ONE.is_dir():
         print("pack de Franuka absent (resourcepack-prive/ui-franuka/) : rien a faire")
@@ -76,6 +97,14 @@ def main():
         screen(orb(k)).save(OUT / f"ult_{k:02d}.png")
     for k in (1, 2):
         screen(orb(STEPS, k)).save(OUT / f"ult_pret_{k - 1}.png")
+    for path, (first, last) in YATO.items():
+        for kills in range(last + 1):
+            sub = OUT / f"yato_{path}{kills}"
+            sub.mkdir(exist_ok=True)
+            for k in range(STEPS + 1):
+                yato_badge(screen(orb(k)), kills, path).save(sub / f"ult_{k:02d}.png", optimize=True)
+            for k in (1, 2):
+                yato_badge(screen(orb(STEPS, k)), kills, path).save(sub / f"ult_pret_{k - 1}.png", optimize=True)
     if "--apercu" in sys.argv:
         sheet = Image.new("RGBA", (6 * 84, 84), (60, 70, 90, 255))
         for i, piece in enumerate((orb(0), orb(5), orb(10), orb(15), orb(20), orb(20, 2))):

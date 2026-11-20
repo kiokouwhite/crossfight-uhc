@@ -103,6 +103,18 @@ public final class InfluenceHud {
         inf.touched = now;
     }
 
+    /**
+     * Une capacite d'un autre joueur qui te concerne sans te poser d'effet (le Contre de Marth : ne le frappe pas) :
+     * sa carte a droite, en adversaire ou en allie, pendant {@code ticks}.
+     */
+    public static void threat(Player target, Ability a, boolean ally, int ticks) {
+        if (target == null || a == null) return;
+        long now = System.currentTimeMillis();
+        Influence inf = BY.computeIfAbsent(target.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id(), k -> new Influence(a.id(), ally));
+        inf.keys.merge("avert", now + ticks * 50L, Math::max);
+        inf.touched = now;
+    }
+
     private static void record(Player target, String key, long until, boolean bad) {
         Ability a = caller();
         if (a == null) return;

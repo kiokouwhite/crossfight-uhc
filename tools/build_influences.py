@@ -60,7 +60,18 @@ FOR_YOU_SHORT = {
 }
 
 
-def text_of(a, text=1):
+# Ce que la capacite d'un adversaire te fait, ou ce dont elle te previent (le Contre de Marth) ; a defaut, sa description.
+FROM_ENEMY = {
+    "marth_contre": "Marth se tient en garde : si vous le frappez maintenant, vous subissez le double de vos dégâts, vous êtes éjecté et immobilisé 1 seconde.",
+}
+FROM_ENEMY_SHORT = {
+    "marth_contre": "Ne frappez pas Marth : dégâts x2, éjection, stun",
+}
+
+
+def text_of(a, text=1, ally=True):
+    if not ally and a["id"] in FROM_ENEMY:
+        return FROM_ENEMY_SHORT.get(a["id"], FROM_ENEMY[a["id"]]) if text == 2 else FROM_ENEMY[a["id"]]
     if text == 2:
         return FOR_YOU_SHORT.get(a["id"]) or bp.text_of(a, 2)
     return FOR_YOU.get(a["id"]) or accent(a["description"])
@@ -75,7 +86,7 @@ def render(a, who, row, text, ally, rec, font, slide=0.0):
     y = MARGIN + row * (ROW_TEXT + 4 if text else CELL + 4)
     x = W - MARGIN - CELL
     if text:
-        lines = bp.wrap(text_of(a, text), font, TEXT_W)
+        lines = bp.wrap(text_of(a, text, ally), font, TEXT_W)
         if len(lines) > MAX_LINES:        # trop long : coupe, avec des points de suspension
             lines = lines[:MAX_LINES]
             while lines[-1] and d.textlength(lines[-1] + "…", font=font) > TEXT_W:
@@ -127,21 +138,20 @@ def main():
         for f in OUT.glob("*.png"):
             f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
-    count = 0
+    jobs = []
     for a, who in items:
         for side in sides(a):
             ally = side == "a"
             for text in (0, 1, 2):
                 for row in (0, 1):
                     base = OUT / f"{a['id']}_{row}_{text}_{side}"
-                    bp.save(render(a, who, row, text, ally, rec, font), f"{base}.png")
-                    count += 1
+                    jobs.append((render, (a, who, row, text, ally, rec, font), {}, f"{base}.png"))
                     # La carte arrive toujours en haut (la plus recente) et peut partir des deux lignes.
                     steps = [("i", bp.SLIDE_IN)] if row == 0 else []
                     for kind, fracs in steps + [("o", bp.SLIDE_OUT)]:
                         for k, f in enumerate(fracs, 1):
-                            bp.save(render(a, who, row, text, ally, rec, font, slide=f), f"{base}_{kind}{k}.png")
-                            count += 1
+                            jobs.append((render, (a, who, row, text, ally, rec, font), dict(slide=f), f"{base}_{kind}{k}.png"))
+    count = bp.run_jobs(jobs)
     print(f"{count} images d'influences ({len(items)} capacites) dans resourcepack-prive/")
 
 

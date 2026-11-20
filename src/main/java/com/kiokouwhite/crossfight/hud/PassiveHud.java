@@ -95,10 +95,10 @@ public final class PassiveHud {
         return textKey;
     }
 
-    /** Vrai si le personnage a des capacites d'arme : la carte de l'arme, en tete de la colonne de gauche. */
+    /** Vrai si l'arme du personnage porte un passif : la carte de l'arme, en tete de la colonne de gauche. */
     public static boolean hasWeaponCard(Character c) {
         if (c == null) return false;
-        for (Ability a : c.allAbilities()) if (a.isWeaponBound()) return true;
+        for (Ability a : c.allAbilities()) if (a.isWeaponBound() && a.type() == AbilityType.PASSIVE) return true;
         return false;
     }
 
@@ -107,9 +107,13 @@ public final class PassiveHud {
         return !textPref.of(p) ? 0 : HudPrefs.Pref.TEXTE_COURT.of(p) ? 2 : 1;
     }
 
-    /** Le troisieme champ du nom des images de gauche : mode de texte + 3 x carte de l'arme. */
-    public static int code(Player p, Character c, HudPrefs.Pref textPref) {
-        return textMode(p, textPref) + (HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c) ? 3 : 0);
+    /** Vrai si la carte de l'arme est montree a ce joueur. */
+    public static boolean weaponShown(Player p, Character c) { return HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c); }
+
+    /** Le troisieme champ du nom des images de gauche : mode de texte + 3 x carte de l'arme, puis la variante de l'arme (Yato : L ou T). */
+    public static String code(Player p, Character c, HudPrefs.Pref textPref) {
+        boolean weapon = weaponShown(p, c);
+        return (textMode(p, textPref) + (weapon ? 3 : 0)) + (weapon ? c.hudWeaponVariant(p) : "");
     }
 
     /** Le texte a cote des passifs (/cf hud, /cf passif show|hide). */
@@ -126,7 +130,7 @@ public final class PassiveHud {
         List<Ability> list = HudPrefs.Pref.PASSIFS.of(p) ? shown(c) : List.of();
         if (list.isEmpty() && !weapon) return null;
         // Les passifs masques : l'image a masque 0 ne va pas (ils y seraient eteints) ; on garde la carte de l'arme seule.
-        if (list.isEmpty()) return "passif/" + c.id() + "_arme_" + textMode(p, HudPrefs.Pref.PASSIFS_TEXTE);
+        if (list.isEmpty()) return "passif/" + c.id() + "_arme_" + textMode(p, HudPrefs.Pref.PASSIFS_TEXTE) + c.hudWeaponVariant(p);
         int mask = 0, allyMask = 0;
         Set<String> now = new HashSet<>();
         Set<String> withAllies = ALLIES.getOrDefault(p.getUniqueId(), Set.of());

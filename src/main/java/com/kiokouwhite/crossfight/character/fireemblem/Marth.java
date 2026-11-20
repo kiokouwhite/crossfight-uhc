@@ -104,6 +104,7 @@ public final class Marth extends Character {
             boolean holy = st.get("holy", false);
             double total = holy ? 20.0 : 10.0;
             Effects.root(p, 60);
+            showFor(p, 60);
             Msg.actionBar(p, "<green>Regeneration...");
             // La pose : l'epee plantee dans le sol, les deux mains sur le pommeau, le temps du soin.
             var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "marth", Contre.heldFalchion(p), "debout");
@@ -138,6 +139,7 @@ public final class Marth extends Character {
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             long until = System.currentTimeMillis() + 1000L;
             st.set("counterUntil", until);
+            warnEnemies(p, 12, 25);
             // Marth tient la pose sans bouger pendant toute la seconde (il peut encore tourner la tete).
             Effects.root(p, 20);
             p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.6f);

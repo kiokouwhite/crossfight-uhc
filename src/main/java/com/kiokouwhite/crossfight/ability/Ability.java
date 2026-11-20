@@ -131,6 +131,12 @@ public abstract class Ability {
     /** Cette capacite agit sur son lanceur pendant {@code ticks} (vol, invisibilite...) : sa carte en haut a gauche, avec le compte a rebours. */
     protected void showFor(Player p, int ticks) { com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, this, ticks); }
 
+    /** Previent les adversaires a {@code radius} blocs pendant {@code ticks} : la carte de cette capacite a droite de leur ecran (le Contre de Marth). */
+    protected void warnEnemies(Player caster, double radius, int ticks) {
+        for (Player e : com.kiokouwhite.crossfight.util.Effects.enemyPlayersWithin(caster, radius))
+            com.kiokouwhite.crossfight.hud.InfluenceHud.threat(e, this, false, ticks);
+    }
+
     /** Lignes de lore supplementaires (temps de chargement, modes...). */
     protected List<String> extraLore() { return List.of(); }
 

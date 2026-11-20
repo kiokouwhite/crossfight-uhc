@@ -72,6 +72,12 @@ public abstract class Character {
     /** L'arme fournie au personnage, deja enchantee. Null si le personnage n'en a pas. */
     public abstract ItemStack createWeapon();
 
+    /** La variante de la carte de l'arme en haut a gauche ("" par defaut ; Corrin : "l" ou "t" selon la voie de la Yato, en minuscules : une cle de ressource). */
+    public String hudWeaponVariant(org.bukkit.entity.Player p) { return ""; }
+
+    /** La variante de l'orbe de l'ultime, qui porte l'avancement de l'arme ("" par defaut ; Corrin : "yato_l3"). */
+    public String hudOrbVariant(org.bukkit.entity.Player p) { return ""; }
+
     /** Description courte affichee dans le menu de selection. */
     public abstract List<String> summary();
 }

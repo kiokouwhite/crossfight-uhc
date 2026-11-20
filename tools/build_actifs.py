@@ -51,12 +51,12 @@ def badge(im, x, y, seconds, small):
     d.text((x0 + 3, y0 + 1), label, font=small, fill=(255, 240, 180, 255))
 
 
-def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False):
+def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant=""):
     a = bp.actives(character)[j]
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
-    y = MARGIN + bp.block_height(character, text, font, weapon)
+    y = MARGIN + bp.block_height(character, text, font, weapon, variant)
     lines = bp.wrap(bp.text_of(a, text), font, TEXT_W) if text else []
     h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
     if text:
@@ -107,22 +107,20 @@ def main():
         for f in OUT.glob("*.png"):
             f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
-    count = 0
+    jobs = []
     for c in chars:
         for j in range(len(bp.actives(c))):
             # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme au-dessus (si le personnage en a une).
-            for code in range(6 if bp.weapon_abilities(c) else 3):
+            for code, v in [(k, v) for k in range(6 if bp.weapon_abilities(c) else 3) for v in (bp.variants(c) if k >= 3 else [""])]:
                 text, weapon = code % 3, code >= 3
-                base = OUT / f"{c['id']}_{j}_{code}"
-                bp.save(render(c, j, text, font, small, rec, weapon=weapon), f"{base}.png")
-                count += 1
+                base = OUT / f"{c['id']}_{j}_{code}{v}"
+                jobs.append((render, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base}.png"))
                 for kind, steps in (("i", bp.SLIDE_IN), ("o", bp.SLIDE_OUT)):
                     for k, f in enumerate(steps, 1):
-                        bp.save(render(c, j, text, font, small, rec, slide=f, weapon=weapon), f"{base}_{kind}{k}.png")
-                        count += 1
+                        jobs.append((render, (c, j, text, font, small, rec), dict(slide=f, weapon=weapon, variant=v), f"{base}_{kind}{k}.png"))
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
-                    bp.save(render(c, j, text, font, small, rec, seconds=sec, weapon=weapon), f"{base}_s{sec}.png")
-                    count += 1
+                    jobs.append((render, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base}_s{sec}.png"))
+    count = bp.run_jobs(jobs)
     print(f"{count} images d'actifs ({len(chars)} personnages, {len(timed)} capacites avec compte a rebours) dans resourcepack-prive/")
 
 

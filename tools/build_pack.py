@@ -175,6 +175,8 @@ def overlays(base: Path):
     """L'orbe de l'ultime (tools/build_ultime_franuka.py) et les passifs (tools/build_passifs.py)."""
     orb = base / "assets" / NS / "textures" / "overlay_ult"
     names = {"overlay.ultime"} if orb.is_dir() and any(orb.glob("*.png")) else set()
+    if orb.is_dir():      # les variantes de l'orbe (l'avancement de la Yato : "overlay.yato_L3")
+        names |= {"overlay." + d.name for d in orb.iterdir() if d.is_dir()}
     # Les passifs en haut a gauche (tools/build_passifs.py) : "passif.<perso>".
     passifs = base / "assets" / NS / "textures" / "passif"
     if passifs.is_dir():

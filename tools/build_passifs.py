@@ -119,13 +119,32 @@ def text_of(a, text):
 
 
 def weapon_abilities(character):
-    """Les capacites portees par l'arme (passifs et actifs d'arme) : une seule carte, celle de l'arme."""
-    return [a for a in character["abilities"] if a["weapon"]]
+    """Les passifs portes par l'arme : une seule carte, celle de l'arme. (Un actif d'arme, comme la Falchion,
+    n'apparait que quand il sert : la carte d'actif, sous les passifs.)"""
+    return [a for a in character["abilities"] if a["weapon"] and a["type"] == "Passif"]
 
 
-def weapon_lines(character, text, font):
-    """Le texte de la carte de l'arme : chaque capacite de l'arme, son nom puis son texte."""
+# Les armes dont la carte change selon un choix du joueur : variante -> textes (le suffixe du code de l'image).
+WEAPON_VARIANTS = {
+    "corrin": {
+        "l": {"vous": "Voie de la Lumière : la Yato devient Éclatante à 2 kills d'équipe (Vitesse, Résistance), puis Alpha à 5 (Vitesse II, Résistance, 15 cœurs).",
+              "court": "Lumière : Éclatante à 2 kills équipe, Alpha à 5"},
+        "t": {"vous": "Voie des Ténèbres : la Yato devient Yato de l'Ombre (9,5) à 1 kill de Corrin, puis Oméga (10,5) à 5.",
+              "court": "Ténèbres : Ombre à 1 kill, Oméga à 5"},
+    },
+}
+
+
+def variants(character):
+    return [""] + list(WEAPON_VARIANTS.get(character["id"], {}))
+
+
+def weapon_lines(character, text, font, variant=""):
+    """Le texte de la carte de l'arme : chaque capacite de l'arme, son nom puis son texte (ou celui de la variante)."""
     lines = []
+    v = WEAPON_VARIANTS.get(character["id"], {}).get(variant)
+    if v:
+        return wrap(v["court" if text == 2 else "vous"], font, TEXT_W)
     for a in weapon_abilities(character):
         # La capacite qui porte le nom de l'arme (Falchion, Yato...) : son texte seul, le titre suffit.
         same = accent(a["name"]) == accent(character.get("weapon") or "")
@@ -133,15 +152,15 @@ def weapon_lines(character, text, font):
     return lines
 
 
-def weapon_height(character, text, font):
+def weapon_height(character, text, font, variant=""):
     if not weapon_abilities(character):
         return 0
-    return (CELL if not text else max(CELL, 22 + len(weapon_lines(character, text, font)) * 18 + 6)) + 4
+    return (CELL if not text else max(CELL, 22 + len(weapon_lines(character, text, font, variant)) * 18 + 6)) + 4
 
 
 def weapon_edge(character):
-    """La bordure de l'arme suit sa premiere capacite : verte pour un passif, jaune pour un actif."""
-    return EDGE if weapon_abilities(character)[0]["type"] == "Passif" else ACTIVE_EDGE
+    """La bordure de l'arme : verte, comme les passifs (sa carte ne porte que des passifs)."""
+    return EDGE
 
 
 def weapon_icon(character):
@@ -149,17 +168,21 @@ def weapon_icon(character):
     return item_texture(character.get("weaponIcon") or weapon_abilities(character)[0].get("icon") or "iron_sword")
 
 
-def draw_weapon(im, d, character, text, font):
-    """La carte de l'arme, en tete de la colonne de gauche : bordure verte (passif) ou jaune (actif), sans fleche ni croix."""
+def draw_weapon(im, d, character, text, font, variant=""):
+    """La carte de l'arme, en tete de la colonne de gauche : bordure verte, sans fleche ni croix."""
     y = MARGIN
     edge = weapon_edge(character)
-    lines = weapon_lines(character, text, font) if text else []
-    h = weapon_height(character, text, font) - 4
+    lines = weapon_lines(character, text, font, variant) if text else []
+    h = weapon_height(character, text, font, variant) - 4
     if text:
         d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=edge)
     d.rectangle([MARGIN, y, MARGIN + CELL - 1, y + CELL - 1], fill=PANEL, outline=edge)
     d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=edge[:3] + (120,))
     im.alpha_composite(weapon_icon(character), (MARGIN + 4, y + 4))
+    if variant:
+        # Une fenetre transparente au coin bas droit de l'icone : le badge d'avancement, porte par l'image de
+        # l'orbe (tools/build_ultime_franuka.py), se dessine dessous et doit se voir a travers.
+        im.paste((0, 0, 0, 0), (MARGIN + 1, y + CELL - 17, MARGIN + CELL + 8, y + CELL - 1))
     if text:
         tx = MARGIN + CELL + 6
         d.text((tx, y + 2), accent(character.get("weapon") or "Arme"), font=font, fill=(230, 232, 245, 255))
@@ -172,19 +195,19 @@ def row_height(a, text, font):
     return CELL if not text else max(CELL, 22 + len(wrap(text_of(a, text), font, TEXT_W)) * 18 + 6)
 
 
-def block_height(character, text, font, weapon=False):
+def block_height(character, text, font, weapon=False, variant=""):
     """La hauteur du bloc de gauche (l'arme si montree, puis les passifs) : la ou commence la carte d'un actif."""
-    return (weapon_height(character, text, font) if weapon else 0) + sum(row_height(a, text, font) + 4 for a in passives(character))
+    return (weapon_height(character, text, font, variant) if weapon else 0) + sum(row_height(a, text, font) + 4 for a in passives(character))
 
 
-def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon=False, no_passives=False, allies=0):
+def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon=False, no_passives=False, allies=0, variant=""):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     y = MARGIN
     if weapon and weapon_abilities(character):
-        draw_weapon(im, d, character, text, font)
-        y += weapon_height(character, text, font)
+        draw_weapon(im, d, character, text, font, variant)
+        y += weapon_height(character, text, font, variant)
     for i, a in enumerate([] if no_passives else passives(character)):
         lit = bool(mask & (1 << i))
         lines = wrap(text_of(a, text), font, TEXT_W) if text else []
@@ -267,6 +290,19 @@ def save(im, path):
     im.quantize(colors=256, method=Image.Quantize.FASTOCTREE).save(path, optimize=True)
 
 
+# Les images se rendent en parallele (un processus par coeur) : chaque tache est (fonction, arguments, chemin).
+def run_jobs(jobs):
+    import multiprocessing, os
+    with multiprocessing.Pool(max(1, os.cpu_count() or 1)) as pool:
+        pool.map(_job, jobs, chunksize=8)
+    return len(jobs)
+
+
+def _job(job):
+    fn, args, kwargs, path = job
+    save(fn(*args, **kwargs), path)
+
+
 def main():
     data = json.loads(DATA.read_text(encoding="utf-8"))
     rec = recipes()
@@ -292,30 +328,30 @@ def main():
         for f in OUT.glob("*.png"):
             f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
-    count = 0
+    jobs = []
     for c in chars:
         # Les passifs masques (/cf hud), la carte de l'arme seule : <perso>_arme_<texte>.
         for text in (0, 1, 2) if weapon_abilities(c) else ():
-            save(render(c, 0, text, rec, font, weapon=True, no_passives=True), OUT / f"{c['id']}_arme_{text}.png")
-            count += 1
+            for v in variants(c):
+                jobs.append((render, (c, 0, text, rec, font), dict(weapon=True, no_passives=True, variant=v), OUT / f"{c['id']}_arme_{text}{v}.png"))
         ally_bits = sum(1 << i for i, a in enumerate(passives(c)) if a["id"] in ALLY_PASSIVES)
         # Les sous-ensembles des passifs allumes qui peuvent agir sur des allies : "a<bits>" dans le nom.
         n_pass = len(passives(c))
         for mask, allies in [(m, am) for m in range(1 << n_pass) for am in range(1 << n_pass) if am & ~(m & ally_bits) == 0]:
             tag = f"{mask}a{allies}" if allies else str(mask)
             # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme (si le personnage en a une).
-            for code in range(6 if weapon_abilities(c) else 3):
+            # Avec la carte de l'arme, ses variantes (Yato : l, t, en minuscules : une cle de ressource) s'ajoutent au code.
+            for code, v in [(k, v) for k in range(6 if weapon_abilities(c) else 3) for v in (variants(c) if k >= 3 else [""])]:
                 text, weapon = code % 3, code >= 3
-                save(render(c, mask, text, rec, font, weapon=weapon, allies=allies), OUT / f"{c['id']}_{tag}_{code}.png")
-                count += 1
+                jobs.append((render, (c, mask, text, rec, font), dict(weapon=weapon, allies=allies, variant=v), OUT / f"{c['id']}_{tag}_{code}{v}.png"))
                 # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est
                 # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
                 for i in range(len(passives(c))):
                     lit = mask & (1 << i)
                     for frame in range(1, len(FRAMES if lit else CROSS) + 1):
-                        im = render(c, mask, text, rec, font, frame=frame, only=i, weapon=weapon, allies=allies) if lit else render(c, mask, text, rec, font, cross=frame, only=i, weapon=weapon, allies=allies)
-                        save(im, OUT / f"{c['id']}_{tag}_{code}_{'' if lit else 'x'}{i}_{frame}.png")
-                        count += 1
+                        kw = dict(frame=frame, only=i, weapon=weapon, allies=allies, variant=v) if lit else dict(cross=frame, only=i, weapon=weapon, allies=allies, variant=v)
+                        jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}_{'' if lit else 'x'}{i}_{frame}.png"))
+    count = run_jobs(jobs)
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
 

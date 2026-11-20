@@ -68,6 +68,15 @@ public final class EffectHud implements Listener {
     private void update() {
         tick++;
         for (Player p : Bukkit.getOnlinePlayers()) {
+            try { updateOne(p); }
+            catch (Exception ex) { if (!warned) { warned = true; plugin.getLogger().warning("HUD de " + p.getName() + " : " + ex); } }
+        }
+    }
+
+    private boolean warned;
+
+    private void updateOne(Player p) {
+        {
             State st = states.computeIfAbsent(p.getUniqueId(), k -> new State());
             // Rien pendant le choix du personnage : l'ecran est aux cartes.
             boolean active = enabled() && plugin.game().isRunning() && !p.isDead() && !plugin.selection().isViewing(p)
@@ -99,7 +108,7 @@ public final class EffectHud implements Listener {
             st.influence1 = self != null ? self : inf.size() > 1 ? inf.get(1) : null;
             if (st.ultImage == null && st.passiveImage == null && st.influence0 == null && st.influence1 == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
-                continue;
+                return;
             }
             // Renvoye a chaque tick : un clic dans l'inventaire ou une mise a jour du serveur efface l'objet.
             send(p, st);
@@ -134,8 +143,11 @@ public final class EffectHud implements Listener {
         if (!showsUltimate(p)) return null;
         CfPlayer cf = plugin.players().get(p);
         if (cf == null || cf.character() == null) return null;
-        if (cf.isUltimateReady()) return "overlay_ult/ult_pret_" + (tick / 10 % 2);
-        return String.format("overlay_ult/ult_%02d", Math.max(0, Math.min(19, (int) (cf.ultimateCharge() / 5))));
+        // L'avancement de l'arme (les kills de la Yato) : un petit badge sur la carte de l'arme, porte par l'image de l'orbe.
+        String variant = PassiveHud.weaponShown(p, cf.character()) ? cf.character().hudOrbVariant(p) : "";
+        String folder = !variant.isEmpty() && com.kiokouwhite.crossfight.util.Sounds.has("overlay." + variant) ? "overlay_ult/" + variant + "/" : "overlay_ult/";
+        if (cf.isUltimateReady()) return folder + "ult_pret_" + (tick / 10 % 2);
+        return String.format(folder + "ult_%02d", Math.max(0, Math.min(19, (int) (cf.ultimateCharge() / 5))));
     }
 
     /** Vrai si ce joueur a l'orbe de l'ultime a l'ecran (le pack d'interface charge, hud.ultime) : la charge n'a alors plus a etre ecrite ailleurs. */
