@@ -60,12 +60,12 @@ FOR_YOU_SHORT = {
 }
 
 
-# Ce que la capacite d'un adversaire te fait, ou ce dont elle te previent (le Contre de Marth) ; a defaut, sa description.
+# Ce que la capacite d'un adversaire vient de te faire, dit pour toi (le Contre de Marth) ; a defaut, sa description.
 FROM_ENEMY = {
-    "marth_contre": "Marth se tient en garde : si vous le frappez maintenant, vous subissez le double de vos dégâts, vous êtes éjecté et immobilisé 1 seconde.",
+    "marth_contre": "Vous avez frappé Marth pendant son Contre : vos dégâts vous sont renvoyés, vous êtes éjecté et immobilisé 1 seconde.",
 }
 FROM_ENEMY_SHORT = {
-    "marth_contre": "Ne frappez pas Marth : dégâts x2, éjection, stun",
+    "marth_contre": "Contre de Marth : dégâts renvoyés, éjection, stun 1 s",
 }
 
 

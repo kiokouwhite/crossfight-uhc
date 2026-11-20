@@ -139,7 +139,6 @@ public final class Marth extends Character {
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             long until = System.currentTimeMillis() + 1000L;
             st.set("counterUntil", until);
-            warnEnemies(p, 12, 25);
             // Marth tient la pose sans bouger pendant toute la seconde (il peut encore tourner la tete).
             Effects.root(p, 20);
             p.playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1.6f);
@@ -180,6 +179,8 @@ public final class Marth extends Character {
             Location face = victim.getLocation().clone(); face.setDirection(toward);
             victim.teleport(face);
             attacker.setNoDamageTicks(0);
+            // Celui qui a frappe pendant le Contre : a droite de son ecran, pourquoi il a pris le coup (4 s).
+            if (attacker instanceof Player hit) explainTo(hit, 80);
             Effects.damage(attacker, dmg, victim);
             // Projection au loin, comme dans Melee : l'adversaire part en cloche, puis reste immobilise 1 s en retombant.
             attacker.setVelocity(toward.clone().multiply(2.2).setY(0.85));
