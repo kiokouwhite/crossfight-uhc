@@ -96,7 +96,7 @@ def spark(im, x, y):
 PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (255, 214, 120, 255), (120, 100, 90, 220)
 
 
-def render(character, mask, text, rec, font, frame=0, cross=0):
+def render(character, mask, text, rec, font, frame=0, cross=0, only=None):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
@@ -122,7 +122,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0):
         arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 32)
         arrow = arrow.crop(arrow.getbbox()).resize((BADGE, BADGE), Image.NEAREST)
         ax, ay = MARGIN + CELL - BADGE + 3, y + CELL - BADGE
-        if lit and frame:
+        if lit and frame and i == only:
             dy, alpha, glow, sparkle = FRAMES[frame - 1]
             if glow:      # un halo vert qui pulse derriere la fleche
                 halo = Image.new("RGBA", im.size, (0, 0, 0, 0))
@@ -136,7 +136,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0):
             if sparkle:
                 spark(im, ax + BADGE - 1, ay + dy + 2)
                 spark(im, ax + 2, ay + dy + 6)
-        elif not lit and cross:
+        elif not lit and cross and i == only:
             size, dx, glow = CROSS[cross - 1]
             cx, cy = ax + BADGE // 2 + dx, ay + BADGE // 2
             if glow:      # un halo rouge qui claque derriere la croix
@@ -184,14 +184,14 @@ def main():
             for text in (0, 1):
                 render(c, mask, text, rec, font).save(OUT / f"{c['id']}_{mask}_{text}.png", optimize=True)
                 count += 1
-                # Les etapes de l'animation, quand au moins un passif est allume.
-                for frame in range(1, len(FRAMES) + 1) if mask else ():
-                    render(c, mask, text, rec, font, frame).save(OUT / f"{c['id']}_{mask}_{text}_{frame}.png", optimize=True)
-                    count += 1
-                # ... et celles de la croix, quand au moins un passif est eteint.
-                for frame in range(1, len(CROSS) + 1) if mask != (1 << len(passives(c))) - 1 else ():
-                    render(c, mask, text, rec, font, cross=frame).save(OUT / f"{c['id']}_{mask}_{text}_x{frame}.png", optimize=True)
-                    count += 1
+                # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est
+                # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
+                for i in range(len(passives(c))):
+                    lit = mask & (1 << i)
+                    for frame in range(1, len(FRAMES if lit else CROSS) + 1):
+                        im = render(c, mask, text, rec, font, frame=frame, only=i) if lit else render(c, mask, text, rec, font, cross=frame, only=i)
+                        im.save(OUT / f"{c['id']}_{mask}_{text}_{'' if lit else 'x'}{i}_{frame}.png", optimize=True)
+                        count += 1
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
 
