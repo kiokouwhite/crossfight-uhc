@@ -41,6 +41,19 @@ public final class Clones implements Listener {
     public static final String TAG = "cf_clone";
     private static final NamespacedKey OWNER_KEY = new NamespacedKey("crossfight", "clone_owner");
     private static final Map<UUID, BiConsumer<LivingEntity, Player>> ON_HIT = new HashMap<>();
+    /** Ce que fait un clone qui finit sans avoir ete frappe (il atteint sa cible, ou sa duree de vie s'acheve). */
+    private static final Map<UUID, java.util.function.Consumer<LivingEntity>> ON_END = new HashMap<>();
+
+    /** Declare ce que fait ce clone s'il finit sans avoir ete frappe : en atteignant sa cible, ou au bout de sa duree de vie (les clones de Bumblebee explosent). */
+    public static void onEnd(LivingEntity clone, java.util.function.Consumer<LivingEntity> end) {
+        if (clone != null && end != null) ON_END.put(clone.getUniqueId(), end);
+    }
+
+    private static void finish(Mannequin m) {
+        var end = ON_END.remove(m.getUniqueId());
+        if (end != null) end.accept(m);
+        remove(m);
+    }
     /** Vitesse de course des clones, en blocs par tick (7 blocs par seconde). */
     private static final double SPEED = 0.35;
 
@@ -136,7 +149,7 @@ public final class Clones implements Listener {
                 ticks++;
                 if (!m.isValid()) { cancel(); return; }
                 if (ticks > lifetimeTicks || target == null || !target.isValid() || target.isDead() || !target.getWorld().equals(m.getWorld())) {
-                    remove(m);
+                    finish(m);
                     cancel();
                     return;
                 }
@@ -144,8 +157,8 @@ public final class Clones implements Listener {
                 Vector to = target.getLocation().toVector().subtract(cur.toVector());
                 double flat = Math.sqrt(to.getX() * to.getX() + to.getZ() * to.getZ());
                 if (flat <= 1.2 && Math.abs(to.getY()) < 2.5) {
-                    // Le clone atteint l'ennemi sans avoir ete frappe : il se dissipe.
-                    remove(m);
+                    // Le clone atteint l'ennemi sans avoir ete frappe : il se dissipe (ou fait ce qu'il a a faire : onEnd).
+                    finish(m);
                     cancel();
                     return;
                 }
@@ -177,6 +190,7 @@ public final class Clones implements Listener {
 
     public static void remove(LivingEntity clone) {
         ON_HIT.remove(clone.getUniqueId());
+        ON_END.remove(clone.getUniqueId());
         clone.getWorld().spawnParticle(Particle.SMOKE, clone.getLocation().add(0, 1, 0), 25, 0.3, 0.5, 0.3, 0.03);
         clone.getWorld().playSound(clone.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.4f, 1.4f);
         clone.remove();
@@ -185,6 +199,7 @@ public final class Clones implements Listener {
     public static void removeAll() {
         for (var w : Bukkit.getWorlds()) for (LivingEntity e : w.getLivingEntities()) if (isClone(e)) e.remove();
         ON_HIT.clear();
+        ON_END.clear();
     }
 
     /** Le clone appartient-il a l'equipe de ce joueur ? */

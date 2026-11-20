@@ -383,6 +383,12 @@ public final class AbilityEngine implements Listener {
     }
 
     public void use(Player p, CfPlayer cf, Ability a) {
+        // Le HUD sait ainsi laquelle sert, quand plusieurs capacites partagent une classe (Enfermement et Etouffement d'Arlo...).
+        com.kiokouwhite.crossfight.hud.InfluenceHud.using(a);
+        try { useNow(p, cf, a); } finally { com.kiokouwhite.crossfight.hud.InfluenceHud.using(null); }
+    }
+
+    private void useNow(Player p, CfPlayer cf, Ability a) {
         AbilityState st = state(p, a);
         if (cf.isSilenced() && a.type() != AbilityType.PASSIVE) {
             Msg.actionBar(p, "<red>Capacites annulees : encore " + cf.silencedLeftSeconds() + "s");

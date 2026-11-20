@@ -373,10 +373,13 @@ public final class Arlo extends Character implements Listener {
                 if (c.target.isDead() || !c.target.isValid() || c.target.getWorld() != p.getWorld()) { release(p, c, null); continue; }
                 if (!spend(p, suffocate ? 10 : 5)) { release(p, c, "plus d'Aura"); continue; }
                 Effects.root(c.target, 30);
+                // Sa carte a droite de son ecran tant que la cage tient : celle de cette capacite-ci (Enfermement ou Etouffement,
+                // une meme classe pour les deux).
+                if (c.target instanceof Player tp) com.kiokouwhite.crossfight.hud.InfluenceHud.threat(tp, this, false, 30);
                 if (suffocate) {
                     c.target.setNoDamageTicks(0);
                     Effects.damage(c.target, 2.0, p);
-                    c.target.getWorld().spawnParticle(Particle.SQUID_INK, c.target.getLocation().add(0, 1, 0), 8, 0.3, 0.5, 0.3, 0.02);
+                    c.target.getWorld().spawnParticle(Particle.SQUID_INK, c.target.getLocation().add(0, 1.4, 0), 8, 0.3, 0.2, 0.3, 0.02);
                 }
             }
         }

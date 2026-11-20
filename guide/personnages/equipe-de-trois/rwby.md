@@ -48,7 +48,7 @@ Weiss dessine un glyphe de 12 blocs de large au sol, sur l'adversaire le plus pr
 
 Blake Belladonna et Yang Xiao Long
 
-Blake pose la main sur le dos de Yang : trois clones de Yang sortent d'elle et foncent sur les trois adversaires les plus proches (40 blocs). Quand un adversaire attaque un clone, celui-ci explose : 3 cœurs, et l'adversaire prend feu.
+Blake pose la main sur le dos de Yang : trois clones de Yang sortent d'elle et foncent sur les trois adversaires les plus proches (40 blocs). Chaque clone explose en atteignant sa cible, quand on l'attaque, ou au bout de 20 secondes : 3 cœurs aux adversaires à 3 blocs, qui prennent feu.
 
 ## Personnages
 

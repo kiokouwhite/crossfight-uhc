@@ -29,6 +29,7 @@ TITLE_ALLY, TITLE_ENEMY = (160, 200, 255, 255), (255, 150, 130, 255)
 
 # Ce que la capacite d'un allie te fait, dit pour toi. A defaut, la description de la capacite.
 FOR_YOU = {
+    "duo_ruby_weiss": "Vous êtes sur la patinoire d'Ice Flower : Vitesse III tant que vous y restez.",
     "marth_charisme": "Tant que vous êtes à moins de 10 blocs de Marth, vous avez Vitesse.",
     "marth_leader": "Tant que Marth a plus de 5 cœurs, vous avez Force.",
     "marth_ult": "Marth a touché des ennemis avec Coup Critique : vous avez Force (un niveau par ennemi touché) pendant 1 minute.",
@@ -46,6 +47,7 @@ FOR_YOU = {
 
 # La version courte (reglage Textes courts) de ce qu'un allie te fait ; a defaut, le texte court de la capacite.
 FOR_YOU_SHORT = {
+    "duo_ruby_weiss": "Ice Flower : Vitesse III",
     "marth_charisme": "Vitesse près de Marth (10 blocs)",
     "marth_leader": "Force tant que Marth a > 5 PV",
     "marth_ult": "Force 1 min (Coup Critique)",
@@ -79,6 +81,10 @@ FROM_ENEMY = {
     "yuki_ult": "Yuki est Imparfaite : Obscurité et Lenteur II pendant 20 secondes.",
     "aida_bulle": "Vous avez touché une bulle d'Aïda : immobilisé 3 secondes.",
     "aida_jet": "Le jet d'eau d'Aïda vous a touché : Lenteur 5 secondes.",
+    "duo_weiss_yang": "Vous êtes sur le glyphe de Freezerburn : ralenti et enflammé tant que vous y restez.",
+    "duo_weiss_blake": "Checkmate : le coup de Weiss ou de Blake vous gèle sur place 5 secondes.",
+    "duo_blake_yang": "Un clone de Yang a explosé près de vous : 3 cœurs et vous brûlez.",
+    "duo_ruby_yang": "Strawberry Sunrise : Ruby vous a percuté, 5 cœurs.",
     "yang_colere": "La Colère Flamboyante de Yang : ses coups vous enflamment.",
     "weiss_glyphs1": "Un Glyph de Weiss vous a touché : feu, cage de glace, recul ou Lenteur II selon sa Dust.",
     "weiss_glyphs2": "Un Glyph de Weiss vous a pris : feu, foudre, envol ou sol qui s'ouvre selon sa Dust.",
@@ -144,6 +150,10 @@ FROM_ENEMY_SHORT = {
     "yuki_ult": "Imparfaite : Obscurité + Lenteur II 20 s",
     "aida_bulle": "Bulle d'Aïda : stun 3 s",
     "aida_jet": "Jet d'Aïda : Lenteur 5 s",
+    "duo_weiss_yang": "Freezerburn : Lenteur + feu",
+    "duo_weiss_blake": "Checkmate : gelé 5 s",
+    "duo_blake_yang": "Clone de Yang : 3 PV, feu",
+    "duo_ruby_yang": "Strawberry Sunrise : 5 PV",
     "yang_colere": "Colère de Yang : feu",
     "weiss_glyphs1": "Glyph de Weiss : selon sa Dust",
     "weiss_glyphs2": "Glyph de Weiss : selon sa Dust",
@@ -257,7 +267,29 @@ def render(a, who, row, text, ally, rec, font, slide=0.0, seconds=None, small=No
 
 def sides(a):
     """Les camps possibles : tout peut venir d'un adversaire ; d'un allie, ce qui est ecrit pour (FOR_YOU) ou parle d'allies."""
+    if a["id"] in DUO_SIDES:
+        return DUO_SIDES[a["id"]]
     return ("a", "e") if a["id"] in FOR_YOU or "allie" in a["description"].lower() else ("e",)
+
+
+# Les Ultimes en Duo de RWBY ne sont pas des capacites du plugin (un seul objet pour les six) : ceux qui touchent
+# un autre joueur ont pourtant leur carte, a leur nom et avec leur icone ("duo_<a>_<b>", RWBY.duos). Le camp ou
+# chacun se montre : aux adversaires qu'il gene, aux allies qu'il aide (la patinoire d'Ice Flower).
+DUO_SIDES = {"duo_weiss_yang": ("e",), "duo_weiss_blake": ("e",), "duo_blake_yang": ("e",), "duo_ruby_yang": ("e",), "duo_ruby_weiss": ("a",)}
+# Ceux dont l'effet a une duree : la carte porte son compte a rebours (Checkmate : gele 5 secondes).
+DUO_TIMED = {"duo_weiss_blake"}
+
+
+def duo_items(data):
+    """Les cartes des Ultimes en Duo : une fausse capacite par paire, au nom de l'attaque, signee des deux prenoms."""
+    out = []
+    for l in data:
+        first = {c["id"]: c["name"].split()[0] for c in l["characters"]}
+        for d in l.get("duos", []):
+            if d["id"] in DUO_SIDES:
+                out.append(({"id": d["id"], "name": d["name"], "description": d["description"], "type": "Actif", "weapon": False, "icon": "amethyst_cluster"},
+                            f"{first[d['a']]} et {first[d['b']]}"))
+    return out
 
 
 def main():
@@ -265,8 +297,8 @@ def main():
     rec = bp.recipes()
     font = ImageFont.truetype(str(bp.FONT), 24)
     small = ImageFont.truetype(str(bp.FONT), 16)
-    timed = timed_on_others()
-    pairs = [(a, c["name"]) for l in data for c in l["characters"] for a in c["abilities"]]
+    timed = timed_on_others() | DUO_TIMED
+    pairs = [(a, c["name"]) for l in data for c in l["characters"] for a in c["abilities"]] + duo_items(data)
     seen, items = set(), []
     for a, who in pairs:                # une capacite commune (Synergie, Burst...) une seule fois
         if a["id"] not in seen:

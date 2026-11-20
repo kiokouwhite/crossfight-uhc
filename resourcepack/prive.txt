@@ -626,7 +626,13 @@ influence.drifter_grenade.e
 influence.drifter_guns.e
 influence.drifter_hardlight.e
 influence.drifter_ult.e
+influence.duo_blake_yang.e
+influence.duo_ruby_weiss.a
+influence.duo_ruby_yang.e
 influence.duo_synergie.e
+influence.duo_weiss_blake.e
+influence.duo_weiss_blake.e.s
+influence.duo_weiss_yang.e
 influence.eirika_absorption.e
 influence.eirika_effroi.e
 influence.eirika_effroi.e.s

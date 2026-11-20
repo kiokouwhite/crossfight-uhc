@@ -150,9 +150,17 @@ public final class InfluenceHud {
      * sa carte a droite, en adversaire ou en allie, pendant {@code ticks}.
      */
     public static void threat(Player target, Ability a, boolean ally, int ticks) {
-        if (target == null || a == null) return;
+        if (a != null) threat(target, a.id(), ally, ticks);
+    }
+
+    /**
+     * La meme carte, par son identifiant : ce qui n'est pas une capacite du plugin mais a ses images
+     * (un Ultime en Duo de RWBY, "duo_weiss_yang" : tools/build_influences.py, DUO_SIDES).
+     */
+    public static void threat(Player target, String id, boolean ally, int ticks) {
+        if (target == null || id == null) return;
         long now = System.currentTimeMillis();
-        Influence inf = BY.computeIfAbsent(target.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id(), k -> new Influence(a.id(), ally));
+        Influence inf = BY.computeIfAbsent(target.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(id, k -> new Influence(id, ally));
         inf.keys.merge("avert", now + ticks * 50L, Math::max);
         inf.touched = now;
     }
@@ -311,10 +319,24 @@ public final class InfluenceHud {
         return "actif/" + id;
     }
 
-    /** La capacite dont une classe apparait dans la pile d'appels (la plus proche), ou null. */
+    /** La capacite que le moteur est en train de lancer (AbilityEngine.use), ou null. */
+    private static final ThreadLocal<Ability> USING = new ThreadLocal<>();
+    /** Les classes que plusieurs capacites partagent (Enfermement et Etouffement d'Arlo, les pouvoirs de titans, les tomes). */
+    private static final Set<Class<?>> SHARED = new HashSet<>();
+
+    public static void using(Ability a) { USING.set(a); }
+
+    /**
+     * La capacite dont une classe apparait dans la pile d'appels (la plus proche), ou null. Quand cette classe sert
+     * a plusieurs capacites, c'est celle que le moteur lance en ce moment si elle en est ; sinon on ne sait pas
+     * laquelle, et la capacite doit se declarer elle-meme ({@link #threat}).
+     */
     private static Ability caller() {
-        return StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(frames -> frames
+        Ability found = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(frames -> frames
                 .map(f -> ability(f.getDeclaringClass())).filter(java.util.Objects::nonNull).findFirst().orElse(null));
+        if (found == null || !SHARED.contains(found.getClass())) return found;
+        Ability now = USING.get();
+        return now != null && now.getClass() == found.getClass() ? now : null;
     }
 
     private static Ability ability(Class<?> c) {
@@ -332,7 +354,11 @@ public final class InfluenceHud {
             owners = new HashMap<>();
             for (Licence l : CrossfightPlugin.get().characters().licences())
                 for (Character c : l.characters())
-                    for (Ability a : c.allAbilities()) { classes.putIfAbsent(a.getClass(), a); owners.putIfAbsent(a, c); }
+                    for (Ability a : c.allAbilities()) {
+                        Ability first = classes.putIfAbsent(a.getClass(), a);
+                        if (first != null && first != a) SHARED.add(a.getClass());
+                        owners.putIfAbsent(a, c);
+                    }
         }
         return classes;
     }

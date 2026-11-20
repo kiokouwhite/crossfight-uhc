@@ -83,7 +83,7 @@ final class DuoUltimates {
         if (pair.equals(java.util.Set.of("ruby", "blake"))) return "Blake prend la main de Ruby et elles s'enfoncent ensemble dans une flaque noire : toutes deux sont invisibles et ont Vitesse III pendant 30 secondes.";
         if (pair.equals(java.util.Set.of("weiss", "yang"))) return "Weiss dessine un glyphe de 12 blocs de large au sol, sur l'adversaire le plus proche (10 blocs) ou devant elle. Yang bondit dessus et le frappe trois fois du poing : a chaque coup, un pic de glace en flammes jaillit. Pendant 30 secondes, les adversaires sur le glyphe sont ralentis et prennent feu.";
         if (pair.equals(java.util.Set.of("weiss", "blake"))) return "Weiss dessine un glyphe sous elle et Blake ; elles sautent dessus ensemble et une enorme flaque noire les engloutit. Toutes deux sont invisibles 10 secondes, et chaque adversaire qu'elles frappent est immobilise 5 secondes.";
-        if (pair.equals(java.util.Set.of("blake", "yang"))) return "Blake pose la main sur le dos de Yang : trois clones de Yang sortent d'elle et foncent sur les trois adversaires les plus proches (40 blocs). Quand un adversaire attaque un clone, celui-ci explose : 3 coeurs, et l'adversaire prend feu.";
+        if (pair.equals(java.util.Set.of("blake", "yang"))) return "Blake pose la main sur le dos de Yang : trois clones de Yang sortent d'elle et foncent sur les trois adversaires les plus proches (40 blocs). Chaque clone explose en atteignant sa cible, quand on l'attaque, ou au bout de 20 secondes : 3 coeurs aux adversaires a 3 blocs, qui prennent feu.";
         return "";
     }
 
@@ -210,7 +210,10 @@ final class DuoUltimates {
                     for (Player p : w.getPlayers()) {
                         if (side == null || !(p == side || Effects.isAlly(side, p))) continue;
                         Block under = p.getLocation().subtract(0, 0.1, 0).getBlock();
-                        if (rink.contains(under)) Effects.refresh(p, PotionEffectType.SPEED, 2, 45);
+                        if (!rink.contains(under)) continue;
+                        Effects.refresh(p, PotionEffectType.SPEED, 2, 45);
+                        // La carte bleue des allies sur la patinoire (pas pour les deux qui l'ont lancee).
+                        if (p != ruby && p != weiss) card(p, "duo_ruby_weiss", true, 40);
                     }
                     // La couronne de petales reste sur le bord de la patinoire.
                     for (int i = 0; i < 40; i++) {
@@ -249,6 +252,11 @@ final class DuoUltimates {
         if (armed && id.equals("ruby")) held = e instanceof Player p ? Ruby.weapon(p) : new ItemStack(Material.DIAMOND_HOE);
         if (armed && id.equals("weiss")) held = e instanceof Player p ? Weiss.sword(p) : new ItemStack(Material.DIAMOND_SWORD);
         return Puppet.show(e, id, held, "debout");
+    }
+
+    /** La carte d'un Ultime en Duo en haut a droite de l'ecran de celui qu'il touche (adversaire gene, allie aide), pendant {@code ticks}. */
+    private static void card(LivingEntity touched, String duo, boolean ally, int ticks) {
+        if (touched instanceof Player p) com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, duo, ally, ticks);
     }
 
     /** Vrai tant que ce pantin est bien celui qui joue l'animation de {@code e}. */
@@ -365,6 +373,7 @@ final class DuoUltimates {
                     if (hit.contains(enemy.getUniqueId())) continue;
                     hit.add(enemy.getUniqueId());
                     Effects.damage(enemy, 10.0, ruby);
+                    card(enemy, "duo_ruby_yang", false, 60);
                     w.playSound(enemy.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.8f);
                 }
                 if (flight < 12) ruby.setVelocity(dir.clone().multiply(1.2).setY(ruby.getVelocity().getY()));
@@ -574,6 +583,8 @@ final class DuoUltimates {
                     for (LivingEntity enemy : Effects.enemiesAround(weiss, center.clone().add(0, 1, 0), FB_RADIUS)) {
                         enemy.setFireTicks(Math.max(enemy.getFireTicks(), 100));
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 100);
+                        // Sa carte rouge, tant qu'il reste sur le glyphe.
+                        card(enemy, "duo_weiss_yang", false, 40);
                     }
                 }
             }
@@ -663,6 +674,7 @@ final class DuoUltimates {
         Long until = FREEZING_HITS.get(attacker.getUniqueId());
         if (until == null || System.currentTimeMillis() > until) return;
         Effects.root(victim, 100);
+        card(victim, "duo_weiss_blake", false, 100);
         victim.getWorld().spawnParticle(Particle.SNOWFLAKE, victim.getLocation().add(0, 1, 0), 25, 0.4, 0.6, 0.4, 0.02);
         victim.getWorld().playSound(victim.getLocation(), Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 1f);
         Effects.say(victim, "<aqua>Gele sur place !");
@@ -677,8 +689,24 @@ final class DuoUltimates {
     /**
      * Blake apparait derriere Yang et pose la main a plat sur son dos : son ombre la traverse, et trois clones de
      * Yang sortent d'elle, a sa gauche, a sa droite et devant. Ils foncent sur les trois ennemis les plus proches
-     * et explosent (3 coeurs) quand on les frappe.
+     * et explosent dans tous les cas (3 coeurs a 3 blocs) : en l'atteignant, quand on les frappe, ou au bout de 20 secondes.
      */
+    /** L'explosion d'un clone de Yang : 3 coeurs et le feu aux adversaires a 3 blocs, et a celui qui l'a frappe ou qu'il soit. */
+    static void explode(LivingEntity yang, Location at, LivingEntity attacker) {
+        World w = at.getWorld();
+        w.spawnParticle(Particle.EXPLOSION, at, 2);
+        w.spawnParticle(Particle.FLAME, at, 40, 0.6, 0.6, 0.6, 0.05);
+        w.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.2f);
+        java.util.Set<LivingEntity> hit = new java.util.LinkedHashSet<>(Effects.enemiesAround(yang, at, 3.0));
+        if (attacker != null) hit.add(attacker);
+        for (LivingEntity e : hit) {
+            if (Clones.isClone(e)) continue;
+            Effects.damage(e, 6.0, yang);
+            e.setFireTicks(Math.max(e.getFireTicks(), 60));
+            card(e, "duo_blake_yang", false, 60);
+        }
+    }
+
     static boolean leurresExplosifs(LivingEntity yang, LivingEntity blake) {
         Player owner = Effects.sideOf(yang);
         if (owner == null) return false;
@@ -719,14 +747,17 @@ final class DuoUltimates {
                 for (int i = 0; i < 3; i++) {
                     if (t != BB_FIRST + i * BB_EVERY) continue;
                     LivingEntity target = i < enemies.size() ? enemies.get(i) : (enemies.isEmpty() ? null : enemies.get(i % enemies.size()));
-                    LivingEntity clone = Clones.spawn(owner, yang, target, 20 * 20, (c, attacker) -> {
-                        World cw = c.getWorld();
-                        cw.spawnParticle(Particle.EXPLOSION, c.getLocation().add(0, 1, 0), 2);
-                        cw.spawnParticle(Particle.FLAME, c.getLocation().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);
-                        cw.playSound(c.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.2f);
-                        Effects.damage(attacker, 6.0, yang);
-                        attacker.setFireTicks(Math.max(attacker.getFireTicks(), 60));
-                    }, BB_RUN - t);
+                    // Un clone explose dans tous les cas : frappe, arrive sur sa cible, ou au bout de 20 secondes.
+                    LivingEntity clone = Clones.spawn(owner, yang, target, 20 * 20, (c, attacker) -> explode(yang, c.getLocation().add(0, 1, 0), attacker), BB_RUN - t);
+                    Clones.onEnd(clone, c -> explode(yang, c.getLocation().add(0, 1, 0), null));
+                    if (target == null && clone != null) {
+                        // Personne a viser : il reste sur place, puis explose.
+                        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> {
+                            if (!clone.isValid()) return;
+                            explode(yang, clone.getLocation().add(0, 1, 0), null);
+                            Clones.remove(clone);
+                        }, BB_RUN - t + 60L);
+                    }
                     // Le clone sort d'elle : une trainee d'ombre de son dos jusqu'a sa place.
                     Location spot = standable(spots[i]) ? spots[i].clone() : yl.clone();
                     spot.setYaw(yaw);
