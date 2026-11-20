@@ -24,7 +24,7 @@ Temps de chargement : 20 secondes
 
 ### Titan Colossal
 
-(Actif) Vapeur brûlante : les adversaires à 5 blocs prennent 1 cœur et brulent. À la mort du Titan : zone de chaleur de 7 blocs pendant 5 s.
+(Actif) Vapeur brûlante : les adversaires à 5 blocs prennent 1 cœur et brûlent. À la mort du Titan : zone de chaleur de 7 blocs pendant 5 s.
 
 Temps de chargement : 20 secondes
 

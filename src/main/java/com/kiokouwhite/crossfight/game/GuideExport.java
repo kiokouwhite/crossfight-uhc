@@ -51,6 +51,21 @@ public final class GuideExport {
                 }
                 out.append("]");
             }
+            // Groupes duo : la Synergie de chaque paire de personnages de la licence.
+            if (!l.id().equals("rwby")) {
+                StringBuilder duos = new StringBuilder();
+                var people = l.characters();
+                for (int i = 0; i < people.size(); i++) for (int j = i + 1; j < people.size(); j++) {
+                    String a = people.get(i).id(), b = people.get(j).id();
+                    var ef = com.kiokouwhite.crossfight.character.duo.Synergy.effectOf(a, b);
+                    if (ef == null) continue;
+                    if (duos.length() > 0) duos.append(',');
+                    duos.append("\n {\"id\":").append(q("syn_" + com.kiokouwhite.crossfight.character.duo.Synergy.pairKey(a, b).replace('|', '_')))
+                        .append(",\"name\":").append(q(ef.name())).append(",\"a\":").append(q(a)).append(",\"b\":").append(q(b))
+                        .append(",\"description\":").append(q(ef.description())).append('}');
+                }
+                if (duos.length() > 0) out.append(",\"duos\":[").append(duos).append("]");
+            }
             out.append(",\"characters\":[");
             boolean firstChar = true;
             for (Character c : l.characters()) {

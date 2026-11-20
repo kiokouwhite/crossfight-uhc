@@ -57,6 +57,9 @@ public final class Synergy implements LicenceMechanic {
     /** Declare la synergie de deux personnages. */
     public static void register(String charA, String charB, Effect effect) { EFFECTS.put(pairKey(charA, charB), effect); }
 
+    /** La Synergie de deux personnages, par leurs identifiants (null s'ils n'en ont pas) : pour le guide. */
+    public static Effect effectOf(String charA, String charB) { return EFFECTS.get(pairKey(charA, charB)); }
+
     public static Effect effectOf(LivingEntity a, LivingEntity b) {
         String ca = characterOf(a), cb = characterOf(b);
         if (ca == null || cb == null) return null;

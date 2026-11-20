@@ -2,7 +2,7 @@
 
 ## Particularité
 
-À chaque mort, un effet passif aléatoire de plus : regeneration, cœurs, feu, vitesse hors combat, explosion au kill (cumulables).
+À chaque mort, un effet passif aléatoire de plus : régénération, cœurs, feu, vitesse hors combat, explosion au kill (cumulables).
 
 ## Personnages
 
