@@ -149,8 +149,9 @@ public final class EffectHud implements Listener {
 
     private static boolean has(Player p, PotionEffectType type) {
         PotionEffect e = p.getPotionEffect(type);
-        // Un effet sans icone est technique (l'invisibilite d'un pantin d'animation...) : on l'ignore.
-        return e != null && e.hasIcon();
+        // Un effet sans icone est technique (l'invisibilite d'un pantin d'animation...) : on l'ignore,
+        // sauf si c'est nous qui avons cache son icone (hud.icones-minecraft).
+        return e != null && (e.hasIcon() || HIDDEN.contains(p.getUniqueId() + ":" + type.getKey()));
     }
 
     Set<String> bonuses(Player p) {
@@ -185,18 +186,28 @@ public final class EffectHud implements Listener {
      */
     @EventHandler(ignoreCancelled = true, priority = org.bukkit.event.EventPriority.MONITOR)
     public void onEffect(org.bukkit.event.entity.EntityPotionEffectEvent e) {
-        if (!(e.getEntity() instanceof Player p) || plugin.getConfig().getBoolean("hud.icones-minecraft", false)) return;
+        if (!(e.getEntity() instanceof Player p) || hiding) return;
         PotionEffect fx = e.getNewEffect();
-        if (fx == null || !fx.hasIcon()) return;
+        String key = p.getUniqueId() + ":" + (fx != null ? fx.getType() : e.getModifiedType()).getKey();
+        // Un effet sans icone donne par un autre que nous est technique (l'invisibilite d'un pantin...).
+        if (fx == null || !fx.hasIcon()) { HIDDEN.remove(key); return; }
+        if (plugin.getConfig().getBoolean("hud.icones-minecraft", false)) return;
         Bukkit.getScheduler().runTask(plugin, () -> hideIcon(p, fx.getType()));
     }
+
+    /** Les effets dont nous avons cache l'icone : de vrais bonus ou malus, a compter comme tels. */
+    private static final Set<String> HIDDEN = new java.util.HashSet<>();
+    private static boolean hiding;
 
     /** Remet l'effet en cours de ce type sans son icone. */
     private static void hideIcon(Player p, PotionEffectType type) {
         if (!p.isOnline()) return;
         PotionEffect cur = p.getPotionEffect(type);
         if (cur == null || !cur.hasIcon()) return;
-        p.addPotionEffect(new PotionEffect(type, cur.getDuration(), cur.getAmplifier(), cur.isAmbient(), cur.hasParticles(), false));
+        hiding = true;
+        try { p.addPotionEffect(new PotionEffect(type, cur.getDuration(), cur.getAmplifier(), cur.isAmbient(), cur.hasParticles(), false)); }
+        finally { hiding = false; }
+        HIDDEN.add(p.getUniqueId() + ":" + type.getKey());
     }
 
     /** A l'arrivee, les effets deja portes perdent leur icone aussi. */
