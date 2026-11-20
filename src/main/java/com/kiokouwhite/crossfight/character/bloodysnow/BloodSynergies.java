@@ -59,6 +59,7 @@ final class BloodSynergies implements Listener {
                 RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), 4, 0.8, e -> e instanceof LivingEntity le && Effects.isEnemy(p, le));
                 if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) { Msg.actionBar(p, "<red>Home Run : vise un ennemi a 4 blocs."); return true; }
                 Kaze.homeRun(p, target);
+                Synergy.card(target, "kaze", "netsu", 40);
                 return true;
             }
         });
@@ -91,7 +92,7 @@ final class BloodSynergies implements Listener {
                 LivingEntity netsu = byCharacter(a, b, "netsu");
                 long until = System.currentTimeMillis() + 30000L;
                 int n = 0;
-                for (LivingEntity e : Effects.enemiesWithin(a, 100)) { BloodySnow.addMark(a, e); BloodySnow.addMark(a, e); Effects.give(e, PotionEffectType.GLOWING, 0, 600); n++; }
+                for (LivingEntity e : Effects.enemiesWithin(a, 100)) { BloodySnow.addMark(a, e); BloodySnow.addMark(a, e); Effects.give(e, PotionEffectType.GLOWING, 0, 600); Synergy.card(e, "eirika", "netsu", 600); n++; }
                 for (LivingEntity p : new LivingEntity[]{a, b}) { FORCE_VS_MARKED.put(p.getUniqueId(), until); Msg.send(p, "<dark_red>Vision Emettrice : " + n + " ennemi(s) marque(s), Force contre les marques 30 s."); }
                 BloodySnow.MARKERS.put(netsu.getUniqueId(), until);
                 return true;
@@ -164,7 +165,7 @@ final class BloodSynergies implements Listener {
             LivingEntity attacker = DamageListener.livingAttackerOf(e.getDamager());
             if (until != null && System.currentTimeMillis() < until && attacker != null && attacker != victim && Effects.isEnemy(victim, attacker)) {
                 int marks = BloodySnow.markCount(attacker);
-                if (marks > 0) Bukkit.getScheduler().runTask(BloodySnow.plugin(), () -> { attacker.setNoDamageTicks(0); Effects.damage(attacker, marks * 2.0, victim); attacker.getWorld().playSound(attacker.getLocation(), Sound.ENTITY_PLAYER_HURT_DROWN, 0.8f, 0.7f); });
+                if (marks > 0) Bukkit.getScheduler().runTask(BloodySnow.plugin(), () -> { attacker.setNoDamageTicks(0); Effects.damage(attacker, marks * 2.0, victim); Synergy.card(attacker, "eirika", "hannah", 60); attacker.getWorld().playSound(attacker.getLocation(), Sound.ENTITY_PLAYER_HURT_DROWN, 0.8f, 0.7f); });
             }
         }
     }

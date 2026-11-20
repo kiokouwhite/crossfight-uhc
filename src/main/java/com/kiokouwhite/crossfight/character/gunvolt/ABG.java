@@ -81,6 +81,11 @@ public final class ABG {
      * Le centre peut suivre un joueur (fourni par le supplier).
      */
     static void zone(Player owner, Supplier<Location> center, double radius, int seconds, double damagePerSec, int slowAmp) {
+        zone(owner, center, radius, seconds, damagePerSec, slowAmp, null);
+    }
+
+    /** La meme zone ; {@code card} : la carte montree a droite de l'ecran de ceux qu'elle touche (une Synergie : "syn_acura_gunvolt"), ou null. */
+    static void zone(Player owner, Supplier<Location> center, double radius, int seconds, double damagePerSec, int slowAmp, String card) {
         new BukkitRunnable() {
             int t = 0;
             @Override public void run() {
@@ -99,6 +104,7 @@ public final class ABG {
                     for (LivingEntity e : Effects.within(c, radius, le -> Effects.isEnemy(owner, le))) {
                         e.setNoDamageTicks(0);
                         Effects.damage(e, damagePerSec, owner);
+                        if (card != null && e instanceof Player ep) com.kiokouwhite.crossfight.hud.InfluenceHud.threat(ep, card, false, 30);
                         if (slowAmp >= 0) Effects.give(e, PotionEffectType.SLOWNESS, slowAmp, 30);
                         w.spawnParticle(Particle.ELECTRIC_SPARK, e.getLocation().add(0, 1, 0), 8, 0.3, 0.5, 0.3, 0.1);
                     }

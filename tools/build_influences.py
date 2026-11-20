@@ -85,6 +85,19 @@ FROM_ENEMY = {
     "duo_weiss_blake": "Checkmate : le coup de Weiss ou de Blake vous gèle sur place 5 secondes.",
     "duo_blake_yang": "Un clone de Yang a explosé près de vous : 3 cœurs et vous brûlez.",
     "duo_ruby_yang": "Strawberry Sunrise : Ruby vous a percuté, 5 cœurs.",
+    "syn_kaze_netsu": "Complémentarité fraternelle : le Home Run de Netsu vous emporte avec elle.",
+    "syn_eirika_netsu": "Vision Émettrice : vous portez 2 Marques de Sang et vous êtes en surbrillance 30 secondes.",
+    "syn_eirika_hannah": "Défense Acérée : frapper Hannah ou Eirika vous coûte 1 cœur par Marque de Sang que vous portez.",
+    "syn_hiro_pinkou": "Pardon Temporaire : enfermé 20 secondes dans une cage en bois avec Hiro et Pinkou, dont les coups enflamment.",
+    "syn_aida_hiro": "Vous avez touché une Bulle Bouillante : enfermé 5 secondes, 1 cœur par seconde.",
+    "syn_crystal_hiro": "Emprunt Douloureux : vous perdez 1 cœur par seconde et vous brûlez, 10 secondes.",
+    "syn_aida_pinkou": "Tir Curatif : le tir de Pinkou ou d'Aïda vous a touché, Lenteur 5 secondes.",
+    "syn_acura_gunvolt": "Vol Électrique : la barrière de Gunvolt et d'Acura vous fait perdre 1 cœur par seconde.",
+    "syn_gunvolt_kirin": "Lame Électrisante : le coup de Gunvolt ou de Kirin vous immobilise 10 secondes.",
+    "syn_asimov_gunvolt": "Double Électrocution : vous êtes dans la zone électrique, 1 cœur par seconde et Lenteur.",
+    "syn_acura_kirin": "Dash Double Lame : un dash d'Acura ou de Kirin vous a traversé, 3 cœurs.",
+    "syn_acura_asimov": "Prison de Chaîne : enchaîné 10 secondes, 1 cœur toutes les 2 secondes.",
+    "syn_asimov_kirin": "Talisman Électrifiant : un talisman vous a touché, immobilisé 5 secondes.",
     "yang_colere": "La Colère Flamboyante de Yang : ses coups vous enflamment.",
     "weiss_glyphs1": "Un Glyph de Weiss vous a touché : feu, cage de glace, recul ou Lenteur II selon sa Dust.",
     "weiss_glyphs2": "Un Glyph de Weiss vous a pris : feu, foudre, envol ou sol qui s'ouvre selon sa Dust.",
@@ -154,6 +167,19 @@ FROM_ENEMY_SHORT = {
     "duo_weiss_blake": "Checkmate : gelé 5 s",
     "duo_blake_yang": "Clone de Yang : 3 PV, feu",
     "duo_ruby_yang": "Strawberry Sunrise : 5 PV",
+    "syn_kaze_netsu": "Home Run de Netsu",
+    "syn_eirika_netsu": "Vision Émettrice : 2 Marques, surbrillance",
+    "syn_eirika_hannah": "Défense Acérée : -1 PV par Marque",
+    "syn_hiro_pinkou": "Pardon Temporaire : en cage 20 s",
+    "syn_aida_hiro": "Bulle Bouillante : 5 s, -1 PV / s",
+    "syn_crystal_hiro": "Emprunt Douloureux : -1 PV / s, feu",
+    "syn_aida_pinkou": "Tir Curatif : Lenteur 5 s",
+    "syn_acura_gunvolt": "Vol Électrique : -1 PV / s",
+    "syn_gunvolt_kirin": "Lame Électrisante : stun 10 s",
+    "syn_asimov_gunvolt": "Double Électrocution : -1 PV / s",
+    "syn_acura_kirin": "Dash Double Lame : 3 PV",
+    "syn_acura_asimov": "Prison de Chaîne : 10 s, -1 PV / 2 s",
+    "syn_asimov_kirin": "Talisman Électrifiant : stun 5 s",
     "yang_colere": "Colère de Yang : feu",
     "weiss_glyphs1": "Glyph de Weiss : selon sa Dust",
     "weiss_glyphs2": "Glyph de Weiss : selon sa Dust",
@@ -249,7 +275,10 @@ def render(a, who, row, text, ally, rec, font, slide=0.0, seconds=None, small=No
         h = max(CELL, 22 + len(lines) * 18 + 6)
         left = x - 10 - TEXT_W - 6
         d.rectangle([left, y, W - MARGIN - 1, y + h - 1], fill=bp.PANEL, outline=edge)
-        d.text((left + 6, y + 2), f"{accent(a['name'])} · {who}", font=font, fill=TITLE_ALLY if ally else TITLE_ENEMY)
+        title = f"{accent(a['name'])} · {who}"
+        if d.textlength(title, font=font) > TEXT_W:      # trop large : le nom seul
+            title = accent(a["name"])
+        d.text((left + 6, y + 2), title, font=font, fill=TITLE_ALLY if ally else TITLE_ENEMY)
         for k, line in enumerate(lines):
             d.text((left + 6, y + 21 + k * 18), line, font=font, fill=bp.WHITE)
     d.rectangle([x, y, x + CELL - 1, y + CELL - 1], fill=bp.PANEL, outline=edge)
@@ -276,8 +305,14 @@ def sides(a):
 # un autre joueur ont pourtant leur carte, a leur nom et avec leur icone ("duo_<a>_<b>", RWBY.duos). Le camp ou
 # chacun se montre : aux adversaires qu'il gene, aux allies qu'il aide (la patinoire d'Ice Flower).
 DUO_SIDES = {"duo_weiss_yang": ("e",), "duo_weiss_blake": ("e",), "duo_blake_yang": ("e",), "duo_ruby_yang": ("e",), "duo_ruby_weiss": ("a",)}
+# Les Synergies des groupes duo, de la meme facon ("syn_<a>_<b>", Synergy.card) : celles qui touchent un adversaire.
+# (Une equipe de deux n'a pas d'autre allie a aider : pas de carte bleue.)
+DUO_SIDES.update({k: ("e",) for k in (
+    "syn_kaze_netsu", "syn_eirika_netsu", "syn_eirika_hannah",
+    "syn_hiro_pinkou", "syn_aida_hiro", "syn_crystal_hiro", "syn_aida_pinkou",
+    "syn_acura_gunvolt", "syn_gunvolt_kirin", "syn_asimov_gunvolt", "syn_acura_kirin", "syn_acura_asimov", "syn_asimov_kirin")})
 # Ceux dont l'effet a une duree : la carte porte son compte a rebours (Checkmate : gele 5 secondes).
-DUO_TIMED = {"duo_weiss_blake"}
+DUO_TIMED = {"duo_weiss_blake", "syn_eirika_netsu", "syn_hiro_pinkou", "syn_aida_hiro", "syn_aida_pinkou", "syn_gunvolt_kirin", "syn_acura_asimov", "syn_asimov_kirin"}
 
 
 def duo_items(data):

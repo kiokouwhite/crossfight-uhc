@@ -197,6 +197,9 @@ public final class InfluenceHud {
             inf.touched = System.currentTimeMillis();
             return;
         }
+        // L'objet de Synergie est commun a toutes les paires : chez les autres, c'est la carte de la Synergie lancee
+        // qui parle (Synergy.card), pas la sienne.
+        if (a.id().equals("duo_synergie")) return;
         Player caster = caster(ch, target);
         if (caster == null) return;
         boolean ally = Effects.isAlly(caster, target);

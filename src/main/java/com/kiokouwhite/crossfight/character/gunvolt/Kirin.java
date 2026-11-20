@@ -179,6 +179,7 @@ public final class Kirin extends Character implements Listener {
         if (tag.charAt(0) == 'e') {
             teleportOnto(p, t);
             Effects.root(t, 100);
+            com.kiokouwhite.crossfight.character.duo.Synergy.card(t, "asimov", "kirin", 100);
             t.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, t.getLocation().add(0, 1, 0), 30, 0.3, 0.5, 0.3, 0.15);
             Effects.say(t, "<aqua>Talisman Electrifiant : immobilise 5 s !");
         } else mark(p, t, millis);

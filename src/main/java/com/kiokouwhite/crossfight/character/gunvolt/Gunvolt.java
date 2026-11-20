@@ -125,6 +125,7 @@ public final class Gunvolt extends Character implements Listener {
         Long until = Synergies.ELECTRIC_BLADE.get(a.getUniqueId());
         if (until == null || System.currentTimeMillis() > until || !Effects.isEnemy(a, t)) return;
         Effects.root(t, 200);
+        com.kiokouwhite.crossfight.character.duo.Synergy.card(t, "gunvolt", "kirin", 200);
         t.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, t.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.1);
         Effects.say(t, "<aqua>Lame Electrisante : immobilise 10 s !");
     }

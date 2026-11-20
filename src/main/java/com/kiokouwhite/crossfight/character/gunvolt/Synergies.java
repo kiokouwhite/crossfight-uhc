@@ -40,7 +40,7 @@ final class Synergies {
                 for (LivingEntity e : new LivingEntity[]{a, b}) {
                     // La barriere suit chacune des deux ; seul un joueur peut voler (un mannequin duo garde les pieds au sol).
                     Player side = Effects.sideOf(e);
-                    if (side != null) ABG.zone(side, () -> e.isValid() ? e.getLocation() : null, 1.5, 15, 2.0, -1);
+                    if (side != null) ABG.zone(side, () -> e.isValid() ? e.getLocation() : null, 1.5, 15, 2.0, -1, "syn_acura_gunvolt");
                     if (!(e instanceof Player p)) continue;
                     p.setAllowFlight(true);
                     p.setFlying(true);
@@ -78,7 +78,7 @@ final class Synergies {
             public boolean cast(Player a, LivingEntity b) {
                 Location c = a.getLocation().clone();
                 a.getWorld().strikeLightningEffect(c);
-                ABG.zone(a, () -> c, 10, 10, 2.0, 0);
+                ABG.zone(a, () -> c, 10, 10, 2.0, 0, "syn_asimov_gunvolt");
                 return true;
             }
         });
@@ -117,7 +117,7 @@ final class Synergies {
                         for (double k = 0; k < 2; k += 0.5) {
                             Location l = cur.clone().add(d.clone().multiply(k)).add(0, 1, 0);
                             w.spawnParticle(Particle.SWEEP_ATTACK, l, 1);
-                            for (LivingEntity e : Effects.enemiesWithin(p, l, 1.5)) if (hit.add(e.getUniqueId())) { e.setNoDamageTicks(0); Effects.damage(e, 6.0, p); }
+                            for (LivingEntity e : Effects.enemiesWithin(p, l, 1.5)) if (hit.add(e.getUniqueId())) { e.setNoDamageTicks(0); Effects.damage(e, 6.0, p); Synergy.card(e, "acura", "kirin", 40); }
                         }
                         next.setDirection(p.getLocation().getDirection());
                         p.teleport(next); cur = next;
@@ -141,6 +141,7 @@ final class Synergies {
                     p.setAllowFlight(true); p.setFlying(true); Effects.noFallUntil(p, 15000);
                     Msg.send(p, "<aqua>Prison de Chaine : " + prisoners.size() + " ennemi(s) enchaine(s), tu voles 10 s.");
                 }
+                for (LivingEntity e : prisoners) Synergy.card(e, "acura", "asimov", 200);
                 w.playSound(a.getLocation(), Sound.BLOCK_CHAIN_PLACE, 1f, 0.5f);
                 new BukkitRunnable() {
                     int t = 0;

@@ -57,6 +57,15 @@ public final class Synergy implements LicenceMechanic {
     /** Declare la synergie de deux personnages. */
     public static void register(String charA, String charB, Effect effect) { EFFECTS.put(pairKey(charA, charB), effect); }
 
+    /**
+     * La carte de la Synergie de ces deux personnages en haut a droite de l'ecran de l'adversaire qu'elle touche,
+     * a son nom et avec son icone ("syn_<a>_<b>" : tools/build_influences.py, DUO_SIDES), pendant {@code ticks}.
+     */
+    public static void card(LivingEntity touched, String charA, String charB, int ticks) {
+        if (touched instanceof Player p)
+            com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, "syn_" + pairKey(charA, charB).replace('|', '_'), false, ticks);
+    }
+
     /** La Synergie de deux personnages, par leurs identifiants (null s'ils n'en ont pas) : pour le guide. */
     public static Effect effectOf(String charA, String charB) { return EFFECTS.get(pairKey(charA, charB)); }
 

@@ -227,6 +227,7 @@ public final class Pinkou extends Character implements Listener {
         if (!(e.getEntity() instanceof org.bukkit.entity.Arrow a) || !a.getPersistentDataContainer().has(ShojaSynergies.HEAL_SHOT) || !(a.getShooter() instanceof LivingEntity p)) return;
         if (!(e.getHitEntity() instanceof LivingEntity t) || !Effects.isEnemyOf(p, t)) return;
         Effects.give(t, PotionEffectType.SLOWNESS, 0, 100);
+        com.kiokouwhite.crossfight.character.duo.Synergy.card(t, "aida", "pinkou", 100);
         Effects.heal(p, 4.0);
         p.getWorld().spawnParticle(Particle.HEART, p.getLocation().add(0, 2, 0), 4, 0.3, 0.2, 0.3);
     }

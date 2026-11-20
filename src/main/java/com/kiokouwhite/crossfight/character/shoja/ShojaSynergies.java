@@ -64,6 +64,7 @@ final class ShojaSynergies {
                     double ang = n * 1.3; n++;
                     e.teleport(new Location(w, c.getBlockX() + 0.5 + Math.cos(ang) * 2.5, c.getBlockY(), c.getBlockZ() + 0.5 + Math.sin(ang) * 2.5));
                     Effects.say(e, "<light_purple>Pardon Temporaire : enferme 20 s !");
+                    Synergy.card(e, "hiro", "pinkou", 400);
                 }
                 for (LivingEntity p : new LivingEntity[]{a, b}) {
                     p.teleport(new Location(w, c.getBlockX() + 0.5 + (p == a ? -1 : 1), c.getBlockY(), c.getBlockZ() + 0.5));
@@ -112,6 +113,7 @@ final class ShojaSynergies {
                             for (LivingEntity e : Effects.within(l, 1.4, le -> Effects.isEnemyOf(aida, le))) {
                                 bubbles.remove(l);
                                 Effects.root(e, 100);
+                                Synergy.card(e, "aida", "hiro", 100);
                                 w.playSound(l, Sound.ENTITY_PLAYER_SPLASH, 1f, 0.8f);
                                 Effects.say(e, "<red>Bulle bouillante : enferme 5 s !");
                                 new BukkitRunnable() { int k = 0; @Override public void run() { k++; if (k > 100 || e.isDead()) { cancel(); return; } Aida.sphere(w, e.getLocation().add(0, 1, 0), 1.3, 30, k * 0.1); if (k % 20 == 0) { e.setNoDamageTicks(0); Effects.damage(e, 2.0, aida); } } }.runTaskTimer(Shoja.plugin(), 0L, 1L);
@@ -137,7 +139,7 @@ final class ShojaSynergies {
                         if (!crystal.isValid() || t > 10) { cancel(); return; }
                         if (crystal instanceof Player cp) Shoja.selfLoss(cp, 2.0);
                         else crystal.setHealth(Math.max(1.0, crystal.getHealth() - 2.0));
-                        for (LivingEntity e : Effects.enemiesAround(crystal, 50)) { e.setNoDamageTicks(0); Effects.damage(e, 2.0, crystal); e.setFireTicks(Math.max(e.getFireTicks(), 40)); }
+                        for (LivingEntity e : Effects.enemiesAround(crystal, 50)) { e.setNoDamageTicks(0); Effects.damage(e, 2.0, crystal); e.setFireTicks(Math.max(e.getFireTicks(), 40)); Synergy.card(e, "crystal", "hiro", 30); }
                         crystal.getWorld().spawnParticle(Particle.FLAME, crystal.getLocation().add(0, 1, 0), 15, 0.4, 0.6, 0.4, 0.03);
                     }
                 }.runTaskTimer(Shoja.plugin(), 0L, 20L);
