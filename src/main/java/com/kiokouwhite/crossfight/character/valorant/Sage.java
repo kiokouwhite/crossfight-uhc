@@ -84,6 +84,11 @@ public final class Sage extends Character implements Listener {
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             LivingEntity ally = targetAlly(p);
+            if (ally == null && com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p)) {
+                // Mode d'essai a la troisieme personne, sans allie : le geste seul, l'orbe part dans le vide.
+                healLookVoid(p);
+                return true;
+            }
             if (ally == null) { Msg.actionBar(p, "<red>Orbe de Soin : aucun allie a moins de 15 blocs."); return false; }
             new BukkitRunnable() {
                 int n = 0;
@@ -103,6 +108,38 @@ public final class Sage extends Character implements Listener {
          * Comme dans Valorant : elle tend l'orbe vert vers son allie, a bout de bras ; l'orbe file jusqu'a lui et
          * une lueur verte tourne autour de lui tant que dure le soin.
          */
+        /** Le meme geste sans personne a soigner : elle tend l'orbe a bout de bras, il file droit devant elle et s'eteint. */
+        static void healLookVoid(Player p) {
+            World w = p.getWorld();
+            Puppet pu = Puppet.show(p, "sage", null, "debout");
+            if (pu != null) {
+                pu.face(p.getLocation().getYaw());
+                pu.pose("sage_soin", 3);
+                pu.endAfter(16, 4);
+            }
+            Vector dir = p.getLocation().getDirection().setY(0);
+            if (dir.lengthSquared() < 0.01) dir = new Vector(0, 0, 1);
+            final Vector ahead = dir.normalize().multiply(5);
+            ItemDisplay orb = orb(palm(p, pu), HEAL, 0.38f);
+            w.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.4f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || t > 14) {
+                        w.spawnParticle(Particle.DUST, orb.getLocation(), 14, 0.2, 0.2, 0.2, 0, HEAL_DUST);
+                        orb.remove();
+                        cancel();
+                        return;
+                    }
+                    Location from = palm(p, pu);
+                    if (t <= 6) { orb.teleport(from); return; }
+                    orb.teleport(from.add(ahead.clone().multiply((t - 6) / 8.0)));
+                    w.spawnParticle(Particle.DUST, orb.getLocation(), 2, 0.08, 0.08, 0.08, 0, HEAL_DUST);
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
+
         static void healLook(Player p, LivingEntity ally) {
             World w = p.getWorld();
             Puppet pu = Puppet.show(p, "sage", null, "debout");

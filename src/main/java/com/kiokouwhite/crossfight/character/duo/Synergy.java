@@ -180,7 +180,36 @@ public final class Synergy implements LicenceMechanic {
         }
         @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit : lancer la Synergie"); }
 
+        /** L'icone de la Synergie de cette paire dans le pack complet : "syn_<a>_<b>", les deux personnages par ordre alphabetique. */
+        static String iconOf(Player p, LivingEntity partner) {
+            String a = characterOf(p), b = characterOf(partner);
+            return a == null || b == null ? "duo_synergie" : "syn_" + pairKey(a, b).replace('|', '_');
+        }
+
+        /**
+         * L'objet de Synergie prend l'icone de la paire quand le joueur n'a qu'une partenaire possible (une equipe
+         * de deux) : c'est alors cette Synergie-la qu'il lancera. Verifie a chaque rafraichissement de la barre.
+         */
+        private void refreshIcon(Player p, AbilityState st) {
+            Synergy s = of(p);
+            if (s == null) return;
+            List<LivingEntity> all = new ArrayList<>(s.partners(p));
+            all.addAll(s.partnerMannequins(p));
+            String model = all.size() == 1 ? iconOf(p, all.get(0)) : "duo_synergie";
+            if (!com.kiokouwhite.crossfight.util.Sounds.has("icone." + model)) model = "duo_synergie";
+            if (model.equals(st.get("icon", "duo_synergie"))) return;
+            st.set("icon", model);
+            var inv = p.getInventory();
+            for (int i = 0; i < inv.getSize(); i++) {
+                var it = inv.getItem(i);
+                if (it == null || !"duo_synergie".equals(com.kiokouwhite.crossfight.util.Items.tag(it, com.kiokouwhite.crossfight.ability.AbilityEngine.ABILITY_KEY))) continue;
+                iconModel(it, model);
+                inv.setItem(i, it);
+            }
+        }
+
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
+            refreshIcon(p, st);
             if (System.currentTimeMillis() < st.get("activeUntil", 0L)) return "<aqua><bold>SYNERGIE</bold> <white>" + st.get("activeName", "") + " " + ((st.get("activeUntil", 0L) - System.currentTimeMillis()) / 1000 + 1) + "s";
             Synergy s = of(p);
             String txt = s == null ? "" : s.summary(p);
@@ -203,7 +232,7 @@ public final class Synergy implements LicenceMechanic {
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (LivingEntity ally : ready) {
                 Effect ef = effectOf(p, ally);
-                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + partnerName(ally), List.of("<gray>" + (ef == null ? "?" : ef.name())), () -> launch(p, ally, st)));
+                options.add(new ChoiceMenu.Option(Material.PLAYER_HEAD, "Avec " + partnerName(ally), List.of("<gray>" + (ef == null ? "?" : ef.name())), () -> launch(p, ally, st), iconOf(p, ally)));
             }
             ChoiceMenu.open(p, "<aqua>Synergie : avec qui ?", options);
             return true;

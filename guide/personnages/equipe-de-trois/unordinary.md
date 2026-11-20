@@ -8,11 +8,11 @@ Pas d'arme attitrée : chacun craft une épée d'Aura (ingredient, ingredient, b
 
 ### Épée d'Aura
 
-(Actif) Clic droit avec l'épée d'Aura : son actif depend du craft (Soin, Immunité, Laser, Chaleur Augmentée, Glue).
+(Actif) Clic droit avec l'épée d'Aura : son actif dépend du craft (Soin, Immunité, Laser, Chaleur Augmentée, Glue).
 
 ## Personnages
 
 * [Arlo](unordinary/arlo.md) : Voie de la Destruction
 * [John](unordinary/john.md) : Voie de la Destruction
-* [Remi](unordinary/remi.md) : Voie de la Nihilite
-* [Seraphina](unordinary/seraphina.md) : Voie de la Nihilite
+* [Remi](unordinary/remi.md) : Voie de la Nihilité
+* [Seraphina](unordinary/seraphina.md) : Voie de la Nihilité

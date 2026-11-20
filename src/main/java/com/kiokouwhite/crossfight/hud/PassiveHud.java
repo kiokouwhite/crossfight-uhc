@@ -116,6 +116,14 @@ public final class PassiveHud {
         return (textMode(p, textPref) + (weapon ? 3 : 0)) + (weapon ? c.hudWeaponVariant(p) : "");
     }
 
+    /**
+     * Le suffixe de la variante de texte dans le nom d'une image de gauche : {@code variant} quand le texte est
+     * montre et que la carte de l'arme ne l'est pas (c'est alors sa variante a elle qui suit le code), sinon rien.
+     */
+    public static String textVariant(Player p, Character c, HudPrefs.Pref textPref, String variant) {
+        return textMode(p, textPref) != 0 && !weaponShown(p, c) ? variant : "";
+    }
+
     /** Le texte a cote des passifs (/cf hud, /cf passif show|hide). */
     public static boolean showsText(Player p) { return HudPrefs.Pref.PASSIFS_TEXTE.of(p); }
 
@@ -156,7 +164,8 @@ public final class PassiveHud {
                 }
             }
         }
-        String key = "passif/" + c.id() + "_" + mask + (allyMask != 0 ? "a" + allyMask : "") + "_" + code(p, c, HudPrefs.Pref.PASSIFS_TEXTE);
+        String key = "passif/" + c.id() + "_" + mask + (allyMask != 0 ? "a" + allyMask : "") + "_" + code(p, c, HudPrefs.Pref.PASSIFS_TEXTE)
+                + textVariant(p, c, HudPrefs.Pref.PASSIFS_TEXTE, c.hudTextVariant(p));
         long since = System.currentTimeMillis() - ANIM.getOrDefault(p.getUniqueId(), 0L);
         int who = ANIM_INDEX.getOrDefault(p.getUniqueId(), 0);
         int idx = who >= 0 ? who : -1 - who;

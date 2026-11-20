@@ -101,6 +101,11 @@ final class Tomes {
         if (cf != null && cf.character() != null) com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, cf.character().ability("hano_tome_" + t.id), ticks);
     }
 
+    /** Le tome reste arme (au prochain coup recu) : sa carte en haut a gauche tant qu'il l'est. */
+    private static void showWhile(Player p, CfPlayer cf, Tome t, java.util.function.BooleanSupplier armed) {
+        if (cf != null && cf.character() != null) com.kiokouwhite.crossfight.hud.InfluenceHud.selfWhile(p, cf.character().ability("hano_tome_" + t.id), armed);
+    }
+
     static boolean use(Player p, CfPlayer cf, AbilityState hano, Tome t) {
         World w = w(p);
         switch (t) {
@@ -138,8 +143,8 @@ final class Tomes {
                 w.playSound(p.getLocation(), t == Tome.BANE ? Sound.ENTITY_SPIDER_AMBIENT : Sound.ENTITY_HUSK_AMBIENT, 1f, 1f);
                 return true;
             }
-            case BLAST_PROTECTION -> { hano.set("blast_armed", true); Msg.actionBar(p, "<gold>Explosion Desarmante armee : au prochain coup recu."); return true; }
-            case PROJECTILE_PROTECTION -> { hano.set("arrows_armed", true); Msg.actionBar(p, "<gold>Explosion d'Epines armee : au prochain coup recu."); return true; }
+            case BLAST_PROTECTION -> { hano.set("blast_armed", true); showWhile(p, cf, t, () -> hano.get("blast_armed", false)); Msg.actionBar(p, "<gold>Explosion Desarmante armee : au prochain coup recu."); return true; }
+            case PROJECTILE_PROTECTION -> { hano.set("arrows_armed", true); showWhile(p, cf, t, () -> hano.get("arrows_armed", false)); Msg.actionBar(p, "<gold>Explosion d'Epines armee : au prochain coup recu."); return true; }
             case FIRE_PROTECTION -> { hano.set("hades_until", System.currentTimeMillis() + 10000L); show(p, cf, t, 200); Msg.actionBar(p, "<gold>Armure d'Hades : 10 s"); w.spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0.02); return true; }
             case CHANNELING -> {
                 Location c = p.getLocation().clone();

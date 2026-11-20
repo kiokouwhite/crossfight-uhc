@@ -75,6 +75,19 @@ public abstract class Character {
     /** La variante de la carte de l'arme en haut a gauche ("" par defaut ; Corrin : "l" ou "t" selon la voie de la Yato, en minuscules : une cle de ressource). */
     public String hudWeaponVariant(org.bukkit.entity.Player p) { return ""; }
 
+    /**
+     * La variante des textes du HUD de gauche ("" par defaut ; Weiss : "d0" a "d5", sa Dust en cours) : les cartes
+     * ne montrent que ce qui la concerne. Les images portent ce suffixe quand le texte est affiche
+     * (tools/build_passifs.py, TEXT_VARIANTS).
+     */
+    public String hudTextVariant(org.bukkit.entity.Player p) { return ""; }
+
+    /**
+     * Des lignes propres au personnage dans le tableau de droite du joueur, sous son personnage (Eren : les
+     * pseudos de ses cibles). Du vrai texte : ce que les cartes du HUD, des images dessinees a l'avance, ne peuvent pas dire.
+     */
+    public List<String> sidebarLines(org.bukkit.entity.Player p) { return List.of(); }
+
     /** La variante de l'orbe de l'ultime, qui porte l'avancement de l'arme ("" par defaut ; Corrin : "yato_l3"). */
     public String hudOrbVariant(org.bukkit.entity.Player p) { return ""; }
 

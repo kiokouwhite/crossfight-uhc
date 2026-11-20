@@ -85,6 +85,14 @@ RECIPES = {
         ],
         "Duo": [
             ("Ultime en Duo", "rwby_duo", "Acolyte 4 or"),
+            # Une icone par paire, dans le menu des Ultimes en Duo : moitie gauche a la couleur de la premiere,
+            # moitie droite a celle de la seconde (RWBY.duos : "duo_<a>_<b>", dans l'ordre Ruby, Weiss, Blake, Yang).
+            ("Ice Flower", "duo_ruby_weiss", "Wizard 30 rouge / Wizard 30 bleu"),
+            ("Ladybug", "duo_ruby_blake", "Rogue 25 rouge / Rogue 25 violet"),
+            ("Strawberry Sunrise", "duo_ruby_yang", "Acolyte 18 rouge / Acolyte 18 or"),
+            ("Checkmate", "duo_weiss_blake", "Acolyte 26 bleu / Acolyte 26 violet"),
+            ("Freezerburn", "duo_weiss_yang", "Wizard 7 bleu / Wizard 7 or"),
+            ("Bumblebee", "duo_blake_yang", "Animaux 10"),
         ],
     },
     "Valorant": {
@@ -118,6 +126,14 @@ RECIPES = {
             ("Charge tridimensionnelle", "eren_charge", "Warrior 9 vert"),
             ("Élimination Morale", "eren_morale", "Acolyte 21 vert"),
             ("Titans primordiaux", "eren_titans", "Wizard 10 vert"),
+            # Un pouvoir par titan primordial vole (les objets d'Eren sous forme de Titan).
+            ("Titan Colossal", "eren_t_colossal", "Wizard 12 vert"),
+            ("Titan Féminin", "eren_t_feminin", "Wizard 17 vert"),
+            ("Titan Cuirassé", "eren_t_cuirasse", "Warrior 19 vert"),
+            ("Titan Bestial", "eren_t_bestial", "Wizard 32 vert"),
+            ("Titan Mâchoire", "eren_t_machoire", "Wizard 8 vert"),
+            ("Titan Charrette", "eren_t_charrette", "Warrior 32 vert"),
+            ("Titan Marteau d'Armes", "eren_t_marteau", "Warrior 11 vert"),
             ("Titan Assaillant", "eren_ult", "Wizard 11 vert"),
         ],
         "Armin Arlert": [
@@ -191,6 +207,16 @@ RECIPES = {
         ],
     },
     "Bloody Snow": {
+        # Une icone par Synergie : le meme dessin, moitie gauche a la couleur du premier personnage, moitie droite a celle du
+        # second (Synergy.pairKey : "syn_<a>_<b>", par ordre alphabetique). Dans le menu et sur l'objet de Synergie.
+        "Synergies": [
+            ("Complémentarité fraternelle", "syn_kaze_netsu", "Acolyte 19 noir / Acolyte 19 rouge"),
+            ("Invincibles ensemble", "syn_hannah_netsu", "Acolyte 13 vert / Acolyte 13 rouge"),
+            ("Vision Émettrice", "syn_eirika_netsu", "Acolyte 25 nuit / Acolyte 25 rouge"),
+            ("Défense et Attaque", "syn_hannah_kaze", "Acolyte 23 vert / Acolyte 23 noir"),
+            ("Hémorragie Puissante", "syn_eirika_kaze", "Warrior 6 nuit / Warrior 6 noir"),
+            ("Défense Acérée", "syn_eirika_hannah", "Warrior 15 nuit / Warrior 15 vert"),
+        ],
         "Eirika Fischer": [
             ("Marque de Sang", "eirika_marque", "Objets 2835 nuit"),
             ("Absorption de sang", "eirika_absorption", "Acolyte 1 nuit"),
@@ -217,6 +243,16 @@ RECIPES = {
         ],
     },
     "Armed Blue Gunvolt": {
+        # Une icone par Synergie : le meme dessin, moitie gauche a la couleur du premier personnage, moitie droite a celle du
+        # second (Synergy.pairKey : "syn_<a>_<b>", par ordre alphabetique). Dans le menu et sur l'objet de Synergie.
+        "Synergies": [
+            ("Vol Électrique", "syn_acura_gunvolt", "Acolyte 6 gris / Acolyte 6 bleu"),
+            ("Lame Électrisante", "syn_gunvolt_kirin", "Warrior 2 bleu / Warrior 2 rose"),
+            ("Double Électrocution", "syn_asimov_gunvolt", "Wizard 14 bleu-fonce / Wizard 14 bleu"),
+            ("Dash Double Lame", "syn_acura_kirin", "Warrior 4 gris / Warrior 4 rose"),
+            ("Prison de Chaîne", "syn_acura_asimov", "Rogue 5 gris / Rogue 5 bleu-fonce"),
+            ("Talisman Électrifiant", "syn_asimov_kirin", "Wizard 16 bleu-fonce / Wizard 16 rose"),
+        ],
         "Gunvolt": [
             ("Champ Électrique", "gv_champ", "Wizard 14 bleu"),
             ("Chaîne de Télesquive", "gv_telesquive", "Warrior 18 bleu"),
@@ -246,6 +282,16 @@ RECIPES = {
         ],
     },
     "Shoja's Memories": {
+        # Une icone par Synergie : le meme dessin, moitie gauche a la couleur du premier personnage, moitie droite a celle du
+        # second (Synergy.pairKey : "syn_<a>_<b>", par ordre alphabetique). Dans le menu et sur l'objet de Synergie.
+        "Synergies": [
+            ("Pardon Temporaire", "syn_hiro_pinkou", "Rogue 32 feu / Rogue 32 rose-pale"),
+            ("Bulles Bouillantes", "syn_aida_hiro", "Wizard 30 bleu / Wizard 30 feu"),
+            ("Emprunt Douloureux", "syn_crystal_hiro", "Acolyte 21 violet / Acolyte 21 feu"),
+            ("Tir Curatif", "syn_aida_pinkou", "Acolyte 1 bleu / Acolyte 1 rose-pale"),
+            ("Souffrance Abrégée", "syn_crystal_pinkou", "Acolyte 3 violet / Acolyte 3 rose-pale"),
+            ("Amitié Éternelle", "syn_aida_crystal", "Acolyte 14 bleu / Acolyte 14 violet"),
+        ],
         "Hiro": [
             ("Dash Explosif", "hiro_dash", "Wizard 32 feu"),
             ("Grenade Enflammée", "hiro_grenade", "Wizard 3 feu"),
@@ -468,8 +514,11 @@ def build():
         if f.is_dir(): shutil.rmtree(f)
         f.mkdir(parents=True)
     count = 0
-    for licence in VALIDATED:
-        for abilities in RECIPES[licence].values():
+    for licence, people in RECIPES.items():
+        for who, abilities in people.items():
+            # Une licence pas encore validee (Armed Blue Gunvolt) n'a que ses Synergies dans le pack.
+            # (et l'icone commune de l'objet de Synergie, que portent aussi les licences validees).
+            if licence not in VALIDATED and who not in ("Synergies", "Duo"): continue
             for _, ident, recipe in abilities:
                 if ident in PENDING: continue
                 icon(recipe).save(folders[0] / f"{ident}.png")

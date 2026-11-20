@@ -84,6 +84,8 @@ public final class Mikasa extends Character {
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             st.set("armed", true);
+            // Sa carte reste en haut a gauche tant que le coup n'est pas porte.
+            showWhile(p, () -> st.get("armed", false));
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f);
             Msg.actionBar(p, "<yellow>Assommage pret : le prochain coup etourdit.");
             return true;

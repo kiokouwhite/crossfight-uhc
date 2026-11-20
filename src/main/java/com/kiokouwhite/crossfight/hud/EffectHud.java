@@ -156,7 +156,7 @@ public final class EffectHud implements Listener {
         CfPlayer cf = plugin.players().get(p);
         if (cf == null || cf.character() == null) return null;
         // L'avancement de l'arme (les kills de la Yato) : un petit badge sur la carte de l'arme, porte par l'image de l'orbe.
-        String variant = PassiveHud.weaponShown(p, cf.character()) ? cf.character().hudOrbVariant(p) : "";
+        String variant = cf.character().hudOrbVariant(p);
         String folder = !variant.isEmpty() && com.kiokouwhite.crossfight.util.Sounds.has("overlay." + variant) ? "overlay_ult/" + variant + "/" : "overlay_ult/";
         if (cf.isUltimateReady()) return folder + "ult_pret_" + (tick / 10 % 2);
         return String.format(folder + "ult_%02d", Math.max(0, Math.min(19, (int) (cf.ultimateCharge() / 5))));

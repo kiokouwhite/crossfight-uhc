@@ -38,7 +38,20 @@ public final class GuideExport {
             if (!firstLicence) out.append(",\n");
             firstLicence = false;
             out.append("{\"id\":").append(q(l.id())).append(",\"name\":").append(q(l.name()))
-               .append(",\"team\":").append(q(l.teamSize().name())).append(",\"particularite\":").append(q(l.particularite())).append(",\"characters\":[");
+               .append(",\"team\":").append(q(l.teamSize().name())).append(",\"particularite\":").append(q(l.particularite()));
+            // RWBY : les six Ultimes en Duo, un par paire.
+            if (l.id().equals("rwby")) {
+                out.append(",\"duos\":[");
+                boolean firstDuo = true;
+                for (String[] d : com.kiokouwhite.crossfight.character.rwby.RWBY.duos()) {
+                    if (!firstDuo) out.append(',');
+                    firstDuo = false;
+                    out.append("\n {\"id\":").append(q(d[0])).append(",\"name\":").append(q(d[1])).append(",\"a\":").append(q(d[2]))
+                       .append(",\"b\":").append(q(d[3])).append(",\"description\":").append(q(d[4])).append('}');
+                }
+                out.append("]");
+            }
+            out.append(",\"characters\":[");
             boolean firstChar = true;
             for (Character c : l.characters()) {
                 if (!firstChar) out.append(',');

@@ -13,6 +13,7 @@ import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Boosts;
 import com.kiokouwhite.crossfight.util.Effects;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.TempBlocks;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -151,6 +152,7 @@ public final class Arlo extends Character implements Listener {
         @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
             if (aura(p) < 5) { Msg.actionBar(p, "<red>Pas assez d'Aura."); return false; }
             switchOff(p, "arlo_barriere_ultime");
+            throwArms(p, false, null);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.4f);
             Bukkit.getScheduler().runTask(Unordinary.plugin(), () -> whileEnabled(p, st, t -> disc(p, t * 0.08)));
             return true;
@@ -176,6 +178,7 @@ public final class Arlo extends Character implements Listener {
         @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
             if (aura(p) < 10) { Msg.actionBar(p, "<red>Pas assez d'Aura."); return false; }
             switchOff(p, "arlo_barriere");
+            throwArms(p, true, null);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 0.8f);
             Bukkit.getScheduler().runTask(Unordinary.plugin(), () -> whileEnabled(p, st, t -> sphere(p.getWorld(), p.getLocation().add(0, 1, 0), 1.7, 70, t * 0.05, GOLD_SOFT)));
             return true;
@@ -200,10 +203,47 @@ public final class Arlo extends Character implements Listener {
         }
     }
 
+    // ---------------------------------------------------------------- gestes
+
+    /**
+     * Le geste d'Arlo : il arme le bras droit (les deux pour la Barriere Ultime et l'Etouffement) puis le jette en
+     * avant, la paume ouverte, vers sa cible s'il en a une ; son Aura doree jaillit de sa main.
+     */
+    static void throwArms(Player p, boolean both, LivingEntity toward) {
+        final Puppet pu = Puppet.show(p, "arlo", null, "debout");
+        if (pu == null) return;
+        if (toward != null) {
+            double dx = toward.getLocation().getX() - p.getLocation().getX(), dz = toward.getLocation().getZ() - p.getLocation().getZ();
+            if (dx * dx + dz * dz > 1e-4) pu.face((float) Math.toDegrees(Math.atan2(-dx, dz)));
+        }
+        pu.pose(both ? "arlo_deux_bras_arme" : "arlo_bras_arme", 2);
+        pu.endAfter(15, 4);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (!p.isOnline() || Puppet.of(p) != pu) { cancel(); return; }
+                if (t == 4) pu.pose(both ? "arlo_deux_bras_jetes" : "arlo_bras_jete", 2);
+                if (t < 6) return;
+                World w = p.getWorld();
+                for (boolean right : both ? new boolean[]{true, false} : new boolean[]{true}) {
+                    Location palm = pu.armPoint(right, 1.0);
+                    w.spawnParticle(Particle.DUST, palm, 14, 0.12, 0.12, 0.12, 0, GOLD);
+                    w.spawnParticle(Particle.ELECTRIC_SPARK, palm, 4, 0.1, 0.1, 0.1, 0.05);
+                }
+                w.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, both ? 0.7f : 1.1f);
+                cancel();
+            }
+        }.runTaskTimer(Unordinary.plugin(), 1L, 1L);
+    }
+
     // ----------------------------------------------------------------- cages
 
     static final class Cage {
         final LivingEntity target; final TempBlocks blocks = new TempBlocks().unbreakable(); final boolean suffocate;
+        /** Etouffement : le bloc invisible qui tient la victime a plat ventre, et ou il est (il la suit). */
+        TempBlocks head;
+        org.bukkit.block.Block headAt;
         Cage(LivingEntity target, boolean suffocate) { this.target = target; this.suffocate = suffocate; }
     }
     static final Map<UUID, List<Cage>> CAGES = new HashMap<>();
@@ -240,9 +280,24 @@ public final class Arlo extends Character implements Listener {
                     // Petite bulle au ras du sol : l'adversaire est plaque dessous.
                     Location c = target.getLocation().add(0, 0.55, 0);
                     sphere(w, c, 0.85, 30, t * 0.1, t % 10 < 5 ? GOLD : GOLD_SOFT);
-                    if (target instanceof Player tp) tp.setSneaking(true);
+                    // Plaquee au sol : elle rampe. Un bloc invisible prend la place de sa tete, elle ne peut plus se relever
+                    // (son client la met de lui-meme a plat ventre, comme sous une dalle) ; il la suit si elle se traine.
+                    // Pas pour un joueur assis ou spectateur (la camera du mode d'essai) : il resterait dans le bloc.
+                    if (target instanceof Player tp && (cage.headAt != null || tp.isOnGround())
+                            && !tp.isInsideVehicle() && tp.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
+                        org.bukkit.block.Block want = tp.getLocation().getBlock().getRelative(0, 1, 0);
+                        if (!want.equals(cage.headAt)) {
+                            if (cage.head != null) cage.head.restore();
+                            cage.head = new TempBlocks().unbreakable();
+                            cage.headAt = want;
+                            // Sa pose d'abord, pour que le bloc ne l'etouffe pas.
+                            try { tp.setPose(org.bukkit.entity.Pose.SWIMMING); } catch (Throwable ignored) { }
+                            if (want.isPassable()) cage.head.place(want, Material.BARRIER);
+                        }
+                    }
                     if (!target.isOnGround()) target.setVelocity(new org.bukkit.util.Vector(0, -0.4, 0));
-                    if (t % 20 == 0) w.spawnParticle(Particle.SQUID_INK, c, 6, 0.3, 0.2, 0.3, 0.02);
+                    // L'encre au-dessus de la bulle : la victime, a plat ventre, a les yeux au ras du sol et ne doit pas l'avoir dans la figure.
+                    if (t % 20 == 0) w.spawnParticle(Particle.SQUID_INK, c.clone().add(0, 0.75, 0), 6, 0.3, 0.1, 0.3, 0.02);
                 } else {
                     Location c = target.getLocation().add(0, 1, 0);
                     sphere(w, c, 1.9, 60, t * 0.04, GOLD_SOFT);
@@ -254,6 +309,7 @@ public final class Arlo extends Character implements Listener {
 
     static void release(Player arlo, Cage cage, String why) {
         cage.blocks.restore();
+        if (cage.head != null) cage.head.restore();
         Effects.unroot(cage.target);
         cagesOf(arlo).remove(cage);
         if (cage.target instanceof Player tp) tp.setSneaking(false);
@@ -303,6 +359,7 @@ public final class Arlo extends Character implements Listener {
             Cage cage = new Cage(target, suffocate);
             cagesOf(p).add(cage);
             build(p, cage);
+            throwArms(p, suffocate, target);
             Effects.root(target, 30);
             Effects.say(target, suffocate ? "<dark_gray>Etouffe par " + p.getName() + " !" : "<white>Enferme par " + p.getName() + " !");
             Msg.actionBar(p, (suffocate ? "<dark_gray>Etouffement" : "<white>Enfermement") + " : adversaire enferme.");
@@ -335,6 +392,9 @@ public final class Arlo extends Character implements Listener {
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             showFor(p, 1200);
+            // Il pose la main sur le sol le temps que la bulle se forme.
+            Puppet kneel = Puppet.show(p, "arlo", null, "debout");
+            if (kneel != null) { kneel.pose("arlo_main_sol", 4); kneel.endAfter(28, 5); }
             World w = p.getWorld();
             Location c = p.getLocation().clone();
             final double R = 30.0;

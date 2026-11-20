@@ -119,6 +119,42 @@ public final class Eren extends Character implements Listener {
         return a == null ? null : SNK.plugin().abilities().state(p, a);
     }
 
+    /** Le plus grand bonus d'Elimination Morale que le badge sait ecrire : 12 kills, +2,4 de Force (tools/build_ultime_franuka.py). */
+    static final int MORALE_MAX = 12;
+
+    /**
+     * Le badge d'Elimination Morale, sur la case du passif : la Force gagnee contre le dernier adversaire frappe
+     * ("eren_m3" : +0,6). Porte par l'image de l'orbe, comme le badge de la Yato ; rien si les passifs sont masques.
+     */
+    @Override
+    public String hudOrbVariant(Player p) {
+        Ability a = ability("eren_morale");
+        if (a == null || !com.kiokouwhite.crossfight.hud.HudPrefs.Pref.PASSIFS.of(p)) return "";
+        int kills = SNK.plugin().abilities().state(p, a).get("last", 0);
+        return "eren_m" + Math.max(0, Math.min(MORALE_MAX, kills));
+    }
+
+    /** Les quatre cibles des Titans primordiaux, par leur pseudo ; celles qu'il a deja devorees sont barrees. En mode test, des noms de substitution. */
+    @Override
+    public List<String> sidebarLines(Player p) {
+        AbilityState st = titansState(p);
+        if (st == null) return List.of();
+        List<String> out = new ArrayList<>();
+        out.add("<white>Cibles des Titans :");
+        if (SNK.plugin().game().isTest()) {
+            for (int i = 1; i <= 4; i++) out.add("<gray> • <white>Joueur" + i);
+            return out;
+        }
+        List<String> targets = st.get("targets", null), names = st.get("names", null), eaten = st.get("eaten", null);
+        if (targets == null || targets.isEmpty()) return List.of();
+        for (int i = 0; i < targets.size(); i++) {
+            String name = names != null && i < names.size() ? names.get(i) : Bukkit.getOfflinePlayer(java.util.UUID.fromString(targets.get(i))).getName();
+            if (name == null) name = "?";
+            out.add(eaten != null && eaten.contains(targets.get(i)) ? "<dark_gray> ✔ <st>" + name + "</st>" : "<gray> • <white>" + name);
+        }
+        return out;
+    }
+
     @SuppressWarnings("unchecked")
     static List<String> titansOf(Player p) {
         AbilityState st = titansState(p);
@@ -246,11 +282,13 @@ public final class Eren extends Character implements Listener {
         @Override public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (!(victim instanceof Player v)) return;
             int kills = SNK.plugin().players().get(v).kills();
+            // Le bonus contre ce joueur-la : montre sur la carte du passif (hudOrbVariant) jusqu'au prochain adversaire frappe.
+            st.set("last", kills);
             if (kills > 0) { e.setDamage(e.getDamage() + 0.6 * kills); signal(attacker); }
         }
     }
 
-    /** Les pouvoirs des titans voles. Sous forme de Titan, chaque pouvoir devient un item a part. */
+    /** Les pouvoirs des titans voles. */
     static final class TitansPrimordiaux extends PassiveAbility {
         TitansPrimordiaux() {
             super("eren_titans", "Titans primordiaux", "4 adversaires sont choisis au hasard au debut de la partie : chaque fois qu'Eren en tue un, il vole les pouvoirs d'un des 7 titans primordiaux. Sous forme de Titan, chaque pouvoir vole devient un item dans la barre.", Material.NETHER_STAR);
@@ -294,6 +332,7 @@ public final class Eren extends Character implements Listener {
             List<String> names = new ArrayList<>();
             for (Player o : candidates.subList(0, Math.min(4, candidates.size()))) { targets.add(o.getUniqueId().toString()); names.add(o.getName()); }
             st.set("targets", targets);
+            st.set("names", names);
             if (!names.isEmpty()) Msg.send(p, "<gold>Titans primordiaux : tes cibles sont <white>" + String.join(", ", names) + "</white>.");
         }
 
@@ -301,6 +340,9 @@ public final class Eren extends Character implements Listener {
             List<String> targets = st.get("targets", null);
             boolean primordial = SNK.plugin().game().isTest() || (targets != null && targets.contains(victim.getUniqueId().toString()));
             if (!primordial) return;
+            List<String> eaten = st.get("eaten", null);
+            if (eaten == null) { eaten = new ArrayList<>(); st.set("eaten", eaten); }
+            eaten.add(victim.getUniqueId().toString());
             List<String> owned = titansOf(killer);
             List<String> left = new ArrayList<>();
             for (String id : TITAN_IDS) if (!owned.contains(id)) left.add(id);
@@ -429,6 +471,13 @@ public final class Eren extends Character implements Listener {
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             if (!isTitan(p)) { Msg.actionBar(p, "<red>Les pouvoirs des titans ne s'utilisent que sous forme de Titan."); return false; }
             if (!owns(p, titan)) { Msg.actionBar(p, "<red>Tu n'as pas vole ce titan."); return false; }
+            boolean done = use(p);
+            // La carte du pouvoir en haut a gauche : le temps de son effet, ou un instant pour un coup.
+            if (done && !titan.equals("cuirasse")) showFor(p, switch (titan) { case "feminin" -> 200; case "charrette" -> 100; case "colossal" -> 60; default -> 40; });
+            return done;
+        }
+
+        private boolean use(Player p) {
             return switch (titan) {
                 case "colossal" -> TitansPrimordiaux.colossal(p);
                 case "feminin" -> TitansPrimordiaux.feminin(p);

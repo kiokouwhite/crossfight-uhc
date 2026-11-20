@@ -42,7 +42,9 @@ def self_buffers():
 
 # Les tomes de Hano qui agissent sur elle un moment (character/earthdelta/Tomes.java : show) : une seule classe
 # pour tous les tomes, donc declares ici.
-TOMES = {"hano_tome_fire_protection", "hano_tome_respiration"}
+TOMES = {"hano_tome_fire_protection", "hano_tome_respiration",
+         # ...et les pouvoirs de titans d'Eren (une seule classe aussi : Eren.TitanPower).
+         "eren_t_colossal", "eren_t_feminin", "eren_t_bestial", "eren_t_machoire", "eren_t_charrette", "eren_t_marteau"}
 
 
 def badge(im, x, y, seconds, small, edge=None):
@@ -57,13 +59,13 @@ def badge(im, x, y, seconds, small, edge=None):
     d.text((x0 + 3, y0 + 1), label, font=small, fill=(255, 240, 180, 255))
 
 
-def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant=""):
+def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant="", tv=""):
     a = bp.actives(character)[j]
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     y = MARGIN + bp.block_height(character, text, font, weapon, variant)
-    lines = bp.wrap(bp.text_of(a, text), font, TEXT_W) if text else []
+    lines = bp.wrap(bp.text_of(a, text, tv), font, TEXT_W) if text else []
     h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
     if text:
         d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=bp.PANEL, outline=EDGE)
@@ -142,17 +144,22 @@ def main():
         ing = bp.ingredients(c, rec) + [sorted(timed & {a["id"] for a in c["abilities"]})]
         for j in range(len(bp.actives(c))):
             # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme au-dessus (si le personnage en a une).
-            for code, v in [(k, v) for k in range(6 if bp.weapon_abilities(c) else 3) for v in (bp.variants(c) if k >= 3 else [""])]:
+            # Avec le texte et sans carte d'arme, la variante est celle du texte (Weiss : la Dust du lancer, d0 a d5).
+            for code, v in bp.codes(c):
                 text, weapon = code % 3, code >= 3
-                base = OUT / f"{c['id']}_{j}_{code}{v}"
-                jobs.append((render, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base}.png", bp.job_key(ing, j, text, weapon, v)))
+                tv = v if v in bp.text_variants(c) else ""
+                v = "" if tv else v
+                kw = dict(weapon=weapon, variant=v, tv=tv)
+                base = OUT / f"{c['id']}_{j}_{code}{v}{tv}"
+                jobs.append((render, (c, j, text, font, small, rec), kw, f"{base}.png", bp.job_key(ing, j, text, weapon, v, tv)))
                 for kind, steps in (("i", bp.SLIDE_IN), ("o", bp.SLIDE_OUT)):
                     for k, f in enumerate(steps, 1):
-                        jobs.append((render, (c, j, text, font, small, rec), dict(slide=f, weapon=weapon, variant=v), f"{base}_{kind}{k}.png", bp.job_key(ing, j, text, weapon, v, kind, k)))
+                        jobs.append((render, (c, j, text, font, small, rec), dict(kw, slide=f), f"{base}_{kind}{k}.png", bp.job_key(ing, j, text, weapon, v, tv, kind, k)))
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
-                    jobs.append((render, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, "s", sec)))
-                # La petite case du second actif (actif2/), pour ceux qui ont un compte a rebours.
-                if bp.actives(c)[j]["id"] in timed:
+                    jobs.append((render, (c, j, text, font, small, rec), dict(kw, seconds=sec), f"{base}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, tv, "s", sec)))
+                # La petite case du second actif (actif2/), pour ceux qui ont un compte a rebours : sans texte, donc
+                # sans variante de texte (une seule image par code).
+                if bp.actives(c)[j]["id"] in timed and (not tv or tv == bp.text_variants(c)[0]):
                     base2 = OUT2 / f"{c['id']}_{j}_{code}{v}"
                     jobs2.append((render_second, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base2}.png", bp.job_key(ing, j, text, weapon, v, "second")))
                     for sec in SECONDS:

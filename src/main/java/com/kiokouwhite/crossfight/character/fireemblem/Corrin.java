@@ -66,7 +66,8 @@ public final class Corrin extends Character {
     @Override
     public String hudOrbVariant(Player p) {
         String path = yatoPath(p);
-        if (path == null) return "";
+        // Le badge se pose sur la carte de l'arme : rien si elle n'est pas montree.
+        if (path == null || !com.kiokouwhite.crossfight.hud.PassiveHud.weaponShown(p, this)) return "";
         var plugin = com.kiokouwhite.crossfight.CrossfightPlugin.get();
         CfPlayer cf = plugin.players().get(p);
         int kills = 0;

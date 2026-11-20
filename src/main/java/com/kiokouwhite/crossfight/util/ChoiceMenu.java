@@ -21,7 +21,10 @@ import java.util.function.Consumer;
  */
 public final class ChoiceMenu implements Listener {
 
-    public record Option(Material icon, String name, List<String> lore, Runnable action) {}
+    /** model : une icone du pack complet ("icone/<model>") a la place de l'objet, quand le pack l'a (null : l'objet). */
+    public record Option(Material icon, String name, List<String> lore, Runnable action, String model) {
+        public Option(Material icon, String name, List<String> lore, Runnable action) { this(icon, name, lore, action, null); }
+    }
 
     private static final class Holder implements InventoryHolder {
         Inventory inv;
@@ -51,7 +54,13 @@ public final class ChoiceMenu implements Listener {
             List<String> lore = new ArrayList<>(o.lore());
             lore.add("");
             lore.add("<green>Clique pour choisir");
-            inv.setItem(start + i * step, Items.of(o.icon(), "<gold><bold>" + o.name(), lore));
+            var item = Items.of(o.icon(), "<gold><bold>" + o.name(), lore);
+            if (o.model() != null && Sounds.has("icone." + o.model())) {
+                var meta = item.getItemMeta();
+                meta.setItemModel(new org.bukkit.NamespacedKey(Sounds.NS, "icone/" + o.model()));
+                item.setItemMeta(meta);
+            }
+            inv.setItem(start + i * step, item);
         }
         p.openInventory(inv);
         if (autoPick && !options.isEmpty()) {

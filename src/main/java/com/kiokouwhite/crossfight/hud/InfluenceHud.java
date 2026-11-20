@@ -16,6 +16,7 @@ import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,12 @@ public final class InfluenceHud {
         /** Ce qui la fait durer : "effet:<type>" -> fin, "boost:<source>" -> tant que le bonus existe, "entrave" -> fin. */
         final Map<String, Long> keys = new HashMap<>();
         long touched;
+        /** La variante de texte du lanceur au moment du lancer (Weiss : sa Dust) : la carte garde ce texte. */
+        String variant = "";
+        /** Les cles posees par un effet entretenu (repose sans cesse) : pas de compte a rebours tant qu'elles sont la. */
+        final Set<String> loops = new HashSet<>();
+        /** Tant que c'est vrai, la carte reste (un coup arme, sans duree) : la cle "tenu". */
+        java.util.function.BooleanSupplier held;
         Influence(String ability, boolean ally) { this.ability = ability; this.ally = ally; }
     }
 
@@ -67,7 +74,11 @@ public final class InfluenceHud {
     public static void potion(Player target, PotionEffect fx) {
         if (fx == null || !fx.hasIcon()) return;
         long ms = fx.getDuration() < 0 ? 3_600_000L : fx.getDuration() * 50L;
-        record(target, "effet:" + fx.getType().getKey().getKey(), System.currentTimeMillis() + ms, BAD.contains(fx.getType()));
+        String key = "effet:" + fx.getType().getKey().getKey();
+        // Un effet entretenu (Effects.refresh : sans particules) est repose sans cesse pour quelques secondes : sa duree
+        // ne dit pas quand il s'arretera. La carte qu'il fait durer n'a donc pas de compte a rebours.
+        LOOPING.set(!fx.hasParticles());
+        try { record(target, key, System.currentTimeMillis() + ms, BAD.contains(fx.getType())); } finally { LOOPING.set(false); }
     }
 
     /** L'effet de ce type a pris fin (expire, retire) : ce qu'il faisait durer s'arrete. */
@@ -98,17 +109,40 @@ public final class InfluenceHud {
     public static void self(Player p, Ability a, int ticks) {
         if (p == null || a == null) return;
         long now = System.currentTimeMillis();
-        Influence inf = SELF.computeIfAbsent(p.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id(), k -> new Influence(a.id(), true));
+        Influence inf = own(p, a);
         inf.keys.merge("duree", now + ticks * 50L, Math::max);
         inf.touched = now;
+    }
+
+    /**
+     * Un actif qui reste arme sans duree (le prochain coup de Weiss...) : sa carte a gauche, sans compte a rebours,
+     * tant que {@code armed} est vrai.
+     */
+    public static void selfWhile(Player p, Ability a, java.util.function.BooleanSupplier armed) {
+        if (p == null || a == null) return;
+        Influence inf = own(p, a);
+        inf.keys.put("tenu", Long.MAX_VALUE);
+        inf.held = armed;
+        inf.touched = System.currentTimeMillis();
+    }
+
+    /**
+     * La carte d'un actif du joueur, dans la variante de texte du moment : relancer la meme capacite avec une
+     * autre variante (Weiss, une autre Dust) ouvre une seconde carte au lieu de changer le texte de la premiere.
+     */
+    private static Influence own(Player p, Ability a) {
+        CfPlayer cf = CrossfightPlugin.get().players().get(p);
+        String variant = cf == null || cf.character() == null ? "" : cf.character().hudTextVariant(p);
+        Influence inf = SELF.computeIfAbsent(p.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id() + "#" + variant, k -> new Influence(a.id(), true));
+        inf.variant = variant;
+        return inf;
     }
 
     /** L'actif annonce par {@link #self} s'arrete plus tot que prevu : sa carte s'en va. */
     public static void selfEnd(Player p, Ability a) {
         if (p == null || a == null) return;
         var map = SELF.get(p.getUniqueId());
-        Influence inf = map == null ? null : map.get(a.id());
-        if (inf != null) inf.keys.remove("duree");
+        if (map != null) for (Influence inf : map.values()) if (inf.ability.equals(a.id())) { inf.keys.remove("duree"); inf.keys.remove("tenu"); }
     }
 
     /**
@@ -123,6 +157,19 @@ public final class InfluenceHud {
         inf.touched = now;
     }
 
+    private static final ThreadLocal<Boolean> LOOPING = ThreadLocal.withInitial(() -> false);
+
+    /** Le temps qui reste a une carte : la plus lointaine de ses fins connues ; 0 (pas de compte a rebours) si elle est tenue ou entretenue sans fin. */
+    private static long endOf(Influence inf) {
+        if (inf.keys.containsKey("tenu")) return 0;
+        long until = 0;
+        for (var e : inf.keys.entrySet()) {
+            if (inf.loops.contains(e.getKey())) return 0;
+            if (e.getValue() != Long.MAX_VALUE) until = Math.max(until, e.getValue());
+        }
+        return until;
+    }
+
     private static void record(Player target, String key, long until, boolean bad) {
         Ability a = caller();
         if (a == null) return;
@@ -132,9 +179,13 @@ public final class InfluenceHud {
         if (self != null && self.character() != null && self.character().id().equals(ch.id())) {
             // Son propre actif qui lui donne un bonus pour un moment : montre a gauche, bordure jaune.
             if (a.type() == com.kiokouwhite.crossfight.ability.AbilityType.PASSIVE || bad || until - System.currentTimeMillis() < MIN_SELF_MS) return;
-            Influence inf = SELF.computeIfAbsent(target.getUniqueId(), k -> new LinkedHashMap<>())
-                    .computeIfAbsent(a.id(), k -> new Influence(a.id(), true));
+            // La carte deja ouverte pour cette capacite (la plus recente) ; sinon une nouvelle, dans la variante du moment.
+            Influence inf = null;
+            var mine = SELF.get(target.getUniqueId());
+            if (mine != null) for (Influence x : mine.values()) if (x.ability.equals(a.id()) && (inf == null || x.touched > inf.touched)) inf = x;
+            if (inf == null) inf = own(target, a);
             inf.keys.merge(key, until, Math::max);
+            if (LOOPING.get()) inf.loops.add(key); else inf.loops.remove(key);
             inf.touched = System.currentTimeMillis();
             return;
         }
@@ -146,6 +197,7 @@ public final class InfluenceHud {
         Influence inf = BY.computeIfAbsent(target.getUniqueId(), k -> new LinkedHashMap<>())
                 .computeIfAbsent(a.id(), k -> new Influence(a.id(), ally));
         inf.keys.merge(key, until, Math::max);
+        if (LOOPING.get()) inf.loops.add(key); else inf.loops.remove(key);
         inf.touched = System.currentTimeMillis();
     }
 
@@ -161,6 +213,7 @@ public final class InfluenceHud {
         if (map == null) return List.of();
         long now = System.currentTimeMillis();
         map.values().removeIf(inf -> {
+            if (inf.held != null && !inf.held.getAsBoolean()) { inf.held = null; inf.keys.remove("tenu"); }
             inf.keys.entrySet().removeIf(e -> e.getKey().startsWith("boost:")
                     ? Boosts.get(p, e.getKey().substring(6)) == null : e.getValue() < now);
             return inf.keys.isEmpty();
@@ -168,6 +221,23 @@ public final class InfluenceHud {
         List<Influence> live = new ArrayList<>(map.values());
         live.sort((x, y) -> Long.compare(y.touched, x.touched));
         return live;
+    }
+
+    /** Les actifs en cours du joueur, du plus recent au plus ancien, sans ceux qui se taisent pour l'instant ({@code Ability.hudShown}). */
+    private static List<Influence> liveSelf(Player p, Character c) {
+        // Une capacite a bascule allumee (Flottement, Barriere, Champ Electrique...) : sa carte reste tant qu'elle l'est.
+        var mine = SELF.get(p.getUniqueId());
+        for (Ability a : c.allAbilities()) {
+            if (!(a instanceof com.kiokouwhite.crossfight.ability.ToggleAbility)) continue;
+            var st = CrossfightPlugin.get().abilities().state(p, a);
+            if (!st.isEnabled()) continue;
+            boolean held = false;
+            if (mine != null) for (Influence x : mine.values()) if (x.ability.equals(a.id()) && x.held != null) held = true;
+            if (!held) selfWhile(p, a, st::isEnabled);
+        }
+        List<Influence> out = new ArrayList<>(live(SELF, p));
+        out.removeIf(inf -> { Ability a = c.ability(inf.ability); return a != null && !a.hudShown(p); });
+        return out;
     }
 
     /** Les comptes a rebours dessines (tools/build_actifs.py, SECONDS) : le palier au-dessus du temps restant. */
@@ -186,7 +256,7 @@ public final class InfluenceHud {
         CfPlayer cf = CrossfightPlugin.get().players().get(p);
         Character c = cf == null ? null : cf.character();
         if (c == null || !HudPrefs.Pref.ACTIFS.of(p)) return null;
-        List<Influence> live = live(SELF, p);
+        List<Influence> live = liveSelf(p, c);
         if (live.size() < 2) return null;
         Influence inf = live.get(1);
         List<Ability> acts = PassiveHud.actives(c);
@@ -195,7 +265,7 @@ public final class InfluenceHud {
         if (j < 0 || !Sounds.has("actif2." + c.id() + "." + j)) return null;
         String id = "actif2/" + c.id() + "_" + j + "_" + PassiveHud.code(p, c, HudPrefs.Pref.ACTIFS_TEXTE);
         long now = System.currentTimeMillis(), until = 0;
-        for (long v : inf.keys.values()) if (v != Long.MAX_VALUE) until = Math.max(until, v);
+        until = endOf(inf);
         if (until > now) {
             int left = (int) Math.ceil((until - now) / 1000.0);
             for (int step : SECONDS) if (step >= left) return id + "_s" + step;
@@ -214,11 +284,12 @@ public final class InfluenceHud {
         if (c == null || !Sounds.has("actif." + c.id()) || !HudPrefs.Pref.ACTIFS.of(p)) return null;
         UUID u = p.getUniqueId();
         long now = System.currentTimeMillis();
-        List<Influence> live = live(SELF, p);
+        List<Influence> live = liveSelf(p, c);
         Influence inf = live.isEmpty() ? null : live.get(0);
         int j = -1;
         if (inf != null) { List<Ability> acts = PassiveHud.actives(c); for (int k = 0; k < acts.size(); k++) if (acts.get(k).id().equals(inf.ability)) j = k; }
-        String id = j < 0 ? null : c.id() + "_" + j + "_" + PassiveHud.code(p, c, HudPrefs.Pref.ACTIFS_TEXTE);
+        String id = j < 0 ? null : c.id() + "_" + j + "_" + PassiveHud.code(p, c, HudPrefs.Pref.ACTIFS_TEXTE)
+                + PassiveHud.textVariant(p, c, HudPrefs.Pref.ACTIFS_TEXTE, inf.variant);
         String before = SELF_SHOWN.get(u);
         if (id != null && !id.equals(before)) SELF_IN.put(u, now);
         if (before != null && !before.equals(id)) SELF_OUT.put(u, new Object[]{before, now});
@@ -232,7 +303,7 @@ public final class InfluenceHud {
         if (since < SLIDE_IN * STEP_MS) return "actif/" + id + "_i" + (1 + since / STEP_MS);
         // Le temps qui reste : la plus lointaine des fins connues (les bonus sans fin n'en ont pas).
         long until = 0;
-        for (long v : inf.keys.values()) if (v != Long.MAX_VALUE) until = Math.max(until, v);
+        until = endOf(inf);
         if (until > now && Sounds.has("actif." + c.id() + "." + j + ".s")) {
             int left = (int) Math.ceil((until - now) / 1000.0);
             for (int step : SECONDS) if (step >= left) return "actif/" + id + "_s" + step;
@@ -313,7 +384,7 @@ public final class InfluenceHud {
             if (!Sounds.has("influence." + inf.ability + "." + side)) continue;
             cur.add(inf.ability + "_" + side);
             long until = 0;
-            for (long v : inf.keys.values()) if (v != Long.MAX_VALUE) until = Math.max(until, v);
+            until = endOf(inf);
             left.put(inf.ability + "_" + side, until > now ? (int) Math.ceil((until - now) / 1000.0) : 0);
         }
         List<String> before = SHOWN.getOrDefault(u, List.of());

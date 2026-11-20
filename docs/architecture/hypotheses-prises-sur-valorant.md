@@ -5,5 +5,5 @@
 - L'Ares et l'Odin tirent tout leur chargeur d'un coup, immobile, puis Lenteur II 5 s.
 - Les +100 crédits toutes les 10 minutes suivent l'horloge de la partie.
 - Le drone de Sova est un allay qui suit Sova et tire une flèche de Faiblesse par seconde sur l'ennemi le plus proche à 20 blocs.
-- L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide.
+- L'Ultime de Neon donne une lame électrique de 10 dégâts le temps que la jauge de Vitesse Supérieure se vide : elle prend la place de son couteau, qui lui est rendu à la fin (au palier atteint entre-temps). Pendant l'Ultime, Neon peut frapper au corps à corps avec ce qu'elle tient, et la carte de Vitesse Supérieure ne s'affiche pas : c'est celle de l'Ultime qui compte.
 - La Résurrection de Sage réutilise les règles de l'Invocation de Weiss : une vie, Faiblesse, pas de plastron.

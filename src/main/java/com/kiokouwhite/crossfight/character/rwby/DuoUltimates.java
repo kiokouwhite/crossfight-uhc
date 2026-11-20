@@ -3,7 +3,9 @@ package com.kiokouwhite.crossfight.character.rwby;
 import com.kiokouwhite.crossfight.CrossfightPlugin;
 import com.kiokouwhite.crossfight.util.Clones;
 import com.kiokouwhite.crossfight.util.Effects;
+import com.kiokouwhite.crossfight.util.Flames;
 import com.kiokouwhite.crossfight.util.Msg;
+import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Stealth;
 import com.kiokouwhite.crossfight.util.TempBlocks;
 import org.bukkit.Bukkit;
@@ -20,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -66,9 +69,21 @@ final class DuoUltimates {
         if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "Patinoire de 50 blocs, Vitesse III pour les allies";
         if (pair.equals(java.util.Set.of("ruby", "yang"))) return "Yang projette Ruby sur 10 blocs, 5 coeurs autour d'elle";
         if (pair.equals(java.util.Set.of("ruby", "blake"))) return "Invisibles et Vitesse III pendant 30 s";
-        if (pair.equals(java.util.Set.of("weiss", "yang"))) return "3 piques de glace qui enflamment et ralentissent";
+        if (pair.equals(java.util.Set.of("weiss", "yang"))) return "Glyphe de glace et de feu : ralentit et enflamme 30 s";
         if (pair.equals(java.util.Set.of("weiss", "blake"))) return "Invisibles 10 s, chaque coup immobilise 5 s";
         if (pair.equals(java.util.Set.of("blake", "yang"))) return "3 clones de Yang qui explosent (3 coeurs)";
+        return "";
+    }
+
+    /** Le texte du guide : ce que fait l'attaque d'equipe de la paire, en phrases completes. */
+    static String guide(String x, String y) {
+        java.util.Set<String> pair = java.util.Set.of(x, y);
+        if (pair.equals(java.util.Set.of("ruby", "weiss"))) return "Weiss plante son epee dans le sol : une patinoire de 50 blocs de large s'etend autour d'elle pendant 30 secondes, et Ruby en fait le tour en semant des petales de rose. Les allies qui s'y trouvent ont Vitesse III.";
+        if (pair.equals(java.util.Set.of("ruby", "yang"))) return "Yang arme son poing et projette Ruby dans une explosion, sur 10 blocs. Ruby file en toupie dans une couronne de petales de rose : elle detruit les blocs qu'elle traverse et inflige 5 coeurs aux adversaires a 3 blocs.";
+        if (pair.equals(java.util.Set.of("ruby", "blake"))) return "Blake prend la main de Ruby et elles s'enfoncent ensemble dans une flaque noire : toutes deux sont invisibles et ont Vitesse III pendant 30 secondes.";
+        if (pair.equals(java.util.Set.of("weiss", "yang"))) return "Weiss dessine un glyphe de 12 blocs de large au sol, sur l'adversaire le plus proche (10 blocs) ou devant elle. Yang bondit dessus et le frappe trois fois du poing : a chaque coup, un pic de glace en flammes jaillit. Pendant 30 secondes, les adversaires sur le glyphe sont ralentis et prennent feu.";
+        if (pair.equals(java.util.Set.of("weiss", "blake"))) return "Weiss dessine un glyphe sous elle et Blake ; elles sautent dessus ensemble et une enorme flaque noire les engloutit. Toutes deux sont invisibles 10 secondes, et chaque adversaire qu'elles frappent est immobilise 5 secondes.";
+        if (pair.equals(java.util.Set.of("blake", "yang"))) return "Blake pose la main sur le dos de Yang : trois clones de Yang sortent d'elle et foncent sur les trois adversaires les plus proches (40 blocs). Quand un adversaire attaque un clone, celui-ci explose : 3 coeurs, et l'adversaire prend feu.";
         return "";
     }
 
@@ -224,33 +239,124 @@ final class DuoUltimates {
         }
     }
 
+    // --------------------------------------------------------- gestes communs
+
+    /** Le pantin d'une des quatre (joueuse, pilote de mannequin ou mannequin duo) ; {@code armed} : son arme a la main (Ruby, Weiss). */
+    private static Puppet puppet(LivingEntity e, boolean armed) {
+        String id = RWBY.characterId(e);
+        if (id.isEmpty()) return null;
+        ItemStack held = null;
+        if (armed && id.equals("ruby")) held = e instanceof Player p ? Ruby.weapon(p) : new ItemStack(Material.DIAMOND_HOE);
+        if (armed && id.equals("weiss")) held = e instanceof Player p ? Weiss.sword(p) : new ItemStack(Material.DIAMOND_SWORD);
+        return Puppet.show(e, id, held, "debout");
+    }
+
+    /** Vrai tant que ce pantin est bien celui qui joue l'animation de {@code e}. */
+    private static boolean shown(LivingEntity e, Puppet pu) { return pu != null && Puppet.of(e) == pu; }
+
+    private static boolean standable(Location at) {
+        return at.getBlock().isPassable() && at.clone().add(0, 1, 0).getBlock().isPassable() && !at.clone().add(0, -1, 0).getBlock().isPassable();
+    }
+
+    /**
+     * Amene {@code mover} a la gauche de {@code anchor}, a {@code dist} blocs, dans un nuage de fumee : les deux se
+     * tiennent alors cote a cote, tournees du meme cote (l'orientation rendue). S'il n'y a de place d'aucun cote,
+     * elle reste ou elle est.
+     */
+    private static float sideBySide(LivingEntity anchor, LivingEntity mover, double dist) {
+        Location al = anchor.getLocation();
+        for (float yaw : new float[]{al.getYaw(), al.getYaw() + 180f, al.getYaw() + 90f, al.getYaw() - 90f}) {
+            double r = Math.toRadians(yaw);
+            // A sa gauche quand elle regarde vers yaw : (cos, sin).
+            Location spot = al.clone().add(Math.cos(r) * dist, 0, Math.sin(r) * dist);
+            if (!standable(spot)) continue;
+            spot.setYaw(yaw);
+            spot.setPitch(0);
+            World w = anchor.getWorld();
+            w.spawnParticle(Particle.SMOKE, mover.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
+            mover.teleport(spot);
+            w.spawnParticle(Particle.SMOKE, spot.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
+            return yaw;
+        }
+        return al.getYaw();
+    }
+
+    private static float yawTo(Location from, Location to) {
+        double dx = to.getX() - from.getX(), dz = to.getZ() - from.getZ();
+        return dx * dx + dz * dz < 1e-4 ? from.getYaw() : (float) Math.toDegrees(Math.atan2(-dx, dz));
+    }
+
     // ------------------------------------------------------------- Ruby + Yang
 
-    /** Yang projette Ruby sur 10 blocs ; Ruby detruit ce qu'elle traverse et inflige 5 coeurs autour d'elle. */
+    /** Strawberry Sunrise : Yang lance au tick THROW ; la toupie de Ruby file pendant FLIGHT ticks, puis ralentit. */
+    static final int THROW = 7, FLIGHT = 24;
+    static final float TOP_PER_TICK = 72f;
+    static final float[] TOP_LANDING = {60f, 48f, 36f, 24f, 12f};
+
+    /**
+     * Yang arme son bras, Ruby devant son poing, deja en toupie, la faux tendue. Le coup part : le gantelet explose
+     * et projette Ruby sur 10 blocs. Elle file en tournant sur elle-meme dans une couronne de petales de rose,
+     * detruit ce qu'elle traverse et inflige 5 coeurs autour d'elle.
+     */
     static boolean lancerDeRose(LivingEntity yang, LivingEntity ruby) {
-        Vector dir = yang.getLocation().getDirection().setY(0);
-        if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
-        dir.normalize();
-        ruby.teleport(yang.getLocation().add(dir.clone().multiply(0.6)).setDirection(dir));
-        ruby.setVelocity(dir.clone().multiply(2.4).setY(0.35));
+        Vector look = yang.getLocation().getDirection().setY(0);
+        if (look.lengthSquared() < 0.01) look = new Vector(1, 0, 0);
+        final Vector dir = look.normalize();
+        final float yaw = (float) Math.toDegrees(Math.atan2(-dir.getX(), dir.getZ()));
         World w = yang.getWorld();
-        w.playSound(yang.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.4f);
-        w.spawnParticle(Particle.EXPLOSION, yang.getLocation().add(0, 1, 0), 1);
+        ruby.teleport(yang.getLocation().add(dir.clone().multiply(0.9)).setDirection(dir));
+        if (ruby instanceof Player rp) Ruby.noFallUntil(rp, 5000);
+        final Puppet py = puppet(yang, false), pr = puppet(ruby, true);
+        if (py != null) { py.face(yaw); py.pose("yang_lancer_arme", 3); py.endAfter(THROW + 10, 4); }
+        if (pr != null) { pr.face(yaw); pr.pose("ruby_toupie", 3); pr.endAfter(THROW + FLIGHT + TOP_LANDING.length + 2, 4); }
+        w.playSound(yang.getLocation(), Sound.ITEM_ARMOR_EQUIP_GOLD, 1f, 0.9f);
         List<UUID> hit = new ArrayList<>();
-        final Vector fDir = dir;
         new BukkitRunnable() {
-            int ticks = 0;
+            int t = 0;
+            float angle = 0;
             @Override public void run() {
-                ticks++;
-                if (ticks > 24 || !ruby.isValid()) { cancel(); return; }
+                t++;
+                if (!ruby.isValid() || ruby.isDead()) { cancel(); return; }
+                int flight = t - THROW;
+                // La toupie : elle tourne deja dans la main de Yang, a pleine vitesse en vol, puis ralentit en retombant.
+                if (t >= 3 && shown(ruby, pr)) {
+                    angle += flight <= FLIGHT ? TOP_PER_TICK : TOP_LANDING[Math.min(TOP_LANDING.length - 1, flight - FLIGHT - 1)];
+                    pr.spin(new Vector3f(0, 1, 0), angle, new Vector3f(0, 0, 0), 1);
+                }
                 Location at = ruby.getLocation();
+                // La couronne de petales qui tourne avec elle.
+                for (int k = 0; k < 6; k++) {
+                    double a = Math.toRadians(angle) + k * Math.PI / 3, r = 1.7;
+                    Location petal = at.clone().add(Math.cos(a) * r, 1.0 + 0.25 * Math.sin(a * 2), Math.sin(a) * r);
+                    w.spawnParticle(Particle.DUST, petal, 2, 0.08, 0.08, 0.08, 0, k % 2 == 0 ? PETAL : PETAL_DARK);
+                    if (k % 3 == 0) w.spawnParticle(Particle.CHERRY_LEAVES, petal, 1, 0.1, 0.1, 0.1, 0);
+                }
+                if (flight < 0) {
+                    ruby.setVelocity(new Vector(0, 0, 0));
+                    if (t == THROW - 2 && shown(yang, py)) py.pose("yang_direct_droit", 2);
+                    return;
+                }
+                if (flight == 0) {
+                    // Le coup part : l'explosion du gantelet, et Ruby s'envole.
+                    Location fist = shown(yang, py) ? py.armPoint(true, 1.0) : yang.getEyeLocation().add(dir.clone().multiply(0.6)).add(0, -0.3, 0);
+                    w.spawnParticle(Particle.EXPLOSION_EMITTER, fist, 1);
+                    w.spawnParticle(Particle.FLAME, fist, 90, 0.1, 0.1, 0.1, 0.2);
+                    w.spawnParticle(Particle.LAVA, fist, 12, 0.3, 0.3, 0.3, 0);
+                    w.playSound(fist, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 1.1f);
+                    w.playSound(fist, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 0.7f);
+                    RWBY.ejectShell(yang, fist);
+                    ruby.setVelocity(dir.clone().multiply(2.4).setY(0.35));
+                    return;
+                }
+                if (flight > FLIGHT) { if (flight > FLIGHT + TOP_LANDING.length) cancel(); return; }
                 w.spawnParticle(Particle.CHERRY_LEAVES, at.clone().add(0, 1, 0), 10, 0.6, 0.6, 0.6, 0.05);
                 w.spawnParticle(Particle.DUST, at.clone().add(0, 1, 0), 8, 0.5, 0.5, 0.5, 0, new Particle.DustOptions(Color.fromRGB(220, 20, 60), 1.5f));
+                if (flight < 6) w.spawnParticle(Particle.FLAME, at.clone().add(0, 1, 0), 6, 0.3, 0.4, 0.3, 0.03);
                 // Ruby detruit ce qu'elle traverse (sauf les blocs indestructibles ou proteges).
                 for (int dx = -1; dx <= 1; dx++) for (int dy = 0; dy <= 2; dy++) for (int dz = -1; dz <= 1; dz++) {
                     Block b = at.clone().add(dx, dy, dz).getBlock();
-                    Material t = b.getType();
-                    if (t.isAir() || t == Material.BEDROCK || t == Material.OBSIDIAN || t == Material.BARRIER || t == Material.WATER || t == Material.LAVA) continue;
+                    Material type = b.getType();
+                    if (type.isAir() || type == Material.BEDROCK || type == Material.OBSIDIAN || type == Material.BARRIER || type == Material.WATER || type == Material.LAVA) continue;
                     if (TempBlocks.isProtected(b)) continue;
                     w.spawnParticle(Particle.BLOCK, b.getLocation().add(0.5, 0.5, 0.5), 10, 0.3, 0.3, 0.3, 0, b.getBlockData());
                     b.setType(Material.AIR, false);
@@ -261,86 +367,236 @@ final class DuoUltimates {
                     Effects.damage(enemy, 10.0, ruby);
                     w.playSound(enemy.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 0.8f);
                 }
-                if (ticks < 12) ruby.setVelocity(fDir.clone().multiply(1.2).setY(ruby.getVelocity().getY()));
+                if (flight < 12) ruby.setVelocity(dir.clone().multiply(1.2).setY(ruby.getVelocity().getY()));
             }
         }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
-        if (ruby instanceof Player rp) Ruby.noFallUntil(rp, 4000);
         return true;
     }
 
     // ------------------------------------------------------------ Ruby + Blake
 
-    /** Les deux deviennent invisibles avec Vitesse III pendant 30 secondes. */
+    /** Ladybug : les mains se joignent a HANDS (la flaque s'ouvre), elles s'enfoncent de SINK a SUNK. */
+    static final int HANDS = 8, SINK = 12, SUNK = 30;
+
+    /**
+     * Blake apparait a cote de Ruby et lui tend la main ; Ruby la prend. Une flaque noire s'ouvre sous elles et
+     * elles s'y enfoncent ensemble, main dans la main. Invisibles avec Vitesse III pendant 30 secondes.
+     */
     static boolean ombreRouge(LivingEntity ruby, LivingEntity blake) {
+        // L'invisibilite d'abord : les pantins qui s'enfoncent ne l'enleveront pas en finissant.
         for (LivingEntity p : new LivingEntity[]{ruby, blake}) {
             Effects.give(p, PotionEffectType.SPEED, 2, 20 * 30);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 30);
-            p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
             if (!(p instanceof Player pl)) continue;
             Stealth.hideFromAll(pl, "duo_rb", v -> Effects.isEnemy(pl, v));
             Stealth.hideArmor(pl);
             Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> { Stealth.reveal(pl, "duo_rb"); Stealth.showArmor(pl); }, 20L * 30);
         }
-        ruby.getWorld().playSound(ruby.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.8f);
+        World w = ruby.getWorld();
+        final float yaw = sideBySide(ruby, blake, 1.4);
+        final Location rl = ruby.getLocation(), bl = blake.getLocation();
+        final Location mid = Glyph.ground(rl.clone().add(bl).multiply(0.5));
+        final Puppet pr = puppet(ruby, false), pb = puppet(blake, false);
+        if (pb != null) { pb.face(yaw); pb.pin(bl); pb.rest("blake_duo_fond"); pb.pose("blake_main_tendue", 4); pb.endAfter(SUNK, 1); }
+        if (pr != null) { pr.face(yaw); pr.pin(rl); pr.rest("ruby_duo_fond"); pr.endAfter(SUNK, 1); }
+        w.playSound(rl, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.8f);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (t == 4 && shown(ruby, pr)) pr.pose("ruby_main_donnee", 3);
+                if (t == HANDS) {
+                    Glyph puddle = Glyph.spawn(mid, "flaque_noire", Color.WHITE, 4.2f, Glyph.FLAT, new Vector3f());
+                    if (puddle != null) {
+                        puddle.spin(0.6f);
+                        Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), puddle::close, SUNK - HANDS + 6L);
+                    }
+                    w.playSound(mid, Sound.ITEM_BUCKET_EMPTY, 0.8f, 0.6f);
+                    w.spawnParticle(Particle.SQUID_INK, mid.clone().add(0, 0.1, 0), 24, 1.0, 0.05, 1.0, 0.02);
+                }
+                if (t == SINK) {
+                    if (shown(ruby, pr)) pr.pose("ruby_duo_fond", 16);
+                    if (shown(blake, pb)) pb.pose("blake_duo_fond", 16);
+                    w.playSound(mid, Sound.BLOCK_HONEY_BLOCK_SLIDE, 1f, 0.5f);
+                }
+                if (t > SINK && t % 3 == 0) w.spawnParticle(Particle.SQUID_INK, mid.clone().add(0, 0.15, 0), 6, 0.9, 0.05, 0.9, 0.01);
+                if (t >= SUNK) {
+                    w.spawnParticle(Particle.SMOKE, mid.clone().add(0, 0.3, 0), 30, 0.9, 0.2, 0.9, 0.02);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
         return true;
     }
 
     // ------------------------------------------------------------ Weiss + Yang
 
-    /** Trois piques de glace de 3x3 a moins de 10 blocs ; enflamment et ralentissent a 2 blocs. 30 secondes. */
+    /**
+     * Freezerburn : le glyphe apparait a FB_GLYPH, Yang saute a FB_JUMP et retombe dessus a FB_LAND ; ses trois
+     * coups suivent, un tous les FB_EVERY ticks. La zone dure 30 secondes.
+     */
+    static final int FB_GLYPH = 7, FB_JUMP = 9, FB_LAND = 22, FB_FIRST = 25, FB_EVERY = 7, FB_ZONE = 20 * 30;
+    static final double FB_RADIUS = 6.0;
+    static final Color FB_ICE = Color.fromRGB(150, 225, 255);
+
+    /**
+     * Weiss leve son epee puis la pointe : un grand glyphe se dessine au sol, sur l'adversaire le plus proche
+     * (10 blocs) ou 4 blocs devant elle. Yang bondit dessus et le frappe du poing, trois fois : a chaque coup un
+     * pic de glace en flammes jaillit autour d'elle. Sur le glyphe, la glace et le feu tourbillonnent 30 secondes :
+     * les adversaires y sont ralentis et enflammes.
+     */
     static boolean piquesDeGlace(LivingEntity weiss, LivingEntity yang) {
         World w = weiss.getWorld();
-        List<Location> centers = new ArrayList<>();
         List<LivingEntity> enemies = Effects.enemiesAround(weiss, 10);
+        enemies.sort(java.util.Comparator.comparingDouble(e -> e.getLocation().distanceSquared(weiss.getLocation())));
+        Vector look = weiss.getLocation().getDirection().setY(0);
+        if (look.lengthSquared() < 0.01) look = new Vector(1, 0, 0);
+        Location aim = enemies.isEmpty() ? weiss.getLocation().add(look.normalize().multiply(4)) : enemies.get(0).getLocation();
+        int gy = Effects.groundAround(w, aim.getBlockX(), aim.getBlockZ(), aim.getBlockY());
+        final Location center = new Location(w, aim.getBlockX() + 0.5, (gy == Integer.MIN_VALUE ? aim.getBlockY() - 1 : gy) + 1, aim.getBlockZ() + 0.5);
+        // Les trois pics, en triangle autour de Yang.
+        final List<Location> spots = new ArrayList<>();
+        double a0 = Math.random() * Math.PI * 2;
         for (int i = 0; i < 3; i++) {
-            Location c;
-            if (i < enemies.size()) c = enemies.get(i).getLocation().add(Math.random() * 3 - 1.5, 0, Math.random() * 3 - 1.5);
-            else {
-                double a = Math.random() * Math.PI * 2, r = 3 + Math.random() * 7;
-                c = weiss.getLocation().add(Math.cos(a) * r, 0, Math.sin(a) * r);
-            }
-            int y = Effects.groundAround(w, c.getBlockX(), c.getBlockZ(), c.getBlockY());
-            if (y == Integer.MIN_VALUE) y = c.getBlockY() - 1;
-            centers.add(new Location(w, c.getBlockX(), y + 1, c.getBlockZ()));
+            double a = a0 + i * Math.PI * 2 / 3;
+            int x = (int) Math.floor(center.getX() + Math.cos(a) * 3.5), z = (int) Math.floor(center.getZ() + Math.sin(a) * 3.5);
+            int y = Effects.groundAround(w, x, z, center.getBlockY());
+            spots.add(new Location(w, x, (y == Integer.MIN_VALUE ? center.getBlockY() - 1 : y) + 1, z));
         }
-        TempBlocks spikes = new TempBlocks();
-        for (Location c : centers) {
-            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
-                spikes.place(c.clone().add(dx, 0, dz).getBlock(), Material.PACKED_ICE);
-                spikes.place(c.clone().add(dx, 1, dz).getBlock(), Material.PACKED_ICE);
-                if (dx == 0 || dz == 0) spikes.place(c.clone().add(dx, 2, dz).getBlock(), Material.BLUE_ICE);
-            }
-            spikes.place(c.clone().add(0, 3, 0).getBlock(), Material.BLUE_ICE);
-            spikes.place(c.clone().add(0, 4, 0).getBlock(), Material.ICE);
-            w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(0.5, 2, 0.5), 40, 1, 2, 1, 0.02);
-        }
-        w.playSound(weiss.getLocation(), Sound.BLOCK_GLASS_PLACE, 1f, 0.5f);
-        w.playSound(weiss.getLocation(), Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.6f);
+        final TempBlocks spikes = new TempBlocks();
+        final Puppet pw = puppet(weiss, true);
+        if (pw != null) { pw.face(yawTo(weiss.getLocation(), center)); pw.pose("weiss_epee_levee", 3); pw.endAfter(FB_GLYPH + 12, 4); }
+        w.playSound(weiss.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.8f);
         new BukkitRunnable() {
-            int seconds = 0;
+            int t = 0;
+            Glyph glyph;
+            Puppet py;
+            Location from;
+            final int[] erupted = {-1, -1, -1};
+            void finish() {
+                spikes.restore();
+                if (glyph != null) glyph.close();
+                cancel();
+            }
             @Override public void run() {
-                if (seconds++ >= 30) { spikes.restore(); cancel(); return; }
-                for (Location c : centers) {
-                    for (LivingEntity enemy : Effects.enemiesAround(weiss, c.clone().add(0.5, 1, 0.5), 2.0 + 1.5)) {
+                t++;
+                if (t == FB_GLYPH - 3 && shown(weiss, pw)) pw.pose("weiss_estoc", 2);
+                if (t == FB_GLYPH) {
+                    glyph = Glyph.spawn(Glyph.ground(center), Glyph.CERCLE, FB_ICE, (float) (FB_RADIUS * 2), Glyph.FLAT, new Vector3f());
+                    if (glyph != null) glyph.spin(1.5f);
+                    w.playSound(center, Sound.BLOCK_GLASS_PLACE, 1f, 0.5f);
+                    w.playSound(center, Sound.ENTITY_PLAYER_HURT_FREEZE, 1f, 0.6f);
+                    for (int k = 0; k < 40; k++) {
+                        double a = k * Math.PI / 20;
+                        w.spawnParticle(Particle.SNOWFLAKE, center.clone().add(Math.cos(a) * FB_RADIUS, 0.2, Math.sin(a) * FB_RADIUS), 2, 0.1, 0.1, 0.1, 0.01);
+                    }
+                }
+                boolean yangThere = yang.isValid() && !yang.isDead();
+                if (t == FB_JUMP && yangThere) {
+                    from = yang.getLocation();
+                    py = puppet(yang, false);
+                    if (py != null) { py.face(yawTo(from, center)); py.pose("yang_saut_frappe", 3); py.endAfter(FB_FIRST + 2 * FB_EVERY + 8 - FB_JUMP, 4); }
+                    if (yang instanceof Player yp) Effects.noFallUntil(yp, 4000);
+                    w.playSound(from, Sound.ENTITY_BREEZE_JUMP, 1f, 0.9f);
+                    w.spawnParticle(Particle.FLAME, from.clone().add(0, 0.2, 0), 20, 0.3, 0.1, 0.3, 0.05);
+                }
+                if (t >= FB_JUMP && t < FB_LAND && yangThere) {
+                    // Le bond : une cloche, qui l'amene au centre du glyphe en FB_LAND - FB_JUMP ticks.
+                    int k = t - FB_JUMP, left = FB_LAND - t;
+                    Vector to = center.toVector().subtract(yang.getLocation().toVector()).setY(0);
+                    Vector v = to.multiply(1.0 / left);
+                    if (v.length() > 1.4) v.normalize().multiply(1.4);
+                    v.setY(0.5 - 0.077 * k + (center.getY() - from.getY()) / (FB_LAND - FB_JUMP));
+                    yang.setVelocity(v);
+                }
+                if (t == FB_LAND && yangThere) {
+                    if (yang.getLocation().distanceSquared(center) > 1.5 * 1.5) {
+                        Location land = center.clone();
+                        land.setYaw(yang.getLocation().getYaw());
+                        land.setPitch(yang.getLocation().getPitch());
+                        yang.teleport(land);
+                    }
+                    yang.setVelocity(new Vector(0, 0, 0));
+                    if (shown(yang, py)) { py.pin(center); py.pose("yang_frappe_sol_d", 2); }
+                }
+                for (int i = 0; i < 3; i++) {
+                    int at = FB_FIRST + i * FB_EVERY;
+                    if (i > 0 && t == at - 3 && shown(yang, py)) py.pose(i % 2 == 0 ? "yang_frappe_sol_d" : "yang_frappe_sol_g", 2);
+                    if (t != at) continue;
+                    // Le coup : l'onde part du poing, le pic jaillit.
+                    Location fist = shown(yang, py) ? py.armPoint(i % 2 == 0, 1.0) : center.clone().add(0, 0.2, 0);
+                    w.spawnParticle(Particle.EXPLOSION, fist, 1);
+                    w.spawnParticle(Particle.FLAME, fist, 40, 0.1, 0.05, 0.1, 0.18);
+                    w.spawnParticle(Particle.SNOWFLAKE, fist, 40, 0.1, 0.05, 0.1, 0.2);
+                    w.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.3f + 0.15f * i);
+                    w.playSound(center, Sound.BLOCK_GLASS_BREAK, 1f, 0.6f);
+                    erupted[i] = t;
+                    Location foot = spots.get(i).clone().add(0.5, 0, 0.5);
+                    // Le pic en flammes : un feu au pied de chacune de ses faces, un autre a sa pointe.
+                    int burn = FB_FIRST + FB_ZONE - t;
+                    for (int[] side : new int[][]{{2, 0}, {-2, 0}, {0, 2}, {0, -2}}) Flames.pillar(foot.clone().add(side[0], 0, side[1]), 1.0f, 1.5f, burn);
+                    Flames.pillar(foot.clone().add(0, 5, 0), 0.9f, 1.3f, burn);
+                    w.spawnParticle(Particle.SNOWFLAKE, foot.clone().add(0, 2, 0), 40, 1, 2, 1, 0.05);
+                    w.spawnParticle(Particle.FLAME, foot.clone().add(0, 2, 0), 40, 1, 2, 1, 0.05);
+                    w.playSound(foot, Sound.BLOCK_GLASS_PLACE, 1f, 0.5f);
+                }
+                // Chaque pic monte d'un etage par tick : la base de 3x3, le coeur en croix, puis la pointe.
+                for (int i = 0; i < 3; i++) {
+                    if (erupted[i] < 0) continue;
+                    int layer = t - erupted[i];
+                    Location c = spots.get(i);
+                    if (layer == 0 || layer == 1) {
+                        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) spikes.place(c.clone().add(dx, layer, dz).getBlock(), Material.PACKED_ICE);
+                    } else if (layer == 2) {
+                        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) if (dx == 0 || dz == 0) spikes.place(c.clone().add(dx, 2, dz).getBlock(), Material.BLUE_ICE);
+                    } else if (layer == 3) {
+                        spikes.place(c.clone().add(0, 3, 0).getBlock(), Material.BLUE_ICE);
+                    } else if (layer == 4) {
+                        spikes.place(c.clone().add(0, 4, 0).getBlock(), Material.PACKED_ICE);
+                    }
+                }
+                if (t < FB_FIRST) return;
+                if (t >= FB_FIRST + FB_ZONE) { finish(); return; }
+                // La zone : la glace et le feu tourbillonnent sur le glyphe ; les adversaires y sont ralentis et enflammes.
+                if (t % 2 == 0) {
+                    for (int k = 0; k < 5; k++) {
+                        double a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * FB_RADIUS;
+                        Location at = center.clone().add(Math.cos(a) * r, 0.2 + Math.random() * 2.2, Math.sin(a) * r);
+                        w.spawnParticle(k % 2 == 0 ? Particle.SNOWFLAKE : Particle.FLAME, at, 1, 0.1, 0.1, 0.1, 0.02);
+                    }
+                    double a = t * 0.12;
+                    for (int k = 0; k < 2; k++) {
+                        Location rim = center.clone().add(Math.cos(a + k * Math.PI) * FB_RADIUS, 0.3, Math.sin(a + k * Math.PI) * FB_RADIUS);
+                        w.spawnParticle(k == 0 ? Particle.SNOWFLAKE : Particle.SMALL_FLAME, rim, 2, 0.1, 0.2, 0.1, 0.01);
+                    }
+                }
+                if ((t - FB_FIRST) % 20 == 0) {
+                    for (LivingEntity enemy : Effects.enemiesAround(weiss, center.clone().add(0, 1, 0), FB_RADIUS)) {
                         enemy.setFireTicks(Math.max(enemy.getFireTicks(), 100));
                         Effects.give(enemy, PotionEffectType.SLOWNESS, 0, 100);
                     }
-                    w.spawnParticle(Particle.SNOWFLAKE, c.clone().add(0.5, 3, 0.5), 5, 0.6, 1, 0.6, 0.01);
                 }
             }
-        }.runTaskTimer(CrossfightPlugin.get(), 0L, 20L);
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
         return true;
     }
 
     // ----------------------------------------------------------- Weiss + Blake
 
-    /** Invisibles 10 secondes ; chaque adversaire touche est immobilise 5 secondes. */
+    /** Checkmate : le glyphe a CM_GLYPH, le saut a CM_JUMP, la flaque quand elles retombent (CM_LAND), englouties a CM_SUNK. */
+    static final int CM_GLYPH = 5, CM_JUMP = 10, CM_LAND = 17, CM_SINK = 19, CM_SUNK = 35;
+
+    /**
+     * Blake apparait a cote de Weiss, qui leve son epee : un glyphe se dessine sous elles deux. Elles sautent
+     * dessus en meme temps ; quand elles retombent, une enorme flaque noire s'ouvre et les engloutit, puis se
+     * referme avec le glyphe. Invisibles 10 secondes ; chaque adversaire touche est immobilise 5 secondes.
+     */
     static boolean gelSilencieux(LivingEntity weiss, LivingEntity blake) {
         long until = System.currentTimeMillis() + 10_000L;
+        // L'invisibilite d'abord : les pantins qui s'enfoncent ne l'enleveront pas en finissant.
         for (LivingEntity p : new LivingEntity[]{weiss, blake}) {
             FREEZING_HITS.put(p.getUniqueId(), until);
             Effects.give(p, PotionEffectType.INVISIBILITY, 0, 20 * 10);
-            p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.02);
             if (p instanceof Player pl) {
                 Stealth.hideFromAll(pl, "duo_wb", v -> Effects.isEnemy(pl, v));
                 Stealth.hideArmor(pl);
@@ -350,7 +606,55 @@ final class DuoUltimates {
                 FREEZING_HITS.remove(p.getUniqueId());
             }, 20L * 10);
         }
-        weiss.getWorld().playSound(weiss.getLocation(), Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.6f);
+        World w = weiss.getWorld();
+        final float yaw = sideBySide(weiss, blake, 1.4);
+        final Location wl = weiss.getLocation(), bl = blake.getLocation();
+        final Location mid = Glyph.ground(wl.clone().add(bl).multiply(0.5));
+        final Puppet pw = puppet(weiss, true), pb = puppet(blake, false);
+        if (pw != null) { pw.face(yaw); pw.pin(wl); pw.rest("blake_enfonce_fond"); pw.pose("weiss_epee_levee", 3); pw.endAfter(CM_SUNK, 1); }
+        if (pb != null) { pb.face(yaw); pb.pin(bl); pb.rest("blake_enfonce_fond"); pb.endAfter(CM_SUNK, 1); }
+        w.playSound(wl, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 0.6f);
+        new BukkitRunnable() {
+            int t = 0;
+            Glyph glyph, puddle;
+            void both(String pose, int ticks) {
+                if (shown(weiss, pw)) pw.pose(pose, ticks);
+                if (shown(blake, pb)) pb.pose(pose, ticks);
+            }
+            @Override public void run() {
+                t++;
+                if (t == CM_GLYPH) {
+                    glyph = Glyph.spawn(mid, Glyph.CERCLE, Color.fromRGB(225, 240, 255), 5f, Glyph.FLAT, new Vector3f());
+                    if (glyph != null) glyph.spin(2.5f);
+                    w.playSound(mid, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.7f);
+                    w.playSound(mid, Sound.BLOCK_GLASS_PLACE, 0.8f, 0.6f);
+                    w.spawnParticle(Particle.SNOWFLAKE, mid.clone().add(0, 0.2, 0), 40, 1.6, 0.05, 1.6, 0.01);
+                }
+                if (t == CM_JUMP) { both("duo_saut", 4); w.playSound(mid, Sound.ENTITY_BREEZE_JUMP, 0.7f, 1.2f); }
+                if (t == CM_JUMP + 4) both("duo_atterri", 3);
+                if (t == CM_LAND) {
+                    // Elles retombent : la flaque jaillit du glyphe et le recouvre.
+                    puddle = Glyph.spawn(mid.clone().add(0, 0.02, 0), "flaque_noire", Color.WHITE, 9f, Glyph.FLAT, new Vector3f());
+                    if (puddle != null) puddle.spin(0.6f);
+                    w.playSound(mid, Sound.ITEM_BUCKET_EMPTY, 1f, 0.5f);
+                    w.playSound(mid, Sound.ENTITY_GENERIC_SPLASH, 0.8f, 0.5f);
+                    for (int k = 0; k < 24; k++) {
+                        double a = k * Math.PI / 12;
+                        w.spawnParticle(Particle.SQUID_INK, mid.clone().add(Math.cos(a) * 1.2, 0.15, Math.sin(a) * 1.2), 0, Math.cos(a), 0.15, Math.sin(a), 0.25);
+                    }
+                }
+                if (t == CM_SINK) { both("blake_enfonce_fond", 14); w.playSound(mid, Sound.BLOCK_HONEY_BLOCK_SLIDE, 1f, 0.5f); }
+                if (t > CM_SINK && t % 3 == 0) w.spawnParticle(Particle.SQUID_INK, mid.clone().add(0, 0.15, 0), 8, 2.0, 0.05, 2.0, 0.01);
+                if (t >= CM_SUNK + 4) {
+                    // Englouties : la flaque se referme, et le glyphe avec elle.
+                    if (puddle != null) puddle.close();
+                    if (glyph != null) glyph.close();
+                    w.spawnParticle(Particle.SMOKE, mid.clone().add(0, 0.3, 0), 40, 2.0, 0.2, 2.0, 0.02);
+                    w.playSound(mid, Sound.BLOCK_FIRE_EXTINGUISH, 0.5f, 0.6f);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
         return true;
     }
 
@@ -366,24 +670,80 @@ final class DuoUltimates {
 
     // ------------------------------------------------------------ Blake + Yang
 
-    /** Trois clones de Yang foncent sur les trois ennemis les plus proches et explosent (3 coeurs) quand on les frappe. */
+    /** Bumblebee : la main de Blake touche le dos de Yang a BB_TOUCH ; les clones sortent un par un, puis s'elancent a BB_RUN. */
+    static final int BB_TOUCH = 6, BB_FIRST = 8, BB_EVERY = 4, BB_RUN = 22;
+    static final Particle.DustOptions SHADOW = new Particle.DustOptions(Color.fromRGB(95, 40, 150), 1.4f);
+
+    /**
+     * Blake apparait derriere Yang et pose la main a plat sur son dos : son ombre la traverse, et trois clones de
+     * Yang sortent d'elle, a sa gauche, a sa droite et devant. Ils foncent sur les trois ennemis les plus proches
+     * et explosent (3 coeurs) quand on les frappe.
+     */
     static boolean leurresExplosifs(LivingEntity yang, LivingEntity blake) {
         Player owner = Effects.sideOf(yang);
         if (owner == null) return false;
         List<LivingEntity> enemies = Effects.enemiesAround(yang, 40);
         enemies.sort(java.util.Comparator.comparingDouble(e -> e.getLocation().distanceSquared(yang.getLocation())));
-        for (int i = 0; i < 3; i++) {
-            LivingEntity target = i < enemies.size() ? enemies.get(i) : (enemies.isEmpty() ? null : enemies.get(i % enemies.size()));
-            Clones.spawn(owner, yang, target, 20 * 20, (clone, attacker) -> {
-                World w = clone.getWorld();
-                w.spawnParticle(Particle.EXPLOSION, clone.getLocation().add(0, 1, 0), 2);
-                w.spawnParticle(Particle.FLAME, clone.getLocation().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);
-                w.playSound(clone.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.2f);
-                Effects.damage(attacker, 6.0, yang);
-                attacker.setFireTicks(Math.max(attacker.getFireTicks(), 60));
-            });
+        World w = yang.getWorld();
+        final Location yl = yang.getLocation();
+        final float yaw = yl.getYaw();
+        double r = Math.toRadians(yaw);
+        final Vector fwd = new Vector(-Math.sin(r), 0, Math.cos(r)), left = new Vector(Math.cos(r), 0, Math.sin(r));
+        Location behind = yl.clone().subtract(fwd.clone().multiply(0.8));
+        behind.setYaw(yaw);
+        behind.setPitch(0);
+        if (standable(behind)) {
+            w.spawnParticle(Particle.SMOKE, blake.getLocation().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
+            blake.teleport(behind);
+            w.spawnParticle(Particle.SMOKE, behind.clone().add(0, 1, 0), 20, 0.3, 0.5, 0.3, 0.02);
         }
-        yang.getWorld().playSound(yang.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.8f);
+        final Location bl = blake.getLocation();
+        final Puppet py = puppet(yang, false), pb = puppet(blake, false);
+        if (py != null) { py.face(yaw); py.pin(yl); py.pose("yang_garde", 3); py.endAfter(BB_RUN, 4); }
+        if (pb != null) { pb.face(yawTo(bl, yl)); pb.pin(bl); pb.pose("blake_main_dos", 4); pb.endAfter(BB_RUN, 4); }
+        final Location[] spots = {yl.clone().add(left.clone().multiply(1.4)), yl.clone().subtract(left.clone().multiply(1.4)), yl.clone().add(fwd.clone().multiply(1.4))};
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (!yang.isValid() || yang.isDead()) { cancel(); return; }
+                Location back = yl.clone().add(0, 1.2, 0).subtract(fwd.clone().multiply(0.25));
+                if (t == BB_TOUCH) {
+                    // La main sur son dos : l'ombre de Blake la traverse.
+                    w.spawnParticle(Particle.DUST, back, 30, 0.25, 0.4, 0.25, 0, SHADOW);
+                    w.spawnParticle(Particle.SQUID_INK, back, 10, 0.2, 0.3, 0.2, 0.03);
+                    w.spawnParticle(Particle.FLAME, yl.clone().add(0, 1, 0), 24, 0.35, 0.6, 0.35, 0.03);
+                    w.playSound(yl, Sound.ENTITY_ILLUSIONER_CAST_SPELL, 1f, 1.2f);
+                    w.playSound(yl, Sound.ENTITY_BLAZE_SHOOT, 1f, 0.8f);
+                }
+                for (int i = 0; i < 3; i++) {
+                    if (t != BB_FIRST + i * BB_EVERY) continue;
+                    LivingEntity target = i < enemies.size() ? enemies.get(i) : (enemies.isEmpty() ? null : enemies.get(i % enemies.size()));
+                    LivingEntity clone = Clones.spawn(owner, yang, target, 20 * 20, (c, attacker) -> {
+                        World cw = c.getWorld();
+                        cw.spawnParticle(Particle.EXPLOSION, c.getLocation().add(0, 1, 0), 2);
+                        cw.spawnParticle(Particle.FLAME, c.getLocation().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);
+                        cw.playSound(c.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, 1f, 1.2f);
+                        Effects.damage(attacker, 6.0, yang);
+                        attacker.setFireTicks(Math.max(attacker.getFireTicks(), 60));
+                    }, BB_RUN - t);
+                    // Le clone sort d'elle : une trainee d'ombre de son dos jusqu'a sa place.
+                    Location spot = standable(spots[i]) ? spots[i].clone() : yl.clone();
+                    spot.setYaw(yaw);
+                    spot.setPitch(0);
+                    if (clone != null) clone.teleport(spot);
+                    Vector line = spot.toVector().subtract(yl.toVector());
+                    for (double d = 0; d <= 1.0; d += 0.12) {
+                        Location at = yl.clone().add(line.clone().multiply(d)).add(0, 1.0, 0);
+                        w.spawnParticle(Particle.DUST, at, 3, 0.15, 0.4, 0.15, 0, SHADOW);
+                    }
+                    w.spawnParticle(Particle.LARGE_SMOKE, spot.clone().add(0, 1, 0), 12, 0.3, 0.6, 0.3, 0.01);
+                    w.spawnParticle(Particle.FLAME, spot.clone().add(0, 1, 0), 10, 0.3, 0.6, 0.3, 0.02);
+                    w.playSound(spot, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 0.8f, 1.4f + 0.2f * i);
+                }
+                if (t >= BB_RUN) cancel();
+            }
+        }.runTaskTimer(CrossfightPlugin.get(), 1L, 1L);
         return true;
     }
 }

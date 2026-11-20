@@ -6,7 +6,7 @@
 
 ## Personnages
 
-* [Kishi](earth-delta/kishi.md) : Voie de la Nihilite
+* [Kishi](earth-delta/kishi.md) : Voie de la Nihilité
 * [Kura](earth-delta/kura.md) : Voie de la Chasse
 * [Taka](earth-delta/taka.md) : Voie de la Chasse
-* [Hano](earth-delta/hano.md) : Voie de la Nihilite
+* [Hano](earth-delta/hano.md) : Voie de la Nihilité

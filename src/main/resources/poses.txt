@@ -996,3 +996,177 @@ pose omori_vaincu
   leg_r 78 0 -3
   leg_l 78 0 3
   item  0 0 0
+
+# Brulure (Yang) : elle ecarte les poings, coudes en arriere, le buste ouvert...
+pose yang_poings_arme
+  root  -6 0 0   0 -1 0
+  head  -8 0 0
+  arm_r -55 0 -62
+  arm_l -55 0 62
+  leg_r 10 0 -8
+  leg_l -12 0 8
+
+# ...et les frappe l'un contre l'autre devant sa poitrine : l'explosion part de la.
+pose yang_poings_choc
+  root  10 0 0   0 -1.5 0
+  head  -4 0 0
+  arm_r -78 34 0
+  arm_l -78 -34 0
+  leg_r 14 0 -8
+  leg_l -16 0 8
+
+# Incendie Interne (Yang) : les bras etendus de chaque cote, paumes ouvertes, la tete rejetee en arriere.
+pose yang_bras_etendus
+  root  -8 0 0
+  head  -22 0 0
+  arm_r -6 0 -96
+  arm_l -6 0 96
+  leg_r 0 0 -10
+  leg_l 0 0 10
+
+# Courroux Imperissable (Yang) : le poing droit leve vers le ciel, l'autre serre le long du corps, campee sur ses jambes.
+pose yang_poing_leve
+  root  -5 0 0
+  head  -26 0 0
+  arm_r -176 0 -8
+  arm_l 14 0 16
+  leg_r 0 0 -13
+  leg_l 0 0 13
+
+# Strawberry Sunrise : Yang arme son lancer, le bras droit loin en arriere, le buste tourne (le lancer : yang_direct_droit).
+pose yang_lancer_arme
+  root  4 -38 0   0 -1.5 0
+  head  -4 38 0
+  arm_r 40 0 -30
+  arm_l -70 -20 0
+  leg_r -18 38 -5
+  leg_l 20 38 5
+
+# Strawberry Sunrise : Ruby en toupie, droite, les bras en croix, la faux tendue a l'horizontale, une jambe repliee.
+# Le pantin tourne sur lui-meme autour de la verticale (Puppet.spin).
+pose ruby_toupie
+  root  0 0 0   0 2 0
+  head  0 0 0
+  arm_r -8 0 -90
+  arm_l -8 0 90
+  leg_r 0 0 -4
+  leg_l -38 0 6
+  item  0 0 90
+
+# Ladybug : Blake tend la main droite a Ruby...
+pose blake_main_tendue
+  root  0 0 0
+  head  0 -35 0
+  arm_r -10 0 -52
+  arm_l 6 0 8
+# ...Ruby, a sa droite, lui donne la gauche...
+pose ruby_main_donnee
+  root  0 0 0
+  head  0 35 0
+  arm_l -10 0 52
+  arm_r 6 0 -8
+# ...et elles s'enfoncent ensemble dans la flaque noire, main dans la main, l'autre bras qui remonte.
+pose blake_duo_fond
+  root  0 0 0   0 -36 0
+  head  20 -20 0
+  arm_r -10 0 -52
+  arm_l -150 0 15
+pose ruby_duo_fond
+  root  0 0 0   0 -36 0
+  head  -20 20 0
+  arm_l -10 0 52
+  arm_r -150 0 -15
+
+# Freezerburn : Yang, un genou a terre sur le glyphe de Weiss, frappe le sol du poing droit, l'autre poing arme en arriere...
+pose yang_frappe_sol_d
+  root  38 -14 0   0 -5.5 -3
+  head  -16 14 0
+  arm_r -52 0 6
+  arm_l 38 0 24
+  leg_r 30 14 -4
+  leg_l -92 14 5
+# ...puis du gauche, et ainsi de suite.
+pose yang_frappe_sol_g
+  root  38 14 0   0 -5.5 -3
+  head  -16 -14 0
+  arm_l -52 0 -6
+  arm_r 38 0 -24
+  leg_l 30 -14 4
+  leg_r -92 -14 -5
+# Le saut vers le glyphe : ramassee en l'air, les deux poings armes au-dessus de la tete.
+pose yang_saut_frappe
+  root  18 0 0   0 0 0
+  head  -6 0 0
+  arm_r -165 0 -14
+  arm_l -165 0 14
+  leg_r 50 0 -4
+  leg_l 62 0 4
+
+# Bumblebee : Blake, derriere Yang, pose la main droite a plat sur son dos, penchee vers elle.
+pose blake_main_dos
+  root  8 0 0   0 -0.5 0
+  head  6 0 0
+  arm_r -88 8 0
+  arm_l 10 0 10
+  leg_r 14 0 -3
+  leg_l -14 0 3
+
+# Checkmate : Weiss et Blake sautent ensemble sur le glyphe, les genoux remontes, les bras leves...
+pose duo_saut
+  root  0 0 0   0 15 0
+  head  -10 0 0
+  arm_r -150 0 -22
+  arm_l -150 0 22
+  leg_r -55 0 -5
+  leg_l -40 0 5
+  item_world -60 0 0
+# ...et retombent dessus, flechies, les bras qui redescendent.
+pose duo_atterri
+  root  14 0 0   0 -3 0
+  head  8 0 0
+  arm_r -30 0 -30
+  arm_l -30 0 30
+  leg_r -32 0 -6
+  leg_l 28 0 6
+  item_world 30 0 0
+
+# Arlo, Barriere et Enfermement : il arme le bras droit en arriere, le buste tourne...
+pose arlo_bras_arme
+  root  0 -22 0
+  head  0 22 0
+  arm_r 38 0 -12
+  arm_l -12 0 10
+  leg_r -8 22 -4
+  leg_l 10 22 4
+# ...et le jette en avant, la paume ouverte.
+pose arlo_bras_jete
+  root  8 20 0   0 -1 0
+  head  -8 -20 0
+  arm_r -94 -20 0
+  arm_l 22 0 14
+  leg_r 20 -20 -4
+  leg_l -18 -20 4
+# Barriere Ultime et Etouffement : les deux bras armes en arriere...
+pose arlo_deux_bras_arme
+  root  -6 0 0
+  head  -4 0 0
+  arm_r 40 0 -14
+  arm_l 40 0 14
+  leg_r 8 0 -5
+  leg_l -8 0 5
+# ...puis jetes en avant ensemble.
+pose arlo_deux_bras_jetes
+  root  12 0 0   0 -1 0
+  head  -10 0 0
+  arm_r -94 6 0
+  arm_l -94 -6 0
+  leg_r 18 0 -5
+  leg_l -18 0 5
+# Bulle geante : a genoux, penche en avant, la main droite a plat sur le sol, l'autre bras en arriere.
+pose arlo_main_sol
+  root  45 0 0   0 -2.5 -8.5
+  head  -25 0 0
+  arm_r -55 6 0
+  arm_l 12 0 14
+  leg_r 15 0 -4
+  leg_l 15 0 4

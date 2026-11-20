@@ -1,6 +1,6 @@
 # Hano
 
-Voie de la Nihilite
+Voie de la Nihilité
 
 ## Arme
 

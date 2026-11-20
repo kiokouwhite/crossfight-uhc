@@ -88,6 +88,27 @@ def yato_badge(im, kills, path):
     return im
 
 
+# La Force gagnee par Eren avec Elimination Morale contre le dernier adversaire frappe (0,2 par kill de cet
+# adversaire) : un badge en bas a droite de la case du passif, le premier de sa colonne, dans la fenetre laissee
+# par tools/build_passifs.py (COUNTERS). Un dossier par nombre de kills : "eren_m<kills>" (Eren.hudOrbVariant).
+MORALE_MAX = 12
+
+
+def morale_badge(im, kills):
+    from PIL import ImageDraw, ImageFont
+    import build_passifs as bp
+    font = ImageFont.truetype(str(SRC / "Fonts" / "FantasyRPGtext (size 12).ttf"), 16)
+    label = "+" + f"{0.2 * kills:.1f}".replace(".", ",")
+    d = ImageDraw.Draw(im)
+    d.fontmode = "1"
+    x0, y0, x1, y1 = bp.counter_box(bp.MARGIN)
+    # La pastille remplit toute la fenetre (sinon le decor se verrait a travers), le texte au milieu.
+    w = int(d.textlength(label, font=font))
+    d.rectangle([x0, y0, x1 - 1, y1 - 1], fill=(18, 14, 22, 255), outline=(110, 225, 120, 255))
+    d.text((x0 + (x1 - x0 - w) // 2, y0 + 1), label, font=font, fill=(220, 255, 220, 255))
+    return im
+
+
 def main():
     if not ONE.is_dir():
         print("pack de Franuka absent (resourcepack-prive/ui-franuka/) : rien a faire")
@@ -97,6 +118,13 @@ def main():
         screen(orb(k)).save(OUT / f"ult_{k:02d}.png")
     for k in (1, 2):
         screen(orb(STEPS, k)).save(OUT / f"ult_pret_{k - 1}.png")
+    for kills in range(MORALE_MAX + 1):
+        sub = OUT / f"eren_m{kills}"
+        sub.mkdir(exist_ok=True)
+        for k in range(STEPS + 1):
+            morale_badge(screen(orb(k)), kills).save(sub / f"ult_{k:02d}.png", optimize=True)
+        for k in (1, 2):
+            morale_badge(screen(orb(STEPS, k)), kills).save(sub / f"ult_pret_{k - 1}.png", optimize=True)
     for path, (first, last) in YATO.items():
         for kills in range(last + 1):
             sub = OUT / f"yato_{path}{kills}"

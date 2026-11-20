@@ -131,6 +131,12 @@ public abstract class Ability {
     /** Cette capacite agit sur son lanceur pendant {@code ticks} (vol, invisibilite...) : sa carte en haut a gauche, avec le compte a rebours. */
     protected void showFor(Player p, int ticks) { com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, this, ticks); }
 
+    /** Faux quand la carte de cet actif ne doit pas s'afficher en haut a gauche pour l'instant (Vitesse Superieure pendant la Surmultipliee de Neon : c'est la carte de l'Ultime qui compte). */
+    public boolean hudShown(Player p) { return true; }
+
+    /** Cette capacite reste armee sans duree (le prochain coup...) : sa carte en haut a gauche, sans compte a rebours, tant que {@code armed} est vrai. */
+    protected void showWhile(Player p, java.util.function.BooleanSupplier armed) { com.kiokouwhite.crossfight.hud.InfluenceHud.selfWhile(p, this, armed); }
+
     /** L'effet annonce par {@link #showFor} s'arrete plus tot que prevu : la carte s'en va. */
     protected void hideFor(Player p) { com.kiokouwhite.crossfight.hud.InfluenceHud.selfEnd(p, this); }
 

@@ -28,4 +28,4 @@ Temps de chargement : 15 secondes
 
 ### Surmultipliée
 
-Neon gagne Force, Vitesse Supérieure s'active toute seule jusqu'a vider la jauge, et elle recoit une épée électrique le temps de l'effet.
+Neon gagne Force, Vitesse Supérieure s'active toute seule jusqu'a vider la jauge, et sa Lame électrique remplace son couteau le temps de l'effet : elle peut frapper.

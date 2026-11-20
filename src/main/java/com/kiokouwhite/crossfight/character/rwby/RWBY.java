@@ -230,13 +230,15 @@ public final class RWBY {
                     best = Math.max(best, duo().percent(p, ally));
                 }
                 final LivingEntity with = partner;
+                // L'icone de la paire (pack complet) : "duo_<a>_<b>", dans l'ordre de l'equipe.
+                String model = TEAM.indexOf(mine) < TEAM.indexOf(other) ? "duo_" + mine + "_" + other : "duo_" + other + "_" + mine;
                 if (with != null) {
                     lore.add("<green><bold>Pret</bold> <gray>avec " + partnerName(with) + " : clic pour lancer");
-                    options.add(new ChoiceMenu.Option(ICONS.getOrDefault(other, Material.NETHER_STAR), "<light_purple>" + title, lore, () -> launch(p, with)));
+                    options.add(new ChoiceMenu.Option(ICONS.getOrDefault(other, Material.NETHER_STAR), "<light_purple>" + title, lore, () -> launch(p, with), model));
                 } else {
                     lore.add(best >= 0 ? "<yellow>En charge : " + best + " %" : "<red>Aucune " + (c == null ? other : c.name()) + " dans ton equipe");
                     options.add(new ChoiceMenu.Option(Material.GRAY_DYE, "<gray>" + title, lore,
-                            () -> Msg.actionBar(p, "<red>Cet Ultime en Duo n'est pas pret.")));
+                            () -> Msg.actionBar(p, "<red>Cet Ultime en Duo n'est pas pret."), model));
                 }
             }
             ChoiceMenu.open(p, "<dark_gray>Ultimes en Duo", options);
@@ -269,6 +271,20 @@ public final class RWBY {
     }
 
     static final DuoUltimate DUO_ITEM = new DuoUltimate();
+
+    /**
+     * Les six Ultimes en Duo, pour le guide (game/GuideExport) : identifiant ("duo_ruby_weiss"), nom, les deux
+     * personnages, ce que fait l'attaque.
+     */
+    public static List<String[]> duos() {
+        List<String[]> out = new ArrayList<>();
+        List<String> team = DuoUltimate.TEAM;
+        for (int i = 0; i < team.size(); i++) for (int j = i + 1; j < team.size(); j++) {
+            String a = team.get(i), b = team.get(j);
+            out.add(new String[]{"duo_" + a + "_" + b, DuoUltimates.name(a, b), a, b, DuoUltimates.guide(a, b)});
+        }
+        return out;
+    }
 
     /** L'orientation (yaw) qui regarde de {@code from} vers {@code to}. */
     static float yawTowards(LivingEntity from, LivingEntity to) {

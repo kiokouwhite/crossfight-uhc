@@ -11,6 +11,7 @@ import com.kiokouwhite.crossfight.character.Voie;
 import com.kiokouwhite.crossfight.player.CfPlayer;
 import com.kiokouwhite.crossfight.util.Boosts;
 import com.kiokouwhite.crossfight.util.Effects;
+import com.kiokouwhite.crossfight.util.Flames;
 import com.kiokouwhite.crossfight.util.Msg;
 import com.kiokouwhite.crossfight.util.Puppet;
 import com.kiokouwhite.crossfight.util.Weapons;
@@ -25,9 +26,13 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * Yang Xiao Long - Path of Hunt.
@@ -57,6 +62,12 @@ public final class Yang extends Character {
                 "<white>Incendie Interne : Force I, perd 0.5 coeur/s",
                 "<white>Colere Flamboyante : Fire Aspect sous 5 coeurs",
                 "<light_purple>Ultime : 25 s sans pouvoir mourir, puis soin complet");
+    }
+
+    /** Vrai tant que ce joueur joue Yang (ses flammes s'eteignent s'il change de personnage). */
+    static boolean playing(Player p) {
+        CfPlayer cf = com.kiokouwhite.crossfight.CrossfightPlugin.get().players().get(p);
+        return cf != null && cf.character() != null && "yang".equals(cf.character().id());
     }
 
     // ------------------------------------------------------------------ arme
@@ -187,11 +198,48 @@ public final class Yang extends Character {
             st.set("taken", 0.0);
             Boosts.set(p, "yang_brulure", new Boosts.Boost(0, 0, 0, bonus));
             Msg.actionBar(p, "<gold>Brulure : +" + String.format(java.util.Locale.US, "%.1f", bonus) + " d'attaque pendant 10 s");
-            p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0.05);
-            p.getWorld().playSound(p.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1f, 0.8f);
+            clash(p);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> Boosts.remove(p, "yang_brulure"), 200L);
             return true;
         }
+    }
+
+    /** Brulure : le choc des poings arrive a ce tick, l'animation finit a celui-la. */
+    static final int CLASH = 8, CLASH_END = 20;
+
+    /**
+     * Brulure : Yang ecarte les poings puis les frappe l'un contre l'autre devant sa poitrine. L'explosion part
+     * du choc des deux gantelets.
+     */
+    static void clash(Player p) {
+        final Puppet puppet = Puppet.show(p, "yang", null, "debout");
+        if (puppet != null) {
+            puppet.pose("yang_poings_arme", 3);
+            puppet.endAfter(CLASH_END, 4);
+        }
+        p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_GOLD, 1f, 1.2f);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t++;
+                if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                boolean animated = puppet != null && Puppet.of(p) == puppet;
+                if (animated && t == CLASH - 2) puppet.pose("yang_poings_choc", 2);
+                if (t < CLASH) return;
+                // Entre les deux poings (ou devant sa poitrine, sans le pantin).
+                Location at = animated ? puppet.armPoint(true, 1.0).add(puppet.armPoint(false, 1.0)).multiply(0.5)
+                        : p.getLocation().add(0, 1.25, 0).add(p.getLocation().getDirection().setY(0).normalize().multiply(0.5));
+                var w = p.getWorld();
+                w.spawnParticle(Particle.EXPLOSION, at, 2, 0.1, 0.1, 0.1, 0);
+                w.spawnParticle(Particle.FLAME, at, 70, 0.05, 0.05, 0.05, 0.16);
+                w.spawnParticle(Particle.LAVA, at, 10, 0.2, 0.2, 0.2, 0);
+                w.spawnParticle(Particle.LARGE_SMOKE, at, 8, 0.2, 0.2, 0.2, 0.04);
+                w.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.9f, 1.5f);
+                w.playSound(at, Sound.ITEM_FIRECHARGE_USE, 1f, 0.8f);
+                w.playSound(at, Sound.BLOCK_ANVIL_LAND, 0.4f, 1.6f);
+                cancel();
+            }
+        }.runTaskTimer(com.kiokouwhite.crossfight.CrossfightPlugin.get(), 1L, 1L);
     }
 
     /** Force I tant que c'est actif, mais Yang perd un demi-coeur par seconde. */
@@ -200,7 +248,54 @@ public final class Yang extends Character {
             super("yang_incendie", "Incendie Interne", "Tant que c'est actif, Yang a Force I mais perd un demi-coeur par seconde.", Material.FIRE_CHARGE, 0.0, 0.0);
         }
 
-        @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) { return true; }
+        /** Les flammes sur ses bras, tant que l'Incendie est actif. */
+        static final Map<UUID, Flames> ARM_FIRE = new HashMap<>();
+        /** L'animation : les bras sont etendus a ce tick, elle revient debout a celui-la (les flammes passent alors sur son corps). */
+        static final int SPREAD = 6, SPREAD_END = 24;
+
+        @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
+            ignite(p, st);
+            return true;
+        }
+
+        /**
+         * Yang etend les bras de chaque cote : le feu part de ses epaules et court jusqu'a ses poings. Quand elle
+         * se remet en garde, il reste sur ses bras tant que l'Incendie est actif.
+         */
+        static void ignite(Player p, AbilityState st) {
+            final Puppet puppet = Puppet.show(p, "yang", null, "debout");
+            if (puppet != null) {
+                puppet.pose("yang_bras_etendus", 4);
+                puppet.endAfter(SPREAD_END - 4, 4);
+            }
+            var w = p.getWorld();
+            w.playSound(p.getLocation(), Sound.ITEM_FIRECHARGE_USE, 1f, 0.7f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead() || !st.isEnabled() || !playing(p)) { cancel(); return; }
+                    boolean animated = puppet != null && Puppet.of(p) == puppet;
+                    if (animated && t >= 4 && t < SPREAD_END - 4) {
+                        // Le feu gagne les bras, de l'epaule au poing, puis les couvre.
+                        double reach = Math.min(1.0, (t - 3) / 6.0);
+                        for (boolean right : new boolean[]{true, false}) {
+                            for (double a = 0.1; a <= reach; a += 0.22) {
+                                Location at = puppet.armPoint(right, a);
+                                w.spawnParticle(Particle.FLAME, at, 1, 0.04, 0.04, 0.04, 0.012);
+                                if (t % 2 == 0) w.spawnParticle(Particle.SMALL_FLAME, at.clone().add(0, 0.12, 0), 1, 0.05, 0.05, 0.05, 0.02);
+                            }
+                            if (t == SPREAD + 3) w.spawnParticle(Particle.FLAME, puppet.armPoint(right, 1.0), 14, 0.05, 0.05, 0.05, 0.08);
+                        }
+                        if (t == SPREAD + 3) w.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.8f, 0.9f);
+                    }
+                    if (animated && t < SPREAD_END) return;
+                    Flames old = ARM_FIRE.put(p.getUniqueId(), Flames.arms(p, () -> st.isEnabled() && playing(p)));
+                    if (old != null) old.remove();
+                    cancel();
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
+        }
 
         @Override
         public void tickActive(Player p, CfPlayer cf, AbilityState st) {
@@ -218,6 +313,12 @@ public final class Yang extends Character {
         @Override
         public void onDisable(Player p, CfPlayer cf, AbilityState st) {
             p.removePotionEffect(PotionEffectType.STRENGTH);
+            Flames fire = ARM_FIRE.remove(p.getUniqueId());
+            if (fire != null) {
+                fire.remove();
+                p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 1.1, 0), 14, 0.4, 0.3, 0.4, 0.02);
+                p.getWorld().playSound(p.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 0.6f, 1.2f);
+            }
         }
 
         @Override
@@ -259,7 +360,7 @@ public final class Yang extends Character {
             st.set("until", System.currentTimeMillis() + 25_000L);
             showFor(p, 500);
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 1f, 0.7f);
-            p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 60, 0.6, 0.8, 0.6, 0.1);
+            blaze(p, st);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> {
                 if (!p.isOnline() || p.isDead()) return;
                 var mh = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
@@ -269,6 +370,45 @@ public final class Yang extends Character {
                 Msg.send(p, "<gold>Courroux Imperissable : vie entierement regeneree.");
             }, 20L * 25);
             return true;
+        }
+
+        /** L'animation : le poing est leve a ce tick (elle s'embrase), elle revient debout a celui-la. */
+        static final int RAISE = 6, RAISE_END = 30;
+
+        /**
+         * Yang leve le poing vers le ciel : le feu monte de ses pieds en tournant autour d'elle et l'embrase tout
+         * entiere. Elle reste en feu jusqu'a la fin du Courroux.
+         */
+        static void blaze(Player p, AbilityState st) {
+            final Puppet puppet = Puppet.show(p, "yang", null, "debout");
+            if (puppet != null) {
+                puppet.pose("yang_poing_leve", 4);
+                puppet.endAfter(RAISE_END - 4, 4);
+            }
+            var w = p.getWorld();
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead() || !playing(p) || t > RAISE + 14) { cancel(); return; }
+                    if (t < RAISE) return;
+                    Location feet = p.getLocation();
+                    if (t == RAISE) {
+                        Flames.body(p, () -> System.currentTimeMillis() < (long) st.get("until", 0L) && playing(p));
+                        w.spawnParticle(Particle.FLAME, feet.clone().add(0, 1, 0), 90, 0.3, 0.6, 0.3, 0.14);
+                        w.spawnParticle(Particle.LAVA, feet.clone().add(0, 1, 0), 14, 0.4, 0.6, 0.4, 0);
+                        w.spawnParticle(Particle.EXPLOSION, feet.clone().add(0, 1, 0), 1);
+                        w.playSound(feet, Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
+                        w.playSound(feet, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 1.4f);
+                    }
+                    // Deux rubans de feu qui montent en spirale autour d'elle, des pieds au poing leve.
+                    double up = (t - RAISE) / 14.0;
+                    for (int k = 0; k < 2; k++) for (double d = 0; d < 0.12; d += 0.04) {
+                        double a = (up + d) * Math.PI * 4 + k * Math.PI, y = (up + d) * 2.7, r = 0.75 - (up + d) * 0.3;
+                        w.spawnParticle(Particle.FLAME, feet.clone().add(Math.cos(a) * r, y, Math.sin(a) * r), 2, 0.03, 0.03, 0.03, 0.005);
+                    }
+                }
+            }.runTaskTimer(plugin(), 1L, 1L);
         }
 
         @Override

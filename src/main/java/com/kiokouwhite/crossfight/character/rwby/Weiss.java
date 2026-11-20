@@ -83,6 +83,10 @@ public final class Weiss extends Character implements Listener {
                 "<light_purple>Ultime : invoque un ennemi elimine");
     }
 
+    /** Les cartes du HUD ne montrent que la Dust en cours : "d0" (rouge) a "d5" (violette). */
+    @Override
+    public String hudTextVariant(Player p) { return "d" + dust(p); }
+
     static int dust(Player p) {
         var ch = plugin().characters().character("weiss");
         return plugin().abilities().state(p, ch.ability("weiss_myrtenaster")).mode();
@@ -249,11 +253,13 @@ public final class Weiss extends Character implements Listener {
             switch (d) {
                 case 0 -> {
                     st.set("fireUntil", System.currentTimeMillis() + 10_000L);
+                    showFor(p, 200);
                     Msg.actionBar(p, "<red>Glyphs : Fire Aspect pendant 10 s");
                     fireSlash(p, st);
                 }
                 case 1 -> {
                     st.set("nextIce", true);
+                    showWhile(p, () -> st.get("nextIce", false));
                     Msg.actionBar(p, "<blue>Glyphs : le prochain coup emprisonne dans la glace");
                     iceBlade(p, st);
                 }
@@ -267,6 +273,7 @@ public final class Weiss extends Character implements Listener {
                     Vector side = new Vector(-fwd.getZ(), 0, fwd.getX());
                     Location base = p.getLocation().add(fwd.clone().multiply(2));
                     Msg.actionBar(p, "<aqua>Glyphs : barriere de verre pendant 10 s");
+                    showFor(p, 200);
                     // L'epee plantee fait surgir la barriere d'un coup, le signe des Schnee dessus tant qu'elle dure.
                     plantSword(p, Color.fromRGB(80, 230, 255), () -> {
                         TempBlocks wall = new TempBlocks().unbreakable();
@@ -280,11 +287,13 @@ public final class Weiss extends Character implements Listener {
                 }
                 case 4 -> {
                     st.set("nextKnock", true);
+                    showWhile(p, () -> st.get("nextKnock", false));
                     Msg.actionBar(p, "<white>Glyphs : le prochain coup a Recul III");
                     tapBlade(p, st);
                 }
                 default -> {
                     st.set("nextSlow", true);
+                    showWhile(p, () -> st.get("nextSlow", false));
                     Msg.actionBar(p, "<dark_purple>Glyphs : le prochain coup met Lenteur II");
                     heavyBlade(p, st);
                 }

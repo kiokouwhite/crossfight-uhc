@@ -116,11 +116,20 @@ public final class Neon extends Character implements Listener {
         }
         @Override public void onDisable(Player p, CfPlayer cf, AbilityState st) { }
 
-        /** Pendant Vitesse Superieure, Neon ne peut pas frapper au corps a corps, sauf avec la lame electrique de son Ultime. */
+        /** Vrai tant que dure la Surmultipliee (l'Ultime a active Vitesse Superieure). */
+        static boolean overdrive(AbilityState st) { return System.currentTimeMillis() < (long) st.get("overdriveUntil", 0L); }
+
+        /** Pendant la Surmultipliee, c'est la carte de l'Ultime qui s'affiche, pas celle de Vitesse Superieure. */
+        @Override
+        public boolean hudShown(Player p) { return !overdrive(plugin().abilities().state(p, this)); }
+
+        /** Pendant Vitesse Superieure, Neon ne peut pas frapper au corps a corps, sauf pendant son Ultime. */
         @Override
         public void onDealDamage(Player attacker, LivingEntity victim, org.bukkit.event.entity.EntityDamageByEntityEvent e, AbilityState st) {
             if (!st.isEnabled() || e.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
             if (Items.tag(attacker.getInventory().getItemInMainHand(), ULT_SWORD) != null) return;
+            // Pendant la Surmultipliee, elle frappe avec ce qu'elle a en main.
+            if (overdrive(st)) return;
             e.setCancelled(true);
             Msg.actionBar(attacker, "<red>Impossible de frapper pendant Vitesse Superieure.");
         }
@@ -236,6 +245,8 @@ public final class Neon extends Character implements Listener {
                     w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 1.5f);
                     for (LivingEntity enemy : Effects.enemiesWithin(p, c, RELAY_RADIUS)) {
                         Effects.root(enemy, 60);
+                        // La carte a droite de son ecran : ce qui vient de le toucher, et les secondes d'immobilisation.
+                        if (enemy instanceof Player ep) com.kiokouwhite.crossfight.hud.InfluenceHud.threat(ep, plugin().characters().character("neon").ability("neon_relais"), false, 60);
                         Effects.say(enemy, "<yellow>Immobilise par l'Eclair Relais !");
                     }
                 }
@@ -334,7 +345,7 @@ public final class Neon extends Character implements Listener {
 
     static final class Surmultipliee extends UltimateAbility {
         Surmultipliee() {
-            super("neon_ult", "Surmultipliee", "Neon gagne Force, Vitesse Superieure s'active toute seule jusqu'a vider la jauge, et elle recoit une epee electrique le temps de l'effet.", Material.NETHER_STAR);
+            super("neon_ult", "Surmultipliee", "Neon gagne Force, Vitesse Superieure s'active toute seule jusqu'a vider la jauge, et sa Lame electrique remplace son couteau le temps de l'effet : elle peut frapper.", Material.NETHER_STAR);
         }
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
@@ -343,12 +354,26 @@ public final class Neon extends Character implements Listener {
             if (vs.gauge() < 5) vs.setGauge(100);
             if (!vs.isEnabled() && vitesse.onEnable(p, cf, vs)) vs.setEnabled(true);
             int seconds = (int) Math.ceil(vs.gauge() / vitesse.drainPerSecond());
+            vs.set("overdriveUntil", System.currentTimeMillis() + seconds * 1000L);
             Effects.give(p, PotionEffectType.STRENGTH, 0, seconds * 20);
             ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 10, "<aqua><bold>Lame electrique", Items.wrap("Disparait quand la jauge de Vitesse Superieure est vide."));
             Items.tag(sword, ULT_SWORD, "1");
             Items.tag(sword, AbilityEngine.WEAPON_KEY, "neon_ult");
-            var left = p.getInventory().addItem(sword);
-            if (!left.isEmpty()) p.getInventory().setItem(0, sword);
+            // La Lame electrique prend la place de son couteau, qui lui est rendu a la fin.
+            removeSword(p);
+            var inv = p.getInventory();
+            int slot = -1;
+            for (int i = 0; i < inv.getSize() && slot < 0; i++) {
+                ItemStack it = inv.getItem(i);
+                if ("neon".equals(Items.tag(it, AbilityEngine.WEAPON_KEY)) && Items.tag(it, Guns.GUN_KEY) == null) slot = i;
+            }
+            if (slot >= 0) {
+                KNIFE.put(p.getUniqueId(), inv.getItem(slot).clone());
+                inv.setItem(slot, sword);
+            } else {
+                var left = inv.addItem(sword);
+                if (!left.isEmpty()) inv.setItem(0, sword);
+            }
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.8f, 1.5f);
             overdriveLook(p);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> removeSword(p), seconds * 20L + 5);
@@ -385,9 +410,21 @@ public final class Neon extends Character implements Listener {
             }.runTaskTimer(plugin(), 1L, 1L);
         }
 
+        /** Le couteau que la Lame electrique remplace le temps de l'Ultime. */
+        static final java.util.Map<java.util.UUID, ItemStack> KNIFE = new java.util.HashMap<>();
+
+        /** La Lame electrique disparait : son couteau reprend sa place (au palier qu'elle a atteint entre-temps). */
         static void removeSword(Player p) {
             var inv = p.getInventory();
-            for (int i = 0; i < inv.getSize(); i++) if (Items.tag(inv.getItem(i), ULT_SWORD) != null) inv.setItem(i, null);
+            ItemStack knife = KNIFE.remove(p.getUniqueId());
+            for (int i = 0; i < inv.getSize(); i++) {
+                if (Items.tag(inv.getItem(i), ULT_SWORD) == null) continue;
+                inv.setItem(i, knife);
+                knife = null;
+            }
+            // La lame n'est plus sur elle (jetee, perdue) : le couteau revient quand meme.
+            if (knife != null) inv.addItem(knife);
+            Valorant.refreshMelee(p);
         }
 
         @Override

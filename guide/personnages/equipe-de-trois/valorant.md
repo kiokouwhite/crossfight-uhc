@@ -18,5 +18,5 @@ Pas d'arme attitrée : armes blanches par paliers (tous les 3 kills) et armes a 
 
 * [Neon](valorant/neon.md) : Voie de la Chasse
 * [Sage](valorant/sage.md) : Voie de l'Harmonie
-* [Sova](valorant/sova.md) : Voie de la Nihilite
+* [Sova](valorant/sova.md) : Voie de la Nihilité
 * [Jett](valorant/jett.md) : Voie de la Destruction

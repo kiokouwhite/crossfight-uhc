@@ -97,6 +97,17 @@ def spark(im, x, y):
         d.point((x + dx, y + dy), fill=(255, 200, 80, 200))
 
 
+# Les passifs a compteur : ni fleche ni croix. A leur place, en bas a droite de la case, une fenetre transparente
+# ou se voit un badge porte par l'image de l'orbe (tools/build_ultime_franuka.py : la Force d'Elimination Morale).
+COUNTERS = {"eren_morale"}
+COUNTER_W = 36      # la largeur de la fenetre du badge, en partant du bord droit de la case (+2)
+
+
+def counter_box(y):
+    """La fenetre du badge d'un passif a compteur dont la case commence en y."""
+    return (MARGIN + CELL + 2 - COUNTER_W, y + CELL - 15, MARGIN + CELL + 2, y + CELL)
+
+
 # Bordure verte pour un passif (vive quand il agit), jaune pour un actif dont l'effet dure.
 PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (110, 225, 120, 255), (85, 145, 95, 230)
 ACTIVE_EDGE = (255, 210, 70, 255)
@@ -110,8 +121,34 @@ def actives(character):
 TEXTS = json.loads((ROOT / "tools" / "textes_hud.json").read_text(encoding="utf-8"))
 
 
-def text_of(a, text):
-    """Le texte d'une capacite selon le mode : 1 = dit au joueur ("vous"), 2 = court (tools/textes_hud.json)."""
+# Les six Dusts de Weiss, dans l'ordre du plugin (Myrtenaster) : une capacite dont le texte les enumere
+# ("Rouge : ... Bleu : ...") a une variante par Dust, qui ne montre que la sienne ("d0" a "d5", le suffixe du code
+# de l'image). Le plugin choisit la Dust en cours (Character.hudTextVariant).
+DUSTS = ["Rouge", "Bleu", "Jaune", "Cyan", "Blanche", "Violette"]
+TEXT_VARIANTS = {"weiss": [f"d{i}" for i in range(len(DUSTS))]}
+
+
+def text_variants(character):
+    """Les variantes de texte d'un personnage (vide le plus souvent)."""
+    return TEXT_VARIANTS.get(character["id"], [])
+
+
+def dust_parts(a):
+    """Le texte d'une capacite decoupe par Dust (six morceaux, "Rouge : ..." d'abord), ou None s'il ne les enumere pas."""
+    full = TEXTS.get(a["id"], {}).get("vous") or accent(a["description"])
+    cuts = [full.find(name + " :") for name in DUSTS]
+    if any(c < 0 for c in cuts) or cuts != sorted(cuts):
+        return None
+    return [full[c:(cuts[i + 1] if i + 1 < len(cuts) else len(full))].strip() for i, c in enumerate(cuts)]
+
+
+def text_of(a, text, tv=""):
+    """Le texte d'une capacite selon le mode : 1 = dit au joueur ("vous"), 2 = court (tools/textes_hud.json).
+    tv : la variante de texte ("d3" : la seule Dust cyan), quand la capacite en a."""
+    if tv.startswith("d"):
+        parts = dust_parts(a)
+        if parts:
+            return parts[int(tv[1:])]
     t = TEXTS.get(a["id"], {})
     if text == 2:
         return t.get("court") or t.get("vous") or accent(a["description"])
@@ -137,6 +174,21 @@ WEAPON_VARIANTS = {
 
 def variants(character):
     return [""] + list(WEAPON_VARIANTS.get(character["id"], {}))
+
+
+def codes(character):
+    """Les couples (code, variante) des images de gauche d'un personnage. code = texte (0 aucun, 1 long, 2 court)
+    + 3 x carte de l'arme ; la variante est celle de l'arme quand sa carte est montree (Yato : l, t), sinon celle
+    du texte quand il est montre (Weiss : d0 a d5), sinon rien."""
+    out = []
+    for k in range(6 if weapon_abilities(character) else 3):
+        if k >= 3:
+            out += [(k, v) for v in variants(character)]
+        elif k % 3 and text_variants(character):
+            out += [(k, v) for v in text_variants(character)]
+        else:
+            out.append((k, ""))
+    return out
 
 
 def weapon_lines(character, text, font, variant=""):
@@ -193,8 +245,13 @@ def draw_weapon(im, d, character, text, font, variant=""):
 
 
 def row_height(a, text, font):
-    """La hauteur d'une case (avec son texte, selon la description)."""
-    return CELL if not text else max(CELL, 22 + len(wrap(text_of(a, text), font, TEXT_W)) * 18 + 6)
+    """La hauteur d'une case (avec son texte, selon la description). Un texte qui change avec la Dust garde la
+    hauteur de sa plus longue variante : la carte d'actif, dessous, ne bouge pas quand Weiss change de Dust."""
+    if not text:
+        return CELL
+    parts = dust_parts(a)
+    longest = max(len(wrap(t, font, TEXT_W)) for t in parts) if parts else len(wrap(text_of(a, text), font, TEXT_W))
+    return max(CELL, 22 + longest * 18 + 6)
 
 
 def block_height(character, text, font, weapon=False, variant=""):
@@ -202,7 +259,7 @@ def block_height(character, text, font, weapon=False, variant=""):
     return (weapon_height(character, text, font, variant) if weapon else 0) + sum(row_height(a, text, font) + 4 for a in passives(character))
 
 
-def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon=False, no_passives=False, allies=0, variant=""):
+def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon=False, no_passives=False, allies=0, variant="", tv=""):
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
@@ -212,7 +269,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon
         y += weapon_height(character, text, font, variant)
     for i, a in enumerate([] if no_passives else passives(character)):
         lit = bool(mask & (1 << i))
-        lines = wrap(text_of(a, text), font, TEXT_W) if text else []
+        lines = wrap(text_of(a, text, tv), font, TEXT_W) if text else []
         h = row_height(a, text, font)
         if text:
             # Le panneau du texte, sombre et translucide, borde d'un filet.
@@ -225,18 +282,22 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon
         im.alpha_composite(icon, (MARGIN + 4, y + 4))
         if lit:
             d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(170, 255, 170, 120))
+        # Un passif a compteur n'a ni fleche ni croix : la fenetre du badge prend leur place (en fin de case).
+        counter = a["id"] in COUNTERS
         # La fleche du pack d'icones, en bas a droite de la case : verte vers le haut quand le passif agit,
         # une croix rouge quand il est au repos.
         # Version 32 x 32 (plus detaillee), rognee puis ramenee a 22 px : elle deborde un peu de la case.
         arrow = build_icones.icon_of("Objets 3217" if lit else "Objets 136", 32)
         arrow = arrow.crop(arrow.getbbox()).resize((BADGE, BADGE), Image.NEAREST)
         ax, ay = MARGIN + CELL - BADGE + 3, y + CELL - BADGE
-        if lit and allies & (1 << i):
+        if lit and allies & (1 << i) and not counter:
             # La seconde fleche : des allies en profitent aussi.
             second = build_icones.icon_of("Objets 3217", 32)
             second = second.crop(second.getbbox()).resize((BADGE, BADGE), Image.NEAREST)
             im.alpha_composite(second, (ax - BADGE + 4, ay))
-        if lit and frame and i == only:
+        if counter:
+            im.paste((0, 0, 0, 0), counter_box(y))
+        elif lit and frame and i == only:
             dy, alpha, glow, sparkle = FRAMES[frame - 1]
             if glow:      # un halo vert qui pulse derriere la fleche
                 halo = Image.new("RGBA", im.size, (0, 0, 0, 0))
@@ -387,16 +448,19 @@ def main():
             tag = f"{mask}a{allies}" if allies else str(mask)
             # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme (si le personnage en a une).
             # Avec la carte de l'arme, ses variantes (Yato : l, t, en minuscules : une cle de ressource) s'ajoutent au code.
-            for code, v in [(k, v) for k in range(6 if weapon_abilities(c) else 3) for v in (variants(c) if k >= 3 else [""])]:
+            # Sans carte d'arme et avec le texte, ce sont les variantes de texte (Weiss : la Dust en cours, d0 a d5).
+            for code, v in codes(c):
                 text, weapon = code % 3, code >= 3
-                jobs.append((render, (c, mask, text, rec, font), dict(weapon=weapon, allies=allies, variant=v), OUT / f"{c['id']}_{tag}_{code}{v}.png", job_key(ing, mask, text, weapon, allies, v)))
+                tv = v if v in text_variants(c) else ""
+                v = "" if tv else v
+                jobs.append((render, (c, mask, text, rec, font), dict(weapon=weapon, allies=allies, variant=v, tv=tv), OUT / f"{c['id']}_{tag}_{code}{v}{tv}.png", job_key(ing, mask, text, weapon, allies, v, tv)))
                 # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est
                 # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
                 for i in range(len(passives(c))):
                     lit = mask & (1 << i)
                     for frame in range(1, len(FRAMES if lit else CROSS) + 1):
-                        kw = dict(frame=frame, only=i, weapon=weapon, allies=allies, variant=v) if lit else dict(cross=frame, only=i, weapon=weapon, allies=allies, variant=v)
-                        jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}_{'' if lit else 'x'}{i}_{frame}.png", job_key(ing, mask, text, weapon, allies, v, i, frame, bool(lit))))
+                        kw = dict(frame=frame, only=i, weapon=weapon, allies=allies, variant=v, tv=tv) if lit else dict(cross=frame, only=i, weapon=weapon, allies=allies, variant=v, tv=tv)
+                        jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}{tv}_{'' if lit else 'x'}{i}_{frame}.png", job_key(ing, mask, text, weapon, allies, v, tv, i, frame, bool(lit))))
     count = run_jobs(jobs, OUT, keep_others=bool(only))
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
