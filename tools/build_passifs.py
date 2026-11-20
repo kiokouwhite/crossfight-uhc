@@ -291,10 +291,59 @@ def save(im, path):
 
 
 # Les images se rendent en parallele (un processus par coeur) : chaque tache est (fonction, arguments, chemin).
-def run_jobs(jobs):
+# Generation incrementale : chaque image garde dans .manifest.json l'empreinte de ses ingredients (le code des
+# outils, le personnage, ses textes et ses icones, les parametres du rendu) ; une image dont l'empreinte n'a pas
+# change n'est pas redessinee, et les images qui ne correspondent plus a aucune tache sont supprimees.
+def tools_hash():
+    import hashlib
+    h = hashlib.sha1()
+    for name in ("build_passifs.py", "build_actifs.py", "build_influences.py", "build_icones.py", "build_guide.py"):
+        h.update((ROOT / "tools" / name).read_bytes())
+    return h.hexdigest()
+
+
+TOOLS_HASH = None
+
+
+def job_key(*parts):
+    """L'empreinte d'une image : les outils, et ce que la tache utilise (serialisable en JSON)."""
+    import hashlib
+    global TOOLS_HASH
+    if TOOLS_HASH is None:
+        TOOLS_HASH = tools_hash()
+    return hashlib.sha1(json.dumps([TOOLS_HASH, parts], sort_keys=True, default=str, ensure_ascii=False).encode()).hexdigest()
+
+
+def ingredients(character, rec):
+    """Ce qui entre dans les images d'un personnage : sa fiche, ses textes, ses recettes d'icones."""
+    ids = [a["id"] for a in character["abilities"]]
+    return [character, {i: TEXTS.get(i) for i in ids}, {i: rec.get(i) for i in ids}, WEAPON_VARIANTS.get(character["id"])]
+
+
+def run_jobs(jobs, out, keep_others=False):
+    """jobs : (fonction, args, kwargs, chemin, empreinte). Rend ce qui a change, supprime ce qui n'a plus lieu d'etre."""
     import multiprocessing, os
-    with multiprocessing.Pool(max(1, os.cpu_count() or 1)) as pool:
-        pool.map(_job, jobs, chunksize=8)
+    manifest_path = out / ".manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        manifest = {}
+    wanted = {Path(j[3]).name: j[4] for j in jobs}
+    todo = [j for j in jobs if manifest.get(Path(j[3]).name) != j[4] or not Path(j[3]).exists()]
+    if not keep_others:
+        for f in out.glob("*.png"):
+            if f.name not in wanted:
+                f.unlink()
+                manifest.pop(f.name, None)
+    if todo:
+        with multiprocessing.Pool(max(1, os.cpu_count() or 1)) as pool:
+            pool.map(_job, [j[:4] for j in todo], chunksize=8)
+    for j in todo:
+        manifest[Path(j[3]).name] = j[4]
+    if not keep_others:
+        manifest = {k: v for k, v in manifest.items() if k in wanted}
+    manifest_path.write_text(json.dumps(manifest, sort_keys=True), encoding="utf-8")
+    print(f"  {len(todo)} image(s) redessinee(s), {len(jobs) - len(todo)} inchangee(s)")
     return len(jobs)
 
 
@@ -321,19 +370,14 @@ def main():
     only = set(sys.argv[sys.argv.index("--perso") + 1:]) if "--perso" in sys.argv else None
     if only:
         chars = [c for c in chars if c["id"] in only]
-        for c in chars:
-            for f in OUT.glob(f"{c['id']}_*.png"):
-                f.unlink()
-    elif OUT.exists():
-        for f in OUT.glob("*.png"):
-            f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = []
     for c in chars:
+        ing = ingredients(c, rec)
         # Les passifs masques (/cf hud), la carte de l'arme seule : <perso>_arme_<texte>.
         for text in (0, 1, 2) if weapon_abilities(c) else ():
             for v in variants(c):
-                jobs.append((render, (c, 0, text, rec, font), dict(weapon=True, no_passives=True, variant=v), OUT / f"{c['id']}_arme_{text}{v}.png"))
+                jobs.append((render, (c, 0, text, rec, font), dict(weapon=True, no_passives=True, variant=v), OUT / f"{c['id']}_arme_{text}{v}.png", job_key(ing, 0, text, "arme", v)))
         ally_bits = sum(1 << i for i, a in enumerate(passives(c)) if a["id"] in ALLY_PASSIVES)
         # Les sous-ensembles des passifs allumes qui peuvent agir sur des allies : "a<bits>" dans le nom.
         n_pass = len(passives(c))
@@ -343,15 +387,15 @@ def main():
             # Avec la carte de l'arme, ses variantes (Yato : l, t, en minuscules : une cle de ressource) s'ajoutent au code.
             for code, v in [(k, v) for k in range(6 if weapon_abilities(c) else 3) for v in (variants(c) if k >= 3 else [""])]:
                 text, weapon = code % 3, code >= 3
-                jobs.append((render, (c, mask, text, rec, font), dict(weapon=weapon, allies=allies, variant=v), OUT / f"{c['id']}_{tag}_{code}{v}.png"))
+                jobs.append((render, (c, mask, text, rec, font), dict(weapon=weapon, allies=allies, variant=v), OUT / f"{c['id']}_{tag}_{code}{v}.png", job_key(ing, mask, text, weapon, allies, v)))
                 # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est
                 # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
                 for i in range(len(passives(c))):
                     lit = mask & (1 << i)
                     for frame in range(1, len(FRAMES if lit else CROSS) + 1):
                         kw = dict(frame=frame, only=i, weapon=weapon, allies=allies, variant=v) if lit else dict(cross=frame, only=i, weapon=weapon, allies=allies, variant=v)
-                        jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}_{'' if lit else 'x'}{i}_{frame}.png"))
-    count = run_jobs(jobs)
+                        jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}_{'' if lit else 'x'}{i}_{frame}.png", job_key(ing, mask, text, weapon, allies, v, i, frame, bool(lit))))
+    count = run_jobs(jobs, OUT, keep_others=bool(only))
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 
 

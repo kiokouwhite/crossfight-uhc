@@ -100,27 +100,22 @@ def main():
     only = set(sys.argv[sys.argv.index("--perso") + 1:]) if "--perso" in sys.argv else None
     if only:
         chars = [c for c in chars if c["id"] in only]
-        for c in chars:
-            for f in OUT.glob(f"{c['id']}_*.png"):
-                f.unlink()
-    elif OUT.exists():
-        for f in OUT.glob("*.png"):
-            f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = []
     for c in chars:
+        ing = bp.ingredients(c, rec) + [sorted(timed & {a["id"] for a in c["abilities"]})]
         for j in range(len(bp.actives(c))):
             # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme au-dessus (si le personnage en a une).
             for code, v in [(k, v) for k in range(6 if bp.weapon_abilities(c) else 3) for v in (bp.variants(c) if k >= 3 else [""])]:
                 text, weapon = code % 3, code >= 3
                 base = OUT / f"{c['id']}_{j}_{code}{v}"
-                jobs.append((render, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base}.png"))
+                jobs.append((render, (c, j, text, font, small, rec), dict(weapon=weapon, variant=v), f"{base}.png", bp.job_key(ing, j, text, weapon, v)))
                 for kind, steps in (("i", bp.SLIDE_IN), ("o", bp.SLIDE_OUT)):
                     for k, f in enumerate(steps, 1):
-                        jobs.append((render, (c, j, text, font, small, rec), dict(slide=f, weapon=weapon, variant=v), f"{base}_{kind}{k}.png"))
+                        jobs.append((render, (c, j, text, font, small, rec), dict(slide=f, weapon=weapon, variant=v), f"{base}_{kind}{k}.png", bp.job_key(ing, j, text, weapon, v, kind, k)))
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
-                    jobs.append((render, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base}_s{sec}.png"))
-    count = bp.run_jobs(jobs)
+                    jobs.append((render, (c, j, text, font, small, rec), dict(seconds=sec, weapon=weapon, variant=v), f"{base}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, "s", sec)))
+    count = bp.run_jobs(jobs, OUT, keep_others=bool(only))
     print(f"{count} images d'actifs ({len(chars)} personnages, {len(timed)} capacites avec compte a rebours) dans resourcepack-prive/")
 
 
