@@ -102,6 +102,8 @@ actif.sova
 actif.sova.5.s
 actif.taka
 actif.takumi
+actif.takumi.0.s
+actif.takumi.1.s
 actif.takumi.2.s
 actif.takumi.3.s
 actif.weiss

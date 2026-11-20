@@ -156,6 +156,7 @@ public final class Takumi extends Character implements Listener {
             st.set("bow", inv.getItem(bowSlot).clone());
             inv.setItem(bowSlot, sword);
             st.set("lockedUntil", System.currentTimeMillis() + 30_000L);
+            showFor(p, 600);
             p.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f);
             Msg.actionBar(p, "<red>Lame en main ! Ton arc revient dans 30 s.");
             final ItemStack bowLook = ((ItemStack) st.get("bow", null)).clone();
@@ -369,6 +370,7 @@ public final class Takumi extends Character implements Listener {
                 return false;
             }
             st.set("bonus", bonus);
+            showFor(p, 100);
             refreshPower(p);
             Msg.actionBar(p, "<red>Vengeance : Puissance +" + bonus + " pendant 5 s");
             p.playSound(p.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 1f, 0.6f);
