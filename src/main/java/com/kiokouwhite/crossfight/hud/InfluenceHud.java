@@ -171,7 +171,7 @@ public final class InfluenceHud {
         Influence inf = live.isEmpty() ? null : live.get(0);
         int j = -1;
         if (inf != null) { List<Ability> acts = PassiveHud.actives(c); for (int k = 0; k < acts.size(); k++) if (acts.get(k).id().equals(inf.ability)) j = k; }
-        String id = j < 0 ? null : c.id() + "_" + j + "_" + (HudPrefs.Pref.ACTIFS_TEXTE.of(p) ? 1 : 0);
+        String id = j < 0 ? null : c.id() + "_" + j + "_" + PassiveHud.code(p, c, HudPrefs.Pref.ACTIFS_TEXTE.of(p));
         String before = SELF_SHOWN.get(u);
         if (id != null && !id.equals(before)) SELF_IN.put(u, now);
         if (before != null && !before.equals(id)) SELF_OUT.put(u, new Object[]{before, now});

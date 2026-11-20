@@ -272,6 +272,7 @@ public final class Byleth extends Character implements Listener {
             double dmg = e.getFinalDamage();
             if (dmg <= 0) return;
             signal(attacker);
+            allies(attacker, !Effects.alliesWithin(attacker, 10).isEmpty());
             Bukkit.getScheduler().runTask(plugin(), () -> {
                 Effects.heal(attacker, dmg * 0.25);
                 for (var ally : Effects.alliesWithin(attacker, 10)) Effects.heal(ally, dmg * 0.10);

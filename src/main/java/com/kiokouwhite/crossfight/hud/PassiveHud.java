@@ -35,6 +35,9 @@ public final class PassiveHud {
     private static final long FLASH_MS = 2000L;
     private static final Map<UUID, Map<String, Long>> FLASH = new HashMap<>();
     private static final Map<UUID, Set<String>> ACTIVE = new HashMap<>();
+    /** Les passifs qui agissent aussi sur des allies (seconde fleche) : ceux qui le peuvent sont dans tools/build_passifs.py (ALLY_PASSIVES). */
+    private static final Map<UUID, Set<String>> ALLIES = new HashMap<>();
+    public static final Set<String> ALLY_PASSIVES = Set.of("marth_charisme", "marth_leader", "byleth_embleme");
     /** Les passifs allumes au dernier passage, et le debut de l'animation de la fleche (un passif vient de s'allumer). */
     private static final Map<UUID, Set<String>> WAS_LIT = new HashMap<>();
     private static final Map<UUID, Long> ANIM = new HashMap<>();
@@ -74,6 +77,12 @@ public final class PassiveHud {
         if (on) s.add(id); else s.remove(id);
     }
 
+    public static void setAllies(Player p, String id, boolean on) {
+        if (p == null) return;
+        Set<String> s = ALLIES.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>());
+        if (on) s.add(id); else s.remove(id);
+    }
+
     private static boolean lit(UUID u, String id) {
         Set<String> s = ACTIVE.get(u);
         if (s != null && s.contains(id)) return true;
@@ -86,6 +95,18 @@ public final class PassiveHud {
         return textKey;
     }
 
+    /** Vrai si le personnage a des capacites d'arme : la carte de l'arme, en tete de la colonne de gauche. */
+    public static boolean hasWeaponCard(Character c) {
+        if (c == null) return false;
+        for (Ability a : c.allAbilities()) if (a.isWeaponBound()) return true;
+        return false;
+    }
+
+    /** Le troisieme champ du nom des images de gauche : texte (bit 0) et carte de l'arme (bit 1). */
+    public static int code(Player p, Character c, boolean text) {
+        return (text ? 1 : 0) + (HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c) ? 2 : 0);
+    }
+
     /** Le texte a cote des passifs (/cf hud, /cf passif show|hide). */
     public static boolean showsText(Player p) { return HudPrefs.Pref.PASSIFS_TEXTE.of(p); }
 
@@ -95,12 +116,19 @@ public final class PassiveHud {
     public static String image(Player p) {
         CfPlayer cf = CrossfightPlugin.get().players().get(p);
         Character c = cf == null ? null : cf.character();
-        if (c == null || !Sounds.has("passif." + c.id()) || !HudPrefs.Pref.PASSIFS.of(p)) return null;
-        List<Ability> list = shown(c);
-        if (list.isEmpty()) return null;
-        int mask = 0;
+        if (c == null || !Sounds.has("passif." + c.id())) return null;
+        boolean weapon = HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c);
+        List<Ability> list = HudPrefs.Pref.PASSIFS.of(p) ? shown(c) : List.of();
+        if (list.isEmpty() && !weapon) return null;
+        // Les passifs masques : l'image a masque 0 ne va pas (ils y seraient eteints) ; on garde la carte de l'arme seule.
+        if (list.isEmpty()) return "passif/" + c.id() + "_arme_" + (showsText(p) ? 1 : 0);
+        int mask = 0, allyMask = 0;
         Set<String> now = new HashSet<>();
-        for (int i = 0; i < list.size(); i++) if (lit(p.getUniqueId(), list.get(i).id())) { mask |= 1 << i; now.add(list.get(i).id()); }
+        Set<String> withAllies = ALLIES.getOrDefault(p.getUniqueId(), Set.of());
+        for (int i = 0; i < list.size(); i++) if (lit(p.getUniqueId(), list.get(i).id())) {
+            mask |= 1 << i; now.add(list.get(i).id());
+            if (ALLY_PASSIVES.contains(list.get(i).id()) && withAllies.contains(list.get(i).id())) allyMask |= 1 << i;
+        }
         // Seul le passif qui vient de changer s'anime : sa fleche monte s'il s'allume (carillon), sa croix claque
         // s'il s'eteint (note grave). Les autres restent immobiles.
         Set<String> before = WAS_LIT.put(p.getUniqueId(), now);
@@ -119,7 +147,7 @@ public final class PassiveHud {
                 }
             }
         }
-        String key = "passif/" + c.id() + "_" + mask + "_" + (showsText(p) ? 1 : 0);
+        String key = "passif/" + c.id() + "_" + mask + (allyMask != 0 ? "a" + allyMask : "") + "_" + code(p, c, showsText(p));
         long since = System.currentTimeMillis() - ANIM.getOrDefault(p.getUniqueId(), 0L);
         int who = ANIM_INDEX.getOrDefault(p.getUniqueId(), 0);
         int idx = who >= 0 ? who : -1 - who;
@@ -132,6 +160,7 @@ public final class PassiveHud {
     public static void forget(Player p) {
         FLASH.remove(p.getUniqueId());
         ACTIVE.remove(p.getUniqueId());
+        ALLIES.remove(p.getUniqueId());
         WAS_LIT.remove(p.getUniqueId());
         ANIM.remove(p.getUniqueId());
         ANIM_INDEX.remove(p.getUniqueId());

@@ -22,6 +22,9 @@ public abstract class PassiveAbility extends Ability {
     /** Le passif vient d'agir : son icone s'allume un instant. */
     protected void signal(org.bukkit.entity.Player p) { com.kiokouwhite.crossfight.hud.PassiveHud.flash(p, id()); }
 
+    /** Le passif agit en ce moment sur des allies aussi : une seconde fleche verte a cote de son icone. */
+    protected void allies(org.bukkit.entity.Player p, boolean on) { com.kiokouwhite.crossfight.hud.PassiveHud.setAllies(p, id(), on); }
+
     /** Le passif agit tant que {@code on} : son icone reste allumee. */
     protected void active(org.bukkit.entity.Player p, boolean on) { com.kiokouwhite.crossfight.hud.PassiveHud.setActive(p, id(), on); }
 

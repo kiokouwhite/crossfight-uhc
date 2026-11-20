@@ -21,6 +21,7 @@ public final class HudPrefs {
     private HudPrefs() {}
 
     public enum Pref {
+        ARME("arme", "Arme (en tête, à gauche)", Material.IRON_SWORD, true),
         PASSIFS("passifs", "Passifs (en haut à gauche)", Material.TOTEM_OF_UNDYING, true),
         PASSIFS_TEXTE("passifs_texte", "Texte des passifs", Material.WRITABLE_BOOK, false),
         ACTIFS("actifs", "Actif en cours (sous les passifs)", Material.CLOCK, true),

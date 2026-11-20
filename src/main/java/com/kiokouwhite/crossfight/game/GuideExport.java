@@ -43,14 +43,16 @@ public final class GuideExport {
             for (Character c : l.characters()) {
                 if (!firstChar) out.append(',');
                 firstChar = false;
-                String weapon = null;
+                String weapon = null, weaponIcon = "";
                 try {
                     ItemStack w = c.createWeapon();
+                    if (w != null) weaponIcon = w.getType().getKey().getKey();
                     if (w != null && w.getItemMeta() != null && w.getItemMeta().displayName() != null)
                         weapon = PlainTextComponentSerializer.plainText().serialize(w.getItemMeta().displayName());
                 } catch (Exception ignored) { }
                 out.append("\n {\"id\":").append(q(c.id())).append(",\"name\":").append(q(c.name()))
-                   .append(",\"voie\":").append(q(c.voie().label())).append(",\"weapon\":").append(q(weapon)).append(",\"abilities\":[");
+                   .append(",\"voie\":").append(q(c.voie().label())).append(",\"weapon\":").append(q(weapon))
+                   .append(",\"weaponIcon\":").append(q(weaponIcon)).append(",\"abilities\":[");
                 boolean firstAbility = true;
                 for (Ability a : c.allAbilities()) {
                     if (!firstAbility) out.append(',');

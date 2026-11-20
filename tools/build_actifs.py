@@ -51,12 +51,12 @@ def badge(im, x, y, seconds, small):
     d.text((x0 + 3, y0 + 1), label, font=small, fill=(255, 240, 180, 255))
 
 
-def render(character, j, text, font, small, rec, slide=0.0, seconds=None):
+def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False):
     a = bp.actives(character)[j]
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
-    y = MARGIN + bp.block_height(character, text, font)
+    y = MARGIN + bp.block_height(character, text, font, weapon)
     lines = bp.wrap(accent(a["description"]), font, TEXT_W) if text else []
     h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
     if text:
@@ -89,10 +89,10 @@ def main():
     if len(sys.argv) >= 3 and sys.argv[1] == "--apercu":
         c = next(c for c in chars if c["id"] == "marth")
         sheet = Image.new("RGBA", (W * 2, H), (70, 110, 60, 255))
-        sheet.alpha_composite(bp.render(c, 1, 1, rec, font))
-        sheet.alpha_composite(render(c, 0, 1, font, small, rec, seconds=12))
-        sheet.alpha_composite(bp.render(c, 1, 0, rec, font), (W, 0))
-        sheet.alpha_composite(render(c, 0, 0, font, small, rec, seconds=120), (W, 0))
+        sheet.alpha_composite(bp.render(c, 1, 1, rec, font, weapon=True))
+        sheet.alpha_composite(render(c, 0, 1, font, small, rec, seconds=12, weapon=True))
+        sheet.alpha_composite(bp.render(c, 1, 0, rec, font, weapon=True), (W, 0))
+        sheet.alpha_composite(render(c, 0, 0, font, small, rec, seconds=120, weapon=True), (W, 0))
         sheet.save(sys.argv[2])
         print(sys.argv[2])
         return
@@ -103,16 +103,18 @@ def main():
     count = 0
     for c in chars:
         for j in range(len(bp.actives(c))):
-            for text in (0, 1):
-                base = OUT / f"{c['id']}_{j}_{text}"
-                bp.save(render(c, j, text, font, small, rec), f"{base}.png")
+            # Le troisieme champ du nom : texte (bit 0) et carte de l'arme au-dessus (bit 1, si le personnage en a une).
+            for code in range(4 if bp.weapon_abilities(c) else 2):
+                text, weapon = code & 1, bool(code & 2)
+                base = OUT / f"{c['id']}_{j}_{code}"
+                bp.save(render(c, j, text, font, small, rec, weapon=weapon), f"{base}.png")
                 count += 1
                 for kind, steps in (("i", bp.SLIDE_IN), ("o", bp.SLIDE_OUT)):
                     for k, f in enumerate(steps, 1):
-                        bp.save(render(c, j, text, font, small, rec, slide=f), f"{base}_{kind}{k}.png")
+                        bp.save(render(c, j, text, font, small, rec, slide=f, weapon=weapon), f"{base}_{kind}{k}.png")
                         count += 1
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
-                    bp.save(render(c, j, text, font, small, rec, seconds=sec), f"{base}_s{sec}.png")
+                    bp.save(render(c, j, text, font, small, rec, seconds=sec, weapon=weapon), f"{base}_s{sec}.png")
                     count += 1
     print(f"{count} images d'actifs ({len(chars)} personnages, {len(timed)} capacites avec compte a rebours) dans resourcepack-prive/")
 
