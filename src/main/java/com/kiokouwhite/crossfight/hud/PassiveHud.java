@@ -102,9 +102,14 @@ public final class PassiveHud {
         return false;
     }
 
-    /** Le troisieme champ du nom des images de gauche : texte (bit 0) et carte de l'arme (bit 1). */
-    public static int code(Player p, Character c, boolean text) {
-        return (text ? 1 : 0) + (HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c) ? 2 : 0);
+    /** Le mode de texte d'une zone : 0 aucun, 1 long (dit au joueur), 2 court (/cf hud, Textes courts). */
+    public static int textMode(Player p, HudPrefs.Pref textPref) {
+        return !textPref.of(p) ? 0 : HudPrefs.Pref.TEXTE_COURT.of(p) ? 2 : 1;
+    }
+
+    /** Le troisieme champ du nom des images de gauche : mode de texte + 3 x carte de l'arme. */
+    public static int code(Player p, Character c, HudPrefs.Pref textPref) {
+        return textMode(p, textPref) + (HudPrefs.Pref.ARME.of(p) && hasWeaponCard(c) ? 3 : 0);
     }
 
     /** Le texte a cote des passifs (/cf hud, /cf passif show|hide). */
@@ -121,7 +126,7 @@ public final class PassiveHud {
         List<Ability> list = HudPrefs.Pref.PASSIFS.of(p) ? shown(c) : List.of();
         if (list.isEmpty() && !weapon) return null;
         // Les passifs masques : l'image a masque 0 ne va pas (ils y seraient eteints) ; on garde la carte de l'arme seule.
-        if (list.isEmpty()) return "passif/" + c.id() + "_arme_" + (showsText(p) ? 1 : 0);
+        if (list.isEmpty()) return "passif/" + c.id() + "_arme_" + textMode(p, HudPrefs.Pref.PASSIFS_TEXTE);
         int mask = 0, allyMask = 0;
         Set<String> now = new HashSet<>();
         Set<String> withAllies = ALLIES.getOrDefault(p.getUniqueId(), Set.of());
@@ -147,7 +152,7 @@ public final class PassiveHud {
                 }
             }
         }
-        String key = "passif/" + c.id() + "_" + mask + (allyMask != 0 ? "a" + allyMask : "") + "_" + code(p, c, showsText(p));
+        String key = "passif/" + c.id() + "_" + mask + (allyMask != 0 ? "a" + allyMask : "") + "_" + code(p, c, HudPrefs.Pref.PASSIFS_TEXTE);
         long since = System.currentTimeMillis() - ANIM.getOrDefault(p.getUniqueId(), 0L);
         int who = ANIM_INDEX.getOrDefault(p.getUniqueId(), 0);
         int idx = who >= 0 ? who : -1 - who;

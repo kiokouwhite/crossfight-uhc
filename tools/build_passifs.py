@@ -107,25 +107,41 @@ def actives(character):
     return [a for a in character["abilities"] if a["type"] != "Passif"]
 
 
+TEXTS = json.loads((ROOT / "tools" / "textes_hud.json").read_text(encoding="utf-8"))
+
+
+def text_of(a, text):
+    """Le texte d'une capacite selon le mode : 1 = dit au joueur ("vous"), 2 = court (tools/textes_hud.json)."""
+    t = TEXTS.get(a["id"], {})
+    if text == 2:
+        return t.get("court") or t.get("vous") or accent(a["description"])
+    return t.get("vous") or accent(a["description"])
+
+
 def weapon_abilities(character):
     """Les capacites portees par l'arme (passifs et actifs d'arme) : une seule carte, celle de l'arme."""
     return [a for a in character["abilities"] if a["weapon"]]
 
 
-def weapon_lines(character, font):
-    """Le texte de la carte de l'arme : chaque capacite de l'arme, son nom puis sa description."""
+def weapon_lines(character, text, font):
+    """Le texte de la carte de l'arme : chaque capacite de l'arme, son nom puis son texte."""
     lines = []
     for a in weapon_abilities(character):
-        # La capacite qui porte le nom de l'arme (Falchion, Yato...) : sa description seule, le titre suffit.
+        # La capacite qui porte le nom de l'arme (Falchion, Yato...) : son texte seul, le titre suffit.
         same = accent(a["name"]) == accent(character.get("weapon") or "")
-        lines += wrap(("" if same else accent(a["name"]) + " : ") + accent(a["description"]), font, TEXT_W)
+        lines += wrap(("" if same else accent(a["name"]) + " : ") + text_of(a, text), font, TEXT_W)
     return lines
 
 
 def weapon_height(character, text, font):
     if not weapon_abilities(character):
         return 0
-    return (CELL if not text else max(CELL, 22 + len(weapon_lines(character, font)) * 18 + 6)) + 4
+    return (CELL if not text else max(CELL, 22 + len(weapon_lines(character, text, font)) * 18 + 6)) + 4
+
+
+def weapon_edge(character):
+    """La bordure de l'arme suit sa premiere capacite : verte pour un passif, jaune pour un actif."""
+    return EDGE if weapon_abilities(character)[0]["type"] == "Passif" else ACTIVE_EDGE
 
 
 def weapon_icon(character):
@@ -133,17 +149,16 @@ def weapon_icon(character):
     return item_texture(character.get("weaponIcon") or weapon_abilities(character)[0].get("icon") or "iron_sword")
 
 
-WEAPON_EDGE = (205, 210, 225, 255)
-
-
 def draw_weapon(im, d, character, text, font):
-    """La carte de l'arme, en tete de la colonne de gauche : bordure argent, sans fleche ni croix."""
+    """La carte de l'arme, en tete de la colonne de gauche : bordure verte (passif) ou jaune (actif), sans fleche ni croix."""
     y = MARGIN
-    lines = weapon_lines(character, font) if text else []
+    edge = weapon_edge(character)
+    lines = weapon_lines(character, text, font) if text else []
     h = weapon_height(character, text, font) - 4
     if text:
-        d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=WEAPON_EDGE)
-    d.rectangle([MARGIN, y, MARGIN + CELL - 1, y + CELL - 1], fill=PANEL, outline=WEAPON_EDGE)
+        d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=edge)
+    d.rectangle([MARGIN, y, MARGIN + CELL - 1, y + CELL - 1], fill=PANEL, outline=edge)
+    d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=edge[:3] + (120,))
     im.alpha_composite(weapon_icon(character), (MARGIN + 4, y + 4))
     if text:
         tx = MARGIN + CELL + 6
@@ -154,7 +169,7 @@ def draw_weapon(im, d, character, text, font):
 
 def row_height(a, text, font):
     """La hauteur d'une case (avec son texte, selon la description)."""
-    return CELL if not text else max(CELL, 22 + len(wrap(accent(a["description"]), font, TEXT_W)) * 18 + 6)
+    return CELL if not text else max(CELL, 22 + len(wrap(text_of(a, text), font, TEXT_W)) * 18 + 6)
 
 
 def block_height(character, text, font, weapon=False):
@@ -172,7 +187,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon
         y += weapon_height(character, text, font)
     for i, a in enumerate([] if no_passives else passives(character)):
         lit = bool(mask & (1 << i))
-        lines = wrap(accent(a["description"]), font, TEXT_W) if text else []
+        lines = wrap(text_of(a, text), font, TEXT_W) if text else []
         h = row_height(a, text, font)
         if text:
             # Le panneau du texte, sombre et translucide, borde d'un filet.
@@ -273,7 +288,7 @@ def main():
     count = 0
     for c in chars:
         # Les passifs masques (/cf hud), la carte de l'arme seule : <perso>_arme_<texte>.
-        for text in (0, 1) if weapon_abilities(c) else ():
+        for text in (0, 1, 2) if weapon_abilities(c) else ():
             save(render(c, 0, text, rec, font, weapon=True, no_passives=True), OUT / f"{c['id']}_arme_{text}.png")
             count += 1
         ally_bits = sum(1 << i for i, a in enumerate(passives(c)) if a["id"] in ALLY_PASSIVES)
@@ -281,9 +296,9 @@ def main():
         n_pass = len(passives(c))
         for mask, allies in [(m, am) for m in range(1 << n_pass) for am in range(1 << n_pass) if am & ~(m & ally_bits) == 0]:
             tag = f"{mask}a{allies}" if allies else str(mask)
-            # Le troisieme champ du nom : texte (bit 0) et carte de l'arme en tete (bit 1, si le personnage en a une).
-            for code in range(4 if weapon_abilities(c) else 2):
-                text, weapon = code & 1, bool(code & 2)
+            # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme (si le personnage en a une).
+            for code in range(6 if weapon_abilities(c) else 3):
+                text, weapon = code % 3, code >= 3
                 save(render(c, mask, text, rec, font, weapon=weapon, allies=allies), OUT / f"{c['id']}_{tag}_{code}.png")
                 count += 1
                 # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est

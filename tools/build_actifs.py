@@ -57,7 +57,7 @@ def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     y = MARGIN + bp.block_height(character, text, font, weapon)
-    lines = bp.wrap(accent(a["description"]), font, TEXT_W) if text else []
+    lines = bp.wrap(bp.text_of(a, text), font, TEXT_W) if text else []
     h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
     if text:
         d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=bp.PANEL, outline=EDGE)
@@ -103,9 +103,9 @@ def main():
     count = 0
     for c in chars:
         for j in range(len(bp.actives(c))):
-            # Le troisieme champ du nom : texte (bit 0) et carte de l'arme au-dessus (bit 1, si le personnage en a une).
-            for code in range(4 if bp.weapon_abilities(c) else 2):
-                text, weapon = code & 1, bool(code & 2)
+            # Le troisieme champ du nom : texte (0 aucun, 1 long, 2 court) + 3 x carte de l'arme au-dessus (si le personnage en a une).
+            for code in range(6 if bp.weapon_abilities(c) else 3):
+                text, weapon = code % 3, code >= 3
                 base = OUT / f"{c['id']}_{j}_{code}"
                 bp.save(render(c, j, text, font, small, rec, weapon=weapon), f"{base}.png")
                 count += 1

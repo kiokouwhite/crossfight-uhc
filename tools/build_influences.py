@@ -43,7 +43,26 @@ FOR_YOU = {
 }
 
 
-def text_of(a):
+# La version courte (reglage Textes courts) de ce qu'un allie te fait ; a defaut, le texte court de la capacite.
+FOR_YOU_SHORT = {
+    "marth_charisme": "Vitesse près de Marth (10 blocs)",
+    "marth_leader": "Force tant que Marth a > 5 PV",
+    "marth_ult": "Force 1 min (Coup Critique)",
+    "corrin_gardien": "Corrin près de vous : elle a Résistance",
+    "byleth_tutorat": "Byleth vous fait progresser",
+    "sage_soin": "Soin 3 PV en 3 s",
+    "armin_strategie": "Bonus d'Armin (Force, Résist. ou Vitesse)",
+    "arlo_ult": "Force dans la cage d'Arlo",
+    "kishi_aura": "Force = cônes de Kishi (IV max)",
+    "hano_tome_depth_strider": "Vitesse dans l'eau d'Hano",
+    "pinkou_ronces": "Thorns IV 10 s",
+    "pinkou_ult": "Régénération sur les ronces",
+}
+
+
+def text_of(a, text=1):
+    if text == 2:
+        return FOR_YOU_SHORT.get(a["id"]) or bp.text_of(a, 2)
     return FOR_YOU.get(a["id"]) or accent(a["description"])
 
 
@@ -56,7 +75,7 @@ def render(a, who, row, text, ally, rec, font, slide=0.0):
     y = MARGIN + row * (ROW_TEXT + 4 if text else CELL + 4)
     x = W - MARGIN - CELL
     if text:
-        lines = bp.wrap(text_of(a), font, TEXT_W)
+        lines = bp.wrap(text_of(a, text), font, TEXT_W)
         if len(lines) > MAX_LINES:        # trop long : coupe, avec des points de suspension
             lines = lines[:MAX_LINES]
             while lines[-1] and d.textlength(lines[-1] + "…", font=font) > TEXT_W:
@@ -112,7 +131,7 @@ def main():
     for a, who in items:
         for side in sides(a):
             ally = side == "a"
-            for text in (0, 1):
+            for text in (0, 1, 2):
                 for row in (0, 1):
                     base = OUT / f"{a['id']}_{row}_{text}_{side}"
                     bp.save(render(a, who, row, text, ally, rec, font), f"{base}.png")

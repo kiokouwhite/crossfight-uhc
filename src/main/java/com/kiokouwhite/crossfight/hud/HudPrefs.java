@@ -27,7 +27,8 @@ public final class HudPrefs {
         ACTIFS("actifs", "Actif en cours (sous les passifs)", Material.CLOCK, true),
         ACTIFS_TEXTE("actifs_texte", "Texte de l'actif", Material.WRITABLE_BOOK, false),
         AUTRES("autres", "Effets des autres (en haut à droite)", Material.SHIELD, true),
-        AUTRES_TEXTE("autres_texte", "Texte des effets des autres", Material.WRITABLE_BOOK, false);
+        AUTRES_TEXTE("autres_texte", "Texte des effets des autres", Material.WRITABLE_BOOK, false),
+        TEXTE_COURT("texte_court", "Textes courts (ex. : Regen. 5 PV, immobilisat. 3 s)", Material.PAPER, false);
 
         final String key, label;
         final Material icon;
@@ -53,10 +54,10 @@ public final class HudPrefs {
             boolean on = pref.of(p);
             options.add(new ChoiceMenu.Option(on ? pref.icon : Material.GRAY_DYE,
                     (on ? "<green>✔ " : "<red>✘ ") + "<white>" + pref.label,
-                    List.of(on ? "<green>Affiché" : "<red>Masqué", "", "<gray>Clique pour " + (on ? "masquer" : "afficher")),
+                    List.of(on ? "<green>Activé" : "<red>Désactivé", "", "<gray>Clique pour " + (on ? "désactiver" : "activer")),
                     () -> { pref.set(p, !on); open(p); }));
         }
-        options.add(new ChoiceMenu.Option(Material.LIME_DYE, "<white>Tout afficher", List.of("<gray>Icônes et textes partout"), () -> { for (Pref x : Pref.values()) x.set(p, true); open(p); }));
+        options.add(new ChoiceMenu.Option(Material.LIME_DYE, "<white>Tout afficher", List.of("<gray>Icônes et textes partout"), () -> { for (Pref x : Pref.values()) if (x != Pref.TEXTE_COURT) x.set(p, true); open(p); }));
         options.add(new ChoiceMenu.Option(Material.BARRIER, "<white>Icônes seules", List.of("<gray>Les icônes, sans aucun texte"), () -> { for (Pref x : Pref.values()) x.set(p, !x.name().endsWith("_TEXTE")); open(p); }));
         options.add(new ChoiceMenu.Option(Material.ARROW, "<white>Fermer", List.of(), () -> Msg.send(p, "<gray>HUD : réglages gardés. <white>/cf hud</white> pour les changer.")));
         ChoiceMenu.open(p, "<dark_gray>Affichage du HUD", options);
