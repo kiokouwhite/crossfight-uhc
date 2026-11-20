@@ -131,6 +131,9 @@ public final class Corrin extends Character {
 
         private void openChoice(Player p, AbilityState st) {
             if (!p.isOnline() || st.get("path", null) != null) return;
+            // Le joueur n'est plus Corrin (changement de personnage) : le menu ne se rouvre plus.
+            CfPlayer now = plugin().players().get(p);
+            if (now == null || now.character() == null || !"corrin".equals(now.character().id())) return;
             ChoiceMenu.open(p, "<dark_gray>Yato : choisis ta voie", List.of(
                     new ChoiceMenu.Option(Material.GLOWSTONE_DUST, "Voie de la Lumiere", List.of(
                             "<white>2 kills d'equipe : Yato Eclatante (8.5)",

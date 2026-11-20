@@ -239,7 +239,10 @@ public final class InfluenceHud {
     private static Player caster(Character ch, Player target) {
         Player best = null;
         double bestD = Double.MAX_VALUE;
-        for (Player p : Bukkit.getOnlinePlayers()) {
+        // Les joueurs en ligne, et les mannequins pilotes du mode test en troisieme personne (ils lancent comme des joueurs).
+        List<Player> all = new ArrayList<>(Bukkit.getOnlinePlayers());
+        all.addAll(com.kiokouwhite.crossfight.util.MannequinPlayer.all());
+        for (Player p : all) {
             if (p.equals(target)) continue;
             CfPlayer cf = CrossfightPlugin.get().players().get(p);
             if (cf == null || cf.character() == null || !cf.character().id().equals(ch.id())) continue;
