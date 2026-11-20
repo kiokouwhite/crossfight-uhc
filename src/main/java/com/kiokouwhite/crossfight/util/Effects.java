@@ -108,6 +108,7 @@ public final class Effects {
         }
         p.setVelocity(new Vector(0, p.getVelocity().getY(), 0));
         Bukkit.getScheduler().runTaskLater(CrossfightPlugin.get(), () -> unroot(p), ticks);
+        com.kiokouwhite.crossfight.hud.InfluenceHud.root(p, ticks);
     }
 
     /** Immobilise sans limite de duree, jusqu'a {@link #unroot} (la vue se resserre, comme sous Lenteur). */

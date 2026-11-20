@@ -42,7 +42,7 @@ import java.util.UUID;
  */
 public final class EffectHud implements Listener {
 
-    static final int HEAD = 5, FEET = 8;
+    static final int HEAD = 5, CHEST = 6, LEGS = 7, FEET = 8;
 
     private final CrossfightPlugin plugin;
     private final Map<UUID, State> states = new HashMap<>();
@@ -50,7 +50,7 @@ public final class EffectHud implements Listener {
 
     private static final class State {
         Set<String> bonus = Set.of(), malus = Set.of();
-        String ultImage, passiveImage;
+        String ultImage, passiveImage, influence0, influence1;
         boolean shown;
         final Map<String, Long> lastSound = new HashMap<>();
     }
@@ -90,8 +90,14 @@ public final class EffectHud implements Listener {
             st.bonus = bonus;
             st.malus = malus;
             st.ultImage = active ? ultimate(p) : null;
-            st.passiveImage = active && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p) ? PassiveHud.image(p) : null;
-            if (st.ultImage == null && st.passiveImage == null) {
+            boolean pack = active && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+            st.passiveImage = pack ? PassiveHud.image(p) : null;
+            List<String> inf = pack ? InfluenceHud.images(p) : List.of();
+            st.influence0 = inf.size() > 0 ? inf.get(0) : null;
+            // Quatre images au plus (les cases d'armure) : la carte d'un actif a gauche passe avant la seconde ligne de droite.
+            String self = pack ? InfluenceHud.selfImage(p) : null;
+            st.influence1 = self != null ? self : inf.size() > 1 ? inf.get(1) : null;
+            if (st.ultImage == null && st.passiveImage == null && st.influence0 == null && st.influence1 == null) {
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 continue;
             }
@@ -101,8 +107,10 @@ public final class EffectHud implements Listener {
     }
 
     private void send(Player p, State st) {
-        st.shown = ClientSlots.show(p, new int[]{HEAD, FEET}, new ItemStack[]{
+        st.shown = ClientSlots.show(p, new int[]{HEAD, CHEST, LEGS, FEET}, new ItemStack[]{
                 st.passiveImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.passiveImage),
+                st.influence0 == null ? p.getInventory().getChestplate() : overlayItem(EquipmentSlot.CHEST, st.influence0),
+                st.influence1 == null ? p.getInventory().getLeggings() : overlayItem(EquipmentSlot.LEGS, st.influence1),
                 st.ultImage == null ? p.getInventory().getBoots() : overlayItem(EquipmentSlot.FEET, st.ultImage)});
     }
 
@@ -112,6 +120,8 @@ public final class EffectHud implements Listener {
         if (st == null) return null;
         if (slot == FEET && st.ultImage != null) return overlayItem(EquipmentSlot.FEET, st.ultImage);
         if (slot == HEAD && st.passiveImage != null) return overlayItem(EquipmentSlot.HEAD, st.passiveImage);
+        if (slot == CHEST && st.influence0 != null) return overlayItem(EquipmentSlot.CHEST, st.influence0);
+        if (slot == LEGS && st.influence1 != null) return overlayItem(EquipmentSlot.LEGS, st.influence1);
         return null;
     }
 
@@ -188,6 +198,9 @@ public final class EffectHud implements Listener {
     public void onEffect(org.bukkit.event.entity.EntityPotionEffectEvent e) {
         if (!(e.getEntity() instanceof Player p) || hiding) return;
         PotionEffect fx = e.getNewEffect();
+        // Ce qu'une capacite d'un autre joueur fait sur lui (en haut a droite de l'ecran).
+        if (fx == null) InfluenceHud.potionGone(p, e.getModifiedType());
+        else if (e.getCause() == org.bukkit.event.entity.EntityPotionEffectEvent.Cause.PLUGIN) InfluenceHud.potion(p, fx);
         String key = p.getUniqueId() + ":" + (fx != null ? fx.getType() : e.getModifiedType()).getKey();
         // Un effet sans icone donne par un autre que nous est technique (l'invisibilite d'un pantin...).
         if (fx == null || !fx.hasIcon()) { HIDDEN.remove(key); return; }
@@ -222,5 +235,6 @@ public final class EffectHud implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         states.remove(e.getPlayer().getUniqueId());
         PassiveHud.forget(e.getPlayer());
+        InfluenceHud.forget(e.getPlayer());
     }
 }

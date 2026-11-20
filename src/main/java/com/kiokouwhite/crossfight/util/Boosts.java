@@ -46,6 +46,7 @@ public final class Boosts {
     public static void set(LivingEntity p, String source, Boost boost) {
         BOOSTS.computeIfAbsent(p.getUniqueId(), u -> new HashMap<>()).put(source, boost);
         apply(p);
+        com.kiokouwhite.crossfight.hud.InfluenceHud.boost(p, source, boost);
     }
 
     public static Boost get(LivingEntity p, String source) {
@@ -56,6 +57,7 @@ public final class Boosts {
     public static void remove(LivingEntity p, String source) {
         Map<String, Boost> m = BOOSTS.get(p.getUniqueId());
         if (m != null && m.remove(source) != null) apply(p);
+        com.kiokouwhite.crossfight.hud.InfluenceHud.boostGone(p, source);
     }
 
     public static void clear(LivingEntity p) {

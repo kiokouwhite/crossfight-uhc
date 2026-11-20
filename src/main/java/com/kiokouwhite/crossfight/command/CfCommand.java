@@ -58,6 +58,12 @@ public final class CfCommand implements TabExecutor {
                 } else if (what.equals("oui") || what.equals("non")) plugin.ferox().answer(sp, what.equals("oui"));
                 else Msg.send(sp, "<yellow>/cf ferox oui|non");
             }
+            case "hud" -> {
+                // /cf hud demo (admin) : montre les cartes de droite (allie, adversaire) et l'actif de gauche, pour essai.
+                if (!(sender instanceof Player sp) || !sender.hasPermission("crossfight.admin")) return true;
+                com.kiokouwhite.crossfight.hud.InfluenceHud.demo(sp);
+                Msg.send(sp, "<gray>HUD : demonstration lancee (allie, adversaire, actif).");
+            }
             case "passif", "passifs" -> {
                 // /cf passif show|hide : le texte qui rappelle ce que fait chaque passif, a cote de son icone (en haut a gauche).
                 if (!(sender instanceof Player sp)) return true;

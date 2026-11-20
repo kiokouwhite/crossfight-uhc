@@ -143,9 +143,16 @@ def glyphs(base: Path):
 
 
 def icons(base: Path):
-    """Les icones de capacites (tools/build_icones.py) : "icone.<identifiant>"."""
+    """Les icones de capacites (tools/build_icones.py) : "icone.<identifiant>", et leur glyphe dans la police
+    du pack : "fonticone.<identifiant>.<point de code en hexa>"."""
     folder = base / "assets" / NS / "items" / "icone"
-    return {"icone." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
+    names = {"icone." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
+    font = base / "assets" / NS / "font" / "icones.json"
+    if font.is_file():
+        for prov in json.loads(font.read_text(encoding="utf-8")).get("providers", []):
+            ident = Path(prov["file"].split(":", 1)[-1]).stem
+            names.add(f"fonticone.{ident}.{ord(prov['chars'][0]):04x}")
+    return names
 
 
 def models(base: Path):
@@ -172,6 +179,17 @@ def overlays(base: Path):
     passifs = base / "assets" / NS / "textures" / "passif"
     if passifs.is_dir():
         names |= {"passif." + f.stem[:-len("_0_0")] for f in passifs.glob("*_0_0.png")}
+    # Ce que les capacites des autres font sur toi, en haut a droite (tools/build_influences.py) : "influence.<capacite>".
+    influences = base / "assets" / NS / "textures" / "influence"
+    if influences.is_dir():
+        # "influence.<capacite>.<a|e>" : les camps dessines (allie, adversaire).
+        names |= {"influence." + f.stem[:-len("_0_0_a")] + "." + f.stem[-1] for f in influences.glob("*_0_0_[ae].png")}
+    # La carte d'un actif dont l'effet dure, sous les passifs (tools/build_actifs.py) : "actif.<perso>".
+    actifs = base / "assets" / NS / "textures" / "actif"
+    if actifs.is_dir():
+        names |= {"actif." + f.stem[:-len("_0_0")] for f in actifs.glob("*_0_0.png")}
+        # "actif.<perso>.<j>.s" : cet actif a les images de son compte a rebours.
+        names |= {"actif." + f.stem[:-len("_0_s1")].rsplit("_", 1)[0] + "." + f.stem[:-len("_0_s1")].rsplit("_", 1)[1] + ".s" for f in actifs.glob("*_0_s1.png")}
     return names
 
 

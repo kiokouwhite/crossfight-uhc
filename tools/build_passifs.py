@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_icones  # noqa: E402
+from build_guide import accent  # noqa: E402
 from build_menu_franuka import nine, sprite, SRC  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -93,7 +94,24 @@ def spark(im, x, y):
         d.point((x + dx, y + dy), fill=(255, 200, 80, 200))
 
 
-PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (255, 214, 120, 255), (120, 100, 90, 220)
+# Bordure verte pour un passif (vive quand il agit), jaune pour un actif dont l'effet dure.
+PANEL, EDGE, DIM_EDGE = (22, 18, 28, 190), (110, 225, 120, 255), (85, 145, 95, 230)
+ACTIVE_EDGE = (255, 210, 70, 255)
+
+
+def actives(character):
+    """Les capacites non passives, dans l'ordre du plugin (hud/PassiveHud.actives)."""
+    return [a for a in character["abilities"] if a["type"] != "Passif"]
+
+
+def row_height(a, text, font):
+    """La hauteur d'une case (avec son texte, selon la description)."""
+    return CELL if not text else max(CELL, 22 + len(wrap(accent(a["description"]), font, TEXT_W)) * 18 + 6)
+
+
+def block_height(character, text, font):
+    """La hauteur du bloc des passifs : la ou commence la carte d'un actif (tools/build_actifs.py)."""
+    return sum(row_height(a, text, font) + 4 for a in passives(character))
 
 
 def render(character, mask, text, rec, font, frame=0, cross=0, only=None):
@@ -103,8 +121,8 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None):
     y = MARGIN
     for i, a in enumerate(passives(character)):
         lit = bool(mask & (1 << i))
-        lines = wrap(a["description"], font, TEXT_W) if text else []
-        h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
+        lines = wrap(accent(a["description"]), font, TEXT_W) if text else []
+        h = row_height(a, text, font)
         if text:
             # Le panneau du texte, sombre et translucide, borde d'un filet.
             d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=EDGE if lit else DIM_EDGE)
@@ -115,7 +133,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None):
             icon = ImageEnhance.Brightness(icon).enhance(0.55)
         im.alpha_composite(icon, (MARGIN + 4, y + 4))
         if lit:
-            d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(255, 236, 160, 120))
+            d.rectangle([MARGIN + 1, y + 1, MARGIN + CELL - 2, y + CELL - 2], outline=(170, 255, 170, 120))
         # La fleche du pack d'icones, en bas a droite de la case : verte vers le haut quand le passif agit,
         # une croix rouge quand il est au repos.
         # Version 32 x 32 (plus detaillee), rognee puis ramenee a 22 px : elle deborde un peu de la case.
@@ -160,6 +178,24 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None):
     return im
 
 
+# Le glissement d'une carte qui arrive (de dehors de l'ecran) ou qui s'en va : part de sa largeur, etape par etape.
+SLIDE_IN = [0.75, 0.45, 0.15]
+SLIDE_OUT = [0.3, 0.7]
+
+
+def slide_in(base, layer, dx):
+    """Pose le calque sur l'image, decale de dx pixels (negatif : vers la gauche)."""
+    if dx < 0:
+        base.alpha_composite(layer, (0, 0), (-dx, 0))
+    else:
+        base.alpha_composite(layer, (dx, 0))
+
+
+def save(im, path):
+    """En palette (256 couleurs, transparence comprise) : des images bien plus legeres, identiques a l'oeil."""
+    im.quantize(colors=256, method=Image.Quantize.FASTOCTREE).save(path, optimize=True)
+
+
 def main():
     data = json.loads(DATA.read_text(encoding="utf-8"))
     rec = recipes()
@@ -182,7 +218,7 @@ def main():
     for c in chars:
         for mask in range(1 << len(passives(c))):
             for text in (0, 1):
-                render(c, mask, text, rec, font).save(OUT / f"{c['id']}_{mask}_{text}.png", optimize=True)
+                save(render(c, mask, text, rec, font), OUT / f"{c['id']}_{mask}_{text}.png")
                 count += 1
                 # Les etapes de l'animation, pour le seul passif i qui vient de changer : sa fleche s'il est
                 # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
@@ -190,7 +226,7 @@ def main():
                     lit = mask & (1 << i)
                     for frame in range(1, len(FRAMES if lit else CROSS) + 1):
                         im = render(c, mask, text, rec, font, frame=frame, only=i) if lit else render(c, mask, text, rec, font, cross=frame, only=i)
-                        im.save(OUT / f"{c['id']}_{mask}_{text}_{'' if lit else 'x'}{i}_{frame}.png", optimize=True)
+                        save(im, OUT / f"{c['id']}_{mask}_{text}_{'' if lit else 'x'}{i}_{frame}.png")
                         count += 1
     print(f"{count} images de passifs ({len(chars)} personnages) dans resourcepack-prive/")
 

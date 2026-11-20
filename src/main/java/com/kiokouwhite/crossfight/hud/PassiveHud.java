@@ -53,6 +53,14 @@ public final class PassiveHud {
         return out;
     }
 
+    /** Les capacites non passives, dans l'ordre de l'export (tools/build_passifs.py, actives). */
+    public static List<Ability> actives(Character c) {
+        List<Ability> out = new ArrayList<>();
+        if (c == null) return out;
+        for (Ability a : c.allAbilities()) if (a.type() != AbilityType.PASSIVE) out.add(a);
+        return out;
+    }
+
     /** Le passif vient d'agir : son icone s'allume deux secondes. */
     public static void flash(Player p, String id) {
         if (p == null) return;

@@ -96,7 +96,7 @@ public abstract class Ability {
         lore.addAll(Items.wrap(description));
         lore.addAll(extraLore());
         // Un item de capacite ne ressemble jamais a une arme (sauf s'il en est une, comme un arc a bander).
-        ItemStack item = Items.of(vanillaUse() ? icon : Items.safeIcon(icon), "<gold>" + name, lore);
+        ItemStack item = Items.of(vanillaUse() ? icon : Items.safeIcon(icon), iconGlyph(id) + "<gold>" + name, lore);
         Items.tag(item, AbilityEngine.ABILITY_KEY, id);
         // L'icone de la capacite, quand le pack complet en a une (tools/build_icones.py).
         iconModel(item, id);
@@ -105,6 +105,20 @@ public abstract class Ability {
 
     /** L'item de la capacite pour ce personnage : une capacite commune peut y prendre une icone a lui. */
     public ItemStack createItem(com.kiokouwhite.crossfight.character.Character owner) { return createItem(); }
+
+    /**
+     * Le glyphe de l'icone d'une capacite dans la police du pack (tools/build_icones.py : "fonticone.<id>.<hex>"),
+     * pour le mettre devant son nom (au-dessus de la barre d'action, dans l'infobulle) ; vide sans le pack.
+     */
+    public static String iconGlyph(String id) {
+        return GLYPHS.computeIfAbsent(id, k -> {
+            String prefix = "fonticone." + k + ".";
+            for (String ev : com.kiokouwhite.crossfight.util.Sounds.events())
+                if (ev.startsWith(prefix)) return "<font:crossfight:icones>" + (char) Integer.parseInt(ev.substring(prefix.length()), 16) + "</font> ";
+            return "";
+        });
+    }
+    private static final java.util.Map<String, String> GLYPHS = new java.util.HashMap<>();
 
     /** Pose l'icone "icone/<cle>" du pack complet sur l'item, si le pack l'a. */
     protected static void iconModel(ItemStack item, String key) {

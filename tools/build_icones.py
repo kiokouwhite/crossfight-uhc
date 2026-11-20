@@ -476,7 +476,15 @@ def build():
                 (folders[1] / f"{ident}.json").write_text(json.dumps({"parent": "minecraft:item/generated", "textures": {"layer0": f"crossfight:item/icone/{ident}"}}))
                 (folders[2] / f"{ident}.json").write_text(json.dumps({"model": {"type": "minecraft:model", "model": f"crossfight:item/icone/{ident}"}}))
                 count += 1
-    print(f"{count} icones de capacites dans resourcepack-prive/")
+    # La police des icones : un glyphe par icone (U+E100...), pour le mettre devant le nom de la capacite
+    # au-dessus de la barre d'action (Ability.iconGlyph) ; build_pack declare "fonticone.<id>.<hex>".
+    providers = []
+    for n, png in enumerate(sorted(folders[0].glob("*.png"))):
+        providers.append({"type": "bitmap", "file": f"crossfight:item/icone/{png.name}", "height": 9, "ascent": 8, "chars": [chr(0xE100 + n)]})
+    font = assets / "font"
+    font.mkdir(parents=True, exist_ok=True)
+    (font / "icones.json").write_text(json.dumps({"providers": providers}, ensure_ascii=False), encoding="utf-8")
+    print(f"{count} icones de capacites dans resourcepack-prive/ (et leur police, {len(providers)} glyphes)")
 
 
 if __name__ == "__main__":

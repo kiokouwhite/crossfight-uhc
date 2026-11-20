@@ -559,11 +559,12 @@ public final class Puppet {
         // L'orbe de l'ultime et les passifs (objets invisibles des bottes et du casque) restent : ils ne se dessinent pas sur le corps.
         var hud = CrossfightPlugin.get().effectHud();
         ItemStack orb = hud == null ? null : hud.shownIn(p, 8), passives = hud == null ? null : hud.shownIn(p, 5);
+        ItemStack infl0 = hud == null ? null : hud.shownIn(p, 6), infl1 = hud == null ? null : hud.shownIn(p, 7);
         // Sans pantin a ses yeux, le joueur garde ce qu'il tient : sa vue a la premiere personne ne change pas.
         int[] slots = hands ? new int[]{5, 6, 7, 8, 36 + inv.getHeldItemSlot(), 45} : new int[]{5, 6, 7, 8};
-        ItemStack[] items = hands ? new ItemStack[]{passives, null, null, orb,
+        ItemStack[] items = hands ? new ItemStack[]{passives, infl0, infl1, orb,
                 inv.getItemInMainHand().getType().isAir() ? null : invisibleItem(),
-                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()} : new ItemStack[]{passives, null, null, orb};
+                inv.getItemInOffHand().getType().isAir() ? null : invisibleItem()} : new ItemStack[]{passives, infl0, infl1, orb};
         boolean ok = ClientSlots.show(p, slots, items);
         if (!ok && !ownItemsWarned) { ownItemsWarned = true; CrossfightPlugin.get().getLogger().warning("Objets du joueur non masques pour lui-meme."); }
         return ok;
