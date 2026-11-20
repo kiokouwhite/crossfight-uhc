@@ -9,7 +9,7 @@
   "corrin_yato": {"vous": "Vous choisissez votre voie en début de partie ; la Yato évolue avec vos éliminations.", "court": "Évolue avec les kills"},
   "corrin_gardien": {"vous": "À moins de 10 blocs d'un allié, vous avez Résistance.", "court": "Allié à 10 blocs : Résistance"},
   "corrin_sang": {"vous": "Vous volez pendant 5 secondes. Un carré d'eau de 4x4 apparaît là où vous atterrissez.", "court": "Vol 5 s, eau à l'atterrissage"},
-  "corrin_eau": {"vous": "Vous avez Agilité aquatique IV, respirez sous l'eau et gagnez Vitesse IV tant que vous êtes dans l'eau.", "court": "Dans l'eau : Vitesse IV, respire"},
+  "corrin_eau": {"vous": "Vous avez Agilité aquatique IV, respirez sous l'eau et gagnez Vitesse IV tant que vous êtes dans l'eau.", "court": "Dans l'eau : Vitesse IV, Respiration"},
   "corrin_ult": {"vous": "Vous plantez vos bras dans le sol, immobile 1,5 s : une vague de 10 blocs de large déferle sur 40 blocs devant vous. Les ennemis touchés sont éjectés à 30 blocs de haut et ont Lenteur III pendant 10 secondes.", "court": "Vague 40 blocs, éjection 30, Lenteur III"},
   "takumi_yumi": {"vous": "Vos flèches infligent Lenteur pendant 10 secondes.", "court": "Flèches : Lenteur 10 s"},
   "takumi_contre": {"vous": "Vous jetez votre arc au sol : le Yumi Fujin est remplacé par une épée de 9 dégâts pendant 30 secondes, puis vous le ramassez.", "court": "Épée 9 dmg 30 s"},
