@@ -128,6 +128,9 @@ public abstract class Ability {
         item.setItemMeta(meta);
     }
 
+    /** Cette capacite agit sur son lanceur pendant {@code ticks} (vol, invisibilite...) : sa carte en haut a gauche, avec le compte a rebours. */
+    protected void showFor(Player p, int ticks) { com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, this, ticks); }
+
     /** Lignes de lore supplementaires (temps de chargement, modes...). */
     protected List<String> extraLore() { return List.of(); }
 

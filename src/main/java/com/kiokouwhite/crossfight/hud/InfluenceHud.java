@@ -91,6 +91,18 @@ public final class InfluenceHud {
         if (target instanceof Player p) record(p, "entrave", System.currentTimeMillis() + ticks * 50L, true);
     }
 
+    /**
+     * Un actif qui agit sur son lanceur autrement que par un effet de potion ou un bonus (le vol de Sang
+     * Draconique...) le dit lui-meme ({@code Ability.showFor}) : sa carte a gauche, avec le compte a rebours.
+     */
+    public static void self(Player p, Ability a, int ticks) {
+        if (p == null || a == null) return;
+        long now = System.currentTimeMillis();
+        Influence inf = SELF.computeIfAbsent(p.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id(), k -> new Influence(a.id(), true));
+        inf.keys.merge("duree", now + ticks * 50L, Math::max);
+        inf.touched = now;
+    }
+
     private static void record(Player target, String key, long until, boolean bad) {
         Ability a = caller();
         if (a == null) return;

@@ -221,6 +221,7 @@ public final class Corrin extends Character {
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             p.setAllowFlight(true);
             p.setFlying(true);
+            showFor(p, 100);
             st.set("noFallUntil", System.currentTimeMillis() + 15000L);
             shedWings(p);
             WINGS.put(p.getUniqueId(), com.kiokouwhite.crossfight.util.DragonWings.grow(p));
