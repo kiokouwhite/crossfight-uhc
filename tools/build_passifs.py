@@ -104,7 +104,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0):
     for i, a in enumerate(passives(character)):
         lit = bool(mask & (1 << i))
         lines = wrap(a["description"], font, TEXT_W) if text else []
-        h = CELL if not text else max(CELL, 30 + len(lines) * 18 + 4)
+        h = CELL if not text else max(CELL, 22 + len(lines) * 18 + 6)
         if text:
             # Le panneau du texte, sombre et translucide, borde d'un filet.
             d.rectangle([MARGIN, y, MARGIN + CELL + 10 + TEXT_W + 6, y + h - 1], fill=PANEL, outline=EDGE if lit else DIM_EDGE)
@@ -155,7 +155,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0):
             tx = MARGIN + CELL + 6
             d.text((tx, y + 2), a["name"], font=font, fill=GOLD if lit else (215, 195, 150, 255))
             for k, line in enumerate(lines):
-                d.text((tx, y + 28 + k * 18), line, font=font, fill=WHITE)
+                d.text((tx, y + 21 + k * 18), line, font=font, fill=WHITE)
         y += h + 4
     return im
 
