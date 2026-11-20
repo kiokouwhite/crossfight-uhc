@@ -392,6 +392,13 @@
    "crossfight:sfx/roar/3"
   ]
  },
+ "ability.eren_ult_regen": {
+  "sounds": [
+   "crossfight:sfx/roar/1",
+   "crossfight:sfx/roar/2",
+   "crossfight:sfx/roar/3"
+  ]
+ },
  "ability.gv_cerbere": {
   "sounds": [
    "crossfight:sfx/gun/1",
@@ -739,6 +746,13 @@
    "crossfight:sfx/slash/3"
   ]
  },
+ "ability.jett_ult_lance": {
+  "sounds": [
+   "crossfight:sfx/slash/1",
+   "crossfight:sfx/slash/2",
+   "crossfight:sfx/slash/3"
+  ]
+ },
  "ability.jett_vent": {
   "sounds": [
    "crossfight:sfx/whoosh/1",
@@ -926,6 +940,13 @@
   ]
  },
  "ability.livai_ult": {
+  "sounds": [
+   "crossfight:sfx/whoosh/1",
+   "crossfight:sfx/whoosh/2",
+   "crossfight:sfx/whoosh/3"
+  ]
+ },
+ "ability.livai_ult_fonce": {
   "sounds": [
    "crossfight:sfx/whoosh/1",
    "crossfight:sfx/whoosh/2",

@@ -88,6 +88,12 @@ public abstract class Character {
      */
     public List<String> sidebarLines(org.bukkit.entity.Player p) { return List.of(); }
 
+    /**
+     * La cle de la replique d'un moment du personnage ("kill", "mort") : {@code <perso>_<moment>} par defaut. Un
+     * personnage qui change de voix la change ici (Eren en Titan ne parle plus : "eren_titan_kill", absente du pack).
+     */
+    public String voiceKey(org.bukkit.entity.Player p, String moment) { return id() + "_" + moment; }
+
     /** La variante de l'orbe de l'ultime, qui porte l'avancement de l'arme ("" par defaut ; Corrin : "yato_l3"). */
     public String hudOrbVariant(org.bukkit.entity.Player p) { return ""; }
 

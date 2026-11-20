@@ -58,11 +58,13 @@ jett_vent = whoosh
 jett_courant = whoosh
 jett_flottement = whoosh
 jett_ult = slash
+jett_ult_lance = slash                      # un couteau lance pendant l'ultime
 
 # ---------------------------------------------------- Shingeki no Kyojin
 snk_odm = whoosh
 eren_charge = whoosh
 eren_ult = roar
+eren_ult_regen = roar                       # regeneration sous forme de Titan
 eren_t_colossal = fire
 eren_t_feminin = crystal
 eren_t_cuirasse = shield
@@ -77,6 +79,7 @@ livai_toupie = slash
 livai_charge = whoosh
 livai_assaut = slash
 livai_ult = whoosh
+livai_ult_fonce = whoosh                    # bond pendant l'ultime
 armin_regroupement = teleport
 armin_strategie = magic
 armin_ult = shield

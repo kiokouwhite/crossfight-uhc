@@ -188,6 +188,8 @@ public final class Sova extends Character implements Listener {
             if (b == MAX) st.set("reloadAt", System.currentTimeMillis());
             st.set("arrows", b - 1);
             shootDart(p, force, SHOCK);
+            // La fleche part de l'arc, pas d'un clic sur l'objet : son bruitage et sa replique se jouent ici.
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
             return true;
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) { return false; }
@@ -211,6 +213,7 @@ public final class Sova extends Character implements Listener {
             if (st.onCooldown()) { Msg.actionBar(p, "<red>Fleche de reconnaissance : encore " + st.cooldownLeftSeconds() + "s"); return; }
             shootDart(p, force, RECON);
             st.startCooldown((int) Math.ceil(fr.cooldownSeconds() * cf.cooldownFactor()));
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, fr.id());
         }
     }
 

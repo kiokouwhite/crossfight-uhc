@@ -130,6 +130,8 @@ public final class Mikasa extends Character {
         void choose(Player p, CfPlayer cf, AbilityState st, LivingEntity t) {
             if (t.isDead()) return;
             st.startCooldown((int) Math.ceil(cooldownSeconds() * cf.cooldownFactor()));
+            // La capacite part au choix dans le menu, pas a son ouverture : son bruitage et sa replique aussi.
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
             Effects.give(p, PotionEffectType.SPEED, 0, 600);
             Effects.give(t, PotionEffectType.GLOWING, 0, 1200);
             if (erenLow(p)) { st.set("focus", t.getUniqueId().toString()); st.set("focusUntil", System.currentTimeMillis() + 30000L); }

@@ -207,6 +207,9 @@ public final class Livai extends Character {
         }
         static boolean active(AbilityState st) { return System.currentTimeMillis() < st.get("proUntil", 0L); }
 
+        /** Chaque bond de l'ultime a son propre son (un cri bref), pas la replique du lancement. */
+        @Override public String useSoundKey() { return "livai_ult_fonce"; }
+
         @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             if (!active(st)) return false;
             World w = p.getWorld();

@@ -121,6 +121,8 @@ public final class Armin extends Character {
         }
         void bring(Player p, CfPlayer cf, AbilityState st, List<Player> who) {
             st.startCooldown((int) Math.ceil(cooldownSeconds() * cf.cooldownFactor()));
+            // La capacite part au choix dans le menu, pas a son ouverture : son bruitage et sa replique aussi.
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
             World w = p.getWorld();
             int i = 0;
             for (Player a : who) {
@@ -148,6 +150,8 @@ public final class Armin extends Character {
         }
         @Override public void onSwitch(Player p, CfPlayer cf, AbilityState st, int oldMode, int newMode) {}
         @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit : choisir l'allie et l'effet"); }
+        /** Ouvrir le menu ne dit rien : le bruitage et la replique partent quand l'effet est donne. */
+        @Override public String useSoundKey() { return "armin_strategie_menu"; }
 
         @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             List<Player> allies = SNK.allies(p);
@@ -175,6 +179,7 @@ public final class Armin extends Character {
             Boosts.set(ally, "armin_strategie", mode == 0 ? new Boosts.Boost(1, 0, 0, 0) : mode == 1 ? new Boosts.Boost(0, 0, 1, 0) : new Boosts.Boost(0, 1, 0, 0));
             ally.getWorld().spawnParticle(Particle.DUST, ally.getLocation().add(0, 1, 0), 20, 0.4, 0.6, 0.4, 0, BLUE);
             ally.playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
             Msg.send(ally, "<blue>Strategie d'Armin : tu gagnes <white>" + EFFECTS[mode] + "</white>.");
             Msg.actionBar(p, "<blue>Strategie : " + EFFECTS[mode] + " pour " + ally.getName());
         }

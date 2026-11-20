@@ -193,6 +193,9 @@ public final class Jett extends Character {
         /** Un couteau : l'image du pack (tools/build_glyphs.py), ou une epee de fer a sa place. */
         static ItemStack knife() { return Fx.imageOr("kunai", Color.WHITE, Material.IRON_SWORD); }
 
+        /** Un lancer de couteau garde son bruitage, sans redire la replique de l'invocation. */
+        @Override public String useSoundKey() { return "jett_ult_lance"; }
+
         @Override
         public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             int knives = st.get("knives", 0);

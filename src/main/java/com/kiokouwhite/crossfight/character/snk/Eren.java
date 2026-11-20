@@ -134,6 +134,12 @@ public final class Eren extends Character implements Listener {
         return "eren_m" + Math.max(0, Math.min(MORALE_MAX, kills));
     }
 
+    /** En Titan, Eren ne parle plus : pas de replique de kill ("eren_titan_kill" n'est pas dans le pack). Son cri de mort reste le sien. */
+    @Override
+    public String voiceKey(Player p, String moment) {
+        return "kill".equals(moment) && isTitan(p) ? "eren_titan_kill" : super.voiceKey(p, moment);
+    }
+
     /** Les quatre cibles des Titans primordiaux, par leur pseudo ; celles qu'il a deja devorees sont barrees. En mode test, des noms de substitution. */
     @Override
     public List<String> sidebarLines(Player p) {
@@ -532,6 +538,9 @@ public final class Eren extends Character implements Listener {
         TitanAssaillant() {
             super("eren_ult", "Titan Assaillant", "Eren se transforme en Titan jusqu'a sa mort : Force, Speed, il regenere 15% des degats qu'il inflige et obtient les pouvoirs des titans voles, mais ne peut plus manger de Pommes Dorees ni utiliser son equipement ou sa Charge. Clic droit sous cette forme : immobile 3 secondes, regenere 5 coeurs (50 s).", Material.ROTTEN_FLESH);
         }
+
+        /** La regeneration du Titan garde son rugissement, sans redire la replique de la transformation. */
+        @Override public String useSoundKey() { return "eren_ult_regen"; }
 
         @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             if (!st.get("titan", false)) return false;
