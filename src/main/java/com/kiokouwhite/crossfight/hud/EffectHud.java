@@ -178,6 +178,35 @@ public final class EffectHud implements Listener {
         return out;
     }
 
+    /**
+     * Les icones d'effet de Minecraft en haut a droite de l'ecran (hud.icones-minecraft) : cachees par defaut.
+     * Tout effet recu avec son icone est remis au tick suivant, identique mais sans icone ; il reste liste dans
+     * l'inventaire. (Pas dans l'evenement meme : il peut venir du tic des effets, qui parcourt la liste.)
+     */
+    @EventHandler(ignoreCancelled = true, priority = org.bukkit.event.EventPriority.MONITOR)
+    public void onEffect(org.bukkit.event.entity.EntityPotionEffectEvent e) {
+        if (!(e.getEntity() instanceof Player p) || plugin.getConfig().getBoolean("hud.icones-minecraft", false)) return;
+        PotionEffect fx = e.getNewEffect();
+        if (fx == null || !fx.hasIcon()) return;
+        Bukkit.getScheduler().runTask(plugin, () -> hideIcon(p, fx.getType()));
+    }
+
+    /** Remet l'effet en cours de ce type sans son icone. */
+    private static void hideIcon(Player p, PotionEffectType type) {
+        if (!p.isOnline()) return;
+        PotionEffect cur = p.getPotionEffect(type);
+        if (cur == null || !cur.hasIcon()) return;
+        p.addPotionEffect(new PotionEffect(type, cur.getDuration(), cur.getAmplifier(), cur.isAmbient(), cur.hasParticles(), false));
+    }
+
+    /** A l'arrivee, les effets deja portes perdent leur icone aussi. */
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        if (plugin.getConfig().getBoolean("hud.icones-minecraft", false)) return;
+        Player p = e.getPlayer();
+        Bukkit.getScheduler().runTask(plugin, () -> { for (PotionEffect fx : p.getActivePotionEffects()) hideIcon(p, fx.getType()); });
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         states.remove(e.getPlayer().getUniqueId());

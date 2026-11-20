@@ -224,3 +224,6 @@ hud:
   effets: true
   # L'orbe de l'ultime, en bas a droite de l'ecran (avec le pack d'interface) : il se remplit avec la charge.
   ultime: true
+  # Les icones d'effet de Minecraft en haut a droite de l'ecran : false les cache (les effets restent listes
+  # dans l'inventaire, touche E).
+  icones-minecraft: false

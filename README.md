@@ -436,7 +436,7 @@ C'est la même technique que l'orbe de l'ultime : une image de plein écran port
 
 ### Sons d'effets et orbe de l'ultime
 
-Un son prévient le joueur quand il reçoit un nouveau bonus (vitesse, force, résistance, régénération, invisibilité, absorption, saut) ou un nouveau malus (lenteur, faiblesse, poison, cécité, wither, feu, entrave), au plus une fois toutes les 2 secondes par effet ; `hud.effets: false` dans `config.yml` le coupe. Les icônes qui montaient sur les bords de l'écran ont été retirées.
+Un son prévient le joueur quand il reçoit un nouveau bonus (vitesse, force, résistance, régénération, invisibilité, absorption, saut) ou un nouveau malus (lenteur, faiblesse, poison, cécité, wither, feu, entrave), au plus une fois toutes les 2 secondes par effet ; `hud.effets: false` dans `config.yml` le coupe. Les icônes qui montaient sur les bords de l'écran ont été retirées. Les icônes d'effet de Minecraft, en haut à droite de l'écran, sont cachées aussi : tout effet reçu par un joueur est remis au tick suivant sans son icône (il reste listé dans l'inventaire, touche E) ; `hud.icones-minecraft: true` dans `config.yml` les rend.
 
 Minecraft dessine en plein écran l'image `camera_overlay` d'un objet porté (comme la vue à travers une citrouille) : c'est la technique de l'orbe de l'ultime (`hud/EffectHud.java`, `util/ClientSlots.java`). Rien en mode créatif ou spectateur.
 
