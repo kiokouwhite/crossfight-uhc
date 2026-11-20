@@ -339,6 +339,7 @@ public final class Remi extends Character {
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             st.set("until", System.currentTimeMillis() + 5000L);
+            showFor(p, 100);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.6f);
             w.spawnParticle(Particle.FLASH, p.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0, Color.fromRGB(150, 210, 255));
@@ -431,6 +432,7 @@ public final class Remi extends Character {
         }
 
         private void dome(Player p, Location c) {
+            showFor(p, 300);
             World w = p.getWorld();
             final double R = 20.0;
             w.strikeLightningEffect(c);

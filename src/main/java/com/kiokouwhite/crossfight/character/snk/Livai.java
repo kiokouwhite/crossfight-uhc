@@ -239,6 +239,7 @@ public final class Livai extends Character {
 
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             st.set("proUntil", System.currentTimeMillis() + 30000L);
+            showFor(p, 600);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_CHARGE, 1f, 1.2f);
             w.spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0.05);

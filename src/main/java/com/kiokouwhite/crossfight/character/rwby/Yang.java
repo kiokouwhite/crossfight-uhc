@@ -257,6 +257,7 @@ public final class Yang extends Character {
         @Override
         public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             st.set("until", System.currentTimeMillis() + 25_000L);
+            showFor(p, 500);
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 1f, 0.7f);
             p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 60, 0.6, 0.8, 0.6, 0.1);
             Bukkit.getScheduler().runTaskLater(plugin(), () -> {

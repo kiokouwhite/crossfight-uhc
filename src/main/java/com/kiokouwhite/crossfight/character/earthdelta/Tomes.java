@@ -96,6 +96,11 @@ final class Tomes {
     }
 
     /** Lance l'actif d'un tome. Retourne false si rien ne s'est passe (pas de cooldown). */
+    /** Le tome agit sur Hano pendant {@code ticks} : sa carte en haut a gauche, avec le compte a rebours. */
+    private static void show(Player p, CfPlayer cf, Tome t, int ticks) {
+        if (cf != null && cf.character() != null) com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, cf.character().ability("hano_tome_" + t.id), ticks);
+    }
+
     static boolean use(Player p, CfPlayer cf, AbilityState hano, Tome t) {
         World w = w(p);
         switch (t) {
@@ -135,7 +140,7 @@ final class Tomes {
             }
             case BLAST_PROTECTION -> { hano.set("blast_armed", true); Msg.actionBar(p, "<gold>Explosion Desarmante armee : au prochain coup recu."); return true; }
             case PROJECTILE_PROTECTION -> { hano.set("arrows_armed", true); Msg.actionBar(p, "<gold>Explosion d'Epines armee : au prochain coup recu."); return true; }
-            case FIRE_PROTECTION -> { hano.set("hades_until", System.currentTimeMillis() + 10000L); Msg.actionBar(p, "<gold>Armure d'Hades : 10 s"); w.spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0.02); return true; }
+            case FIRE_PROTECTION -> { hano.set("hades_until", System.currentTimeMillis() + 10000L); show(p, cf, t, 200); Msg.actionBar(p, "<gold>Armure d'Hades : 10 s"); w.spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0.02); return true; }
             case CHANNELING -> {
                 Location c = p.getLocation().clone();
                 new BukkitRunnable() {
@@ -293,6 +298,7 @@ final class Tomes {
             }
             case RESPIRATION -> {
                 Effects.root(p, 200);
+                show(p, cf, t, 200);
                 Msg.actionBar(p, "<dark_purple>Concentration Ultime : 10 secondes...");
                 new BukkitRunnable() {
                     int tk = 0;

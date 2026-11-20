@@ -98,6 +98,7 @@ public final class Pinkou extends Character implements Listener {
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             LivingEntity target = Effects.nearestEnemy(p, 10);
             if (target == null) { Msg.actionBar(p, "<red>Aucun adversaire a moins de 10 blocs."); return false; }
+            showFor(p, 100);
             World w = p.getWorld();
             Location c = p.getLocation().clone();
             TempBlocks cocoon = new TempBlocks().unbreakable();
@@ -172,6 +173,7 @@ public final class Pinkou extends Character implements Listener {
     static final class NatureEternelle extends UltimateAbility {
         NatureEternelle() { super("pinkou_ult", "Nature Eternelle", "Pinkou s'enferme dans un cocon enorme et couvre le sol de ronces sur 12 blocs pendant 15 secondes : les ennemis qui y marchent ont Poison 5 secondes, ses allies regenerent.", Material.FLOWERING_AZALEA); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 300);
             World w = p.getWorld();
             Location c = p.getLocation().clone();
             TempBlocks blocks = new TempBlocks().unbreakable();

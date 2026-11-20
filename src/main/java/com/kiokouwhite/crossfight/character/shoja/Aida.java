@@ -161,6 +161,7 @@ public final class Aida extends Character implements Listener {
         CloneDEau() { super("aida_clone", "Clone d'eau", "Aida s'entoure d'eau 5 secondes : si un adversaire la frappe, elle se teleporte derriere lui et lui inflige Faiblesse et Lenteur 5 secondes.", Material.GLASS_BOTTLE, 10); }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             st.set("until", System.currentTimeMillis() + 5000L);
+            showFor(p, 100);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ITEM_BUCKET_FILL, 1f, 1.2f);
             new BukkitRunnable() { int t = 0; @Override public void run() { t++; if (!p.isOnline() || t > 100 || System.currentTimeMillis() > st.get("until", 0L)) { cancel(); return; } sphere(w, p.getLocation().add(0, 1, 0), 1.4, 36, t * 0.08); } }.runTaskTimer(Shoja.plugin(), 0L, 2L);
@@ -173,6 +174,7 @@ public final class Aida extends Character implements Listener {
             LivingEntity attacker = DamageListener.livingAttackerOf(be.getDamager());
             if (attacker == null || attacker == victim || !Effects.isEnemy(victim, attacker)) return;
             st.set("until", 0L);
+            hideFor(victim);
             e.setCancelled(true);
             World w = victim.getWorld();
             w.spawnParticle(Particle.SPLASH, victim.getLocation().add(0, 1, 0), 40, 0.5, 0.7, 0.5, 0);
@@ -231,6 +233,7 @@ public final class Aida extends Character implements Listener {
     static final class PluieBouillante extends UltimateAbility {
         PluieBouillante() { super("aida_ult", "Pluie bouillante", "Aida fait tomber la pluie sur toute la carte pendant 10 secondes : les adversaires sous la pluie perdent 1 coeur par seconde.", Material.WATER_BUCKET); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 200);
             World w = p.getWorld();
             boolean wasStorm = w.hasStorm();
             w.setStorm(true);

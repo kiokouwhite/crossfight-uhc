@@ -103,6 +103,14 @@ public final class InfluenceHud {
         inf.touched = now;
     }
 
+    /** L'actif annonce par {@link #self} s'arrete plus tot que prevu : sa carte s'en va. */
+    public static void selfEnd(Player p, Ability a) {
+        if (p == null || a == null) return;
+        var map = SELF.get(p.getUniqueId());
+        Influence inf = map == null ? null : map.get(a.id());
+        if (inf != null) inf.keys.remove("duree");
+    }
+
     /**
      * Une capacite d'un autre joueur qui te concerne sans te poser d'effet (le Contre de Marth : ne le frappe pas) :
      * sa carte a droite, en adversaire ou en allie, pendant {@code ticks}.

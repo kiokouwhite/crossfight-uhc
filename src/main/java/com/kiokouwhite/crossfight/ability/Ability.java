@@ -131,6 +131,9 @@ public abstract class Ability {
     /** Cette capacite agit sur son lanceur pendant {@code ticks} (vol, invisibilite...) : sa carte en haut a gauche, avec le compte a rebours. */
     protected void showFor(Player p, int ticks) { com.kiokouwhite.crossfight.hud.InfluenceHud.self(p, this, ticks); }
 
+    /** L'effet annonce par {@link #showFor} s'arrete plus tot que prevu : la carte s'en va. */
+    protected void hideFor(Player p) { com.kiokouwhite.crossfight.hud.InfluenceHud.selfEnd(p, this); }
+
     /** Explique a un adversaire ce qui vient de lui arriver : la carte de cette capacite a droite de son ecran pendant {@code ticks} (le Contre de Marth). */
     protected void explainTo(Player victim, int ticks) {
         com.kiokouwhite.crossfight.hud.InfluenceHud.threat(victim, this, false, ticks);

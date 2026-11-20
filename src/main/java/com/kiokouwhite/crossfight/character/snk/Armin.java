@@ -236,6 +236,7 @@ public final class Armin extends Character {
             List<Player> team = new ArrayList<>(SNK.allies(p));
             team.add(p);
             String source = "armin_abnegation_" + System.currentTimeMillis();
+            showFor(p, 1200);
             for (Player m : team) {
                 Boosts.set(m, source, boost);
                 m.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, m.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0.2);

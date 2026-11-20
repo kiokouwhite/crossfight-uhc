@@ -392,6 +392,7 @@ public final class Acura extends Character implements Listener {
     static final class TwinShredder extends UltimateAbility {
         TwinShredder() { super("acura_ult", "Twin Shredder", "Sur 10 blocs autour d'Acura, 3 coeurs de degats repartis sur 3 secondes ; la cible verrouillee prend le double.", Material.SHEARS); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 60);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.BLOCK_GRINDSTONE_USE, 1f, 0.6f);
             new BukkitRunnable() {

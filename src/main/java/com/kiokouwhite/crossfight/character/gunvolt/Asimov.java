@@ -233,6 +233,7 @@ public final class Asimov extends Character implements Listener {
     static final class VoltaicChain extends UltimateAbility {
         VoltaicChain() { super("asimov_ult", "Voltaic Chain", "Des chaines electriques se dispersent au hasard sur 30 blocs pendant 8 secondes : 2 coeurs par seconde a qui se trouve dessus.", Material.IRON_CHAIN); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 160);
             World w = p.getWorld();
             Location c = p.getLocation().clone();
             // Les chaines : segments qui partent du centre et se ramifient au hasard.

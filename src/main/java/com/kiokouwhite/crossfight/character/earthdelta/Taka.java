@@ -338,6 +338,7 @@ public final class Taka extends Character implements Listener {
             super("taka_ult", "Multi-Invocation", "Taka invoque 10 armes au hasard a 50 blocs autour d'elle pendant 1 minute : indestructibles, elles ne peuvent pas etre lancees par la Multi-Arme.", Material.NETHERITE_AXE);
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 1200);
             World w = p.getWorld();
             Location c = p.getLocation();
             int n = 0;

@@ -160,13 +160,14 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
             if (!running) {
                 if (st.onCooldown()) { Msg.actionBar(p, "<red>Insaisissable : encore " + st.cooldownLeftSeconds() + "s"); return true; }
                 st.set("until", now + 5000L); st.set("dashes", 3);
+                showFor(p, 100);
                 st.startCooldown((int) Math.ceil(cooldownSeconds() * cf.cooldownFactor()));
                 vanish(p, st, true);
             }
             dash(p);
             int left = st.get("dashes", 0) - 1;
             st.set("dashes", left);
-            if (left <= 0) vanish(p, st, false);
+            if (left <= 0) { vanish(p, st, false); hideFor(p); }
             Msg.actionBar(p, "<white>Insaisissable : " + left + " dash(s) restant(s)");
             return true;
         }
@@ -211,6 +212,7 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
             for (Player o : Bukkit.getOnlinePlayers()) if (Effects.isEnemy(p, o)) { Effects.give(o, PotionEffectType.DARKNESS, 0, 400); Effects.give(o, PotionEffectType.SLOWNESS, 1, 400); Msg.send(o, "<white>Yuki : Obscurite et Lenteur II pendant 20 s !"); }
             for (LivingEntity e : Effects.enemiesWithin(p, 100)) if (!(e instanceof Player)) { Effects.give(e, PotionEffectType.DARKNESS, 0, 400); Effects.give(e, PotionEffectType.SLOWNESS, 1, 400); }
             maxHealthDelta(p, -15, "yuki_ult");
+            showFor(p, 400);
             Bukkit.getScheduler().runTaskLater(Solo.plugin(), () -> maxHealthDelta(p, 15, "yuki_ult"), 400L);
             World w = p.getWorld();
             w.spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 150, 3, 2, 3, 0.1);

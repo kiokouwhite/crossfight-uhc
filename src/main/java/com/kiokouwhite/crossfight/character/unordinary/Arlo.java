@@ -334,6 +334,7 @@ public final class Arlo extends Character implements Listener {
             super("arlo_ult", "Bulle geante", "Pendant 1 minute, une cage de verre indestructible de 30 blocs de rayon apparait autour d'Arlo. Ses allies a l'interieur gagnent Force.", Material.GLASS);
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 1200);
             World w = p.getWorld();
             Location c = p.getLocation().clone();
             final double R = 30.0;

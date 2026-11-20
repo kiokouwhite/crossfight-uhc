@@ -222,6 +222,7 @@ public final class Gunvolt extends Character implements Listener {
             super("gv_ult", "Astrasphere", "Pendant 5 secondes, un champ d'electricite de 10x10 autour de Gunvolt : 1 coeur par seconde, +0.5 coeur par stack d'Electricite Septimale.", Material.BEACON);
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 100);
             World w = p.getWorld();
             w.strikeLightningEffect(p.getLocation());
             w.playSound(p.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1.5f);

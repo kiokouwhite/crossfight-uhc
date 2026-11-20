@@ -37,7 +37,12 @@ def self_buffers():
             m = re.search(r'super\("([a-z0-9_]+)"', part)
             if m and pat.search(part):
                 out.add(m.group(1))
-    return out
+    return out | TOMES
+
+
+# Les tomes de Hano qui agissent sur elle un moment (character/earthdelta/Tomes.java : show) : une seule classe
+# pour tous les tomes, donc declares ici.
+TOMES = {"hano_tome_fire_protection", "hano_tome_respiration"}
 
 
 def badge(im, x, y, seconds, small, edge=None):

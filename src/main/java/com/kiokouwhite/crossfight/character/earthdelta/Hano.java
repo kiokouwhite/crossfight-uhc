@@ -301,6 +301,7 @@ public final class Hano extends Character implements Listener {
                 exclude.add(t.id); list(ts, "ult").add(t.id); names.add(t.label);
             }
             ts.set("ultUntil", System.currentTimeMillis() + 30000L);
+            showFor(p, 600);
             giveTomeItems(p);
             p.getWorld().spawnParticle(Particle.ENCHANT, p.getLocation().add(0, 1.5, 0), 120, 1, 1, 1, 1);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1f);

@@ -132,6 +132,7 @@ public final class Hannah extends Character implements Listener {
                 e.getWorld().spawnParticle(Particle.ANGRY_VILLAGER, e.getLocation().add(0, 2, 0), 5, 0.3, 0.2, 0.3);
                 n++;
             }
+            if (n > 0) showFor(p, 200);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 0.6f, 1.4f);
             Msg.actionBar(p, "<red>Abnegation Enrageante : " + n + " adversaire(s) provoque(s).");
             return true;

@@ -353,6 +353,7 @@ public final class Sova extends Character implements Listener {
             super("sova_drone", "Drone Rapace", "Un drone suit Sova pendant 10 secondes et tire des fleches de Faiblesse sur les adversaires a moins de 20 blocs.", Material.PHANTOM_MEMBRANE, 20);
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 200);
             // Comme dans Valorant : il leve le bras gauche et lache le drone, qui s'eleve de sa main jusqu'a son poste.
             var pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "sova", null, "debout");
             if (pu != null) { pu.pose("sova_drone", 3); pu.endAfter(10, 4); }

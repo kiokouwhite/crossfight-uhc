@@ -183,6 +183,7 @@ public final class Crystal extends Character implements Listener {
         OeilPourOeil() { super("crystal_ult", "Oeil pour Oeil", "Crystal perd 8 coeurs : tous les adversaires de la carte subissent Wither III, Lenteur II et Faiblesse IV pendant 10 secondes.", Material.ENDER_EYE); }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             pay(p, 8);
+            showFor(p, 200);
             int n = 0;
             for (Player o : Bukkit.getOnlinePlayers()) {
                 if (!Effects.isEnemy(p, o)) continue;

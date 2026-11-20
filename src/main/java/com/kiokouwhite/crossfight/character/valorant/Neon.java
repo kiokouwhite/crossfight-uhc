@@ -277,6 +277,7 @@ public final class Neon extends Character implements Listener {
 
         @Override
         public boolean activate(Player p, CfPlayer cf, AbilityState st) {
+            showFor(p, 100);
             Vector fwd = Effects.towards(p, null);
             Vector side = new Vector(-fwd.getZ(), 0, fwd.getX());
             TempBlocks walls = new TempBlocks().unbreakable();
