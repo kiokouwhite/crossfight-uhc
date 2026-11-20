@@ -59,10 +59,16 @@ public final class CfCommand implements TabExecutor {
                 else Msg.send(sp, "<yellow>/cf ferox oui|non");
             }
             case "hud" -> {
+                // /cf hud : le menu des reglages d'affichage (passifs, actif, effets des autres, leurs textes).
                 // /cf hud demo (admin) : montre les cartes de droite (allie, adversaire) et l'actif de gauche, pour essai.
-                if (!(sender instanceof Player sp) || !sender.hasPermission("crossfight.admin")) return true;
-                com.kiokouwhite.crossfight.hud.InfluenceHud.demo(sp);
-                Msg.send(sp, "<gray>HUD : demonstration lancee (allie, adversaire, actif).");
+                if (!(sender instanceof Player sp)) return true;
+                if (args.length > 1 && args[1].equalsIgnoreCase("demo")) {
+                    if (!sender.hasPermission("crossfight.admin")) { Msg.send(sender, "<red>Tu n'as pas la permission."); return true; }
+                    com.kiokouwhite.crossfight.hud.InfluenceHud.demo(sp);
+                    Msg.send(sp, "<gray>HUD : demonstration lancee (allie, adversaire, actif).");
+                    return true;
+                }
+                com.kiokouwhite.crossfight.hud.HudPrefs.open(sp);
             }
             case "passif", "passifs" -> {
                 // /cf passif show|hide : le texte qui rappelle ce que fait chaque passif, a cote de son icone (en haut a gauche).
@@ -1007,6 +1013,7 @@ public final class CfCommand implements TabExecutor {
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre", "omori"));
                 case "passif", "passifs" -> out.addAll(List.of("show", "hide"));
+                case "hud" -> { if (sender.hasPermission("crossfight.admin")) out.add("demo"); }
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }

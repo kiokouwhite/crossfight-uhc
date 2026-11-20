@@ -30,7 +30,7 @@ def self_buffers():
     """Les capacites dont le code donne un effet au joueur lui-meme (potion, bonus de Boosts) : elles seules ont
     les images du compte a rebours. Lu dans les sources du plugin, classe par classe (super("<id>"...))."""
     import re
-    pat = re.compile(r'(?:Effects\.(?:give|refresh)\((?:p|player|sp|self|caster|victim|owner)\b|\b(?:p|player|sp|self|caster)\.addPotionEffect\(|Boosts\.set\((?:p|player|sp|self|caster)\b)')
+    pat = re.compile(r'(?:Effects\.(?:give|refresh)\((?:p|player|sp|self|caster|victim|owner)\b|\b(?:p|player|sp|self|caster)\.addPotionEffect\(|Boosts\.set\((?:p|player|sp|self|caster)\b|showFor\()')
     out = set()
     for f in SRC.rglob("*.java"):
         for part in re.split(r'\n(?=\s*(?:public |private |protected )?(?:static )?(?:final )?class \w+)', f.read_text(encoding="utf-8")):

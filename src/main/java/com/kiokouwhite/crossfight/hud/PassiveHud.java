@@ -86,20 +86,16 @@ public final class PassiveHud {
         return textKey;
     }
 
-    public static boolean showsText(Player p) {
-        Byte b = p.getPersistentDataContainer().get(key(), PersistentDataType.BYTE);
-        return b != null && b == 1;
-    }
+    /** Le texte a cote des passifs (/cf hud, /cf passif show|hide). */
+    public static boolean showsText(Player p) { return HudPrefs.Pref.PASSIFS_TEXTE.of(p); }
 
-    public static void setShowsText(Player p, boolean on) {
-        p.getPersistentDataContainer().set(key(), PersistentDataType.BYTE, (byte) (on ? 1 : 0));
-    }
+    public static void setShowsText(Player p, boolean on) { HudPrefs.Pref.PASSIFS_TEXTE.set(p, on); }
 
     /** L'image a montrer maintenant ("passif/<perso>_<allumes>_<texte>"), ou null s'il n'y en a pas. */
     public static String image(Player p) {
         CfPlayer cf = CrossfightPlugin.get().players().get(p);
         Character c = cf == null ? null : cf.character();
-        if (c == null || !Sounds.has("passif." + c.id())) return null;
+        if (c == null || !Sounds.has("passif." + c.id()) || !HudPrefs.Pref.PASSIFS.of(p)) return null;
         List<Ability> list = shown(c);
         if (list.isEmpty()) return null;
         int mask = 0;

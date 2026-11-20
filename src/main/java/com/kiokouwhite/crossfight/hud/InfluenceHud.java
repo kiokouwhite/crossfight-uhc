@@ -164,14 +164,14 @@ public final class InfluenceHud {
     public static String selfImage(Player p) {
         CfPlayer cf = CrossfightPlugin.get().players().get(p);
         Character c = cf == null ? null : cf.character();
-        if (c == null || !Sounds.has("actif." + c.id())) return null;
+        if (c == null || !Sounds.has("actif." + c.id()) || !HudPrefs.Pref.ACTIFS.of(p)) return null;
         UUID u = p.getUniqueId();
         long now = System.currentTimeMillis();
         List<Influence> live = live(SELF, p);
         Influence inf = live.isEmpty() ? null : live.get(0);
         int j = -1;
         if (inf != null) { List<Ability> acts = PassiveHud.actives(c); for (int k = 0; k < acts.size(); k++) if (acts.get(k).id().equals(inf.ability)) j = k; }
-        String id = j < 0 ? null : c.id() + "_" + j + "_" + (PassiveHud.showsText(p) ? 1 : 0);
+        String id = j < 0 ? null : c.id() + "_" + j + "_" + (HudPrefs.Pref.ACTIFS_TEXTE.of(p) ? 1 : 0);
         String before = SELF_SHOWN.get(u);
         if (id != null && !id.equals(before)) SELF_IN.put(u, now);
         if (before != null && !before.equals(id)) SELF_OUT.put(u, new Object[]{before, now});
@@ -256,7 +256,7 @@ public final class InfluenceHud {
         UUID u = p.getUniqueId();
         long now = System.currentTimeMillis();
         List<String> cur = new ArrayList<>();
-        for (Influence inf : live(BY, p)) {
+        if (HudPrefs.Pref.AUTRES.of(p)) for (Influence inf : live(BY, p)) {
             if (cur.size() == 2) break;
             String side = inf.ally ? "a" : "e";
             if (Sounds.has("influence." + inf.ability + "." + side)) cur.add(inf.ability + "_" + side);
@@ -269,7 +269,7 @@ public final class InfluenceHud {
             if (!cur.contains(before.get(r))) { out[r] = before.get(r); outAt[r] = now; }
         SHOWN.put(u, cur);
 
-        int text = PassiveHud.showsText(p) ? 1 : 0;
+        int text = HudPrefs.Pref.AUTRES_TEXTE.of(p) ? 1 : 0;
         List<String> images = new ArrayList<>();
         for (int r = 0; r < 2; r++) {
             if (r < cur.size()) {

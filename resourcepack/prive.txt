@@ -45,6 +45,7 @@ actif.blake.4.s
 actif.byleth
 actif.byleth.3.s
 actif.corrin
+actif.corrin.0.s
 actif.crystal
 actif.crystal.0.s
 actif.crystal.1.s
