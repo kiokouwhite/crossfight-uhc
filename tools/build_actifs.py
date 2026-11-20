@@ -96,7 +96,14 @@ def main():
         sheet.save(sys.argv[2])
         print(sys.argv[2])
         return
-    if OUT.exists():
+    # --perso <id> [<id>...] : seulement ces personnages, sans toucher aux images des autres.
+    only = set(sys.argv[sys.argv.index("--perso") + 1:]) if "--perso" in sys.argv else None
+    if only:
+        chars = [c for c in chars if c["id"] in only]
+        for c in chars:
+            for f in OUT.glob(f"{c['id']}_*.png"):
+                f.unlink()
+    elif OUT.exists():
         for f in OUT.glob("*.png"):
             f.unlink()
     OUT.mkdir(parents=True, exist_ok=True)
