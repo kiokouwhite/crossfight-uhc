@@ -379,6 +379,7 @@ public final class GameManager {
                 int safe = rules().value("invincibilite");
                 if (safe > 0) p.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * safe, 4, false, false));
                 plugin.abilities().equip(p);
+                if (rules().on("armure-depart")) startingArmor(p);
                 p.showTitle(Title.title(Msg.mm("<gradient:#ff4d4d:#ffb84d><bold>CROSSFIGHT"), Msg.mm("<gray>Bonne chance !"),
                         Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofSeconds(1))));
                 p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.8f, 1f);
@@ -393,6 +394,17 @@ public final class GameManager {
         for (var p : plugin.structures().finished(world())) places.add("<white>" + plugin.structures().title(p.name()) + "</white> en " + (p.x() + p.sx() / 2) + " " + (p.z() + p.sz() / 2));
         if (!places.isEmpty()) Msg.broadcast("<gold>Sur la map : <gray>" + String.join("<gold>, <gray>", places) + "<gold>.");
         Msg.broadcast("<green>La partie commence ! <gray>" + (pvpMin <= 0 ? "Le PvP est actif des maintenant." : "PvP dans " + pvpMin + " minutes."));
+    }
+
+    /** L'armure de depart (regle armure-depart) : les quatre pieces en fer, Protection I, deja portees. */
+    private static void startingArmor(Player p) {
+        org.bukkit.inventory.ItemStack[] set = new org.bukkit.inventory.ItemStack[4];
+        org.bukkit.Material[] pieces = {org.bukkit.Material.IRON_BOOTS, org.bukkit.Material.IRON_LEGGINGS, org.bukkit.Material.IRON_CHESTPLATE, org.bukkit.Material.IRON_HELMET};
+        for (int i = 0; i < 4; i++) {
+            set[i] = new org.bukkit.inventory.ItemStack(pieces[i]);
+            set[i].addEnchantment(org.bukkit.enchantments.Enchantment.PROTECTION, 1);
+        }
+        p.getInventory().setArmorContents(set);
     }
 
     private void tickRunning() {

@@ -145,6 +145,7 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `equipes-aleatoires` | non | Les équipes sont tirées au sort au lancement |
 | `regeneration` | non | Régénération naturelle de la vie |
 | `jour-permanent` | non | Il fait toujours jour |
+| `armure-depart` | oui | Les joueurs commencent avec une armure en fer complète, Protection I, déjà portée |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
 

@@ -21,6 +21,8 @@ game:
   # Regeneration naturelle de la vie ; jour permanent
   natural-regeneration: false
   eternal-day: false
+  # Armure en fer complete, Protection I, portee des le depart
+  starting-armor: true
   # Toutes ces regles se changent en jeu : /cf regle <nom> <valeur> (operateurs et administrateurs de partie, /cf admin)
   # Nombre de Lootbox qui apparaissent a la minute de l'evenement
   lootbox-count: 6
