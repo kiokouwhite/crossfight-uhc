@@ -100,7 +100,9 @@ public final class Hiro extends Character implements Listener {
         @Override public List<String> weaponLore() { return List.of("<gold>Clic droit : <gray>charger la Puissance (+3/s)"); }
         @Override public void onEquip(Player p, CfPlayer cf) {
             AbilityState st = Shoja.plugin().abilities().state(p, this);
-            if (!st.get("init", false)) { st.setGauge(0); st.set("init", true); }
+            // En mode test (le testeur ou son mannequin), la Puissance part pleine : il essaie tout de suite ses pouvoirs.
+            boolean test = Shoja.plugin().testMode().isTester(p) || com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p);
+            if (!st.get("init", false)) { st.setGauge(test ? 100 : 0); st.set("init", true); }
             Effects.give(p, PotionEffectType.FIRE_RESISTANCE, 0, Integer.MAX_VALUE);
         }
         @Override public void onUnequip(Player p, CfPlayer cf) { p.removePotionEffect(PotionEffectType.FIRE_RESISTANCE); }
