@@ -146,6 +146,7 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `regeneration` | non | Régénération naturelle de la vie |
 | `jour-permanent` | non | Il fait toujours jour |
 | `blocs-poses` | 15 s | Les blocs posés par les joueurs se cassent d'eux-mêmes après ce délai, en se fissurant, et lâchent leur objet (0 : jamais). Restent en place les blocs qu'on ouvre ou qu'on utilise (établi, four, coffre, enclume, lit…) et les sources de lumière (torches, lanternes) |
+| `armures-incassables` | oui | Les pièces d'armure (casque, plastron, jambières, bottes, élytres) ne s'usent pas, d'où qu'elles viennent |
 | `armure-depart` | oui | Les joueurs commencent avec une armure en fer complète, Protection I, déjà portée |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |

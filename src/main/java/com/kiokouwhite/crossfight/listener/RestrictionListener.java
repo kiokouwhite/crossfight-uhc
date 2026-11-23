@@ -179,4 +179,13 @@ public final class RestrictionListener implements Listener {
             }
         }
     }
+
+    /** Regle armures-incassables : une piece d'armure (casque, plastron, jambieres, bottes, elytres) ne s'use pas. */
+    @EventHandler(ignoreCancelled = true)
+    public void onArmorWear(org.bukkit.event.player.PlayerItemDamageEvent e) {
+        if (!plugin.game().rules().on("armures-incassables")) return;
+        org.bukkit.inventory.EquipmentSlot slot = e.getItem().getType().getEquipmentSlot();
+        if (slot == org.bukkit.inventory.EquipmentSlot.HEAD || slot == org.bukkit.inventory.EquipmentSlot.CHEST
+                || slot == org.bukkit.inventory.EquipmentSlot.LEGS || slot == org.bukkit.inventory.EquipmentSlot.FEET) e.setCancelled(true);
+    }
 }

@@ -91,6 +91,7 @@ public final class HostTools implements Listener {
         dial("omori", 33, Material.WHITE_TULIP, 5);
         dial("armure-depart", 34, Material.IRON_CHESTPLATE, 1);
         dial("blocs-poses", 37, Material.COBBLESTONE, 5);
+        dial("armures-incassables", 38, Material.DIAMOND_CHESTPLATE, 1);
     }
 
     /** Le menu des regles d'un administrateur : ce qu'elles valaient a l'ouverture, pour annoncer les changements. */
