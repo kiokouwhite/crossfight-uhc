@@ -208,7 +208,7 @@ def name_label(text, max_w):
     return canvas.rotate(7, resample=Image.BICUBIC, expand=True)
 
 
-def card(art, name, color, voie_img, framing, plate_only=False):
+def card(art, name, color, voie_img, framing, plate_only=False, scale=1.0):
     """Une carte droite, dans le style du HUD : l'illustration recadree (le visage au milieu, a 20 % de la hauteur)
     sur un fond bleu nuit, une bande de nom au ton du HUD soulignee a la couleur du personnage, le nom dans la
     police de titre, une bande sombre et l'icone de la voie a cheval sur les deux, le cadre du pack d'interface
@@ -225,6 +225,11 @@ def card(art, name, color, voie_img, framing, plate_only=False):
         ty, tx = FACE_Y * h, w / 2
         layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
         layer.alpha_composite(a, (round(tx - fx * a.width), round(ty - fy * a.height)))
+        if scale != 1.0:
+            # Le zoom d'une carte animee : l'illustration, deja posee au meme endroit a chaque image, grossit autour du
+            # visage par une transformation en fractions de pixel. La reposer a chaque image l'arrondirait au pixel
+            # entier, et elle tremblerait.
+            layer = layer.transform((w, h), Image.AFFINE, (1 / scale, 0, tx * (1 - 1 / scale), 0, 1 / scale, ty * (1 - 1 / scale)), resample=Image.BICUBIC)
         out.alpha_composite(layer)
     # Les bandes, dessinees en pixels de dessin puis agrandies : le nom, puis le bas de la carte.
     y0, y1 = round(BAND_TOP * lh), round(STRIP_TOP * lh)
@@ -328,8 +333,10 @@ PORTAL_FRAMES = 24
 # images de CARD_FRAMETIME ticks chacune (20 x 800 = 16 000 pixels de haut : juste sous la limite des textures du jeu).
 # Deux manieres : "calques" (le decoupage de selection_rig.py) ou "zoom" (l'illustration grossit a peine puis revient,
 # autour du visage : ZOOM_AMOUNT, la part de grossissement).
-ANIMATED = {"marth": "zoom"}
-CARD_FRAMES, CARD_FRAMETIME = 20, 4
+# Toutes les cartes illustrees font le zoom ; ANIMATED donne une autre maniere a un personnage ("calques", ou "" :
+# une carte fixe). 12 images suffisent a un zoom aussi doux, et gardent des textures raisonnables.
+ANIMATED = {}
+CARD_FRAMES, CARD_FRAMETIME = 12, 7
 ZOOM_AMOUNT = 0.035
 
 
@@ -498,17 +505,18 @@ def main() -> int:
         name, color = names.get(cid, (cid.capitalize(), (200, 200, 200)))
         art = load(f)
         voie, framing = frames.get(cid, (None, None))
-        if cid in ANIMATED:
+        mode = ANIMATED.get(cid, "zoom")
+        if mode:
             # Une carte animee : le personnage decoupe en calques (tools/selection_rig.py), ses images empilees de
             # haut en bas, fondues l'une dans l'autre par le jeu.
             import selection_rig
             sheet = Image.new("RGBA", (CARD_PX[0], CARD_PX[1] * CARD_FRAMES), (0, 0, 0, 0))
             fx, fy, zoom = framing or auto_framing(art)
-            poses = selection_rig.frames(art, cid, CARD_FRAMES) if ANIMATED[cid] == "calques" else [art] * CARD_FRAMES
+            poses = selection_rig.frames(art, cid, CARD_FRAMES) if mode == "calques" else [art] * CARD_FRAMES
             for n, pose in enumerate(poses):
                 # Le zoom : une montee et une descente douces par boucle, le visage reste a sa place.
-                k = 1 + ZOOM_AMOUNT * (0.5 - 0.5 * math.cos(2 * math.pi * n / CARD_FRAMES)) if ANIMATED[cid] == "zoom" else 1
-                sheet.paste(card(pose, name, color, voies.get(voie), (fx, fy, zoom * k)), (0, CARD_PX[1] * n))
+                k = 1 + ZOOM_AMOUNT * (0.5 - 0.5 * math.cos(2 * math.pi * n / CARD_FRAMES)) if mode == "zoom" else 1
+                sheet.paste(card(pose, name, color, voies.get(voie), (fx, fy, zoom), scale=k), (0, CARD_PX[1] * n))
             made.append(save(sheet, PRIVATE, f"card/{cid}"))
             Path(str(made[-1]) + ".mcmeta").write_text(json.dumps({"animation": {
                 "frametime": CARD_FRAMETIME, "interpolate": True, "width": CARD_PX[0], "height": CARD_PX[1]}}, indent=1), encoding="utf-8")
