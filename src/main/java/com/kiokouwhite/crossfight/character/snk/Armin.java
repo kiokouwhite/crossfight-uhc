@@ -199,8 +199,41 @@ public final class Armin extends Character {
                 new Particle.DustOptions(org.bukkit.Color.fromRGB(225, 45, 45), 1.1f),
                 new Particle.DustOptions(org.bukkit.Color.fromRGB(165, 175, 190), 1.1f),
                 new Particle.DustOptions(org.bukkit.Color.fromRGB(110, 215, 255), 1.1f)};
+        /** L'icone de l'effet (celle du menu), en affichage toujours tourne vers celui qui regarde ; null sans le pack complet. */
+        static org.bukkit.entity.ItemDisplay icon(Location at, int mode, float size) {
+            if (!com.kiokouwhite.crossfight.util.Sounds.has("icone." + MODELS[mode])) return null;
+            org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(Material.PAPER);
+            var meta = it.getItemMeta();
+            meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/" + MODELS[mode]));
+            it.setItemMeta(meta);
+            Location l = at.clone();
+            l.setYaw(0); l.setPitch(0);
+            org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, it, size, true);
+            d.setTeleportDuration(2);
+            return d;
+        }
+
+        /** Les icones qui tournent autour de {@code m} : lui-meme ne les voit pas (elles lui passeraient devant les yeux). */
+        static org.bukkit.entity.ItemDisplay[] ring(Player m, int mode) {
+            org.bukkit.entity.ItemDisplay[] out = new org.bukkit.entity.ItemDisplay[2];
+            for (int k = 0; k < 2; k++) {
+                out[k] = icon(m.getLocation().add(0, 1, 0), mode, 0.45f);
+                if (out[k] != null && !com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(m)) m.hideEntity(SNK.plugin(), out[k]);
+            }
+            return out;
+        }
+
+        static void move(org.bukkit.entity.ItemDisplay d, Location to) {
+            if (d == null || !d.isValid()) return;
+            Location l = to.clone();
+            l.setYaw(0); l.setPitch(0);
+            d.teleport(l);
+        }
+
+        static void drop(org.bukkit.entity.ItemDisplay... ds) { for (var d : ds) if (d != null) d.remove(); }
+
         /** L'aura qui entoure l'allie renforce, par Armin : elle montre a tous qui porte l'effet, et lequel. */
-        private static final java.util.Map<UUID, org.bukkit.scheduler.BukkitTask> AURA = new java.util.HashMap<>();
+        private static final java.util.Map<UUID, BukkitRunnable> AURA = new java.util.HashMap<>();
         /** Ticks que mettent les particules a aller de la main d'Armin a son allie. */
         static final int TRAVEL = 8;
 
@@ -241,6 +274,8 @@ public final class Armin extends Character {
             new BukkitRunnable() {
                 int t = 0;
                 Location from;
+                org.bukkit.entity.ItemDisplay icon;
+                @Override public synchronized void cancel() { drop(icon); super.cancel(); }
                 @Override public void run() {
                     t++;
                     if (!p.isOnline() || p.isDead()) { cancel(); return; }
@@ -248,6 +283,7 @@ public final class Armin extends Character {
                         if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.pose("arlo_bras_jete", 2);
                         from = pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu ? pu.hand() : p.getEyeLocation().add(0, -0.3, 0);
                         w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.7f, 1.7f);
+                        icon = icon(from, mode, 0.55f);
                     }
                     if (t < 3) return;
                     // Un paquet de particules qui avance de la main vers l'allie, avec une trainee derriere lui.
@@ -256,6 +292,7 @@ public final class Armin extends Character {
                         double g = Math.max(0, f - k * 0.05);
                         Location at = from.clone().add(to.toVector().subtract(from.toVector()).multiply(g));
                         w.spawnParticle(Particle.DUST, at, k == 0 ? 6 : 2, 0.12, 0.12, 0.12, 0, TINT[mode]);
+                        if (k == 0) move(icon, at);
                     }
                     if (f >= 1) { cancel(); if (arrived != null) arrived.run(); }
                 }
@@ -265,23 +302,30 @@ public final class Armin extends Character {
         /** Tant que l'allie garde l'effet, deux particules de sa couleur tournent autour de lui : ses adversaires voient ce qu'il porte. */
         static void aura(Player p, AbilityState st, Player ally, int mode) {
             String id = ally.getUniqueId().toString();
-            AURA.put(p.getUniqueId(), new BukkitRunnable() {
+            BukkitRunnable task = new BukkitRunnable() {
                 int t = 0;
+                org.bukkit.entity.ItemDisplay[] icons;
+                @Override public synchronized void cancel() { if (icons != null) drop(icons); super.cancel(); }
                 @Override public void run() {
                     t += 2;
                     if (!p.isOnline() || !ally.isOnline() || !id.equals(st.get("ally", "")) || st.mode() != mode) { cancel(); return; }
                     if (ally.isDead()) return;
+                    if (icons == null) icons = ring(ally, mode);
                     Location c = ally.getLocation();
                     for (int k = 0; k < 2; k++) {
                         double a = t * 0.22 + k * Math.PI, y = 0.35 + 0.75 * (0.5 + 0.5 * Math.sin(t * 0.07 + k * Math.PI));
                         c.getWorld().spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * 0.62, y, Math.sin(a) * 0.62), 1, 0, 0, 0, 0, TINT[mode]);
+                        // Les icones tournent a l'oppose des particules, un peu plus loin, a hauteur du torse.
+                        move(icons[k], c.clone().add(Math.cos(a + Math.PI / 2) * 0.85, 1.1, Math.sin(a + Math.PI / 2) * 0.85));
                     }
                 }
-            }.runTaskTimer(SNK.plugin(), TRAVEL + 2L, 2L));
+            };
+            task.runTaskTimer(SNK.plugin(), TRAVEL + 2L, 2L);
+            AURA.put(p.getUniqueId(), task);
         }
 
         static void stopAura(Player p) {
-            org.bukkit.scheduler.BukkitTask old = AURA.remove(p.getUniqueId());
+            BukkitRunnable old = AURA.remove(p.getUniqueId());
             if (old != null) old.cancel();
         }
 
@@ -393,11 +437,14 @@ public final class Armin extends Character {
         static void fly(Location from, Player to, int mode, Runnable arrived) {
             new BukkitRunnable() {
                 int t = 0;
+                final org.bukkit.entity.ItemDisplay icon = Strategie.icon(from, mode, 0.55f);
+                @Override public synchronized void cancel() { Strategie.drop(icon); super.cancel(); }
                 @Override public void run() {
                     t++;
                     if (!to.isOnline() || to.isDead() || !to.getWorld().equals(from.getWorld())) { cancel(); return; }
                     Location goal = to.getLocation().add(0, 1.1, 0);
                     double f = t / (double) Strategie.TRAVEL;
+                    Strategie.move(icon, from.clone().add(goal.toVector().subtract(from.toVector()).multiply(Math.min(1, f))));
                     for (int k = 0; k < 4; k++) {
                         double g = Math.max(0, f - k * 0.05);
                         from.getWorld().spawnParticle(Particle.DUST, from.clone().add(goal.toVector().subtract(from.toVector()).multiply(g)), k == 0 ? 6 : 2, 0.12, 0.12, 0.12, 0, Strategie.TINT[mode]);
@@ -412,6 +459,8 @@ public final class Armin extends Character {
             m.getWorld().spawnParticle(Particle.DUST, m.getLocation().add(0, 1, 0), 24, 0.4, 0.6, 0.4, 0, Strategie.TINT[mode]);
             new BukkitRunnable() {
                 int t = 0;
+                final org.bukkit.entity.ItemDisplay[] icons = Strategie.ring(m, mode);
+                @Override public synchronized void cancel() { Strategie.drop(icons); super.cancel(); }
                 @Override public void run() {
                     t += 2;
                     if (!m.isOnline() || t > 1200 || Boosts.get(m, source) == null) { cancel(); return; }
@@ -420,6 +469,7 @@ public final class Armin extends Character {
                     for (int k = 0; k < 2; k++) {
                         double a = -t * 0.2 + k * Math.PI + mode * 2.1;
                         c.getWorld().spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * 0.75, 0.3 + mode * 0.55, Math.sin(a) * 0.75), 1, 0, 0, 0, 0, Strategie.TINT[mode]);
+                        Strategie.move(icons[k], c.clone().add(Math.cos(a + Math.PI / 2) * 0.95, 1.1, Math.sin(a + Math.PI / 2) * 0.95));
                     }
                 }
             }.runTaskTimer(SNK.plugin(), 2L, 2L);
