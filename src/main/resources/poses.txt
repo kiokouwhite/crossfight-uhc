@@ -670,6 +670,87 @@ pose eren_titan_rugit
   leg_r -6 0 -12
   leg_l 8 0 12
 
+# Eren en Titan, Titan Machoire : il arme sa main droite en griffe, haut derriere l'epaule, le buste tourne...
+pose eren_titan_griffe_arme
+  root  -6 -28 0
+  head  4 22 0
+  arm_r -150 0 -34
+  arm_l -24 0 14
+  leg_r 10 0 -8
+  leg_l -14 0 8
+
+# ...puis il la rabat devant lui en travers, le buste jete en avant : le coup de griffe.
+pose eren_titan_griffe
+  root  20 26 0
+  head  -8 -18 0
+  arm_r -78 0 30
+  arm_l 38 0 22
+  leg_r -24 0 -8
+  leg_l 22 0 8
+
+# Eren en Titan, Titan Colossal : il leve les deux poings au-dessus de sa tete, cambre...
+pose eren_titan_poings_leves
+  root  -10 0 0
+  head  -14 0 0
+  arm_r -168 0 -12
+  arm_l -168 0 12
+  leg_r -6 0 -9
+  leg_l 8 0 9
+
+# ...puis il les abat sur le sol, un genou a terre : la vapeur jaillit.
+pose eren_titan_frappe_sol
+  root  42 0 0   0 -5.5 -3
+  head  -20 0 0
+  arm_r -56 0 8
+  arm_l -56 0 -8
+  leg_r 30 10 -4
+  leg_l -92 10 5
+
+# Eren en Titan, Titan Bestial : le rocher tenu a bout de bras au-dessus de sa tete (eren_titan_poings_leves), puis
+# il le jette devant lui, le buste lance en avant, les deux bras tendus.
+pose eren_titan_lancer
+  root  26 0 0
+  head  -12 0 0
+  arm_r -74 0 -6
+  arm_l -74 0 6
+  leg_r -24 0 -8
+  leg_l 22 0 8
+
+# Eren en Titan, Titan Charrette : a quatre pattes, le dos a plat, la tete relevee. Deux temps de galop qui
+# alternent : les bras jetes en avant et les jambes en arriere...
+pose eren_titan_galop_a
+  root  78 0 0   0 -1.5 0
+  head  -66 0 0
+  arm_r -114 0 -4
+  arm_l -106 0 4
+  leg_r -46 0 -4
+  leg_l -54 0 4
+# ...puis les bras ramenes sous lui et les jambes rassemblees vers l'avant.
+pose eren_titan_galop_b
+  root  72 0 0   0 -1.5 0
+  head  -60 0 0
+  arm_r -50 0 -4
+  arm_l -58 0 4
+  leg_r -106 0 -4
+  leg_l -98 0 4
+
+# Eren en Titan, Titan Marteau d'Armes : penche en avant, il tend la main droite vers l'arme qui jaillit du sol...
+pose eren_titan_saisit
+  root  20 14 0
+  head  6 -10 0
+  arm_r -84 0 6
+  arm_l 24 0 16
+  leg_r -18 0 -8
+  leg_l 16 0 8
+# ...l'empoigne et la brandit.
+pose eren_titan_brandit
+  root  -6 -8 0
+  head  -10 6 0
+  arm_r -150 0 -18
+  arm_l 14 0 20
+  leg_r 6 0 -9
+  leg_l -8 0 9
+
 # ------------------------------------------------------------------ Valorant
 
 # Jett, Vent Arriere : elle file, le buste couche dans le sens du dash, les deux bras tires en arriere, une jambe pliee.

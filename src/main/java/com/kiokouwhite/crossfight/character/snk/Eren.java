@@ -361,53 +361,236 @@ public final class Eren extends Character implements Listener {
             refreshItem(killer);
         }
 
+/** Le pantin du Titan (deux fois la taille d'un joueur), pour ses gestes. Null sans le pack ou sans les poses. */
+        static Puppet titanPuppet(Player p) {
+            return Puppet.show(p, Puppet.available("eren_titan") ? "eren_titan" : "eren", null, "debout", 2f);
+        }
+
+        /** Il leve les deux poings, les abat sur le sol : la vapeur brulante jaillit autour de lui. */
         static boolean colossal(Player p) {
-            World w = p.getWorld();
-            Location c = p.getLocation();
-            w.spawnParticle(Particle.CLOUD, c.clone().add(0, 1, 0), 160, 2.5, 1.2, 2.5, 0.05);
-            w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, c.clone().add(0, 1, 0), 40, 2.5, 1.0, 2.5, 0.02);
-            w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 0.8f);
-            w.playSound(c, Sound.BLOCK_FIRE_EXTINGUISH, 1f, 0.6f);
-            for (LivingEntity enemy : Effects.enemiesWithin(p, 5)) { Effects.damage(enemy, 2.0, p); enemy.setFireTicks(100); }
+            Puppet pu = titanPuppet(p);
+            if (pu == null) { steam(p); return true; }
+            pu.pose("eren_titan_poings_leves", 4);
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 0.6f, 0.7f);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { if (Puppet.of(p) == pu) pu.pose("eren_titan_frappe_sol", 2); }, 5L);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { if (p.isOnline() && !p.isDead()) steam(p); }, 7L);
+            pu.endAfter(20, 4);
             return true;
         }
 
-        static boolean feminin(Player p) {
-            SNK.invincible(p, 10000);
-            Effects.give(p, PotionEffectType.SPEED, 0, 200);
+        /** L'impact au sol et la vapeur : une onde qui s'ecarte jusqu'a 5 blocs, puis des colonnes qui montent. */
+        static void steam(Player p) {
             World w = p.getWorld();
-            w.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.7f);
-            Particle.DustOptions crystal = new Particle.DustOptions(Color.fromRGB(230, 240, 255), 1.3f);
+            Location c = p.getLocation();
+            w.spawnParticle(Particle.BLOCK, c.clone().add(0, 0.2, 0), 60, 1.2, 0.2, 1.2, c.clone().add(0, -1, 0).getBlock().getBlockData());
+            w.spawnParticle(Particle.EXPLOSION, c.clone().add(0, 0.5, 0), 2, 0.6, 0.1, 0.6, 0);
+            w.playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.8f, 0.8f);
+            w.playSound(c, Sound.BLOCK_FIRE_EXTINGUISH, 1f, 0.6f);
+            for (LivingEntity enemy : Effects.enemiesWithin(p, 5)) { Effects.damage(enemy, 2.0, p); enemy.setFireTicks(100); }
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
-                    t += 5;
-                    if (!p.isOnline() || t > 200) { cancel(); return; }
-                    w.spawnParticle(Particle.DUST, p.getLocation().add(0, 1.2, 0), 6, 0.5, 0.9, 0.5, 0, crystal);
+                    t++;
+                    if (t > 30) { cancel(); return; }
+                    if (t <= 8) {
+                        // L'onde : un anneau de vapeur au ras du sol, qui s'ecarte du point d'impact.
+                        double r = 5.0 * t / 8;
+                        for (int k = 0; k < 28; k++) {
+                            double a = Math.PI * 2 * k / 28 + t * 0.2;
+                            w.spawnParticle(Particle.CLOUD, c.clone().add(Math.cos(a) * r, 0.3, Math.sin(a) * r), 1, 0.15, 0.1, 0.15, 0.01);
+                        }
+                    }
+                    // La vapeur qui monte de toute la zone.
+                    if (t % 2 == 0) {
+                        w.spawnParticle(Particle.CLOUD, c.clone().add(0, 0.6, 0), 22, 2.6, 0.4, 2.6, 0.03);
+                        w.spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, c.clone().add(0, 0.4, 0), 6, 2.6, 0.2, 2.6, 0.03);
+                    }
+                    if (t % 10 == 0) w.playSound(c, Sound.BLOCK_FIRE_EXTINGUISH, 0.5f, 0.7f);
                 }
-            }.runTaskTimer(SNK.plugin(), 0L, 5L);
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+        }
+
+static boolean feminin(Player p) {
+            SNK.invincible(p, 10000);
+            Effects.give(p, PotionEffectType.SPEED, 0, 200);
+            crystallize(p, 200);
             Msg.actionBar(p, "<aqua>Titan Feminin : cristallise pendant 10 s");
             return true;
         }
 
+        /** Un morceau de cristal sur le corps : son pied dans le repere du corps (a l'echelle d'un joueur), sa largeur, sa hauteur. */
+        private record Shard(double x, double y, float width, float height) {}
+
+        /** Le cristal gagne le corps de bas en haut : les jambes, le torse, les deux bras, puis la tete. */
+        private static final Shard[][] CRYSTAL = {
+                {new Shard(0, 0, 0.62f, 0.78f)},
+                {new Shard(0, 0.72f, 0.66f, 0.74f)},
+                {new Shard(-0.4, 0.72f, 0.32f, 0.74f), new Shard(0.4, 0.72f, 0.32f, 0.74f)},
+                {new Shard(0, 1.4f, 0.62f, 0.62f)}};
+        /** Ticks entre deux etages de cristal, et ticks que met un etage a pousser. */
+        static final int CRYSTAL_EVERY = 9, CRYSTAL_GROW = 7;
+
+        /**
+         * Le Titan se cristallise petit a petit : des blocs de cristal poussent sur son corps, des pieds a la tete, le
+         * suivent tant que dure l'effet, puis volent en eclats. Lui-meme ne les voit pas (ils lui boucheraient la vue).
+         */
+        static void crystallize(Player p, int ticks) {
+            World w = p.getWorld();
+            float size = (float) (p.getAttribute(Attribute.SCALE) == null ? 1 : p.getAttribute(Attribute.SCALE).getValue());
+            Player self = com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p) ? null : p;
+            List<BlockDisplay> shards = new ArrayList<>();
+            List<Shard> shapes = new ArrayList<>();
+            Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(230, 240, 255), 1.3f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    boolean over = !p.isOnline() || p.isDead() || t >= ticks || !isTitan(p);
+                    if (over) {
+                        for (BlockDisplay d : shards) {
+                            if (!d.isValid()) continue;
+                            w.spawnParticle(Particle.BLOCK, d.getLocation().add(0, 0.5 * size, 0), 14, 0.3 * size, 0.3 * size, 0.3 * size, Material.LIGHT_BLUE_STAINED_GLASS.createBlockData());
+                            d.remove();
+                        }
+                        if (!shards.isEmpty()) w.playSound(p.getLocation(), Sound.BLOCK_GLASS_BREAK, 1f, 0.8f);
+                        cancel();
+                        return;
+                    }
+                    int stage = t / CRYSTAL_EVERY;
+                    if (t % CRYSTAL_EVERY == 0 && stage < CRYSTAL.length) {
+                        for (Shard sh : CRYSTAL[stage]) {
+                            float wd = sh.width() * size, ht = sh.height() * size;
+                            BlockDisplay d = w.spawn(at(p, sh, size), BlockDisplay.class, disp -> {
+                                disp.setBlock((stage % 2 == 0 ? Material.LIGHT_BLUE_STAINED_GLASS : Material.WHITE_STAINED_GLASS).createBlockData());
+                                disp.setTransformation(new Transformation(new Vector3f(-wd / 2, 0, -wd / 2), new Quaternionf(), new Vector3f(wd, 0.02f, wd), new Quaternionf()));
+                                disp.setBrightness(new Display.Brightness(15, 15));
+                                disp.setTeleportDuration(2);
+                                disp.setPersistent(false);
+                            });
+                            if (self != null) self.hideEntity(SNK.plugin(), d);
+                            shards.add(d);
+                            shapes.add(sh);
+                            // Il pousse jusqu'a sa hauteur en quelques ticks.
+                            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                                if (!d.isValid()) return;
+                                d.setInterpolationDelay(0);
+                                d.setInterpolationDuration(CRYSTAL_GROW);
+                                d.setTransformation(new Transformation(new Vector3f(-wd / 2, 0, -wd / 2), new Quaternionf(), new Vector3f(wd, ht, wd), new Quaternionf()));
+                            }, 2L);
+                        }
+                        w.playSound(p.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 0.6f + stage * 0.15f);
+                        w.playSound(p.getLocation(), Sound.BLOCK_GLASS_PLACE, 0.8f, 0.7f + stage * 0.1f);
+                    }
+                    for (int k = 0; k < shards.size(); k++) if (shards.get(k).isValid()) shards.get(k).teleport(at(p, shapes.get(k), size));
+                    if (t % 5 == 0) w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.9 * size, 0), 6, 0.3 * size, 0.5 * size, 0.3 * size, 0, dust);
+                    t++;
+                }
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+        }
+
+        /** Le pied d'un morceau de cristal dans le monde : il tourne avec le corps du joueur. */
+        private static Location at(Player p, Shard sh, float size) {
+            double yaw = Math.toRadians(p.getBodyYaw());
+            Location at = p.getLocation().add(sh.x() * size * Math.cos(yaw), sh.y() * size, sh.x() * size * Math.sin(yaw));
+            at.setYaw(p.getBodyYaw());
+            at.setPitch(0);
+            return at;
+        }
+
+        /** Il leve un enorme rocher au-dessus de sa tete, puis le jette devant lui. */
         static boolean bestial(Player p) {
+            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 0.6f, 1.4f);
+            Puppet pu = titanPuppet(p);
+            if (pu == null) { throwRock(p); return true; }
+            pu.pose("eren_titan_poings_leves", 4);
+            float size = (float) (p.getAttribute(Attribute.SCALE) == null ? 1 : p.getAttribute(Attribute.SCALE).getValue());
+            // Le rocher grossit entre ses mains, au-dessus de sa tete.
+            List<BlockDisplay> held = rock(p.getLocation().add(0, 2.05 * size + ROCK_SIZE / 2, 0), 0.2f);
+            for (BlockDisplay d : held) grow(d, 6);
+            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_STONE_BREAK, 1f, 0.5f);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                for (BlockDisplay d : held) d.remove();
+                if (!p.isOnline() || p.isDead()) return;
+                if (Puppet.of(p) == pu) pu.pose("eren_titan_lancer", 2);
+                throwRock(p);
+            }, 8L);
+            pu.endAfter(16, 4);
+            return true;
+        }
+
+        /** La taille du rocher du Titan Bestial, en blocs. */
+        static final float ROCK_SIZE = 2.4f;
+        private static final String ROCK_FULL = "crossfight_rock_full";
+
+        /** Un rocher : trois blocs de pierre imbriques de travers, centres sur {@code at}, a {@code scale} fois leur taille. */
+        static List<BlockDisplay> rock(Location at, float scale) {
+            Location c = at.clone();
+            c.setYaw(0);
+            c.setPitch(0);
+            Object[][] parts = {
+                    {Material.COBBLESTONE, 1.0f, new Vector3f(0, 0, 0), new Quaternionf()},
+                    {Material.STONE, 0.72f, new Vector3f(0.22f, 0.16f, -0.12f), new Quaternionf().rotationXYZ(0.6f, 0.5f, 0.2f)},
+                    {Material.MOSSY_COBBLESTONE, 0.66f, new Vector3f(-0.2f, -0.14f, 0.18f), new Quaternionf().rotationXYZ(-0.4f, 0.9f, 0.5f)}};
+            List<BlockDisplay> out = new ArrayList<>();
+            for (Object[] part : parts) {
+                float full = ROCK_SIZE * (float) part[1];
+                Vector3f off = new Vector3f((Vector3f) part[2]).mul(ROCK_SIZE);
+                Quaternionf rot = (Quaternionf) part[3];
+                out.add(c.getWorld().spawn(c, BlockDisplay.class, d -> {
+                    d.setBlock(((Material) part[0]).createBlockData());
+                    d.setTransformation(rockShape(off, rot, full * scale, scale));
+                    d.setPersistent(false);
+                    d.setViewRange(3f);
+                    d.setMetadata(ROCK_FULL, new org.bukkit.metadata.FixedMetadataValue(SNK.plugin(), new Object[]{off, rot, full}));
+                }));
+            }
+            return out;
+        }
+
+        /** Un bloc du rocher, de cote {@code side}, tourne autour de son centre, decale de {@code off} (a {@code scale} fois). */
+        private static Transformation rockShape(Vector3f off, Quaternionf rot, float side, float scale) {
+            Vector3f corner = rot.transform(new Vector3f(-side / 2, -side / 2, -side / 2)).add(new Vector3f(off).mul(scale));
+            return new Transformation(corner, rot, new Vector3f(side, side, side), new Quaternionf());
+        }
+
+        /** Fait grossir un bloc du rocher jusqu'a sa taille en {@code ticks}. */
+        private static void grow(BlockDisplay d, int ticks) {
+            Object[] full = (Object[]) d.getMetadata(ROCK_FULL).get(0).value();
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                if (!d.isValid()) return;
+                d.setInterpolationDelay(0);
+                d.setInterpolationDuration(ticks);
+                d.setTransformation(rockShape((Vector3f) full[0], (Quaternionf) full[1], (float) full[2], 1f));
+            }, 2L);
+        }
+
+        /** Le rocher part : une fleche invisible le porte ; a l'impact, 2 coeurs et une ejection de 10 blocs. */
+        static void throwRock(Player p) {
             Vector dir = p.getEyeLocation().getDirection();
             Arrow a = Effects.shootInstantArrow(p, dir, 1.7, 0.0);
             a.setInvisible(true);
             a.getPersistentDataContainer().set(ROCK, PersistentDataType.BYTE, (byte) 1);
-            BlockDisplay rock = a.getWorld().spawn(a.getLocation(), BlockDisplay.class, d -> {
-                d.setBlock(Material.COBBLESTONE.createBlockData());
-                d.setTransformation(new Transformation(new Vector3f(-0.45f, -0.45f, -0.45f), new Quaternionf(), new Vector3f(0.9f, 0.9f, 0.9f), new Quaternionf()));
-                d.setPersistent(false);
-            });
-            a.addPassenger(rock);
-            p.getWorld().playSound(p.getLocation(), Sound.ENTITY_RAVAGER_ROAR, 0.6f, 1.4f);
+            List<BlockDisplay> parts = rock(a.getLocation(), 1f);
+            for (BlockDisplay d : parts) a.addPassenger(d);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WIND_CHARGE_THROW, 1f, 0.6f);
-            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { rock.remove(); if (a.isValid()) a.remove(); }, 80L);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { for (BlockDisplay d : parts) d.remove(); if (a.isValid()) a.remove(); }, 80L);
+        }
+
+/** Il arme sa main en griffe derriere l'epaule, puis la rabat devant lui : le coup part a ce moment-la. */
+        static boolean machoire(Player p) {
+            Puppet pu = titanPuppet(p);
+            if (pu == null) { claw(p); return true; }
+            pu.pose("eren_titan_griffe_arme", 3);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                if (!p.isOnline() || p.isDead()) return;
+                if (Puppet.of(p) == pu) pu.pose("eren_titan_griffe", 2);
+                claw(p);
+            }, 4L);
+            pu.endAfter(11, 3);
             return true;
         }
 
-        static boolean machoire(Player p) {
+        /** Le coup de griffe : trois sillons devant lui, 4 coeurs a ce qu'ils touchent. */
+        static void claw(Player p) {
             World w = p.getWorld();
             Location eye = p.getEyeLocation();
             Vector dir = eye.getDirection();
@@ -421,9 +604,9 @@ public final class Eren extends Character implements Listener {
             int n = 0;
             for (LivingEntity enemy : Effects.enemiesWithin(p, c, 1.6)) { Effects.damage(enemy, 8.0, p); n++; }
             if (n == 0) Msg.actionBar(p, "<gray>Titan Machoire : dans le vide.");
-            return true;
         }
 
+/** Il se jette a quatre pattes et file : le dash, puis le galop tant que dure la vitesse. */
         static boolean charrette(Player p) {
             Vector dir = p.getLocation().getDirection().setY(0);
             if (dir.lengthSquared() < 0.01) dir = new Vector(1, 0, 0);
@@ -431,9 +614,29 @@ public final class Eren extends Character implements Listener {
             SNK.rush(p, to, 4, Particle.CLOUD);
             Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> Effects.give(p, PotionEffectType.SPEED, 1, 100), 5L);
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_HORSE_GALLOP, 1f, 0.8f);
+            Puppet pu = titanPuppet(p);
+            if (pu == null) return true;
+            pu.pose("eren_titan_galop_a", 2);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead() || Puppet.of(p) != pu || t >= GALLOP) { cancel(); return; }
+                    // Deux temps qui alternent tous les trois ticks : un galop tres rapide.
+                    if (t % 3 == 0) pu.pose((t / 3) % 2 == 0 ? "eren_titan_galop_a" : "eren_titan_galop_b", 3);
+                    if (t % 6 == 0) {
+                        p.getWorld().playSound(p.getLocation(), Sound.ENTITY_HORSE_GALLOP, 0.8f, 1.3f);
+                        p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 0.2, 0), 4, 0.4, 0.1, 0.4, 0.02);
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), 1L, 1L);
+            pu.endAfter(GALLOP, 4);
             return true;
         }
+        /** La duree du galop a quatre pattes : le dash, puis les 5 secondes de vitesse. */
+        static final int GALLOP = 105;
 
+        /** L'arme jaillit du sol devant lui ; il l'empoigne et la brandit. */
         static boolean marteau(Player p) {
             if (hasTitanWeapon(p)) { Msg.actionBar(p, "<red>Marteau d'Armes : detruis d'abord l'arme actuelle."); return false; }
             int r = (int) (Math.random() * 3);
@@ -448,12 +651,49 @@ public final class Eren extends Character implements Listener {
                 it = Weapons.melee(Material.TRIDENT, 8.0, "<red><bold>Lance du Marteau d'Armes", List.of("<gray>8 dmg. Clic droit : frappe a 5 blocs.", "<gray>Se brise au bout de 5 coups."));
                 setWeapon(it, "spear", 5);
             }
+            String name = r == 0 ? "epee" : r == 1 ? "arbalete" : "lance";
+            Puppet pu = titanPuppet(p);
+            if (pu == null) { forge(p, it, name); return true; }
+            World w = p.getWorld();
+            float size = (float) (p.getAttribute(Attribute.SCALE) == null ? 1 : p.getAttribute(Attribute.SCALE).getValue());
+            Vector flat = p.getLocation().getDirection().setY(0);
+            if (flat.lengthSquared() < 0.01) flat = new Vector(0, 0, 1);
+            // L'arme part de sous le sol, juste devant lui, et monte a hauteur de main en trois ticks.
+            Location ground = p.getLocation().add(flat.normalize().multiply(0.75 * size));
+            Location low = ground.clone().add(0, -1.2 * size, 0), high = ground.clone().add(0, 1.1 * size, 0);
+            ItemStack shown = new ItemStack(it.getType());
+            org.bukkit.entity.ItemDisplay rising = w.spawn(low, org.bukkit.entity.ItemDisplay.class, d -> {
+                d.setItemStack(shown);
+                d.setItemDisplayTransform(org.bukkit.entity.ItemDisplay.ItemDisplayTransform.FIXED);
+                d.setBillboard(Display.Billboard.VERTICAL);
+                // L'image d'une arme pointe en haut a droite : un huitieme de tour la dresse, pointe vers le ciel.
+                d.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotationZ((float) Math.toRadians(45)), new Vector3f(1.5f * size, 1.5f * size, 1.5f * size), new Quaternionf()));
+                d.setBrightness(new Display.Brightness(15, 15));
+                d.setTeleportDuration(3);
+                d.setPersistent(false);
+            });
+            pu.pose("eren_titan_saisit", 3);
+            w.playSound(ground, Sound.BLOCK_STONE_BREAK, 1f, 0.5f);
+            w.playSound(ground, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 0.5f, 1.4f);
+            w.spawnParticle(Particle.BLOCK, ground.clone().add(0, 0.2, 0), 50, 0.5, 0.2, 0.5, ground.clone().add(0, -1, 0).getBlock().getBlockData());
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { if (rising.isValid()) rising.teleport(high); }, 1L);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                rising.remove();
+                if (!p.isOnline() || p.isDead()) return;
+                if (Puppet.of(p) == pu) { pu.held(shown); pu.pose("eren_titan_brandit", 3); }
+                forge(p, it, name);
+            }, 6L);
+            pu.endAfter(17, 4);
+            return true;
+        }
+
+        /** L'arme du Marteau d'Armes arrive dans la main du Titan. */
+        static void forge(Player p, ItemStack it, String name) {
             var left = p.getInventory().addItem(it);
             for (ItemStack rest : left.values()) p.getWorld().dropItem(p.getLocation(), rest);
             p.getWorld().playSound(p.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1.2f);
             p.getWorld().spawnParticle(Particle.CRIT, p.getLocation().add(0, 1, 0), 30, 0.5, 0.5, 0.5, 0.2);
-            Msg.actionBar(p, "<gold>Marteau d'Armes : " + (r == 0 ? "epee" : r == 1 ? "arbalete" : "lance") + " forgee !");
-            return true;
+            Msg.actionBar(p, "<gold>Marteau d'Armes : " + name + " forgee !");
         }
     }
 
@@ -772,6 +1012,101 @@ public final class Eren extends Character implements Listener {
             boolean speed = "speed".equals(titans.get("cuirasse", "res"));
             Boosts.set(p, "eren_cuirasse", speed ? new Boosts.Boost(0, 1, 0, 0) : new Boosts.Boost(0, 0, 1, 0));
             Msg.actionBar(p, "<gray>Titan Cuirasse : <white>" + (speed ? "Speed" : "Resistance"));
+            plates(p, speed);
+        }
+
+        /** Une plaque de la cuirasse dans le repere du corps (a l'echelle d'un joueur) : son centre au sol, son pied, sa largeur, sa hauteur, son epaisseur. */
+        private record Plate(float x, float y, float z, float w, float h, float d) {}
+        /** Resistance : la cuirasse couvre le torse (poitrine, dos, les deux epaules). */
+        private static final Plate[] ON_TORSO = {
+                new Plate(0, 0.80f, 0.16f, 0.56f, 0.60f, 0.10f), new Plate(0, 0.80f, -0.16f, 0.56f, 0.60f, 0.10f),
+                new Plate(-0.36f, 1.22f, 0, 0.30f, 0.22f, 0.34f), new Plate(0.36f, 1.22f, 0, 0.30f, 0.22f, 0.34f)};
+        /** Speed : elle descend sur les jambes (les deux tibias, les deux cuisses). */
+        private static final Plate[] ON_LEGS = {
+                new Plate(-0.13f, 0.05f, 0.14f, 0.24f, 0.36f, 0.08f), new Plate(0.13f, 0.05f, 0.14f, 0.24f, 0.36f, 0.08f),
+                new Plate(-0.13f, 0.42f, 0.14f, 0.24f, 0.32f, 0.08f), new Plate(0.13f, 0.42f, 0.14f, 0.24f, 0.32f, 0.08f)};
+        private static final java.util.Map<UUID, List<BlockDisplay>> PLATES = new java.util.HashMap<>();
+        /** Ticks que mettent les plaques a glisser du torse aux jambes (ou l'inverse). */
+        static final int PLATES_MOVE = 10;
+
+        private static Transformation plateShape(Plate pl, float size, float grown) {
+            return new Transformation(new Vector3f(pl.x() - pl.w() / 2 * grown, pl.y(), pl.z() - pl.d() / 2 * grown).mul(size), new Quaternionf(),
+                    new Vector3f(pl.w(), pl.h(), pl.d()).mul(size * grown), new Quaternionf());
+        }
+
+        /**
+         * Les plaques du Titan Cuirasse, sur le torse (Resistance) ou sur les jambes (Speed). Elles suivent le Titan
+         * tant qu'il l'est ; quand il intervertit, elles glissent d'un endroit a l'autre. Lui-meme ne les voit pas.
+         */
+        static void plates(Player p, boolean speed) {
+            Plate[] layout = speed ? ON_LEGS : ON_TORSO;
+            World w = p.getWorld();
+            float size = (float) (p.getAttribute(Attribute.SCALE) == null ? 1 : p.getAttribute(Attribute.SCALE).getValue());
+            List<BlockDisplay> have = PLATES.get(p.getUniqueId());
+            if (have != null && have.stream().allMatch(BlockDisplay::isValid)) {
+                // Le transfert : chaque plaque glisse jusqu'a sa nouvelle place, dans un bruit de metal.
+                for (int k = 0; k < have.size(); k++) {
+                    BlockDisplay d = have.get(k);
+                    d.setInterpolationDelay(0);
+                    d.setInterpolationDuration(PLATES_MOVE);
+                    d.setTransformation(plateShape(layout[k], size, 1f));
+                }
+                w.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_NETHERITE, 1f, 0.7f);
+                w.playSound(p.getLocation(), Sound.BLOCK_GRINDSTONE_USE, 0.6f, 1.3f);
+                new BukkitRunnable() {
+                    int t = 0;
+                    @Override public void run() {
+                        if (++t > PLATES_MOVE || !p.isOnline()) { cancel(); if (p.isOnline()) w.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f); return; }
+                        // Des eclats le long du corps, qui suivent les plaques : ils montent ou descendent avec elles.
+                        double f = t / (double) PLATES_MOVE, y = (speed ? 1.1 - 0.8 * f : 0.3 + 0.8 * f) * size;
+                        w.spawnParticle(Particle.ENCHANTED_HIT, p.getLocation().add(0, y, 0), 6, 0.25 * size, 0.05, 0.25 * size, 0.02);
+                    }
+                }.runTaskTimer(SNK.plugin(), 0L, 1L);
+                return;
+            }
+            removePlates(p);
+            Player self = com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p) ? null : p;
+            List<BlockDisplay> made = new ArrayList<>();
+            for (Plate pl : layout) {
+                BlockDisplay d = w.spawn(plateAt(p), BlockDisplay.class, disp -> {
+                    disp.setBlock(Material.BONE_BLOCK.createBlockData());
+                    disp.setTransformation(plateShape(pl, size, 0.05f));
+                    disp.setTeleportDuration(1);
+                    disp.setPersistent(false);
+                });
+                if (self != null) self.hideEntity(SNK.plugin(), d);
+                made.add(d);
+                // Elles poussent sur lui en quelques ticks.
+                Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                    if (!d.isValid()) return;
+                    d.setInterpolationDelay(0);
+                    d.setInterpolationDuration(6);
+                    d.setTransformation(plateShape(pl, size, 1f));
+                }, 2L);
+            }
+            PLATES.put(p.getUniqueId(), made);
+            w.playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.7f);
+            new BukkitRunnable() {
+                @Override public void run() {
+                    if (PLATES.get(p.getUniqueId()) != made) { cancel(); return; }
+                    if (!p.isOnline() || p.isDead() || !isTitan(p) || !owns(p, "cuirasse")) { removePlates(p); cancel(); return; }
+                    Location at = plateAt(p);
+                    for (BlockDisplay d : made) if (d.isValid()) d.teleport(at);
+                }
+            }.runTaskTimer(SNK.plugin(), 1L, 1L);
+        }
+
+        /** Ou se tiennent les plaques : aux pieds du Titan, tournees comme son corps (leur place sur lui est dans leur forme). */
+        private static Location plateAt(Player p) {
+            Location at = p.getLocation();
+            at.setYaw(p.getBodyYaw());
+            at.setPitch(0);
+            return at;
+        }
+
+        static void removePlates(Player p) {
+            List<BlockDisplay> old = PLATES.remove(p.getUniqueId());
+            if (old != null) for (BlockDisplay d : old) if (d.isValid()) d.remove();
         }
 
         static void revert(Player p, CfPlayer cf, AbilityState st) {
@@ -783,6 +1118,7 @@ public final class Eren extends Character implements Listener {
             cf.setUltimateLocked(false);
             Boosts.remove(p, "eren_titan");
             Boosts.remove(p, "eren_cuirasse");
+            removePlates(p);
             var scale = p.getAttribute(Attribute.SCALE);
             if (scale != null) scale.setBaseValue(1.0);
             var step = p.getAttribute(Attribute.STEP_HEIGHT);
@@ -916,8 +1252,10 @@ public final class Eren extends Character implements Listener {
         if (a.getPersistentDataContainer().has(ROCK)) {
             for (Entity pass : a.getPassengers()) pass.remove();
             Location c = a.getLocation();
-            c.getWorld().spawnParticle(Particle.BLOCK, c, 40, 0.6, 0.6, 0.6, 0.1, Material.COBBLESTONE.createBlockData());
+            c.getWorld().spawnParticle(Particle.BLOCK, c, 120, 1.2, 1.2, 1.2, 0.1, Material.COBBLESTONE.createBlockData());
+            c.getWorld().spawnParticle(Particle.EXPLOSION, c, 2, 0.6, 0.6, 0.6, 0);
             c.getWorld().playSound(c, Sound.BLOCK_STONE_BREAK, 1f, 0.6f);
+            c.getWorld().playSound(c, Sound.ENTITY_GENERIC_EXPLODE, 0.7f, 1.2f);
             if (e.getHitEntity() instanceof LivingEntity target && Effects.isEnemy(p, target)) {
                 Effects.damage(target, 4.0, p);
                 Bukkit.getScheduler().runTask(SNK.plugin(), () -> Effects.knockbackFrom(target, p.getLocation(), 10));
