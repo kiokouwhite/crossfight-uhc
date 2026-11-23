@@ -14,7 +14,7 @@ Voie de la Destruction
 
 ### Dash Explosif
 
-(Activable) Activable : Hiro vole en avant à 3 blocs par seconde en depensant 3 Puissance par seconde. S'il a vole plus de 3 secondes, une explosion éclate quand il s'arrête.
+(Activable) Activable : Hiro vole en avant à 6 blocs par seconde en depensant 3 Puissance par seconde. S'il a vole plus de 3 secondes, une explosion éclate quand il s'arrête.
 
 ### Grenade Enflammée
 

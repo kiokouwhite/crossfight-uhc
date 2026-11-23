@@ -182,7 +182,7 @@
   "asimov_ult": {"vous": "Des chaînes électriques se dispersent au hasard sur 30 blocs pendant 8 secondes : 2 cœurs par seconde à qui se trouve dessus.", "court": "Chaînes 30 blocs 8 s, 2 PV / s"},
 
   "hiro_pyra": {"vous": "Pyra-Mira vous donne Fire Aspect et Fire Resistance. Clic droit : vous chargez votre Puissance (+3 par seconde, 100 max) ; re-clic pour arrêter. La Puissance alimente vos pouvoirs.", "court": "Fire Aspect + Fire Res., charge Puissance"},
-  "hiro_dash": {"vous": "Vous volez en avant à 3 blocs par seconde en dépensant 3 Puissance par seconde. Si vous avez volé plus de 3 secondes, une explosion éclate quand vous vous arrêtez.", "court": "Vol 3 Puiss. / s, explosion après 3 s"},
+  "hiro_dash": {"vous": "Vous volez en avant à 6 blocs par seconde en dépensant 3 Puissance par seconde. Si vous avez volé plus de 3 secondes, une explosion éclate quand vous vous arrêtez.", "court": "Vol 3 Puiss. / s, explosion après 3 s"},
   "hiro_grenade": {"vous": "15 Puissance : grenade à 5 blocs qui enflamme son chemin, explosion de 4 blocs. 40 : grenade à 10 blocs, explosion de 10. 70 : explosion de 12 avec de la lave. 100 : une boule qui explose tous les 2 blocs sur 20 blocs, puis une explosion de 20.", "court": "Grenade selon la Puissance"},
   "hiro_consumation": {"vous": "15 Puissance : Force 10 s. 40 : Force II et Speed 20 s. 70 : Force III et Speed II 30 s. 100 : Force IV, Speed III et Résistance II pendant 1 minute.", "court": "Bonus selon la Puissance"},
   "hiro_ult": {"vous": "Vous provoquez une explosion de 50 blocs de large : le cratère est rempli de blocs de magma.", "court": "Explosion 50 blocs, magma"},

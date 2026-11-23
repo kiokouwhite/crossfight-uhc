@@ -135,9 +135,9 @@ public final class Hiro extends Character implements Listener {
 
     // ---------------------------------------------------------------- pouvoirs
 
-    /** Vol en avant a 3 blocs par seconde (3 Puissance/s) ; apres 3 s de vol, explosion a l'arret. */
+    /** Vol en avant a 6 blocs par seconde (3 Puissance/s) ; apres 3 s de vol, explosion a l'arret. */
     static final class DashExplosif extends ToggleAbility implements CustomUse {
-        DashExplosif() { super("hiro_dash", "Dash Explosif", "Activable : Hiro vole en avant a 3 blocs par seconde en depensant 3 Puissance par seconde. S'il a vole plus de 3 secondes, une explosion eclate quand il s'arrete.", Material.FEATHER, 0, 0); }
+        DashExplosif() { super("hiro_dash", "Dash Explosif", "Activable : Hiro vole en avant a 6 blocs par seconde en depensant 3 Puissance par seconde. S'il a vole plus de 3 secondes, une explosion eclate quand il s'arrete.", Material.FEATHER, 0, 0); }
         @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             if (st.isEnabled()) { st.setEnabled(false); onDisable(p, cf, st); return true; }
             if (puissance(p) < 3) { Msg.actionBar(p, "<red>Dash Explosif : pas assez de Puissance."); return true; }
@@ -151,7 +151,7 @@ public final class Hiro extends Character implements Listener {
             new BukkitRunnable() {
                 @Override public void run() {
                     if (!p.isOnline() || !st.isEnabled()) { cancel(); return; }
-                    Vector dir = p.getLocation().getDirection().normalize().multiply(0.15);
+                    Vector dir = p.getLocation().getDirection().normalize().multiply(0.30);
                     p.setVelocity(dir.add(new Vector(0, 0.02, 0)));
                     p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 0.5, 0), 4, 0.2, 0.2, 0.2, 0.02);
                     p.getWorld().spawnParticle(Particle.SMOKE, p.getLocation().add(0, 0.3, 0), 2, 0.2, 0.1, 0.2, 0.01);

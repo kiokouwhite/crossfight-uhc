@@ -237,7 +237,7 @@ SECONDS = list(range(1, 11)) + [15, 20, 30]
 def timed_on_others():
     import re
     selfv = r'(?:p|player|sp|self|caster|attacker|killer|owner)'
-    pat = re.compile(r'Effects\.(?:give|refresh)\((?!' + selfv + r'\b)|(?<![A-Za-z_])(?!' + selfv + r'\b)[A-Za-z_]+\.addPotionEffect\(|Effects\.root\((?!' + selfv + r'\b)|Effects\.freeze\(')
+    pat = re.compile(r'Effects\.(?:give|refresh)\((?!' + selfv + r'\b)|(?<![A-Za-z_])(?!' + selfv + r'\b)[A-Za-z_]+\.addPotionEffect\(|Effects\.root\((?!' + selfv + r'\b)|Effects\.freeze\(|(?<![A-Za-z_.])(?<!void )freeze\((?!LivingEntity)')
     out = set()
     for f in ba.SRC.rglob("*.java"):
         for part in re.split(r'\n(?=\s*(?:public |private |protected )?(?:static )?(?:final )?class \w+)', f.read_text(encoding="utf-8")):
