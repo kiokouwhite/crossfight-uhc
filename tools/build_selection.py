@@ -425,7 +425,27 @@ def auto_framing(art):
 
 
 def load(src: Path) -> Image.Image:
-    return Image.open(src).convert("RGBA")
+    """L'illustration ; si elle n'a pas de transparence (un dessin sur fond blanc), son fond est retire : le blanc
+    relie aux bords de l'image disparait, celui qui est enferme dans le dessin (une fourrure, un col) reste."""
+    img = Image.open(src).convert("RGBA")
+    if img.getextrema()[3][0] < 250:
+        return img
+    r, g, b, _ = img.split()
+    from PIL import ImageChops
+    white = ImageChops.darker(ImageChops.darker(r, g), b).point(lambda v: 255 if v >= 238 else 0)
+    w, h = img.size
+    for x in range(0, w, 8):
+        for y in (0, h - 1):
+            if white.getpixel((x, y)) == 255:
+                ImageDraw.floodfill(white, (x, y), 128)
+    for y in range(0, h, 8):
+        for x in (0, w - 1):
+            if white.getpixel((x, y)) == 255:
+                ImageDraw.floodfill(white, (x, y), 128)
+    # Le fond, un peu elargi pour manger le lisere blanc du contour, puis adouci.
+    back = white.point(lambda v: 255 if v == 128 else 0).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
+    img.putalpha(back.point(lambda v: 255 - v))
+    return img
 
 
 def fit_bottom(img: Image.Image, size, overflow=1.3):
