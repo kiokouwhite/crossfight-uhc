@@ -215,6 +215,7 @@ actif2.yang.4
 actif2.yuki.0
 actif2.yuki.1
 actif2.yuki.4
+font.choix
 font.enigme
 font.espace_blanc
 font.icones
