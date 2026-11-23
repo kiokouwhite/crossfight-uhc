@@ -38,15 +38,66 @@ FONT = "/usr/share/fonts/opentype/inter/Inter-BlackItalic.otf"
 
 # Geometrie d'une carte, en blocs (voir SelectionStage).
 PH = 6.2                              # hauteur
-SLANT = 0.96                          # le haut est decale d'autant vers la droite
-CARD_PX = (512, 992)                  # image de la carte : sa largeur couvre tout le parallelogramme
+SLANT = 0.0                           # les cartes sont droites (elles etaient inclinees : le haut decale vers la droite)
+Z = 4                                 # un pixel du dessin (le style du HUD, en gros pixels) = 4 pixels de l'image
+CARD_PX = (368, 992)                  # image de la carte : 92 x 248 pixels de dessin
 QW = PH * CARD_PX[0] / CARD_PX[1]     # 3.2 : largeur du carre affiche
 PW = QW - SLANT                       # 2.24 : largeur de la carte a une hauteur donnee
 GLOW_K = (1.16, 1.07)                 # le halo deborde de la carte
-GLOW_PX = (592, 1056)
+GLOW_PX = (428, 1060)
 BAND_TOP, STRIP_TOP = 0.70, 0.885     # la bande de couleur, puis le bandeau sombre (fractions de hauteur)
 FACE_Y = 0.20                         # ou se place le visage du personnage (fraction de hauteur)
 BACKDROP_PX = (1024, 512)
+
+# Le style du HUD : les polices et les cadres du pack d'interface achete a Franuka (prive), sinon un dessin simple.
+UI = ROOT / "resourcepack-prive" / "ui-franuka"
+UI_TITLE = UI / "Fonts" / "FantasyRPGtitle (size 17).ttf"
+UI_TEXT = UI / "Fonts" / "FantasyRPGtext (size 12).ttf"
+NAVY, NAVY_DARK, CREAM = (38, 41, 74), (24, 26, 48), (255, 240, 214)
+
+
+def ui_sprite(folder, name):
+    return Image.open(UI / "Individual files" / "1x" / folder / (name + ".png")).convert("RGBA")
+
+
+def ui_frame(w, h):
+    """Le cadre du pack (BGbox_01B : bleu nuit, une gemme rouge a chaque coin) etire a w x h pixels de dessin,
+    son milieu vide : seul le tour reste, pose par-dessus la carte."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from build_menu_franuka import nine
+    box = nine(ui_sprite("Background boxes", "BGbox_01B"), w, h)
+    px = box.load()
+    fill = px[w // 2, h // 2]
+    todo, seen = [(w // 2, h // 2)], set()
+    while todo:
+        x, y = todo.pop()
+        if (x, y) in seen or not (0 <= x < w and 0 <= y < h) or px[x, y] != fill:
+            continue
+        seen.add((x, y))
+        todo += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+    for x, y in seen:
+        px[x, y] = (0, 0, 0, 0)
+    return box
+
+
+def pixel_text(text, max_w):
+    """Le nom dans la police de titre du HUD, en gros pixels nets : la plus grande taille entiere qui tient dans
+    max_w pixels d'image, puis la police de texte si le nom est trop long. Creme, ombre sombre."""
+    for path, native in ((UI_TITLE, 17), (UI_TEXT, 12)):
+        for k in (Z, Z - 1, Z - 2):
+            font = ImageFont.truetype(str(path), native)
+            small = Image.new("RGBA", (400, 40), (0, 0, 0, 0))
+            d = ImageDraw.Draw(small)
+            d.fontmode = "1"
+            d.text((2, 6), text, font=font, fill=NAVY_DARK + (255,))        # l'ombre, un pixel plus bas
+            d.text((2, 5), text, font=font, fill=CREAM + (255,))
+            box = small.getbbox()
+            if box and (box[2] - box[0]) * k <= max_w:
+                crop = small.crop(box)
+                return crop.resize((crop.width * k, crop.height * k), Image.NEAREST)
+    crop = small.crop(box)
+    k = max(1, int(max_w // crop.width))
+    return crop.resize((crop.width * k, crop.height * k), Image.NEAREST)
 
 def save(img: Image.Image, base: Path, rel: str):
     out = base / "textures" / "item" / "select" / (rel + ".png")
@@ -157,53 +208,68 @@ def name_label(text, max_w):
 
 
 def card(art, name, color, voie_img, framing, plate_only=False):
-    """Une carte : fond a eclats, illustration recadree (le visage au milieu, a 20 % de la hauteur), bande a la
-    couleur du personnage avec son nom, bandeau sombre et icone de voie a cheval sur les deux, liseres."""
+    """Une carte droite, dans le style du HUD : l'illustration recadree (le visage au milieu, a 20 % de la hauteur)
+    sur un fond bleu nuit, une bande de nom au ton du HUD soulignee a la couleur du personnage, le nom dans la
+    police de titre, une bande sombre et l'icone de la voie a cheval sur les deux, le cadre du pack d'interface
+    par-dessus. La carte vide (plate_only, publique, teinte en jeu) est le meme dessin en gris, sans le cadre."""
     w, h = CARD_PX
-    poly = shape(w, h)
-    mask = mask_of(poly, (w, h))
-    inside = shards((w, h), seed=len(name) * 7 + 3, base=(22, 22, 27), light=(44, 44, 52), n=9)
+    lw, lh = w // Z, h // Z                                   # en pixels de dessin
+    fancy = not plate_only and UI_TITLE.exists()
+    out = Image.new("RGBA", (w, h), (30, 30, 34, 255) if plate_only else NAVY_DARK + (255,))
     if art is not None:
         fx, fy, zoom = framing
         k = zoom * h / art.height
         a = art.resize((max(1, round(art.width * k)), max(1, round(art.height * k))), Image.LANCZOS)
-        ty = FACE_Y * h
-        tx = center_x(ty, w, h)
-        inside.alpha_composite(a, (round(tx - fx * a.width), round(ty - fy * a.height)))
-    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    out.paste(inside, (0, 0), mask)
-    # La bande de couleur (le haut horizontal), plus sombre vers le bas, puis le bandeau sombre.
-    band = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    bd = ImageDraw.Draw(band)
-    y0, y1 = round(BAND_TOP * h), round(STRIP_TOP * h)
-    col = (255, 255, 255) if plate_only else color
-    for y in range(y0, y1):
-        t = (y - y0) / (y1 - y0)
-        c = tuple(round(v * (1 - 0.22 * t)) for v in col)
-        bd.line([(0, y), (w, y)], fill=c + (228,))
-    bd.line([(0, y0), (w, y0)], fill=tuple(min(255, v + 60) for v in col) + (255,), width=3)
-    bd.rectangle((0, y1, w, h), fill=(14, 14, 16, 246))
-    out.alpha_composite(Image.composite(band, Image.new("RGBA", (w, h)), mask))
-    d = ImageDraw.Draw(out)
-    # Liseres : un trait clair sur le bord gauche (comme les separations de l'affiche), un contour sombre.
-    d.line(poly + [poly[0]], fill=(0, 0, 0, 200), width=3)
-    d.line([poly[0], poly[3]], fill=(225, 225, 232, 230), width=4)
+        ty, tx = FACE_Y * h, w / 2
+        out.alpha_composite(a, (round(tx - fx * a.width), round(ty - fy * a.height)))
+    # Les bandes, dessinees en pixels de dessin puis agrandies : le nom, puis le bas de la carte.
+    y0, y1 = round(BAND_TOP * lh), round(STRIP_TOP * lh)
+    low = Image.new("RGBA", (lw, lh), (0, 0, 0, 0))
+    d = ImageDraw.Draw(low)
+    if plate_only:
+        d.rectangle((0, y0, lw, y1 - 1), fill=(255, 255, 255, 235))           # blanche : la teinte du personnage la colore
+        d.rectangle((0, y1, lw, lh), fill=(16, 16, 18, 248))
+        d.rectangle((0, 0, lw - 1, lh - 1), outline=(70, 70, 78, 255))
+        d.rectangle((1, 1, lw - 2, lh - 2), outline=(10, 10, 12, 255))
+    else:
+        d.rectangle((0, y0, lw, y1 - 1), fill=NAVY + (238,))
+        d.rectangle((0, y1, lw, lh), fill=NAVY_DARK + (250,))
+        d.rectangle((0, y0, lw, y0 + 1), fill=tuple(color) + (255,))          # le trait a la couleur du personnage
+        d.line([(0, y0 + 2), (lw, y0 + 2)], fill=NAVY_DARK + (255,))
+        d.line([(0, y1), (lw, y1)], fill=(84, 90, 140, 255))
+    out.alpha_composite(low.resize((w, h), Image.NEAREST))
     if not plate_only:
-        label = name_label(name, PW / QW * w * 1.02)
-        ly = (BAND_TOP + 0.42 * (STRIP_TOP - BAND_TOP)) * h
-        out.alpha_composite(label, (round(center_x(ly, w, h) - label.width / 2), round(ly - label.height / 2)))
-    # Le medaillon de la voie, a cheval sur la bande et le bandeau (vide sur la carte sans illustration : le
-    # plugin y pose l'icone). Sur la carte vide il est gris neutre : la teinte du personnage le colore peu.
+        label = pixel_text(name, w - 14 * Z) if UI_TITLE.exists() else name_label(name, w * 0.9)
+        ly = (BAND_TOP + 0.45 * (STRIP_TOP - BAND_TOP)) * h
+        out.alpha_composite(label, (round(w / 2 - label.width / 2), round(ly - label.height / 2)))
+    # Le medaillon de la voie, a cheval sur la bande du nom et le bas (vide sur la carte sans illustration : le
+    # plugin y pose l'icone) : un rond en gros pixels.
     if voie_img is not None or plate_only:
-        r = round(0.052 * h)
-        cy = round(STRIP_TOP * h + 0.012 * h)
-        cx = round(center_x(cy, w, h))
-        disc = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-        ImageDraw.Draw(disc).ellipse((cx - r, cy - r, cx + r, cy + r), fill=(24, 24, 28, 255), outline=(70, 70, 78, 255), width=3)
-        out.alpha_composite(disc)
+        r = round(0.052 * lh)
+        cy, cx = round(STRIP_TOP * lh + 0.012 * lh), lw // 2
+        disc = Image.new("RGBA", (lw, lh), (0, 0, 0, 0))
+        ImageDraw.Draw(disc).ellipse((cx - r, cy - r, cx + r, cy + r), fill=(24, 24, 28, 255) if plate_only else NAVY_DARK + (255,),
+                                     outline=(70, 70, 78, 255) if plate_only else (108, 116, 172, 255))
+        out.alpha_composite(disc.resize((w, h), Image.NEAREST))
         if voie_img is not None:
-            ic = voie_img.resize((round(r * 1.5), round(r * 1.5)), Image.LANCZOS)
-            out.alpha_composite(ic, (cx - ic.width // 2, cy - ic.height // 2))
+            ic = voie_img.resize((round(r * Z * 1.5), round(r * Z * 1.5)), Image.LANCZOS)
+            out.alpha_composite(ic, (cx * Z - ic.width // 2, cy * Z - ic.height // 2))
+    if fancy:
+        frame = ui_frame(lw, lh)
+        # Ce qui depasse du cadre (ses marges, ses coins coupes) disparait : la carte a la forme du cadre.
+        fp, todo, outside = frame.load(), [(0, 0), (lw - 1, 0), (0, lh - 1), (lw - 1, lh - 1)], set()
+        while todo:
+            x, y = todo.pop()
+            if (x, y) in outside or not (0 <= x < lw and 0 <= y < lh) or fp[x, y][3]:
+                continue
+            outside.add((x, y))
+            todo += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+        keep = Image.new("L", (lw, lh), 255)
+        kp = keep.load()
+        for x, y in outside:
+            kp[x, y] = 0
+        out.putalpha(keep.resize((w, h), Image.NEAREST))
+        out.alpha_composite(frame.resize((w, h), Image.NEAREST))
     return out
 
 
@@ -226,17 +292,47 @@ def card_glow():
 
 
 def backdrop():
-    """Le mur derriere les cartes : sombre, a grands eclats, plus fonce sur les bords."""
+    """Le mur derriere les cartes, au ton du HUD : bleu nuit, un semis de losanges en gros pixels, plus fonce
+    sur les bords."""
     w, h = BACKDROP_PX
-    img = shards((w, h), seed=11, base=(17, 17, 21), light=(40, 40, 47), n=26)
+    lw, lh = w // Z, h // Z
+    low = Image.new("RGBA", (lw, lh), NAVY_DARK + (255,))
+    px = low.load()
+    for y in range(lh):
+        for x in range(lw):
+            # Un losange tous les 16 pixels de dessin, en quinconce, a peine plus clair que le fond.
+            cx, cy = (x + (8 if (y // 16) % 2 else 0)) % 16 - 8, y % 16 - 8
+            m = abs(cx) + abs(cy)
+            if m == 5 or m == 0:
+                px[x, y] = (34, 37, 66, 255)
+    img = low.resize((w, h), Image.NEAREST)
     vign = Image.new("L", (w, h), 0)
-    px = vign.load()
+    vp = vign.load()
     for y in range(h):
         for x in range(w):
             r = math.hypot((x - w / 2) / (w / 2), (y - h / 2) / (h / 2))
-            px[x, y] = round(255 * min(1.0, max(0.0, (r - 0.55) / 0.6)) * 0.85)
-    dark = Image.new("RGBA", (w, h), (6, 6, 8, 255))
+            vp[x, y] = round(255 * min(1.0, max(0.0, (r - 0.55) / 0.6)) * 0.85)
+    dark = Image.new("RGBA", (w, h), (8, 9, 18, 255))
     return Image.composite(dark, img, vign)
+
+
+def hud_fonts():
+    """Les polices du HUD pour les textes de l'ecran (noms, capacites, pseudos) : les deux polices du pack
+    d'interface, rangees dans le pack complet et declarees comme polices "crossfight:hud_titre" et
+    "crossfight:hud_texte" (le plugin les donne a ses textes quand le joueur a charge le pack)."""
+    if not UI_TITLE.exists():
+        return []
+    import shutil
+    folder = PRIVATE / "font"
+    folder.mkdir(parents=True, exist_ok=True)
+    out = []
+    # Tailles proches de la police de Minecraft, pour que les textes gardent leur place a l'ecran.
+    for name, src, size in (("hud_titre", UI_TITLE, 17.0), ("hud_texte", UI_TEXT, 16.0)):
+        shutil.copyfile(src, folder / f"{name}.ttf")
+        (folder / f"{name}.json").write_text(json.dumps({"providers": [
+            {"type": "ttf", "file": f"crossfight:{name}.ttf", "size": size, "oversample": 4.0, "shift": [0.0, 0.0]}]}, indent=1), encoding="utf-8")
+        out.append(folder / f"{name}.json")
+    return out
 
 
 def framings():
@@ -322,6 +418,7 @@ def main() -> int:
     made.append(save(card(None, "", (255, 255, 255), None, None, plate_only=True), PUBLIC, "card_plate"))
     made.append(save(card_glow(), PUBLIC, "card_glow"))
     made.append(save(backdrop(), PUBLIC, "backdrop"))
+    made += hud_fonts()
     voies = {}
     for f in sources("voie"):
         voies[f.stem] = icon(load(f))

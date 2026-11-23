@@ -76,7 +76,7 @@ public final class SelectionStage implements Listener {
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("crossfight", "selection_item");
 
     // Geometrie d'une carte, en blocs : la meme que tools/build_selection.py.
-    private static final double PH = 6.2, QW = PH * 512 / 992, SLANT = 0.96, PW = QW - SLANT;
+    private static final double PH = 6.2, QW = PH * 368 / 992, SLANT = 0.0, PW = QW - SLANT;   // cartes droites (SLANT : leur ancienne inclinaison)
     private static final double GW = QW * 1.16, GH = PH * 1.07;
     /** La bande de couleur (haut), le bandeau sombre (haut), en fractions de la hauteur depuis le haut. */
     private static final double BAND_TOP = 0.70, STRIP_TOP = 0.885;
@@ -400,10 +400,30 @@ public final class SelectionStage implements Listener {
         return out;
     }
 
+    /**
+     * Un texte de l'ecran dans les polices du HUD (tools/build_selection.py : "crossfight:hud_titre" pour ce qui est
+     * en gras, les noms ; "crossfight:hud_texte" pour le reste), pour qui a charge le pack complet ; sinon la
+     * police de Minecraft.
+     */
+    /** De combien reduire un texte en gras ecrit dans la police de titre du HUD, plus large que celle de Minecraft (1 sans elle). */
+    private static float titleRatio(Player viewer) {
+        return com.kiokouwhite.crossfight.util.Sounds.has("font.hud_titre") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(viewer) ? 0.5f : 1f;
+    }
+
+    private static net.kyori.adventure.text.Component styled(Player viewer, String mini) { return styled(viewer, mini, mini.contains("<bold>")); }
+
+    private static net.kyori.adventure.text.Component styled(Player viewer, String mini, boolean title) {
+        String font = title ? "hud_titre" : "hud_texte";
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("font." + font) || !com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(viewer)) return Msg.mm(mini);
+        // La police de titre est deja epaisse et droite : ni gras ni italique par-dessus.
+        return Msg.mm(mini.replace("<bold>", "").replace("</bold>", "").replace("<italic>", "").replace("</italic>", ""))
+                .font(net.kyori.adventure.key.Key.key(com.kiokouwhite.crossfight.util.Sounds.NS, font));
+    }
+
     private TextDisplay text(Viewer v, Location at, String mini, float scale, int lineWidth, Color background) {
         TextDisplay out = at.getWorld().spawn(at, TextDisplay.class, d -> {
             prepare(d);
-            d.text(Msg.mm(mini));
+            d.text(styled(v.player, mini));
             d.setLineWidth(lineWidth);
             d.setShadowed(true);
             d.setBackgroundColor(background);
@@ -448,15 +468,15 @@ public final class SelectionStage implements Listener {
             p.plate = item(v, s.at(0, 0, 0), "select/card_plate", QW, PH, color);
             spawnFigure(v, s, p, color);
             String label = names.getOrDefault(id, c.name()).toUpperCase();
-            // Le nom tient dans la largeur de la carte ; il penche un peu, comme sur les cartes illustrees.
-            float scale = (float) Math.min(2.2, 0.88 * PW * 40 / textWidth(label));
+            // Le nom tient dans la largeur de la carte, droit comme elle ; la police de titre du HUD est plus large.
+            float scale = (float) Math.min(2.2, 0.88 * PW * 40 / textWidth(label)) * titleRatio(v.player);
             double nameY = level(BAND_TOP + 0.42 * (STRIP_TOP - BAND_TOP));
             boolean light = luminance(color) > 0.6;
             double nx = midX(nameY), ny = nameY - 0.1625 * scale;    // un texte s'accroche par le bas ; ses capitales sont a 0.1625 au-dessus
             p.name = text(v, s.at(nx, ny, 0.14), "<bold><italic>" + (light ? "<#141418>" : "<white>") + label, scale, 400, Color.fromARGB(0, 0, 0, 0));
             p.name.setBillboard(Display.Billboard.FIXED);
             p.name.setShadowed(!light);
-            p.name.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotationZ((float) Math.toRadians(7)), new Vector3f(scale, scale, scale), new Quaternionf()));
+            p.name.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(scale, scale, scale), new Quaternionf()));
             p.layers.add(new Layer(p.name, nx, ny, 0.14));
             String voie = voieId(c);
             double iconY = level(STRIP_TOP + 0.012);
@@ -475,7 +495,7 @@ public final class SelectionStage implements Listener {
         int index = v.slots.indexOf(s);
         double side = index < v.slots.size() / 2.0 ? 1 : -1;
         double infoY = level(0.62);    // le bas de la fiche : elle monte de la, entre le visage de la voisine et son bandeau
-        p.info = text(v, s.at(side * STEP + midX(infoY), infoY, 0.75), "", 0.40f, 210, Color.fromARGB(190, 12, 12, 16));
+        p.info = text(v, s.at(side * STEP + midX(infoY), infoY, 0.75), "", 0.40f, 210, Color.fromARGB(215, 24, 26, 48));
         p.info.setTextOpacity((byte) 0);
         p.info.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
         p.stamp = text(v, s.at(midX(0.6), 0.6, 0.8), "", 1.2f, 200, Color.fromARGB(0, 0, 0, 0));
@@ -559,8 +579,8 @@ public final class SelectionStage implements Listener {
         } else {
             // Sans logo : le nom de la licence, a la taille qui tient dans le coin, son bord gauche pres de celui de l'ecran.
             String name = st.licence.name();
-            float scale = (float) Math.min(1.6, 0.62 * halfW * 40 / textWidth(name));
-            double width = textWidth(name) * scale / 40.0;
+            float scale = (float) Math.min(1.6, 0.62 * halfW * 40 / textWidth(name)) * titleRatio(v.player);
+            double width = textWidth(name) * (scale / titleRatio(v.player)) / 40.0;      // sa vraie largeur a l'ecran : la police de titre est plus large
             Location at = v.front(-0.95 * halfW + width / 2, EYE + 0.80 * halfH, depth);
             v.extra.add(text(v, at, "<gold><bold>" + name, scale, 600, Color.fromARGB(0, 0, 0, 0)));
         }
@@ -615,9 +635,9 @@ public final class SelectionStage implements Listener {
             if (hover) {
                 StringBuilder sb = new StringBuilder("<gold><bold>" + s.character.name() + "</bold>\n<" + s.character.voie().color() + ">" + s.character.voie().label());
                 for (String line : s.character.summary()) sb.append("\n").append(line);
-                p.info.text(Msg.mm(sb.toString()));
+                p.info.text(styled(v.player, sb.toString(), false));
                 p.info.setTextOpacity((byte) -1);
-                p.info.setBackgroundColor(Color.fromARGB(190, 12, 12, 16));
+                p.info.setBackgroundColor(Color.fromARGB(215, 24, 26, 48));
             } else {
                 p.info.setTextOpacity((byte) 0);
                 p.info.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
@@ -625,7 +645,7 @@ public final class SelectionStage implements Listener {
             if (owner != null) {
                 Player op = Bukkit.getPlayer(owner);
                 String who = mine ? "<gold><bold>TON CHOIX" : "<red><bold>CHOISI</bold>\n<white>" + (op != null ? op.getName() : "un allie");
-                p.stamp.text(Msg.mm(who));
+                p.stamp.text(styled(v.player, who));
             } else {
                 p.stamp.text(net.kyori.adventure.text.Component.empty());
             }

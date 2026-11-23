@@ -218,6 +218,8 @@ actif2.yuki.4
 font.choix
 font.enigme
 font.espace_blanc
+font.hud_texte
+font.hud_titre
 font.icones
 font.menu
 font.panneau_omori

@@ -458,6 +458,8 @@ font.bulle
 font.choix
 font.enigme
 font.espace_blanc
+font.hud_texte
+font.hud_titre
 font.icones
 font.logo
 font.menu
