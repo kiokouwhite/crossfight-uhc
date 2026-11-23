@@ -20,7 +20,8 @@ from build_menu_franuka import ONE, ROOT, SRC, sprite  # noqa: E402
 OUT = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "overlay_ult"
 W, H = 960, 540
 MARGIN = 8                       # du bord de l'ecran, en points de l'image
-ORB_AT = (-1, 13)                # ou poser l'orbe (48 x 48) dans le cadre (80 x 80) : au milieu de son anneau, a gauche du dragon
+ORB_AT = (0, 16)                 # ou poser l'orbe (48 x 48, un disque de 38) dans le cadre (80 x 80) : exactement sur le trou de son
+                                 # anneau (un disque de 38 lui aussi, de x 5 a 42 et de y 21 a 58), a gauche du dragon
 STEPS = 20
 
 

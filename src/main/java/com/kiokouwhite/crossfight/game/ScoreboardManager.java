@@ -65,6 +65,10 @@ public final class ScoreboardManager {
         List<String> lines = buildLines(p);
         // Le logo descend dans le gris du tableau : des lignes vides lui gardent sa place.
         if (showsLogo(p)) for (int i = 0; i < LOGO_LINES; i++) lines.add(0, "");
+        // Le jeu ne montre que 15 lignes : au-dela, le trait du haut laisse sa place pour que celui du bas reste a l'ecran.
+        if (lines.size() > 15) {
+            for (int i = 0; i < lines.size() - 1; i++) if (lines.get(i).contains("\u2501\u2501\u2501")) { lines.remove(i); break; }
+        }
         int score = lines.size();
         for (String line : lines) {
             // Chaque entree doit etre unique : on ajoute des codes couleur invisibles au besoin
@@ -173,6 +177,14 @@ public final class ScoreboardManager {
         return sb.toString();
     }
 
+    /** Une ligne d'allie : son nom et sa vie en coeurs (un demi-coeur compte : "9,5"), ou "mort". */
+    private static String allyLine(String name, double health, boolean alive) {
+        if (!alive) return "<gray> \u2022 " + name + " <dark_gray>mort";
+        double hearts = Math.ceil(health) / 2.0;
+        String shown = hearts == Math.floor(hearts) ? String.valueOf((int) hearts) : String.valueOf(hearts).replace('.', ',');
+        return "<gray> \u2022 <green>" + name + " <red>\u2764 <white>" + shown;
+    }
+
     private List<String> buildLines(Player p) {
         CfPlayer cf = plugin.players().get(p);
         GameManager game = plugin.game();
@@ -198,7 +210,9 @@ public final class ScoreboardManager {
                 if (!plugin.effectHud().showsUltimate(p)) lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");   // sinon l'orbe le dit
                 String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
                 if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
-                lines.add("<gray>/cf mannequin, /cf ult, /cf test");
+                // La vie des allies, comme en partie : des noms d'essai, le mode test n'a pas d'equipe.
+                lines.add("<white>Allies :");
+                for (int i = 1; i <= 3; i++) lines.add(allyLine("Allie" + i, 20.0, true));
             }
             case SELECTING, STARTING -> {
                 lines.add("<white>Etat : <yellow>Preparation");
@@ -222,13 +236,14 @@ public final class ScoreboardManager {
                     if (!plugin.effectHud().showsUltimate(p)) lines.add("<white>Ultime : <light_purple>" + (int) cf.ultimateCharge() + "%");
                     String boosts = com.kiokouwhite.crossfight.util.Boosts.summary(p);
                     if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
-                    StringBuilder allies = new StringBuilder();
+                    // Chaque allie sur sa ligne, avec sa vie en coeurs (mise a jour chaque seconde, comme le reste du tableau).
+                    List<String> allies = new ArrayList<>();
                     for (Player ally : t.onlineMembers()) {
                         if (ally == p) continue;
                         CfPlayer acf = plugin.players().get(ally);
-                        allies.append(acf.isAlive() ? "<green>" : "<gray>").append(ally.getName()).append(" ");
+                        allies.add(allyLine(ally.getName(), ally.getHealth(), acf.isAlive() && !ally.isDead()));
                     }
-                    if (!allies.isEmpty()) lines.add("<white>Allies : " + allies.toString().trim());
+                    if (!allies.isEmpty()) { lines.add("<white>Allies :"); lines.addAll(allies); }
                 } else {
                     lines.add("<gray>Spectateur");
                 }
