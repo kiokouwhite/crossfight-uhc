@@ -76,7 +76,8 @@ public final class Livai extends Character {
             super("livai_toupie", "Toupie", "Clic droit dans les airs : Livai tournoie pendant 5 secondes en infligeant 1 coeur toutes les demi-secondes aux adversaires a 2.5 blocs.", Material.DIAMOND_SWORD, 30);
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            if (p.isOnGround()) { Msg.actionBar(p, "<red>Toupie : seulement dans les airs."); return false; }
+            // Le mannequin du mode test en troisieme personne reste au sol : il peut montrer la toupie sans voler.
+            if (p.isOnGround() && !com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p)) { Msg.actionBar(p, "<red>Toupie : seulement dans les airs."); return false; }
             Effects.give(p, PotionEffectType.SLOW_FALLING, 0, 110);
             Effects.noFallUntil(p, 7000);
             World w = p.getWorld();
