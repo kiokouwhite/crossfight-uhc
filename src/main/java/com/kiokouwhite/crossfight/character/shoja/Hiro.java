@@ -95,7 +95,7 @@ public final class Hiro extends Character implements Listener {
 
     /** L'arme : Fire Aspect et Fire Resistance ; clic droit pour charger (ou arreter de charger) la Puissance. */
     static final class PyraMira extends ToggleAbility implements CustomUse {
-        PyraMira() { super("hiro_pyra", "Puissance", "Pyra-Mira donne Fire Aspect et Fire Resistance. Clic droit : Hiro charge sa Puissance (+3 par seconde, 100 max) ; re-clic pour arreter. La Puissance alimente ses pouvoirs.", Material.GOLDEN_SWORD, 0, 0); }
+        PyraMira() { super("hiro_pyra", "Puissance", "Pyra-Mira donne Fire Aspect et Fire Resistance. Clic droit : Hiro charge sa Puissance (+3 par seconde, 100 max) ; re-clic pour arreter. Pendant la charge, l'epee n'enflamme plus. La Puissance alimente ses pouvoirs.", Material.GOLDEN_SWORD, 0, 0); }
         @Override public boolean hasGauge() { return true; }
         @Override public List<String> weaponLore() { return List.of("<gold>Clic droit : <gray>charger la Puissance (+3/s)"); }
         @Override public void onEquip(Player p, CfPlayer cf) {
@@ -112,21 +112,69 @@ public final class Hiro extends Character implements Listener {
             else { st.setEnabled(true); onEnable(p, cf, st); Msg.actionBar(p, "<gold>Hiro charge sa Puissance..."); }
             return true;
         }
+        /** La pose de la charge : l'epee tenue devant lui a l'horizontale, l'autre main sur la pointe (null sans son skin dans le pack). */
+        private static com.kiokouwhite.crossfight.util.Puppet stance(Player p, CfPlayer cf) {
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "hiro", cf.character().createWeapon(), "debout");
+            if (pu != null) { pu.pose("hiro_charge", 4); pu.keep(); }
+            return pu;
+        }
+
+        /** Les flammes qui s'enroulent autour de la lame, de {@code from} (la garde) sur {@code length} blocs vers {@code along}. */
+        private static void wrap(Location from, Vector along, double length, int t) {
+            Vector a = along.clone().normalize();
+            // Deux axes perpendiculaires a la lame : les flammes tournent autour d'elle en deux helices opposees.
+            Vector u = a.clone().crossProduct(Math.abs(a.getY()) > 0.9 ? new Vector(1, 0, 0) : new Vector(0, 1, 0)).normalize();
+            Vector v = a.clone().crossProduct(u).normalize();
+            for (int k = 0; k < 2; k++) {
+                double f = ((t * 0.07) + k * 0.5) % 1.0, ang = t * 0.55 + f * 9 + k * Math.PI;
+                Location l = from.clone().add(a.clone().multiply(0.15 + f * length))
+                        .add(u.clone().multiply(Math.cos(ang) * 0.13)).add(v.clone().multiply(Math.sin(ang) * 0.13));
+                from.getWorld().spawnParticle(Particle.SMALL_FLAME, l, 1, 0, 0, 0, 0);
+            }
+            if (t % 3 == 0) from.getWorld().spawnParticle(Particle.FLAME, from.clone().add(a.clone().multiply(0.15 + Math.random() * length)), 1, 0.03, 0.03, 0.03, 0.005);
+        }
+
         @Override public boolean onEnable(Player p, CfPlayer cf, AbilityState st) {
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.8f, 0.8f);
+            st.set("resume", 0L);
             new BukkitRunnable() {
                 int t = 0;
+                com.kiokouwhite.crossfight.util.Puppet pu = stance(p, cf);
                 @Override public void run() {
                     t++;
-                    if (!p.isOnline() || !st.isEnabled()) { cancel(); return; }
+                    if (!p.isOnline() || !st.isEnabled()) {
+                        if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.endAfter(1, 4);
+                        cancel();
+                        return;
+                    }
                     double f = st.gauge() / 100.0;
-                    p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 2 + (int) (f * 6), 0.4, 0.6, 0.4, 0.02);
+                    p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().add(0, 1, 0), 1 + (int) (f * 3), 0.4, 0.6, 0.4, 0.02);
                     if (t % 20 == 0) p.getWorld().playSound(p.getLocation(), Sound.BLOCK_FIRE_AMBIENT, 0.5f, 0.8f + (float) f * 0.8f);
+                    boolean posed = pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu;
+                    // Un coup porte interrompt la pose (onDealDamage) ; elle revient une fois le coup fini.
+                    long resume = st.get("resume", 0L);
+                    if (posed && resume > System.currentTimeMillis()) { pu.endAfter(0, 2); posed = false; }
+                    else if (!posed && resume <= System.currentTimeMillis() && com.kiokouwhite.crossfight.util.Puppet.of(p) == null) { pu = stance(p, cf); posed = pu != null; }
+                    // Les flammes s'enroulent autour de la lame, qu'il tienne la pose ou qu'il frappe.
+                    Location body = p.getLocation();
+                    body.setPitch(0);
+                    Vector fwd = body.getDirection(), left = new Vector(fwd.getZ(), 0, -fwd.getX());
+                    if (posed) wrap(pu.hand(), left, 0.85, t);
+                    else wrap(p.getEyeLocation().add(0, -0.45, 0).add(left.clone().multiply(-0.38)).add(fwd.clone().multiply(0.35)),
+                            p.getEyeLocation().getDirection().add(new Vector(0, 0.55, 0)), 0.8, t);
                 }
             }.runTaskTimer(Shoja.plugin(), 1L, 1L);
             return true;
         }
         @Override public void onDisable(Player p, CfPlayer cf, AbilityState st) { p.getWorld().playSound(p.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 0.6f, 1.2f); }
+        /** Pendant la charge, Pyra-Mira n'enflamme plus : le feu que son coup vient d'allumer est aussitot ramene a ce qu'il etait. */
+        @Override public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, org.bukkit.event.entity.EntityDamageByEntityEvent e, AbilityState st) {
+            if (!st.isEnabled() || e.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
+            // Le coup interrompt la pose de charge ; elle reprend une demi-seconde apres le dernier coup.
+            st.set("resume", System.currentTimeMillis() + 600L);
+            int before = victim.getFireTicks();
+            org.bukkit.Bukkit.getScheduler().runTask(Shoja.plugin(), () -> { if (victim.isValid()) victim.setFireTicks(before); });
+        }
         @Override public void tickActive(Player p, CfPlayer cf, AbilityState st) {
             st.setGauge(Math.min(100, st.gauge() + 3));
             if (st.gauge() >= 100) { st.setEnabled(false); onDisable(p, cf, st); Msg.actionBar(p, "<gold>Puissance maximale !"); }

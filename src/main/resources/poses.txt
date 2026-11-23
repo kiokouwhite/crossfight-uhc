@@ -1351,3 +1351,15 @@ pose livai_toupie
   leg_r 8 0 -3
   leg_l -8 0 3
   item_world 0 -90 0
+
+# Hiro, la charge de sa Puissance : Pyra-Mira tenue devant lui a l'horizontale, a hauteur de poitrine, la garde dans
+# la main droite, la lame en travers du corps, l'autre main posee sur la pointe ; les jambes un peu flechies, la
+# tete baissee sur la lame.
+pose hiro_charge
+  root  4 0 0   0 -1 0
+  head  14 0 0
+  arm_r -72 0 -14
+  arm_l -72 0 16
+  leg_r -10 0 -5
+  leg_l 12 0 5
+  item_world 0 90 0

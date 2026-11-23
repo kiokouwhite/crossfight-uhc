@@ -8,7 +8,7 @@ Voie de la Destruction
 
 #### Puissance
 
-(Activable) Pyra-Mira donne Fire Aspect et Fire Résistance. Clic droit : Hiro charge sa Puissance (+3 par seconde, 100 max) ; re-clic pour arrêter. La Puissance alimente ses pouvoirs.
+(Activable) Pyra-Mira donne Fire Aspect et Fire Résistance. Clic droit : Hiro charge sa Puissance (+3 par seconde, 100 max) ; re-clic pour arrêter. Pendant la charge, l'épée n'enflamme plus. La Puissance alimente ses pouvoirs.
 
 ## Pouvoirs
 
