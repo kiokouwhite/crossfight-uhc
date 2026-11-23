@@ -1307,3 +1307,36 @@ pose arlo_main_sol
   arm_l 12 0 14
   leg_r 15 0 -4
   leg_l 15 0 4
+
+# Livai, Charge Destructrice : il file au ras du sol sans le toucher, le corps couche vers l'avant, le bras droit
+# tendu devant lui, la lame dans son prolongement ; l'autre lame traine derriere, les jambes aussi.
+pose livai_charge
+  root  62 0 0   0 14 2
+  head  -52 0 0
+  arm_r -152 0 -4
+  arm_l 46 0 20
+  leg_r -10 0 -4
+  leg_l 18 0 4
+  item_world -62 0 0
+  item2 52 0 0
+
+# Livai, Assaut Impetueux : la detente, le corps droit lance vers le ciel, un genou remonte, les bras tires en arriere...
+pose livai_saut
+  root  -8 0 0
+  head  -20 0 0
+  arm_r 38 0 -14
+  arm_l 38 0 14
+  leg_r -55 0 -4
+  leg_l 22 0 4
+  item  52 0 0
+
+# ...puis la descente : il pique la tete vers le sol, le bras droit tendu vers le point d'impact, la lame en avant.
+pose livai_plonge
+  root  150 0 0   0 20 0
+  head  -35 0 0
+  arm_r -172 0 -4
+  arm_l 30 0 22
+  leg_r 6 0 -5
+  leg_l -22 0 5
+  item_world -60 0 0
+  item2 52 0 0

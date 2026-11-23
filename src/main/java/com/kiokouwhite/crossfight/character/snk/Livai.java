@@ -107,6 +107,15 @@ public final class Livai extends Character {
 
     // ---------------------------------------------------------------- pouvoirs
 
+    /** Le pantin de Livai dans cette pose, une lame dans chaque main (null sans son skin, ou pour un joueur sans pantin). */
+    static com.kiokouwhite.crossfight.util.Puppet lunge(Player p, CfPlayer cf, String pose) {
+        ItemStack blade = cf.character() == null ? null : cf.character().createWeapon();
+        if (blade == null) blade = new ItemStack(Material.DIAMOND_SWORD);
+        com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "livai", blade, pose);
+        if (pu != null) pu.second(blade);
+        return pu;
+    }
+
     static final class ChargeDestructrice extends ActiveAbility {
         ChargeDestructrice() {
             super("livai_charge", "Charge Destructrice", "Livai fonce en avant sur 10 blocs en s'infligeant 3 coeurs. Chaque adversaire touche perd 5 coeurs.", Material.BLAZE_POWDER, 10);
@@ -121,6 +130,9 @@ public final class Livai extends Character {
             w.playSound(from, Sound.ENTITY_BREEZE_SHOOT, 1f, 1.1f);
             java.util.Set<UUID> hit = new java.util.HashSet<>();
             final Vector d = dir;
+            // Il file au ras du sol sans le toucher, le bras tendu, la lame en avant.
+            com.kiokouwhite.crossfight.util.Puppet pu = lunge(p, cf, "livai_charge");
+            if (pu != null) { pu.face(from.clone().setDirection(d).getYaw()); pu.endAfter(9, 3); }
             new BukkitRunnable() {
                 int i = 0;
                 Location current = from.clone();
@@ -155,13 +167,31 @@ public final class Livai extends Character {
             Effects.noFallUntil(p, 6000);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_JUMP, 1f, 1.2f);
+            // La detente souleve une petite explosion sous ses pieds : un souffle, et un anneau de poussiere qui s'ecarte.
+            Location feet = p.getLocation();
+            w.spawnParticle(Particle.EXPLOSION, feet.clone().add(0, 0.2, 0), 1);
+            w.playSound(feet, Sound.ENTITY_GENERIC_EXPLODE, 0.45f, 1.7f);
+            for (int k = 0; k < 20; k++) {
+                double a = k * Math.PI / 10;
+                w.spawnParticle(Particle.CLOUD, feet.clone().add(Math.cos(a) * 0.4, 0.1, Math.sin(a) * 0.4), 0, Math.cos(a), 0.08, Math.sin(a), 0.22);
+            }
+            w.spawnParticle(Particle.BLOCK, feet.clone().add(0, 0.1, 0), 24, 0.5, 0.1, 0.5, feet.clone().add(0, -0.5, 0).getBlock().getType().isSolid() ? feet.clone().add(0, -0.5, 0).getBlock().getBlockData() : Material.DIRT.createBlockData());
+            com.kiokouwhite.crossfight.util.Puppet pu = lunge(p, cf, "livai_saut");
+            if (pu != null) pu.endAfter(90, 4);
             new BukkitRunnable() {
                 int t = 0;
+                boolean dive;
                 @Override public void run() {
                     t++;
-                    if (!p.isOnline() || p.isDead() || t > 80) { cancel(); return; }
+                    if (!p.isOnline() || p.isDead() || t > 80) { SNK.land(p, pu); cancel(); return; }
                     w.spawnParticle(Particle.CLOUD, p.getLocation(), 2, 0.2, 0.1, 0.2, 0.01);
+                    // Au sommet du saut, il bascule : la tete vers le sol, la lame pointee sur le point d'impact.
+                    if (!dive && t > 4 && p.getVelocity().getY() < 0.05) {
+                        dive = true;
+                        if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.pose("livai_plonge", 4);
+                    }
                     if (t > 6 && p.isOnGround()) {
+                        SNK.land(p, pu);
                         Location c = p.getLocation();
                         w.spawnParticle(Particle.EXPLOSION, c, 1);
                         w.spawnParticle(Particle.SWEEP_ATTACK, c.clone().add(0, 0.5, 0), 4, 0.8, 0.2, 0.8, 0);

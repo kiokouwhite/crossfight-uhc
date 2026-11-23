@@ -678,6 +678,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 - Mikasa sans Eren vivant dans l'équipe : l'ultime lui donne les bonus sans téléportation. « Eren a moins de 5 cœurs » se lit sur l'Eren de son équipe.
 - Les dégâts que Livaï s'inflige ignorent l'armure et ne peuvent pas le tuer. « Allié mort » pour ses camarades tombés = allié éliminé (plus de vies).
 - La Force permanente de Mikasa (Style Force, `mikasa_force`) et la Force d'Armin quand un allié passe sous 5 cœurs (Soutien, `armin_soutien`) sont des passifs à part, avec leur carte en haut à gauche : celle de Mikasa reste allumée, celle d'Armin s'allume tant qu'un allié est bas. Stratégie et Abnégation : l'icône de l'effet voyage avec les particules, puis deux icônes tournent autour de celui qui le reçoit (lui-même ne les voit pas).
+- Livaï : pendant la Charge Destructrice, il file couché vers l'avant au ras du sol, le bras tendu, la lame en avant (pose `livai_charge`). L'Assaut Impétueux soulève une petite explosion à la détente (pose `livai_saut`), puis, au sommet du saut, il bascule la tête vers le sol, la lame pointée sur le point d'impact (pose `livai_plonge`). En troisième personne, le mannequin fait la Toupie même au sol.
 - L'Annulation Tactique d'Armin rend l'adversaire incapable d'utiliser une capacité (hors passifs) pendant 5 s. Sa Stratégie et son Abnégation passent par des menus ; l'Abnégation s'applique aussi à Armin.
 
 ### Hypothèses prises sur RWBY
