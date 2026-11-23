@@ -7,4 +7,4 @@
 marth     harmonie     0.475     0.22      1.9
 corrin    destruction  0.495     0.175     2.8
 takumi    chasse       0.455     0.27      0.95
-byleth    harmonie     0.50      0.255     1.12
+byleth    harmonie     0.515     0.255     1.12
