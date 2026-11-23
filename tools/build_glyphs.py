@@ -253,7 +253,7 @@ def rouage(frames: int = 4) -> Image.Image:
 
 def temps_arrete() -> Image.Image:
     """Ce que voit un joueur fige dans le temps par Seraphina : plus rien. Un ecran gris opaque (960 x 540, etire en
-    plein ecran comme les images du HUD), assombri vers les bords, avec un cadran d'horloge arrete a peine visible."""
+    plein ecran comme les images du HUD), assombri vers les bords, sans rien d'autre."""
     import math
     W, H = 960, 540
     img = Image.new("RGBA", (W, H), (112, 112, 120, 255))
@@ -264,18 +264,6 @@ def temps_arrete() -> Image.Image:
             v = max(0.0, min(1.0, (d - 0.35) / 0.9))
             g = round(118 - 62 * v)
             px[x, y] = (g, g, g + 6, 255)
-    d = ImageDraw.Draw(img)
-    cx, cy = W // 2, H // 2
-    ring = (138, 138, 148, 255)
-    for r, w in ((190, 5), (176, 2)):
-        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=ring, width=w)
-    for k in range(12):
-        a = math.pi * 2 * k / 12
-        d.line([cx + math.cos(a) * 150, cy + math.sin(a) * 150, cx + math.cos(a) * 170, cy + math.sin(a) * 170], fill=ring, width=5 if k % 3 == 0 else 3)
-    # Les aiguilles, arretees.
-    d.line([cx, cy, cx + 62, cy - 78], fill=ring, width=7)
-    d.line([cx, cy, cx - 34, cy - 132], fill=ring, width=4)
-    d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=ring)
     return img
 
 
