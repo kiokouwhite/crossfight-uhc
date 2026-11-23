@@ -98,6 +98,31 @@ public final class Seraphina extends Character {
         gear(w, c.clone().add(side.clone().multiply(-1.5)).add(0, -0.4, 0), side, 0.6, -spin * 1.8);
     }
 
+    /**
+     * Un rouage (l'icone "seraphina_rouage" du pack complet) qui flotte a ce point du trajet : il apparait, tourne
+     * sur lui-meme une seconde et demie, puis se referme. Sans le pack complet, il n'y a que les engrenages de particules.
+     */
+    static void cog(Location at, int n) {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("icone.seraphina_rouage")) return;
+        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(Material.PAPER);
+        var meta = it.getItemMeta();
+        meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/seraphina_rouage"));
+        it.setItemMeta(meta);
+        // Disperses autour du trajet, de tailles inegales, un sur deux tournant dans l'autre sens.
+        double a = n * 2.4;
+        Location l = at.clone().add(Math.cos(a) * 0.9, 0.5 + (n % 5) * 0.35, Math.sin(a) * 0.9);
+        l.setYaw(0); l.setPitch(0);
+        float size = 0.45f + (n % 3) * 0.2f;
+        float turn = (n % 8 < 4 ? 1 : -1) * 170f;
+        org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, it, 0.05f, true);
+        var plugin = Unordinary.plugin();
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn, 6); }, 2L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn * 2, 12); }, 9L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn * 3, 12); }, 21L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, 0.02f, turn * 4, 6); }, 33L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, d::remove, 40L);
+    }
+
     /** Les positions sont relevees a chaque tick (5 secondes = 100 positions). */
     static final class RetourDansLeTemps extends ActiveAbility {
         private final Map<UUID, Deque<Location>> history = new HashMap<>();
@@ -146,6 +171,8 @@ public final class Seraphina extends Character {
                                 w.spawnParticle(Particle.DUST, l.clone().add(0, 1, 0), 2, 0.15, 0.3, 0.15, 0, PINK);
                                 w.spawnParticle(Particle.DUST, l.clone().add(0, 0.4, 0), 1, 0.2, 0.2, 0.2, 0, PINK_SOFT);
                             }
+                            // Des rouages restent suspendus le long du trajet qu'elle remonte, et tournent avant de s'effacer.
+                            for (int k = i; k <= next; k += 4) cog(path.get(k), k);
                             Location to = path.get(next).clone();
                             to.setYaw(from.getYaw()); to.setPitch(from.getPitch());
                             p.teleport(to);
