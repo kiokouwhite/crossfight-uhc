@@ -102,14 +102,19 @@ public final class ChoiceMenu implements Listener {
         }
     }
 
-    public static void open(Player p, String title, List<Option> options, Consumer<Player> onCancel) {
+    public static void open(Player p, String title, List<Option> options, Consumer<Player> onCancel) { open(p, title, options, onCancel, true); }
+
+    /** Comme open, mais sans titre ecrit sur la fenetre du pack d'interface (le titre reste sur le coffre de Minecraft, sans le pack). */
+    public static void openUntitled(Player p, String title, List<Option> options) { open(p, title, options, null, false); }
+
+    private static void open(Player p, String title, List<Option> options, Consumer<Player> onCancel, boolean written) {
         Holder holder = new Holder();
         holder.options = options;
         holder.onCancel = onCancel;
         holder.owner = p;
         int size = options.size() <= 5 ? 9 : Math.min(54, ((Math.min(options.size(), 54) + 8) / 9) * 9);
         if (options.size() > 54) options = options.subList(0, 54);
-        Inventory inv = Bukkit.createInventory(holder, size, dressed(p, title, options.size(), size / 9));
+        Inventory inv = Bukkit.createInventory(holder, size, dressed(p, title, options.size(), size / 9, written));
         holder.inv = inv;
         // Centre les options sur la premiere ligne si elles sont peu nombreuses.
         int n = options.size();
@@ -150,10 +155,12 @@ public final class ChoiceMenu implements Listener {
      * (tools/build_menu_choix.py : une image par forme de menu, dans la police "choix") puis le titre, en clair,
      * dans la couleur du pack ; sinon le titre tel quel, sur le coffre de Minecraft.
      */
-    private static net.kyori.adventure.text.Component dressed(Player p, String title, int choices, int rows) {
+    private static net.kyori.adventure.text.Component dressed(Player p, String title, int choices, int rows, boolean written) {
         net.kyori.adventure.text.Component plain = Msg.mm(title);
         if (!Sounds.has("font.choix") || !Sounds.hasPackLoaded(p)) return plain;
         char image = (char) (choices <= 5 ? 0xE010 + Math.max(1, choices) - 1 : 0xE020 + Math.max(1, Math.min(6, rows)) - 1);
+        if (!written) return net.kyori.adventure.text.Component.text("\uE100" + image)
+                .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE);
         String text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(plain);
         return net.kyori.adventure.text.Component.text("\uE100" + image + "\uE101")
                 .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)

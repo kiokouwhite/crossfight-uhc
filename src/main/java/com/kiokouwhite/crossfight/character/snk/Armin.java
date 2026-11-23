@@ -192,7 +192,7 @@ public final class Armin extends Character {
                 final int mode = i;
                 options.add(new ChoiceMenu.Option(ICONS[i], EFFECTS[i], List.of(ally == null ? "<gray>Dans le vide (essai)" : "<gray>Pour " + ally.getName()), () -> apply(p, cf, st, ally, mode), MODELS[mode]));
             }
-            ChoiceMenu.open(p, "<blue><bold>Strategie : quel effet ?", options);
+            ChoiceMenu.openUntitled(p, "<blue><bold>Strategie : quel effet ?", options);
         }
         /** La couleur de chaque effet : Force en rouge, Resistance en gris acier, Speed en bleu clair. */
         static final Particle.DustOptions[] TINT = {
