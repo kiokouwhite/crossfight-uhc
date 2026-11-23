@@ -173,6 +173,8 @@ public final class Armin extends Character {
 
         @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
             List<Player> allies = SNK.allies(p);
+            // Mode d'essai a la troisieme personne, sans allie : on choisit l'effet, le geste part dans le vide.
+            if (allies.isEmpty() && com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p)) { chooseEffect(p, cf, st, null); return true; }
             if (allies.isEmpty()) { Msg.actionBar(p, "<red>Aucun allie en vie."); return true; }
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (Player a : allies) {
@@ -186,21 +188,101 @@ public final class Armin extends Character {
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (int i = 0; i < EFFECTS.length; i++) {
                 final int mode = i;
-                options.add(new ChoiceMenu.Option(ICONS[i], EFFECTS[i], List.of("<gray>Pour " + ally.getName()), () -> apply(p, cf, st, ally, mode)));
+                options.add(new ChoiceMenu.Option(ICONS[i], EFFECTS[i], List.of(ally == null ? "<gray>Dans le vide (essai)" : "<gray>Pour " + ally.getName()), () -> apply(p, cf, st, ally, mode)));
             }
             ChoiceMenu.open(p, "<blue><bold>Strategie : quel effet ?", options);
         }
+        /** La couleur de chaque effet : Force en rouge, Resistance en gris acier, Speed en bleu clair. */
+        static final Particle.DustOptions[] TINT = {
+                new Particle.DustOptions(org.bukkit.Color.fromRGB(225, 45, 45), 1.1f),
+                new Particle.DustOptions(org.bukkit.Color.fromRGB(165, 175, 190), 1.1f),
+                new Particle.DustOptions(org.bukkit.Color.fromRGB(110, 215, 255), 1.1f)};
+        /** L'aura qui entoure l'allie renforce, par Armin : elle montre a tous qui porte l'effet, et lequel. */
+        private static final java.util.Map<UUID, org.bukkit.scheduler.BukkitTask> AURA = new java.util.HashMap<>();
+        /** Ticks que mettent les particules a aller de la main d'Armin a son allie. */
+        static final int TRAVEL = 8;
+
         void apply(Player p, CfPlayer cf, AbilityState st, Player ally, int mode) {
             clear(st);
+            stopAura(p);
+            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
+            if (ally == null) {
+                // Essai sans allie : le bras jete droit devant, les particules partent dans le vide.
+                Location front = p.getLocation().add(0, 1.1, 0).add(p.getLocation().getDirection().setY(0).normalize().multiply(8));
+                send(p, front, mode, null);
+                Msg.actionBar(p, "<blue>Strategie : " + EFFECTS[mode] + " (aucun allie)");
+                return;
+            }
             st.set("ally", ally.getUniqueId().toString());
             st.setMode(mode);
             Boosts.set(ally, "armin_strategie", mode == 0 ? new Boosts.Boost(1, 0, 0, 0) : mode == 1 ? new Boosts.Boost(0, 0, 1, 0) : new Boosts.Boost(0, 1, 0, 0));
-            ally.getWorld().spawnParticle(Particle.DUST, ally.getLocation().add(0, 1, 0), 20, 0.4, 0.6, 0.4, 0, BLUE);
-            ally.playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
-            com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
+            send(p, ally.getLocation().add(0, 1.1, 0), mode, () -> {
+                if (!ally.isOnline() || ally.isDead()) return;
+                ally.getWorld().spawnParticle(Particle.DUST, ally.getLocation().add(0, 1, 0), 24, 0.4, 0.6, 0.4, 0, TINT[mode]);
+                ally.playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f);
+            });
+            aura(p, st, ally, mode);
             Msg.send(ally, "<blue>Strategie d'Armin : tu gagnes <white>" + EFFECTS[mode] + "</white>.");
             Msg.actionBar(p, "<blue>Strategie : " + EFFECTS[mode] + " pour " + ally.getName());
         }
+
+        /** Armin jette son bras vers {@code to} ; les particules de l'effet quittent sa main et y vont, puis {@code arrived}. */
+        static void send(Player p, Location to, int mode, Runnable arrived) {
+            org.bukkit.util.Vector toward = to.toVector().subtract(p.getLocation().toVector());
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "armin", null, "debout");
+            if (pu != null) {
+                if (toward.clone().setY(0).lengthSquared() > 1e-4) pu.face(p.getLocation().setDirection(toward).getYaw());
+                pu.pose("arlo_bras_arme", 2);
+                pu.endAfter(TRAVEL + 8, 3);
+            }
+            World w = p.getWorld();
+            new BukkitRunnable() {
+                int t = 0;
+                Location from;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                    if (t == 3) {
+                        if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.pose("arlo_bras_jete", 2);
+                        from = pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu ? pu.hand() : p.getEyeLocation().add(0, -0.3, 0);
+                        w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.7f, 1.7f);
+                    }
+                    if (t < 3) return;
+                    // Un paquet de particules qui avance de la main vers l'allie, avec une trainee derriere lui.
+                    double f = (t - 2) / (double) TRAVEL;
+                    for (int k = 0; k < 4; k++) {
+                        double g = Math.max(0, f - k * 0.05);
+                        Location at = from.clone().add(to.toVector().subtract(from.toVector()).multiply(g));
+                        w.spawnParticle(Particle.DUST, at, k == 0 ? 6 : 2, 0.12, 0.12, 0.12, 0, TINT[mode]);
+                    }
+                    if (f >= 1) { cancel(); if (arrived != null) arrived.run(); }
+                }
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+        }
+
+        /** Tant que l'allie garde l'effet, deux particules de sa couleur tournent autour de lui : ses adversaires voient ce qu'il porte. */
+        static void aura(Player p, AbilityState st, Player ally, int mode) {
+            String id = ally.getUniqueId().toString();
+            AURA.put(p.getUniqueId(), new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t += 2;
+                    if (!p.isOnline() || !ally.isOnline() || !id.equals(st.get("ally", "")) || st.mode() != mode) { cancel(); return; }
+                    if (ally.isDead()) return;
+                    Location c = ally.getLocation();
+                    for (int k = 0; k < 2; k++) {
+                        double a = t * 0.22 + k * Math.PI, y = 0.35 + 0.75 * (0.5 + 0.5 * Math.sin(t * 0.07 + k * Math.PI));
+                        c.getWorld().spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * 0.62, y, Math.sin(a) * 0.62), 1, 0, 0, 0, 0, TINT[mode]);
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), TRAVEL + 2L, 2L));
+        }
+
+        static void stopAura(Player p) {
+            org.bukkit.scheduler.BukkitTask old = AURA.remove(p.getUniqueId());
+            if (old != null) old.cancel();
+        }
+
         static void clear(AbilityState st) {
             String prev = st.get("ally", null);
             if (prev == null) return;
@@ -213,7 +295,7 @@ public final class Armin extends Character {
             Player ally = a == null ? null : com.kiokouwhite.crossfight.util.MannequinPlayer.getPlayer(UUID.fromString(a));
             return ally == null ? "<gray>Strategie <dark_gray>[aucune]" : "<yellow>Strategie <white>[" + EFFECTS[st.mode()] + " : " + ally.getName() + "]";
         }
-        @Override public void onUnequip(Player p, CfPlayer cf) { clear(SNK.plugin().abilities().state(p, this)); }
+        @Override public void onUnequip(Player p, CfPlayer cf) { clear(SNK.plugin().abilities().state(p, this)); stopAura(p); }
     }
 
     static final class AnnulationTactique extends PassiveAbility {
