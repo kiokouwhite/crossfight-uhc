@@ -155,6 +155,17 @@ def icons(base: Path):
     return names
 
 
+def heads(base: Path):
+    """Les tetes des personnages (tools/build_tetes.py) : leur glyphe dans la police "tetes" du pack,
+    "fonttete.<personnage>.<point de code en hexa>"."""
+    font = base / "assets" / NS / "font" / "tetes.json"
+    names = set()
+    if font.is_file():
+        for prov in json.loads(font.read_text(encoding="utf-8")).get("providers", []):
+            names.add(f"fonttete.{Path(prov['file'].split(':', 1)[-1]).stem}.{ord(prov['chars'][0]):04x}")
+    return names
+
+
 def models(base: Path):
     """Les modeles 3D d'armes (tools/build_falchion.py, tools/build_armes.py) : "model.<nom>"."""
     folder = base / "assets" / NS / "models" / "item"
@@ -285,7 +296,7 @@ def main() -> int:
     private_names, private_tracks, p_events, private_voice_ms, private_loops = set(), {}, {}, {}, {}
     if PRIVATE.is_dir():
         p_events, private_tracks, _, private_loops = collect(PRIVATE, False)
-        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE) | fonts(PRIVATE) | icons(PRIVATE)
+        private_names = set(p_events) | skins(PRIVATE) | selection(PRIVATE) | glyphs(PRIVATE) | models(PRIVATE) | overlays(PRIVATE) | fonts(PRIVATE) | icons(PRIVATE) | heads(PRIVATE)
         private_voice_ms = voice_ms(p_events)
         if private_list.exists():
             before = {l.split()[0] for l in private_list.read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")}

@@ -148,7 +148,12 @@ public final class Eren extends Character implements Listener {
         List<String> out = new ArrayList<>();
         out.add("<white>Cibles des Titans :");
         if (SNK.plugin().game().isTest()) {
-            for (int i = 1; i <= 4; i++) out.add("<gray> • <white>Joueur" + i);
+            // Des cibles d'essai, avec des tetes d'essai quand le pack en a.
+            List<String> faces = com.kiokouwhite.crossfight.util.Heads.known();
+            for (int i = 1; i <= 4; i++) {
+                String face = faces.isEmpty() ? "" : com.kiokouwhite.crossfight.util.Heads.tag(p, faces.get((i - 1) % faces.size()));
+                out.add((face.isEmpty() ? "<gray> • " : " " + face) + "<white>Joueur" + i);
+            }
             return out;
         }
         List<String> targets = st.get("targets", null), names = st.get("names", null), eaten = st.get("eaten", null);
@@ -156,7 +161,9 @@ public final class Eren extends Character implements Listener {
         for (int i = 0; i < targets.size(); i++) {
             String name = names != null && i < names.size() ? names.get(i) : Bukkit.getOfflinePlayer(java.util.UUID.fromString(targets.get(i))).getName();
             if (name == null) name = "?";
-            out.add(eaten != null && eaten.contains(targets.get(i)) ? "<dark_gray> ✔ <st>" + name + "</st>" : "<gray> • <white>" + name);
+            // La tete du personnage de la cible, tant qu'elle est en ligne, a la place de la puce.
+            String face = com.kiokouwhite.crossfight.util.Heads.tag(p, Bukkit.getPlayer(java.util.UUID.fromString(targets.get(i))));
+            out.add(eaten != null && eaten.contains(targets.get(i)) ? "<dark_gray> ✔ <st>" + name + "</st>" : (face.isEmpty() ? "<gray> • " : " " + face) + "<white>" + name);
         }
         return out;
     }

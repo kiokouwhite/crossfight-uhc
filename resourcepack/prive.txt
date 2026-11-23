@@ -227,6 +227,7 @@ font.quete_demi
 font.quete_demi2
 font.quete_jauge
 font.quete_recul
+font.tetes
 fonticone.aida_bulle.e100
 fonticone.aida_clone.e101
 fonticone.aida_eponge.e102
@@ -397,6 +398,10 @@ fonticone.yuki_insaisissable.e1a6
 fonticone.yuki_insatiable.e1a7
 fonticone.yuki_souffrante.e1a8
 fonticone.yuki_ult.e1a9
+fonttete.byleth.e200
+fonttete.corrin.e201
+fonttete.marth.e202
+fonttete.takumi.e203
 glyph.porte_blanche
 glyph.schnee_cercle
 glyph.schnee_flocon

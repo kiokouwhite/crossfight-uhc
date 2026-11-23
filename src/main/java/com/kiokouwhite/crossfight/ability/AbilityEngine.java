@@ -305,10 +305,14 @@ public final class AbilityEngine implements Listener {
         String piece;
         Player owner = cf.bukkit();
         if (owner != null && !a.showInBar(owner, cf, st)) return;
+        // L'icone de la capacite devant son nom (celle de son objet), pour qui a charge le pack complet. En blanc :
+        // un glyphe prend la couleur du texte qui l'entoure.
+        String glyph = owner != null && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(owner) ? Ability.iconGlyph(a.id()) : "";
+        String icon = glyph.isEmpty() ? "" : "<white>" + glyph + "</white>";
         String custom = owner == null ? null : a.barText(owner, cf, st);
         if (custom != null) {
             if (!bar.isEmpty()) bar.append(" <dark_gray>| ");
-            bar.append(custom);
+            bar.append(icon).append(custom);
             return;
         }
         switch (a.type()) {
@@ -332,7 +336,7 @@ public final class AbilityEngine implements Listener {
             default -> { return; }
         }
         if (!bar.isEmpty()) bar.append(" <dark_gray>| ");
-        bar.append(piece);
+        bar.append(icon).append(piece);
     }
 
     // ----------------------------------------------------------- activation

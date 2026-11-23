@@ -62,6 +62,7 @@ public final class ScoreboardManager {
         // Pendant le choix du personnage, le tableau laisse l'ecran aux cartes (la barre du haut donne le temps).
         if (plugin.selection() == null || !plugin.selection().isViewing(p)) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
+        nameTags(p, board);
         List<String> lines = buildLines(p);
         // Le logo descend dans le gris du tableau : des lignes vides lui gardent sa place.
         if (showsLogo(p)) for (int i = 0; i < LOGO_LINES; i++) lines.add(0, "");
@@ -73,7 +74,11 @@ public final class ScoreboardManager {
         for (String line : lines) {
             // Chaque entree doit etre unique : on ajoute des codes couleur invisibles au besoin
             String entry = unique(line, lines, score);
-            obj.getScore(entry).setScore(score--);
+            org.bukkit.scoreboard.Score sc = obj.getScore(entry);
+            sc.setScore(score--);
+            // Une ligne qui porte un glyphe du pack (la tete d'un personnage) : son entree, du texte simple, perdrait la
+            // police ; on lui donne donc son vrai texte comme nom affiche.
+            if (line.contains("<font:")) sc.customName(Msg.mm(line));
         }
         if (p.getScoreboard() != board) p.setScoreboard(board);
     }
@@ -178,11 +183,36 @@ public final class ScoreboardManager {
     }
 
     /** Une ligne d'allie : son nom et sa vie en coeurs (un demi-coeur compte : "9,5"), ou "mort". */
-    private static String allyLine(String name, double health, boolean alive) {
-        if (!alive) return "<gray> \u2022 " + name + " <dark_gray>mort";
+    private static String allyLine(String head, String name, double health, boolean alive) {
+        // Avec sa tete, plus besoin de puce devant le nom.
+        String lead = head.isEmpty() ? "<gray> \u2022 " : " " + head;
+        if (!alive) return lead + "<gray>" + name + " <dark_gray>mort";
         double hearts = Math.ceil(health) / 2.0;
         String shown = hearts == Math.floor(hearts) ? String.valueOf((int) hearts) : String.valueOf(hearts).replace('.', ',');
-        return "<gray> \u2022 <green>" + name + " <red>\u2764 <white>" + shown;
+        return lead + "<green>" + name + " <red>\u2764 <white>" + shown;
+    }
+
+    /**
+     * Devant le pseudo de chaque joueur (au-dessus de sa tete et dans la liste des joueurs), la tete de son
+     * personnage : une equipe de tableau par personnage, sur le tableau de celui qui regarde, dont le prefixe est
+     * le glyphe. Un joueur sans personnage, ou dont la tete n'est pas dans le pack, quitte son equipe.
+     */
+    private void nameTags(Player viewer, Scoreboard board) {
+        for (Player q : Bukkit.getOnlinePlayers()) {
+            CfPlayer qcf = plugin.players().get(q);
+            String id = qcf == null || qcf.character() == null ? null : qcf.character().id();
+            net.kyori.adventure.text.Component face = com.kiokouwhite.crossfight.util.Heads.prefix(viewer, id);
+            org.bukkit.scoreboard.Team now = board.getEntryTeam(q.getName());
+            if (face == null) {
+                if (now != null && now.getName().startsWith("tete_")) now.removeEntry(q.getName());
+                continue;
+            }
+            String name = "tete_" + id;
+            if (now != null && now.getName().equals(name)) continue;
+            org.bukkit.scoreboard.Team team = board.getTeam(name);
+            if (team == null) { team = board.registerNewTeam(name); team.prefix(face); }
+            team.addEntry(q.getName());
+        }
     }
 
     private List<String> buildLines(Player p) {
@@ -212,7 +242,9 @@ public final class ScoreboardManager {
                 if (!boosts.isEmpty()) lines.add("<white>Bonus : " + boosts);
                 // La vie des allies, comme en partie : des noms d'essai, le mode test n'a pas d'equipe.
                 lines.add("<white>Allies :");
-                for (int i = 1; i <= 3; i++) lines.add(allyLine("Allie" + i, 20.0, true));
+                List<String> faces = com.kiokouwhite.crossfight.util.Heads.known();
+                for (int i = 1; i <= 3; i++)
+                    lines.add(allyLine(faces.isEmpty() ? "" : com.kiokouwhite.crossfight.util.Heads.tag(p, faces.get((i - 1) % faces.size())), "Allie" + i, 20.0, true));
             }
             case SELECTING, STARTING -> {
                 lines.add("<white>Etat : <yellow>Preparation");
@@ -241,7 +273,7 @@ public final class ScoreboardManager {
                     for (Player ally : t.onlineMembers()) {
                         if (ally == p) continue;
                         CfPlayer acf = plugin.players().get(ally);
-                        allies.add(allyLine(ally.getName(), ally.getHealth(), acf.isAlive() && !ally.isDead()));
+                        allies.add(allyLine(com.kiokouwhite.crossfight.util.Heads.tag(p, ally), ally.getName(), ally.getHealth(), acf.isAlive() && !ally.isDead()));
                     }
                     if (!allies.isEmpty()) { lines.add("<white>Allies :"); lines.addAll(allies); }
                 } else {
