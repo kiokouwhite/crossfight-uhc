@@ -167,6 +167,12 @@ public final class ChoiceMenu implements Listener {
                 .append(net.kyori.adventure.text.Component.text(text).font(net.kyori.adventure.key.Key.key("minecraft", "default")).color(INK));
     }
 
+    /**
+     * Le titre d'un coffre de {@code rows} rangees pleines habille de la fenetre du pack d'interface (le sac a dos
+     * d'equipe...) : son image, puis le titre ecrit dessus ; sans le pack complet, le titre seul sur le coffre de Minecraft.
+     */
+    public static net.kyori.adventure.text.Component window(Player p, String title, int rows) { return dressed(p, title, 9, rows, true); }
+
     /** Vrai pendant le tournage des videos (/cf tournage) : chaque menu choisit tout seul sa premiere option. */
     public static boolean autoPick;
 

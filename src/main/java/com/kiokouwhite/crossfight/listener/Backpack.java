@@ -46,6 +46,8 @@ public final class Backpack implements Listener {
 
     private static final class Bag implements InventoryHolder {
         Inventory inv;
+        /** Vrai si son titre porte la fenetre du pack d'interface. */
+        boolean fancy;
         @Override public Inventory getInventory() { return inv; }
     }
 
@@ -67,7 +69,7 @@ public final class Backpack implements Listener {
     public static boolean isBackpack(ItemStack it) { return it != null && Items.tag(it, KEY) != null; }
 
     private static ItemStack item() {
-        ItemStack it = Items.of(Material.BUNDLE, "<gold><bold>Sac a dos d'equipe",
+        ItemStack it = Items.of(Material.CHEST, "<gold><bold>Sac a dos d'equipe",
                 List.of("<gray>Un coffre partage par toute ton equipe,", "<gray>ou que soient tes allies.", "", "<yellow>Clic <gray>: ouvrir"));
         Items.tag(it, KEY, "1");
         // Son icone du pack complet, quand il en a une (tools/build_icones.py : "sac_a_dos").
@@ -108,11 +110,23 @@ public final class Backpack implements Listener {
     private void open(Player p) {
         String key = keyOf(p);
         if (key == null) return;
-        Inventory inv = bags.computeIfAbsent(key, k -> {
+        Inventory inv = bags.get(key);
+        // La fenetre du pack d'interface est posee par le titre, et chacun la voit ou non selon son pack : le coffre est
+        // donc recree pour celui qui l'ouvre si son titre ne lui convient pas, avec le meme contenu.
+        var title = com.kiokouwhite.crossfight.util.ChoiceMenu.window(p, "Sac a dos d'equipe", 3);
+        boolean fancy = Sounds.has("font.choix") && Sounds.hasPackLoaded(p);
+        if (inv == null || ((Bag) inv.getHolder()).fancy != fancy) {
             Bag holder = new Bag();
-            holder.inv = Bukkit.createInventory(holder, 27, Msg.mm("Sac a dos d'equipe"));
-            return holder.inv;
-        });
+            holder.fancy = fancy;
+            holder.inv = Bukkit.createInventory(holder, 27, title);
+            if (inv != null) {
+                holder.inv.setContents(inv.getContents());
+                for (var viewer : List.copyOf(inv.getViewers())) viewer.closeInventory();
+                inv.clear();
+            }
+            inv = holder.inv;
+            bags.put(key, inv);
+        }
         p.openInventory(inv);
         p.playSound(p.getLocation(), Sound.ITEM_BUNDLE_DROP_CONTENTS, 0.8f, 1f);
     }
