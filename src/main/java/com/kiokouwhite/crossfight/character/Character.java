@@ -72,6 +72,12 @@ public abstract class Character {
     /** L'arme fournie au personnage, deja enchantee. Null si le personnage n'en a pas. */
     public abstract ItemStack createWeapon();
 
+    /** L'effet de l'arme, pour le guide, quand aucune capacite n'est liee a l'arme ("" : rien a dire de plus que son nom). */
+    public String weaponGuide() {
+        for (Ability a : abilities) if (a instanceof com.kiokouwhite.crossfight.ability.WeaponEffect w) return w.weaponEffect();
+        return "";
+    }
+
     /** La variante de la carte de l'arme en haut a gauche ("" par defaut ; Corrin : "l" ou "t" selon la voie de la Yato, en minuscules : une cle de ressource). */
     public String hudWeaponVariant(org.bukkit.entity.Player p) { return ""; }
 

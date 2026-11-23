@@ -6,6 +6,8 @@ Voie de la Chasse
 
 ### Lames (Style Toupie)
 
+Style Toupie : clic droit avec les lames dans les airs pour une toupie de 5 secondes.
+
 #### Toupie
 
 (Actif) Clic droit dans les airs : Livai tournoie pendant 5 secondes en infligeant 1 cœur toutes les demi-secondes aux adversaires à 2.5 blocs.

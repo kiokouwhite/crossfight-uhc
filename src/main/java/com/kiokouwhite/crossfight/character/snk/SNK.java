@@ -154,9 +154,12 @@ public final class SNK {
      * L'equipement tridimensionnel : clic droit pour lancer un grappin ; la ou il s'accroche, le joueur
      * est tire a travers les airs. La jauge est le gaz. Chaque personnage y ajoute son style.
      */
-    static class OdmGear extends ToggleAbility implements CustomUse {
+    static class OdmGear extends ToggleAbility implements CustomUse, com.kiokouwhite.crossfight.ability.WeaponEffect {
         static final double RANGE = 30.0;
         final Style style;
+        /** Ce que le style du personnage ajoute a ses lames et a son grappin : l'effet de son arme, dans le guide. */
+        final String styleNote;
+        @Override public String weaponEffect() { return styleNote; }
 
         OdmGear(Style style, String extra) {
             super("snk_odm", "Equipement tridimensionnel",
@@ -164,6 +167,7 @@ public final class SNK {
                             + " Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.",
                     Material.BOW, 1.0, 0.5);
             this.style = style;
+            this.styleNote = extra;
         }
 
         @Override protected List<String> extraLore() { return List.of("", "<yellow>Clic droit : lancer le grappin"); }

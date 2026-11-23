@@ -424,6 +424,9 @@ def characters_pages(summary):
                 page = [f"# {accent(c['name'])}", "", accent(c["voie"]), ""]
                 if weapon or c.get("weapon"):
                     page += ["## Arme", "", f"### {accent(c.get('weapon') or 'Arme')}", ""]
+                    # L'effet d'une arme que ne porte aucune capacite liee a l'arme (le style de l'equipement de SNK).
+                    if c.get("weaponNote"):
+                        page += [accent(c["weaponNote"]), ""]
                     for a in weapon:
                         block = ability_block(a, 4, depth + 1)
                         page += block[2:] if accent(a["name"]) == accent(c.get("weapon") or "") else block

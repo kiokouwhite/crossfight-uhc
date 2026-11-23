@@ -669,6 +669,23 @@ pose mikasa_croix
   leg_r -24 0 -6
   leg_l 22 0 6
 
+# Armin, Abnegation : un genou a terre, la tete baissee, le poing droit ramene sur le coeur, l'autre bras dans le dos...
+pose armin_genou
+  root  10 0 0   0 -4.5 0
+  head  20 0 0
+  arm_r -46 0 42
+  arm_l 26 0 -12
+  leg_r 52 0 -4
+  leg_l -48 0 4
+# ...puis, quand la lumiere eclate, il releve la tete vers le ciel, les bras ouverts.
+pose armin_genou_leve
+  root  2 0 0   0 -4.5 0
+  head  -30 0 0
+  arm_r -30 0 -34
+  arm_l -30 0 34
+  leg_r 52 0 -4
+  leg_l -48 0 4
+
 # Eren, Charge tridimensionnelle : il fonce tete la premiere, le corps couche vers l'avant, les deux bras rejetes
 # en arriere, une lame dans chaque main qui traine derriere lui, les deux jambes trainant derriere lui : il vole
 # a un bloc du sol, il ne court pas.

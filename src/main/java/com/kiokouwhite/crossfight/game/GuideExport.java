@@ -79,7 +79,7 @@ public final class GuideExport {
                         weapon = PlainTextComponentSerializer.plainText().serialize(w.getItemMeta().displayName());
                 } catch (Exception ignored) { }
                 out.append("\n {\"id\":").append(q(c.id())).append(",\"name\":").append(q(c.name()))
-                   .append(",\"voie\":").append(q(c.voie().label())).append(",\"weapon\":").append(q(weapon))
+                   .append(",\"voie\":").append(q(c.voie().label())).append(",\"weapon\":").append(q(weapon)).append(",\"weaponNote\":").append(q(c.weaponGuide()))
                    .append(",\"weaponIcon\":").append(q(weaponIcon)).append(",\"abilities\":[");
                 boolean firstAbility = true;
                 for (Ability a : c.allAbilities()) {

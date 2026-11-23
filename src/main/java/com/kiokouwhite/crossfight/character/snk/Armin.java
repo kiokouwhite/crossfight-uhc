@@ -94,7 +94,7 @@ public final class Armin extends Character {
     }
 
     static final class StyleSoutien extends SNK.OdmGear {
-        StyleSoutien() { super(SNK.Style.SOUTIEN, "Style Soutien : si un allie a moins de 5 coeurs, Armin gagne Force ; s'il attrape un allie a 20 blocs, il fonce sur lui (10 s)."); }
+        StyleSoutien() { super(SNK.Style.SOUTIEN, "Style Soutien : quand un allie passe sous 5 coeurs, Armin gagne Force ; quand son grappin attrape un allie (20 blocs), il fonce sur lui (10 s)."); }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             boolean low = false;
             for (Player a : SNK.allies(p)) if (SNK.isLow(a)) { low = true; break; }
@@ -331,24 +331,96 @@ public final class Armin extends Character {
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             List<ChoiceMenu.Option> options = List.of(
-                    new ChoiceMenu.Option(Material.SUGAR, "Speed II", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 2, 0, 0), "Speed II")),
-                    new ChoiceMenu.Option(Material.SHIELD, "Resistance", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 0, 1, 0), "Resistance")),
-                    new ChoiceMenu.Option(Material.BLAZE_POWDER, "Force", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(1, 0, 0, 0), "Force")));
+                    new ChoiceMenu.Option(Material.SUGAR, "Speed II", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 2, 0, 0), "Speed II", 2)),
+                    new ChoiceMenu.Option(Material.SHIELD, "Resistance", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 0, 1, 0), "Resistance", 1)),
+                    new ChoiceMenu.Option(Material.BLAZE_POWDER, "Force", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(1, 0, 0, 0), "Force", 0)));
             ChoiceMenu.open(p, "<gold><bold>Abnegation : quel bonus ?", options);
             return true;
         }
-        void apply(Player p, Boosts.Boost boost, String label) {
+/** Ticks de la lumiere qui descend du ciel sur Armin, avant l'explosion lumineuse. */
+        static final int BEAM = 14;
+
+        /**
+         * Un genou a terre, le poing sur le coeur : la lumiere descend du ciel sur lui, eclate, et les particules de
+         * l'effet choisi partent vers chaque allie, qu'elles entourent jusqu'a la fin de l'ultime.
+         */
+        void apply(Player p, Boosts.Boost boost, String label, int mode) {
             List<Player> team = new ArrayList<>(SNK.allies(p));
             team.add(p);
             String source = "armin_abnegation_" + System.currentTimeMillis();
             showFor(p, 1200);
-            for (Player m : team) {
-                Boosts.set(m, source, boost);
-                m.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, m.getLocation().add(0, 1, 0), 40, 0.5, 0.8, 0.5, 0.2);
-                m.playSound(m.getLocation(), Sound.ITEM_TOTEM_USE, 0.6f, 1.4f);
-                Msg.send(m, "<gold>Abnegation d'Armin : <white>" + label + "</white> pendant 1 minute !");
-            }
-            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { for (Player m : team) Boosts.remove(m, source); }, 20L * 60);
+            World w = p.getWorld();
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "armin", null, "debout");
+            if (pu != null) { pu.pose("armin_genou", 4); pu.endAfter(BEAM + 12, 4); }
+            w.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.5f);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!p.isOnline() || p.isDead()) { cancel(); return; }
+                    Location c = p.getLocation();
+                    if (t <= BEAM) {
+                        // Le rayon : une colonne de lumiere dont le bas descend de 14 blocs jusqu'a lui.
+                        double bottom = 14.0 * (1 - t / (double) BEAM);
+                        for (double y = bottom; y <= 14; y += 0.45) w.spawnParticle(Particle.END_ROD, c.clone().add(0, y + 0.4, 0), 1, 0.12, 0, 0.12, 0);
+                        if (t % 4 == 0) w.playSound(c, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.8f, 0.8f + t * 0.06f);
+                        return;
+                    }
+                    // L'explosion lumineuse : il releve la tete, la lumiere eclate dans toutes les directions.
+                    cancel();
+                    if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.pose("armin_genou_leve", 3);
+                    w.spawnParticle(Particle.END_ROD, c.clone().add(0, 1, 0), 120, 0.2, 0.3, 0.2, 0.35);
+                    w.spawnParticle(Particle.FIREWORK, c.clone().add(0, 1, 0), 60, 0.3, 0.4, 0.3, 0.25);
+                    w.spawnParticle(Particle.EXPLOSION, c.clone().add(0, 1, 0), 1);
+                    w.playSound(c, Sound.ENTITY_FIREWORK_ROCKET_BLAST, 1f, 1.3f);
+                    w.playSound(c, Sound.ITEM_TOTEM_USE, 0.7f, 1.4f);
+                    Location from = c.clone().add(0, 1.1, 0);
+                    for (Player m : team) {
+                        if (!m.isOnline() || m.isDead()) continue;
+                        Boosts.set(m, source, boost);
+                        Msg.send(m, "<gold>Abnegation d'Armin : <white>" + label + "</white> pendant 1 minute !");
+                        if (m == p) { surround(m, mode, source); continue; }
+                        fly(from, m, mode, () -> { m.playSound(m.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.6f, 1.6f); surround(m, mode, source); });
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+            Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> { for (Player m : team) Boosts.remove(m, source); }, BEAM + 20L * 60);
+        }
+
+        /** Les particules de l'effet vont du point de l'explosion jusqu'a un allie (elles le suivent s'il bouge). */
+        static void fly(Location from, Player to, int mode, Runnable arrived) {
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t++;
+                    if (!to.isOnline() || to.isDead() || !to.getWorld().equals(from.getWorld())) { cancel(); return; }
+                    Location goal = to.getLocation().add(0, 1.1, 0);
+                    double f = t / (double) Strategie.TRAVEL;
+                    for (int k = 0; k < 4; k++) {
+                        double g = Math.max(0, f - k * 0.05);
+                        from.getWorld().spawnParticle(Particle.DUST, from.clone().add(goal.toVector().subtract(from.toVector()).multiply(g)), k == 0 ? 6 : 2, 0.12, 0.12, 0.12, 0, Strategie.TINT[mode]);
+                    }
+                    if (f >= 1) { cancel(); arrived.run(); }
+                }
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+        }
+
+        /** L'aura de l'effet autour d'un membre de l'equipe, tant qu'il le garde (une minute). Les effets cumules tournent a des hauteurs differentes. */
+        static void surround(Player m, int mode, String source) {
+            m.getWorld().spawnParticle(Particle.DUST, m.getLocation().add(0, 1, 0), 24, 0.4, 0.6, 0.4, 0, Strategie.TINT[mode]);
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t += 2;
+                    if (!m.isOnline() || t > 1200 || Boosts.get(m, source) == null) { cancel(); return; }
+                    if (m.isDead()) return;
+                    Location c = m.getLocation();
+                    for (int k = 0; k < 2; k++) {
+                        double a = -t * 0.2 + k * Math.PI + mode * 2.1;
+                        c.getWorld().spawnParticle(Particle.DUST, c.clone().add(Math.cos(a) * 0.75, 0.3 + mode * 0.55, Math.sin(a) * 0.75), 1, 0, 0, 0, 0, Strategie.TINT[mode]);
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), 2L, 2L);
         }
     }
 }

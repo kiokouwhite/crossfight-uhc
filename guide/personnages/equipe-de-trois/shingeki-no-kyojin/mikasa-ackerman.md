@@ -6,6 +6,8 @@ Voie de la Destruction
 
 ### Lames (Style Force)
 
+Style Force : Mikasa, très à l'aise avec l'équipement, gagne Force (cumulable).
+
 ## Pouvoirs
 
 ### Assommage

@@ -6,6 +6,8 @@ Voie de l'Harmonie
 
 ### Lames (Style Soutien)
 
+Style Soutien : quand un allié passe sous 5 cœurs, Armin gagne Force ; quand son grappin attrape un allié (20 blocs), il fonce sur lui (10 s).
+
 ## Pouvoirs
 
 ### Regroupement Militaire

@@ -6,6 +6,8 @@ Voie de la Destruction
 
 ### Lames (Style Haine)
 
+Style Haine : si le grappin attrape un adversaire, Eren lui fonce dessus et lui inflige 2 cœurs à l'impact (10 s).
+
 ## Pouvoirs
 
 ### Charge tridimensionnelle
