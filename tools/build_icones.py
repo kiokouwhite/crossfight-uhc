@@ -147,12 +147,14 @@ RECIPES = {
         "Armin Arlert": [
             ("Regroupement Militaire", "armin_regroupement", "Rogue 5 or"),
             ("Stratégie", "armin_strategie", "Wizard 23 or"),
+            ("Soutien", "armin_soutien", "Warrior 31 or"),
             ("Annulation Tactique", "armin_annulation", "Warrior 24 or"),
             ("Abnégation", "armin_ult", "Acolyte 5 or"),
         ],
         "Mikasa Ackerman": [
             ("Assommage", "mikasa_assommage", "Warrior 5 rouge"),
             ("Sus à la Cible", "mikasa_cible", "Rogue 6 rouge"),
+            ("Style Force", "mikasa_force", "Warrior 31 rouge"),
             ("Loyauté Ackermann", "mikasa_loyaute", "Acolyte 3 rouge"),
             ("Je le sauverai", "mikasa_ult", "Acolyte 1 rouge"),
         ],

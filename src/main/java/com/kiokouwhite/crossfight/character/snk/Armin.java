@@ -44,6 +44,7 @@ public final class Armin extends Character {
         addAbility(new StyleSoutien());
         addAbility(new RegroupementMilitaire());
         addAbility(new Strategie());
+        addAbility(new Soutien());
         addAbility(new AnnulationTactique());
         setUltimate(new Abnegation());
     }
@@ -93,14 +94,21 @@ public final class Armin extends Character {
         }.runTaskTimer(SNK.plugin(), 0L, 1L);
     }
 
+    /** L'equipement tridimensionnel d'Armin : son grappin attrape aussi un allie. Sa Force quand un allie est bas est un passif a part (Soutien). */
     static final class StyleSoutien extends SNK.OdmGear {
-        StyleSoutien() { super(SNK.Style.SOUTIEN, "Style Soutien : quand un allie passe sous 5 coeurs, Armin gagne Force ; quand son grappin attrape un allie (20 blocs), il fonce sur lui (10 s)."); }
+        StyleSoutien() { super(SNK.Style.SOUTIEN, "Style Soutien : quand son grappin attrape un allie (20 blocs), Armin fonce sur lui (10 s)."); }
+    }
+
+    /** Force tant qu'un allie est sous 5 coeurs : sa carte s'allume en haut a gauche a ce moment-la. */
+    static final class Soutien extends PassiveAbility {
+        Soutien() { super("armin_soutien", "Soutien", "Quand un allie passe sous 5 coeurs, Armin gagne Force."); }
         @Override public void tick(Player p, CfPlayer cf, AbilityState st) {
             boolean low = false;
             for (Player a : SNK.allies(p)) if (SNK.isLow(a)) { low = true; break; }
+            active(p, low);
             SNK.boostIf(p, "armin_force", low, new Boosts.Boost(1, 0, 0, 0));
         }
-        @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "armin_force"); }
+        @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "armin_force"); active(p, false); }
     }
 
     // ---------------------------------------------------------------- pouvoirs

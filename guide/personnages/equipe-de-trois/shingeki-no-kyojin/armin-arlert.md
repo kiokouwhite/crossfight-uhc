@@ -6,7 +6,7 @@ Voie de l'Harmonie
 
 ### Lames (Style Soutien)
 
-Style Soutien : quand un allié passe sous 5 cœurs, Armin gagne Force ; quand son grappin attrape un allié (20 blocs), il fonce sur lui (10 s).
+Style Soutien : quand son grappin attrape un allié (20 blocs), Armin fonce sur lui (10 s).
 
 ## Pouvoirs
 
@@ -19,6 +19,10 @@ Temps de chargement : 5 secondes
 ### Stratégie
 
 (Intervertible) Menu : Armin donne a un allié Force, Résistance ou Speed. Il peut changer d'allié ou d'effet quand il le souhaite.
+
+### Soutien
+
+(Passif) Quand un allié passe sous 5 cœurs, Armin gagne Force.
 
 ### Annulation Tactique
 

@@ -41,9 +41,10 @@ public final class Mikasa extends Character {
 
     public Mikasa() {
         super("mikasa", "Mikasa Ackerman", Voie.DESTRUCTION, Material.DIAMOND_SWORD);
-        addAbility(new StyleForce());
+        addAbility(new GearForce());
         addAbility(new Assommage());
         addAbility(new SusALaCible());
+        addAbility(new StyleForce());
         addAbility(new LoyauteAckermann());
         setUltimate(new JeLeSauverais());
     }
@@ -69,11 +70,20 @@ public final class Mikasa extends Character {
         return eren != null && SNK.isLow(eren);
     }
 
-    /** L'equipement tridimensionnel, qui donne en plus Force (cumulable). */
-    static final class StyleForce extends SNK.OdmGear {
-        StyleForce() { super(SNK.Style.FORCE, "Style Force : Mikasa, tres a l'aise avec l'equipement, gagne Force (cumulable)."); }
-        @Override public void onEquip(Player p, CfPlayer cf) { Boosts.set(p, "mikasa_force", new Boosts.Boost(1, 0, 0, 0)); }
-        @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "mikasa_force"); Boosts.remove(p, "mikasa_loyaute"); Boosts.remove(p, "mikasa_ult"); }
+    /** L'equipement tridimensionnel de Mikasa : sa Force permanente est un passif a part (StyleForce), avec sa carte allumee. */
+    static final class GearForce extends SNK.OdmGear {
+        GearForce() { super(SNK.Style.FORCE, "Style Force : Mikasa, tres a l'aise avec l'equipement, gagne Force (cumulable)."); }
+        // Rien a dire de plus sur la carte de l'arme : le passif Style Force le dit, allume en permanence.
+        @Override public String weaponEffect() { return ""; }
+        @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "mikasa_loyaute"); Boosts.remove(p, "mikasa_ult"); }
+    }
+
+    /** Force en permanence (cumulable avec les autres) : sa carte reste allumee en haut a gauche. */
+    static final class StyleForce extends PassiveAbility {
+        StyleForce() { super("mikasa_force", "Style Force", "Mikasa, tres a l'aise avec l'equipement tridimensionnel, a Force en permanence (cumulable)."); }
+        @Override public void onEquip(Player p, CfPlayer cf) { Boosts.set(p, "mikasa_force", new Boosts.Boost(1, 0, 0, 0)); active(p, true); }
+        @Override public void tick(Player p, CfPlayer cf, AbilityState st) { active(p, true); }
+        @Override public void onUnequip(Player p, CfPlayer cf) { Boosts.remove(p, "mikasa_force"); active(p, false); }
     }
 
     // ---------------------------------------------------------------- pouvoirs

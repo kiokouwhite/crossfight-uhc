@@ -6,8 +6,6 @@ Voie de la Destruction
 
 ### Lames (Style Force)
 
-Style Force : Mikasa, très à l'aise avec l'équipement, gagne Force (cumulable).
-
 ## Pouvoirs
 
 ### Assommage
@@ -21,6 +19,10 @@ Temps de chargement : 15 secondes
 (Actif) Menu des adversaires à 100 blocs : la cible choisie est en surbrillance 1 minute et Mikasa gagne Speed 30 secondes. Si Eren à moins de 5 cœurs, Mikasa gagne aussi Force contre cette cible.
 
 Temps de chargement : 1 minute
+
+### Style Force
+
+(Passif) Mikasa, très à l'aise avec l'équipement tridimensionnel, a Force en permanence (cumulable).
 
 ### Loyauté Ackermann
 
