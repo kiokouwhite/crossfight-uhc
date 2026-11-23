@@ -336,7 +336,7 @@ public final class Armin extends Character {
                     new ChoiceMenu.Option(Material.SUGAR, "Speed II", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 2, 0, 0), "Speed II", 2), "bonus_speed"),
                     new ChoiceMenu.Option(Material.SHIELD, "Resistance", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 0, 1, 0), "Resistance", 1), "bonus_resistance"),
                     new ChoiceMenu.Option(Material.BLAZE_POWDER, "Force", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(1, 0, 0, 0), "Force", 0), "bonus_force"));
-            ChoiceMenu.open(p, "<gold><bold>Abnegation : quel bonus ?", options);
+            ChoiceMenu.openWheel(p, "<gold><bold>Abnegation : quel bonus ?", options, null);
             return true;
         }
 /** Ticks de la lumiere qui descend du ciel sur Armin, avant l'explosion lumineuse. */

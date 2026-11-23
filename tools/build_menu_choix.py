@@ -57,6 +57,52 @@ def menu(rows, choices=None):
     return out
 
 
+# La roue des menus a trois choix (ChoiceMenu.openWheel) : son centre est celui de la case du milieu d'un coffre
+# de cinq rangees, ses trois parts sont celles de ChoiceMenu.wheelSector (en haut, en bas a gauche, en bas a droite).
+WHEEL_ROWS, RADIUS = 5, 44
+NAVY, CREAM = (62, 66, 110, 255), (255, 240, 220, 255)
+
+
+def wheel(icons, tints):
+    """Un rond coupe en trois parts, chacune a sa teinte et avec son icone ; dessous, l'inventaire du joueur."""
+    import math
+    mine = mf.sprite("Item slots", "Slot_02_Empty")
+    h = height(WHEEL_ROWS)
+    im = Image.new("RGBA", (W, h), (0, 0, 0, 0))
+    cx, cy = 8 + 4 * 18 + 9, 18 + 2 * 18 + 9
+    px = im.load()
+    for y in range(cy - RADIUS - 2, cy + RADIUS + 3):
+        for x in range(cx - RADIUS - 2, cx + RADIUS + 3):
+            d = math.hypot(x - cx + 0.5, y - cy + 0.5)
+            if d > RADIUS + 2:
+                continue
+            a = math.degrees(math.atan2(-(y - cy + 0.5), x - cx + 0.5)) % 360
+            k = 0 if 30 < a < 150 else 1 if 150 <= a < 270 else 2
+            # Le bord du rond et les trois rayons qui separent les parts, dans le bleu nuit du pack.
+            edge = d > RADIUS or min(abs((a - b + 180) % 360 - 180) for b in (30, 150, 270)) * math.pi / 180 * d < 1.1
+            shade = tints[k] if d < RADIUS - 3 else tuple(max(0, c - 28) for c in tints[k][:3]) + (255,)
+            px[x, y] = NAVY if edge else shade
+    # Le moyeu, au centre.
+    for y in range(cy - 6, cy + 6):
+        for x in range(cx - 6, cx + 6):
+            d = math.hypot(x - cx + 0.5, y - cy + 0.5)
+            if d <= 5.5:
+                px[x, y] = NAVY if d > 3.6 else CREAM
+    # L'icone de chaque part, a mi-rayon sur sa bissectrice.
+    for k, a in enumerate((90, 210, 330)):
+        ic = icons[k]
+        x = cx + 25 * math.cos(math.radians(a)) - ic.width / 2
+        y = cy - 25 * math.sin(math.radians(a)) - ic.height / 2
+        im.alpha_composite(ic, (round(x), round(y)))
+    top = 32 + 18 * WHEEL_ROWS
+    for c in range(9):
+        for y in (top, top + 18, top + 36, top + 58):
+            im.alpha_composite(mine, (8 + 18 * c, y))
+    out = mf.nine(mf.sprite("Background boxes", "BGbox_01B"), W + 2 * M, h + 2 * M)
+    out.alpha_composite(im, (M, M))
+    return out
+
+
 def main():
     if not mf.ONE.is_dir():
         print("pack de Franuka absent (resourcepack-prive/ui-franuka/) : rien a faire, les menus gardent le coffre de Minecraft")
@@ -65,6 +111,14 @@ def main():
     tex.mkdir(parents=True, exist_ok=True)
     shapes = [(f"menu_choix_{n}", 0xE010 + n - 1, menu(1, n)) for n in range(1, 6)]
     shapes += [(f"menu_choix_r{r}", 0xE020 + r - 1, menu(r)) for r in range(1, 7)]
+    # La roue des trois bonus d'Armin (Abnegation) : la botte en haut, le bouclier en bas a gauche, le poing en bas a droite.
+    icones = ASSETS / "textures" / "item" / "icone"
+    bonus = [icones / f"bonus_{n}.png" for n in ("speed", "resistance", "force")]
+    if all(f.is_file() for f in bonus):
+        shapes.append(("menu_choix_roue", 0xE030, wheel([Image.open(f).convert("RGBA") for f in bonus],
+                                                         [(160, 196, 236, 255), (196, 198, 214, 255), (238, 176, 170, 255)])))
+    else:
+        print("  icones bonus_* absentes (python3 tools/build_icones.py d'abord) : pas de roue")
     providers = [{"type": "space", "advances": {"": -18, "": -(W + 2 * M + 1) + 18}}]
     for name, code, im in shapes:
         im.save(tex / f"{name}.png")
@@ -74,7 +128,7 @@ def main():
     (font / "choix.json").write_text(json.dumps({"providers": providers}, ensure_ascii=True, indent=1), encoding="utf-8")
     print(f"{len(shapes)} habillages de menus de choix dans resourcepack-prive/ (police choix)")
     if "--apercu" in sys.argv:
-        shapes[2][2].save(sys.argv[sys.argv.index("--apercu") + 1])
+        shapes[-1][2].save(sys.argv[sys.argv.index("--apercu") + 1])
     return 0
 
 

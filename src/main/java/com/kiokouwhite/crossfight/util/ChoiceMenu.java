@@ -33,7 +33,69 @@ public final class ChoiceMenu implements Listener {
         /** Celui pour qui le menu est ouvert (un joueur pilote voit le sien s'afficher chez son testeur). */
         Player owner;
         boolean done;
+        /** Un menu en roue : pour chaque case du coffre, le choix qu'elle porte (-1 : aucun). Null : un menu en rangees. */
+        int[] wheel;
         @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Les rangees du coffre d'un menu en roue, et le caractere de son image dans la police "choix". */
+    private static final int WHEEL_ROWS = 5;
+    private static final char WHEEL_IMAGE = '\uE030';
+
+    /** Le choix (0, 1, 2) que porte une case de la roue, ou -1 : la roue est centree sur la case du milieu, coupee en trois parts. */
+    private static int wheelSector(int slot) {
+        int dx = (slot % 9 - 4) * 18, dy = (slot / 9 - 2) * 18;
+        double d = Math.hypot(dx, dy);
+        if (d < 1 || d > 41) return -1;
+        double a = Math.toDegrees(Math.atan2(-dy, dx));
+        if (a < 0) a += 360;
+        // En haut (de 30 a 150 degres) le premier choix, en bas a gauche le deuxieme, en bas a droite le troisieme.
+        return a > 30 && a < 150 ? 0 : a >= 150 && a < 270 ? 1 : 2;
+    }
+
+    /**
+     * Un menu a trois choix presente en roue : un rond coupe en trois parts, une par choix, avec son icone
+     * (tools/build_menu_choix.py dessine la roue ; l'ordre des choix est celui de ses parts : en haut, en bas a
+     * gauche, en bas a droite). Chaque part est cliquable sur toute sa surface. Sans le pack complet charge, ou
+     * avec un autre nombre de choix, c'est le menu en rangees.
+     */
+    public static void openWheel(Player p, String title, List<Option> options, Consumer<Player> onCancel) {
+        if (options.size() != 3 || !Sounds.has("font.choix") || !Sounds.hasPackLoaded(p)) { open(p, title, options, onCancel); return; }
+        Holder holder = new Holder();
+        holder.options = options;
+        holder.onCancel = onCancel;
+        holder.owner = p;
+        holder.wheel = new int[WHEEL_ROWS * 9];
+        String text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(Msg.mm(title));
+        Inventory inv = Bukkit.createInventory(holder, WHEEL_ROWS * 9, net.kyori.adventure.text.Component.text("\uE100" + WHEEL_IMAGE + "\uE101")
+                .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                .append(net.kyori.adventure.text.Component.text(text).font(net.kyori.adventure.key.Key.key("minecraft", "default")).color(INK)));
+        holder.inv = inv;
+        for (int slot = 0; slot < holder.wheel.length; slot++) {
+            int k = holder.wheel[slot] = wheelSector(slot);
+            if (k < 0) continue;
+            Option o = options.get(k);
+            List<String> lore = new ArrayList<>(o.lore());
+            lore.add("");
+            lore.add("<green>Clique pour choisir");
+            // Un objet invisible : l'icone est dans l'image de la roue, la case ne porte que le nom et le clic.
+            var item = Items.of(org.bukkit.Material.PAPER, "<gold><bold>" + o.name(), lore);
+            var meta = item.getItemMeta();
+            meta.setItemModel(new org.bukkit.NamespacedKey(Sounds.NS, "hidden"));
+            item.setItemMeta(meta);
+            inv.setItem(slot, item);
+        }
+        p.openInventory(inv);
+        if (autoPick) {
+            Option first = options.get(0);
+            Bukkit.getScheduler().runTaskLater(com.kiokouwhite.crossfight.CrossfightPlugin.get(), () -> {
+                if (holder.done) return;
+                holder.done = true;
+                for (Player viewer : new ArrayList<>(Bukkit.getOnlinePlayers()))
+                    if (viewer.getOpenInventory().getTopInventory().getHolder() == holder) viewer.closeInventory();
+                first.action().run();
+            }, 30L);
+        }
     }
 
     public static void open(Player p, String title, List<Option> options, Consumer<Player> onCancel) {
@@ -109,10 +171,16 @@ public final class ChoiceMenu implements Listener {
         ItemStack it = e.getCurrentItem();
         if (it == null || it.getType().isAir()) return;
         int n = h.options.size();
-        int start = n <= 5 ? (9 - (n * 2 - 1)) / 2 : 0;
-        int step = n <= 5 ? 2 : 1;
-        int idx = (e.getRawSlot() - start) / step;
-        if (idx < 0 || idx >= n || (e.getRawSlot() - start) % step != 0) return;
+        int idx;
+        if (h.wheel != null) {
+            idx = e.getRawSlot() >= 0 && e.getRawSlot() < h.wheel.length ? h.wheel[e.getRawSlot()] : -1;
+            if (idx < 0) return;
+        } else {
+            int start = n <= 5 ? (9 - (n * 2 - 1)) / 2 : 0;
+            int step = n <= 5 ? 2 : 1;
+            idx = (e.getRawSlot() - start) / step;
+            if (idx < 0 || idx >= n || (e.getRawSlot() - start) % step != 0) return;
+        }
         h.done = true;
         p.closeInventory();
         Bukkit.getScheduler().runTask(CrossfightPlugin.get(), h.options.get(idx).action());
