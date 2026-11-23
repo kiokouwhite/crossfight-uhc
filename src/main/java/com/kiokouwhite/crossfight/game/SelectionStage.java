@@ -76,7 +76,7 @@ public final class SelectionStage implements Listener {
     private static final NamespacedKey ITEM_KEY = new NamespacedKey("crossfight", "selection_item");
 
     // Geometrie d'une carte, en blocs : la meme que tools/build_selection.py.
-    private static final double PH = 6.2, QW = PH * 368 / 992, SLANT = 0.0, PW = QW - SLANT;   // cartes droites (SLANT : leur ancienne inclinaison)
+    private static final double PH = 5.0, QW = PH * 448 / 800, SLANT = 0.0, PW = QW - SLANT;   // cartes droites (SLANT : leur ancienne inclinaison)
     private static final double GW = QW * 1.16, GH = PH * 1.07;
     /** La bande de couleur (haut), le bandeau sombre (haut), en fractions de la hauteur depuis le haut. */
     private static final double BAND_TOP = 0.70, STRIP_TOP = 0.885;

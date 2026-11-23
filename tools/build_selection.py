@@ -37,14 +37,14 @@ SOURCES = ROOT / "resourcepack-prive" / "selection"
 FONT = "/usr/share/fonts/opentype/inter/Inter-BlackItalic.otf"
 
 # Geometrie d'une carte, en blocs (voir SelectionStage).
-PH = 6.2                              # hauteur
+PH = 5.0                              # hauteur (6.2 avant : des cartes moins hautes et plus larges)
 SLANT = 0.0                           # les cartes sont droites (elles etaient inclinees : le haut decale vers la droite)
 Z = 4                                 # un pixel du dessin (le style du HUD, en gros pixels) = 4 pixels de l'image
-CARD_PX = (368, 992)                  # image de la carte : 92 x 248 pixels de dessin
+CARD_PX = (448, 800)                  # image de la carte : 112 x 200 pixels de dessin
 QW = PH * CARD_PX[0] / CARD_PX[1]     # 3.2 : largeur du carre affiche
 PW = QW - SLANT                       # 2.24 : largeur de la carte a une hauteur donnee
 GLOW_K = (1.16, 1.07)                 # le halo deborde de la carte
-GLOW_PX = (428, 1060)
+GLOW_PX = (520, 856)
 BAND_TOP, STRIP_TOP = 0.70, 0.885     # la bande de couleur, puis le bandeau sombre (fractions de hauteur)
 FACE_Y = 0.20                         # ou se place le visage du personnage (fraction de hauteur)
 BACKDROP_PX = (1024, 512)
