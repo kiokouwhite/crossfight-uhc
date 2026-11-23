@@ -240,7 +240,7 @@ public final class SelectionStage implements Listener {
     /** Les affichages d'un panneau, pour un joueur. */
     private static final class Panel {
         /** La carte entiere (pack prive), ou la carte vide teinte (sans illustration). */
-        ItemDisplay card, plate, glow, icon;
+        ItemDisplay card, portal, plate, glow, icon;
         /** Sans illustration : le personnage en statue (son skin du pack), ou a defaut en mannequin. */
         List<ItemDisplay> statue = List.of();
         Mannequin body;
@@ -249,13 +249,13 @@ public final class SelectionStage implements Listener {
         final List<Layer> layers = new ArrayList<>();
 
         void remove() {
-            for (Entity e : new Entity[]{card, plate, glow, icon, body, name, voie, info, stamp}) if (e != null && e.isValid()) e.remove();
+            for (Entity e : new Entity[]{card, portal, plate, glow, icon, body, name, voie, info, stamp}) if (e != null && e.isValid()) e.remove();
             for (ItemDisplay d : statue) if (d.isValid()) d.remove();
         }
 
         List<Display> displays() {
             List<Display> out = new ArrayList<>(statue);
-            for (Display d : new Display[]{card, plate, icon, name, voie}) if (d != null) out.add(d);
+            for (Display d : new Display[]{card, portal, plate, icon, name, voie}) if (d != null) out.add(d);
             return out;
         }
     }
@@ -463,6 +463,9 @@ public final class SelectionStage implements Listener {
         if (Sounds.has("select.card." + id)) {
             // Tout est dans l'image : illustration recadree, bande et nom, bandeau et icone de voie.
             p.card = item(v, s.at(0, 0, 0), "select/card/" + id, QW, PH, null);
+            // Derriere l'illustration, le portail anime, teint a la couleur du personnage (tools/build_selection.py).
+            p.portal = item(v, s.at(0, 0, -0.03), "select/portal", QW, PH, color);
+            p.layers.add(new Layer(p.portal, 0, 0, -0.03));
         } else {
             // Sans illustration : la carte vide a sa couleur, le personnage pose dessus, son nom en texte.
             p.plate = item(v, s.at(0, 0, 0), "select/card_plate", QW, PH, color);
@@ -623,6 +626,7 @@ public final class SelectionStage implements Listener {
             ItemDisplay face = p.card != null ? p.card : p.plate;
             if (face != null) {
                 animate(face, up ? QW * 1.06 : QW, up ? PH * 1.06 : PH, 0, 4);
+                if (p.portal != null) animate(p.portal, up ? QW * 1.06 : QW, up ? PH * 1.06 : PH, 0, 4);
                 face.teleport(s.at(0, 0, up ? 0.4 : 0));
             }
             // Ce qui est pose sur la carte avance et s'ecarte avec elle.
@@ -852,10 +856,12 @@ public final class SelectionStage implements Listener {
             face.setGlowing(true);
             face.setGlowColorOverride(Color.WHITE);
             animate(face, QW * 1.14, PH * 1.14, 0, 3);
+            if (p.portal != null) animate(p.portal, QW * 1.14, PH * 1.14, 0, 3);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 if (!face.isValid()) return;
                 face.setGlowing(false);
                 animate(face, QW * 1.06, PH * 1.06, 0, 6);
+                if (p.portal != null) animate(p.portal, QW * 1.06, PH * 1.06, 0, 6);
             }, 6L);
         }
     }

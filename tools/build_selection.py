@@ -103,7 +103,7 @@ def save(img: Image.Image, base: Path, rel: str):
     out = base / "textures" / "item" / "select" / (rel + ".png")
     out.parent.mkdir(parents=True, exist_ok=True)
     img.save(out, optimize=True)
-    model(base, rel, tinted=rel in ("card_plate", "card_glow"))
+    model(base, rel, tinted=rel in ("card_plate", "card_glow", "portal"))
     return out
 
 
@@ -215,7 +215,8 @@ def card(art, name, color, voie_img, framing, plate_only=False):
     w, h = CARD_PX
     lw, lh = w // Z, h // Z                                   # en pixels de dessin
     fancy = not plate_only and UI_TITLE.exists()
-    out = Image.new("RGBA", (w, h), (30, 30, 34, 255) if plate_only else NAVY_DARK + (255,))
+    # Derriere l'illustration, la carte est vide : le portail anime (portal) se voit a travers.
+    out = Image.new("RGBA", (w, h), (30, 30, 34, 255) if plate_only else (0, 0, 0, 0))
     if art is not None:
         fx, fy, zoom = framing
         k = zoom * h / art.height
@@ -232,8 +233,8 @@ def card(art, name, color, voie_img, framing, plate_only=False):
         d.rectangle((0, 0, lw - 1, lh - 1), outline=(70, 70, 78, 255))
         d.rectangle((1, 1, lw - 2, lh - 2), outline=(10, 10, 12, 255))
     else:
-        d.rectangle((0, y0, lw, y1 - 1), fill=NAVY + (238,))
-        d.rectangle((0, y1, lw, lh), fill=NAVY_DARK + (250,))
+        d.rectangle((0, y0, lw, y1 - 1), fill=NAVY + (255,))
+        d.rectangle((0, y1, lw, lh), fill=NAVY_DARK + (255,))
         d.rectangle((0, y0, lw, y0 + 1), fill=tuple(color) + (255,))          # le trait a la couleur du personnage
         d.line([(0, y0 + 2), (lw, y0 + 2)], fill=NAVY_DARK + (255,))
         d.line([(0, y1), (lw, y1)], fill=(84, 90, 140, 255))
@@ -268,7 +269,9 @@ def card(art, name, color, voie_img, framing, plate_only=False):
         kp = keep.load()
         for x, y in outside:
             kp[x, y] = 0
-        out.putalpha(keep.resize((w, h), Image.NEAREST))
+        from PIL import ImageChops
+        # (on multiplie la transparence au lieu de la remplacer : le fond vide de la carte doit rester vide)
+        out.putalpha(ImageChops.multiply(out.getchannel("A"), keep.resize((w, h), Image.NEAREST)))
         out.alpha_composite(frame.resize((w, h), Image.NEAREST))
     return out
 
@@ -314,6 +317,55 @@ def backdrop():
             vp[x, y] = round(255 * min(1.0, max(0.0, (r - 0.55) / 0.6)) * 0.85)
     dark = Image.new("RGBA", (w, h), (8, 9, 18, 255))
     return Image.composite(dark, img, vign)
+
+
+PORTAL_FRAMES = 24
+
+
+def portal():
+    """Le fond anime des cartes, comme un portail : des rayons de lumiere qui tournent lentement autour d'un coeur
+    brillant, une nebuleuse qui ondule, des etincelles qui scintillent. Un dessin d'ici, en gros pixels (un pixel de
+    dessin par pixel d'image), en gris clair sur sombre : le jeu le teinte a la couleur du personnage. Les images,
+    empilees de haut en bas, bouclent sans a-coup (portal.png.mcmeta)."""
+    import numpy as np
+    lw, lh = CARD_PX[0] // Z, CARD_PX[1] // Z
+    ys, xs = np.mgrid[0:lh, 0:lw].astype(float)
+    cx, cy = lw / 2, FACE_Y * lh + 0.16 * lh           # le coeur du portail, derriere le buste du personnage
+    dx, dy = xs - cx, (ys - cy) * 0.85
+    r = np.hypot(dx, dy) / (0.5 * lh)
+    ang = np.arctan2(dy, dx)
+    rnd = np.random.RandomState(7)
+    stars = [(rnd.randint(8, lw - 8), rnd.randint(8, int(BAND_TOP * lh)), rnd.randint(0, PORTAL_FRAMES), rnd.randint(1, 3)) for _ in range(46)]
+    sheet = Image.new("RGBA", (lw, lh * PORTAL_FRAMES), (0, 0, 0, 0))
+    for n in range(PORTAL_FRAMES):
+        t = 2 * math.pi * n / PORTAL_FRAMES
+        # Les rayons : 9 branches qui avancent d'une branche par boucle, doublees de 5 branches plus larges a contresens.
+        rays = 0.5 + 0.5 * np.cos(9 * ang + t + 3.0 * r) * np.cos(5 * ang - t + 1.3)
+        rays = np.clip(rays, 0, 1) ** 2
+        # La nebuleuse : des ondes lentes, qui reviennent a leur point de depart en fin de boucle.
+        neb = (np.sin(xs * 0.11 + 2.1 * np.sin(t) + ys * 0.05) + np.sin(ys * 0.09 - 1.7 * np.cos(t) + xs * 0.04)
+               + np.sin((xs + ys) * 0.07 + t)) / 3
+        neb = 0.5 + 0.5 * neb
+        core = np.exp(-(r * 5.5) ** 2)                                   # le coeur, presque blanc, petit
+        halo = np.exp(-(r * 1.25) ** 2)
+        v = 0.26 + 0.40 * neb * (0.4 + 0.6 * halo) + 0.52 * rays * halo + 0.5 * core
+        for sx, sy, phase, size in stars:
+            k = 0.5 + 0.5 * math.cos(2 * math.pi * (n - phase) / PORTAL_FRAMES * size)
+            if k > 0.55:
+                v[sy, sx] = max(v[sy, sx], 0.55 + 0.45 * k)
+                if k > 0.9:                                              # au plus fort, l'etincelle s'etire en croix
+                    for ox, oy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        v[sy + oy, sx + ox] = max(v[sy + oy, sx + ox], 0.6)
+        # Quelques niveaux francs plutot qu'un degrade : le rendu en aplats du HUD.
+        v = np.round(np.clip(v, 0, 1) * 9) / 9
+        g = (v * 255).astype("uint8")
+        frame = Image.merge("RGBA", [Image.fromarray(g)] * 3 + [Image.new("L", (lw, lh), 255)])
+        # Rien hors du cadre de la carte (ses marges, ses coins coupes).
+        keep = Image.new("L", (lw, lh), 0)
+        ImageDraw.Draw(keep).rectangle((7, 7, lw - 8, lh - 8), fill=255)
+        frame.putalpha(keep)
+        sheet.paste(frame, (0, lh * n))
+    return sheet, {"animation": {"frametime": 2, "width": lw, "height": lh}}
 
 
 def hud_fonts():
@@ -418,6 +470,9 @@ def main() -> int:
     made.append(save(card(None, "", (255, 255, 255), None, None, plate_only=True), PUBLIC, "card_plate"))
     made.append(save(card_glow(), PUBLIC, "card_glow"))
     made.append(save(backdrop(), PUBLIC, "backdrop"))
+    sheet, meta = portal()
+    made.append(save(sheet, PUBLIC, "portal"))
+    Path(str(made[-1]) + ".mcmeta").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     made += hud_fonts()
     voies = {}
     for f in sources("voie"):
