@@ -207,7 +207,7 @@ def name_label(text, max_w):
     return canvas.rotate(7, resample=Image.BICUBIC, expand=True)
 
 
-def card(art, name, color, voie_img, framing, plate_only=False):
+def card(art, name, color, voie_img, framing, plate_only=False, motion=None):
     """Une carte droite, dans le style du HUD : l'illustration recadree (le visage au milieu, a 20 % de la hauteur)
     sur un fond bleu nuit, une bande de nom au ton du HUD soulignee a la couleur du personnage, le nom dans la
     police de titre, une bande sombre et l'icone de la voie a cheval sur les deux, le cadre du pack d'interface
@@ -222,7 +222,15 @@ def card(art, name, color, voie_img, framing, plate_only=False):
         k = zoom * h / art.height
         a = art.resize((max(1, round(art.width * k)), max(1, round(art.height * k))), Image.LANCZOS)
         ty, tx = FACE_Y * h, w / 2
-        out.alpha_composite(a, (round(tx - fx * a.width), round(ty - fy * a.height)))
+        layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        layer.alpha_composite(a, (round(tx - fx * a.width), round(ty - fy * a.height)))
+        if motion:
+            # Une image de l'animation : le personnage se balance (le haut du corps bouge, sa base reste en place) et
+            # respire (il s'etire a peine vers le haut). La base : le haut de la bande du nom.
+            sway, stretch = motion
+            yb = BAND_TOP * h
+            layer = layer.transform((w, h), Image.AFFINE, (1, sway / yb, -sway, 0, 1 / stretch, yb * (1 - 1 / stretch)), resample=Image.BICUBIC)
+        out.alpha_composite(layer)
     # Les bandes, dessinees en pixels de dessin puis agrandies : le nom, puis le bas de la carte.
     y0, y1 = round(BAND_TOP * lh), round(STRIP_TOP * lh)
     low = Image.new("RGBA", (lw, lh), (0, 0, 0, 0))
@@ -320,6 +328,12 @@ def backdrop():
 
 
 PORTAL_FRAMES = 24
+
+# Les cartes dont le personnage bouge un peu (un essai) : il se balance de SWAY_PX pixels en haut de la carte et
+# respire (BREATH : de combien il s'etire), en une boucle de CARD_FRAMES images de CARD_FRAMETIME ticks chacune.
+ANIMATED = {"marth"}
+CARD_FRAMES, CARD_FRAMETIME = 20, 3      # 20 x 800 = 16 000 pixels de haut : juste sous la limite des textures du jeu
+SWAY_PX, BREATH = 5.0, 0.012
 
 
 def portal():
@@ -487,6 +501,18 @@ def main() -> int:
         name, color = names.get(cid, (cid.capitalize(), (200, 200, 200)))
         art = load(f)
         voie, framing = frames.get(cid, (None, None))
+        if cid in ANIMATED:
+            # Une carte animee : ses images empilees de haut en bas, fondues l'une dans l'autre par le jeu.
+            sheet = Image.new("RGBA", (CARD_PX[0], CARD_PX[1] * CARD_FRAMES), (0, 0, 0, 0))
+            for n in range(CARD_FRAMES):
+                t = 2 * math.pi * n / CARD_FRAMES
+                frame = card(art, name, color, voies.get(voie), framing or auto_framing(art),
+                             motion=(SWAY_PX * math.sin(t), 1 + BREATH * (0.5 - 0.5 * math.cos(2 * t))))
+                sheet.paste(frame, (0, CARD_PX[1] * n))
+            made.append(save(sheet, PRIVATE, f"card/{cid}"))
+            Path(str(made[-1]) + ".mcmeta").write_text(json.dumps({"animation": {
+                "frametime": CARD_FRAMETIME, "interpolate": True, "width": CARD_PX[0], "height": CARD_PX[1]}}, indent=1), encoding="utf-8")
+            continue
         made.append(save(card(art, name, color, voies.get(voie), framing or auto_framing(art)), PRIVATE, f"card/{cid}"))
     for p in made:
         print(p.relative_to(ROOT))
