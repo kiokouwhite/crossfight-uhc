@@ -255,6 +255,7 @@ public final class GameManager {
         com.kiokouwhite.crossfight.util.Boosts.clearAll();
         com.kiokouwhite.crossfight.hud.InfluenceHud.clearAll();
         com.kiokouwhite.crossfight.util.Revived.clear();
+        plugin.backpack().reset();
         for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().reset();
         for (Player p : Bukkit.getOnlinePlayers()) {
             CfPlayer cf = plugin.players().get(p);

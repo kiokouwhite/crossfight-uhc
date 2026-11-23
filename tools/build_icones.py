@@ -129,6 +129,8 @@ RECIPES = {
             ("Bonus Force", "bonus_force", "Warrior 31 rouge"),
             ("Bonus Résistance", "bonus_resistance", "Warrior 27 gris"),
             ("Bonus Speed", "bonus_speed", "Rogue 3 bleu"),
+            # Le sac a dos d'equipe (listener/Backpack) : le sac de cuir de la collection.
+            ("Sac à dos d'équipe", "sac_a_dos", "Objets 263"),
         ],
         "Eren Jaeger": [
             ("Charge tridimensionnelle", "eren_charge", "Warrior 9 vert"),

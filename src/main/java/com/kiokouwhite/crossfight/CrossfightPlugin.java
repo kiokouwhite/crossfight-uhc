@@ -20,6 +20,10 @@ import org.bukkit.plugin.java.JavaPlugin;
  */
 public final class CrossfightPlugin extends JavaPlugin {
 
+    private com.kiokouwhite.crossfight.listener.Backpack backpack;
+    /** Les sacs a dos d'equipe. */
+    public com.kiokouwhite.crossfight.listener.Backpack backpack() { return backpack; }
+
     private static CrossfightPlugin instance;
 
     private PlayerManager playerManager;
@@ -63,6 +67,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         var pm = getServer().getPluginManager();
         pm.registerEvents(abilityEngine, this);
         pm.registerEvents(new ConnectionListener(this), this);
+        backpack = new com.kiokouwhite.crossfight.listener.Backpack(this);
+        pm.registerEvents(backpack, this);
         pm.registerEvents(new com.kiokouwhite.crossfight.listener.ArmorHider(this), this);
         effectHud = new com.kiokouwhite.crossfight.hud.EffectHud(this);
         pm.registerEvents(effectHud, this);
