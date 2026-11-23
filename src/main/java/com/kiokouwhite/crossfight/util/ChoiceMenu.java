@@ -66,10 +66,9 @@ public final class ChoiceMenu implements Listener {
         holder.onCancel = onCancel;
         holder.owner = p;
         holder.wheel = new int[WHEEL_ROWS * 9];
-        String text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(Msg.mm(title));
-        Inventory inv = Bukkit.createInventory(holder, WHEEL_ROWS * 9, net.kyori.adventure.text.Component.text("\uE100" + WHEEL_IMAGE + "\uE101")
-                .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                .append(net.kyori.adventure.text.Component.text(text).font(net.kyori.adventure.key.Key.key("minecraft", "default")).color(INK)));
+        // Pas de titre ecrit : la roue parle d'elle-meme (le titre ne sert qu'au menu en rangees, sans le pack).
+        Inventory inv = Bukkit.createInventory(holder, WHEEL_ROWS * 9, net.kyori.adventure.text.Component.text("\uE100" + WHEEL_IMAGE)
+                .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE));
         holder.inv = inv;
         for (int slot = 0; slot < holder.wheel.length; slot++) {
             int k = holder.wheel[slot] = wheelSector(slot);
