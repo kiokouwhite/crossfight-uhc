@@ -159,6 +159,32 @@ def kunai() -> Image.Image:
     return img
 
 
+def griffes() -> Image.Image:
+    """Les griffes du Titan Machoire (pack public), dessinees comme une epee de Minecraft : la base en bas a gauche,
+    la ou la main les tient, trois longues griffes d'ivoire recourbees qui partent en eventail vers le haut a
+    droite. Le pantin les tient comme une arme : elles prolongent sa main."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    ivory, light, shade, root = (232, 224, 200), (252, 248, 236), (150, 138, 112), (112, 70, 62)
+    # Chaque griffe : une courbe de sa racine a sa pointe (trois points), epaisse a la racine, fine au bout.
+    claws = [((3, 11), (5, 5), (9, 0)), ((4, 12), (9, 7), (15, 3)), ((5, 13), (10, 12), (15, 9))]
+    for a0, b0, c0 in claws:
+        for k in range(41):
+            t = k / 40
+            x = (1 - t) ** 2 * a0[0] + 2 * (1 - t) * t * b0[0] + t * t * c0[0]
+            y = (1 - t) ** 2 * a0[1] + 2 * (1 - t) * t * b0[1] + t * t * c0[1]
+            xi, yi = int(round(x)), int(round(y))
+            if 0 <= xi < 16 and 0 <= yi < 16:
+                px[xi, yi] = (light if t > 0.8 else ivory) + (255,)
+            # Le dessous de la griffe, dans l'ombre, tant qu'elle est epaisse.
+            if t < 0.6 and 0 <= xi < 16 and 0 <= yi + 1 < 16 and px[xi, yi + 1][3] == 0:
+                px[xi, yi + 1] = shade + (255,)
+    # La racine : la chair du doigt d'ou sortent les trois griffes.
+    for x, y in ((1, 12), (2, 12), (2, 13), (3, 13), (3, 14), (4, 14), (1, 13), (2, 14), (3, 12), (4, 13)):
+        px[x, y] = root + (255,)
+    return img
+
+
 def photo(src: Path) -> Image.Image:
     """Une image fournie sur fond blanc, gardee en couleurs : on la recadre sur son sujet (tout ce qui n'est pas
     le blanc du fond), on rend le fond transparent autour de son rectangle, et on la centre dans un carre."""
@@ -264,6 +290,8 @@ def main() -> int:
     # Valorant : les orbes de Sage, les bourrasques et les couteaux de Jett.
     for name, img in (("orbe", orb()), ("vent", gust()), ("kunai", kunai())):
         print(write(name, img, PUBLIC).relative_to(ROOT))
+    # Shingeki no Kyojin : les griffes du Titan Machoire.
+    print(write("griffes", griffes(), PUBLIC).relative_to(ROOT))
     # L'evenement Omori : la porte blanche de l'Espace Blanc.
     print(write("porte_blanche", white_door(), PUBLIC).relative_to(ROOT))
     # Les images officielles fournies remplacent, dans le pack complet, le dessin public du meme nom.

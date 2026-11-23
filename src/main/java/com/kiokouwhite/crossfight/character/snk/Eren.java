@@ -216,6 +216,7 @@ public final class Eren extends Character implements Listener {
         World w = p.getWorld();
         w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.2f);
         w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.7f);
+        Puppet fly = SNK.flight(p);
         new BukkitRunnable() {
             int t = 0;
             @Override public void run() {
@@ -233,11 +234,12 @@ public final class Eren extends Character implements Listener {
                         return;
                     }
                     p.setVelocity(diff.normalize().multiply(2.2).add(new Vector(0, 0.04, 0)));
+                    SNK.aim(fly, p, diff);
                     SNK.OdmGear.cable(p, target.getLocation().add(0, 1, 0));
                     w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.8, 0), 3, 0.3, 0.2, 0.3, 0, SNK.GAS);
                 } catch (Exception ex) { stop(); }
             }
-            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
+            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); SNK.land(p, fly); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
         }.runTaskTimer(SNK.plugin(), 0L, 1L);
     }
 
@@ -579,6 +581,12 @@ static boolean feminin(Player p) {
         static boolean machoire(Player p) {
             Puppet pu = titanPuppet(p);
             if (pu == null) { claw(p); return true; }
+            // De vraies griffes au bout de ses deux mains, le temps du coup (l'image "griffes" du pack).
+            if (com.kiokouwhite.crossfight.util.Fx.has("griffes")) {
+                ItemStack claws = com.kiokouwhite.crossfight.util.Fx.image("griffes", Color.WHITE);
+                pu.held(claws);
+                pu.second(claws);
+            }
             pu.pose("eren_titan_griffe_arme", 3);
             Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
                 if (!p.isOnline() || p.isDead()) return;

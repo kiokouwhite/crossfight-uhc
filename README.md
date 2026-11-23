@@ -533,13 +533,19 @@ Animations de Blake :
 
 Animations d'Eren :
 
+- **Équipement tridimensionnel** (les quatre personnages) : pendant qu'il est tiré par son grappin, le joueur vole le buste couché vers l'avant, les deux bras rejetés en arrière, une lame dans chaque main (pose `snk_vol`, `SNK.flight`). Le pantin regarde où il va et suit en partie la pente de sa trajectoire ; il se redresse à l'arrivée. Vaut aussi pour le dash du style Haine d'Eren et celui du style Soutien d'Armin.
+- **Mikasa** :
+  - *Assommage* : elle porte un coup d'épée droit devant elle (la garde, puis la fente), et sa lame scintille tant que le coup armé n'est pas porté.
+  - *Sus à la Cible* : elle pointe sa lame sur la cible choisie (pose `mikasa_pointe`), qui est forcée de la regarder pendant une demi-seconde (`Player.lookAt` à chaque tick).
+  - *Je le sauverai* : les deux lames croisées au-dessus de sa tête, puis rabattues en croix devant elle, où deux sillons rouges se coupent ; des particules rouges la suivent pendant les 30 secondes.
+- **Armin**, *Regroupement Militaire* : il lève le poing quand le regroupement part. En mode d'essai à la troisième personne, sans allié, le geste se joue seul.
 - **Charge tridimensionnelle** : il vole à un bloc du sol, tête la première, le corps couché vers l'avant, les deux jambes traînant derrière lui, les deux bras rejetés en arrière, une lame dans chaque main (`Puppet.second` : un second objet tenu, dans l'autre main, orienté par `item2` dans la pose). Le pantin regarde dans le sens de la charge et suit sa pente quand la cible est plus haut ou plus bas. La ruée dure de 4 à 7 ticks selon la distance (deux blocs et demi par tick) pour qu'on le voie passer.
 - **Pouvoirs de titan** (sous forme de Titan, pantin deux fois plus grand : `TitansPrimordiaux.titanPuppet`) :
   - *Colossal* : il lève les deux poings et les abat sur le sol, un genou à terre ; la vapeur part à l'impact, en une onde qui s'écarte jusqu'à 5 blocs puis monte de toute la zone.
   - *Féminin* : il se cristallise petit à petit. Des blocs de cristal poussent sur lui de bas en haut (jambes, torse, bras, tête, un étage toutes les 9 ticks), le suivent pendant les 10 secondes, puis volent en éclats.
   - *Cuirassé* : des plaques d'os le couvrent tant qu'il est Titan, sur le torse en Résistance, sur les jambes en Speed. Quand il intervertit, elles glissent d'un endroit à l'autre en une demi-seconde.
   - *Bestial* : un énorme rocher (2,4 blocs, trois blocs de pierre imbriqués de travers) grossit entre ses mains au-dessus de sa tête, puis il le jette.
-  - *Mâchoire* : il arme sa main en griffe derrière l'épaule et la rabat devant lui ; le coup part à ce moment-là.
+  - *Mâchoire* : trois longues griffes d'ivoire sortent de chacune de ses mains (image `griffes` du pack public, dessinée par `tools/build_glyphs.py`, que le pantin tient comme une arme) ; il arme sa main derrière l'épaule et la rabat devant lui ; le coup part à ce moment-là.
   - *Charrette* : il se jette à quatre pattes et galope (deux temps qui alternent tous les trois ticks) pendant le dash et les 5 secondes de vitesse.
   - *Marteau d'Armes* : l'arme jaillit du sol devant lui en trois ticks ; il tend la main, l'empoigne et la brandit, et c'est là qu'elle arrive dans son inventaire.
   - Le cristal et les plaques sont des blocs affichés qui suivent le joueur ; lui-même ne les voit pas (ils lui boucheraient la vue).

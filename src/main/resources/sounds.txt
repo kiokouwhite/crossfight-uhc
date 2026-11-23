@@ -636,6 +636,7 @@ fonticone.yuki_insatiable.e1a1
 fonticone.yuki_souffrante.e1a2
 fonticone.yuki_ult.e1a3
 glyph.flaque_noire
+glyph.griffes
 glyph.kunai
 glyph.orbe
 glyph.porte_blanche

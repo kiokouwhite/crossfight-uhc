@@ -631,6 +631,44 @@ pose blake_enfonce_fond
   arm_r -150 0 -15
   arm_l -150 0 15
 
+# Shingeki no Kyojin, le vol a l'equipement tridimensionnel (les quatre personnages) : le buste couche vers
+# l'avant, la tete relevee, les deux bras rejetes en arriere avec une lame dans chaque main, les jambes trainant.
+pose snk_vol
+  root  56 0 0   0 4 2
+  head  -48 0 0
+  arm_r 52 0 -22
+  arm_l 52 0 22
+  leg_r -2 0 -4
+  leg_l 20 0 4
+  item  52 0 0
+
+# Mikasa, Sus a la Cible : droite, de profil, le bras tendu a l'horizontale, la lame pointee sur sa cible.
+pose mikasa_pointe
+  root  0 32 0
+  head  0 -32 0
+  arm_r -90 -32 0
+  arm_l 14 0 12
+  leg_r -8 -32 -5
+  leg_l 10 -32 5
+  item_world 0 -32 0
+
+# Mikasa, Je le sauverai : les deux lames croisees au-dessus de sa tete...
+pose mikasa_croix_arme
+  root  -8 0 0
+  head  -8 0 0
+  arm_r -152 0 30
+  arm_l -152 0 -30
+  leg_r 8 0 -6
+  leg_l -10 0 6
+# ...puis rabattues en croix, chacune vers le bas et vers l'exterieur, le buste jete en avant.
+pose mikasa_croix
+  root  22 0 0   0 -1 0
+  head  -14 0 0
+  arm_r -34 0 -34
+  arm_l -34 0 34
+  leg_r -24 0 -6
+  leg_l 22 0 6
+
 # Eren, Charge tridimensionnelle : il fonce tete la premiere, le corps couche vers l'avant, les deux bras rejetes
 # en arriere, une lame dans chaque main qui traine derriere lui, les deux jambes trainant derriere lui : il vole
 # a un bloc du sol, il ne court pas.

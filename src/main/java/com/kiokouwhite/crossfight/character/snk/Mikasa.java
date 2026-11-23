@@ -87,11 +87,48 @@ public final class Mikasa extends Character {
             // Sa carte reste en haut a gauche tant que le coup n'est pas porte.
             showWhile(p, () -> st.get("armed", false));
             p.getWorld().playSound(p.getLocation(), Sound.ITEM_ARMOR_EQUIP_IRON, 1f, 0.8f);
+            // Elle porte un coup d'epee droit devant elle : la garde, puis la fente.
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "mikasa", cf.character().createWeapon(), "debout");
+            if (pu != null) {
+                pu.pose("weiss_estoc_arme", 2);
+                org.bukkit.Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                    if (com.kiokouwhite.crossfight.util.Puppet.of(p) != pu) return;
+                    pu.pose("weiss_estoc", 2);
+                    p.getWorld().playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.1f);
+                }, 3L);
+                pu.endAfter(10, 3);
+            }
+            // Sa lame scintille tant que le coup n'est pas porte.
+            new org.bukkit.scheduler.BukkitRunnable() {
+                @Override public void run() {
+                    if (!p.isOnline() || p.isDead() || !st.get("armed", false)) { cancel(); return; }
+                    blade(p);
+                }
+            }.runTaskTimer(SNK.plugin(), 8L, 2L);
             Msg.actionBar(p, "<yellow>Assommage pret : le prochain coup etourdit.");
             return true;
         }
         @Override public String barText(Player p, CfPlayer cf, AbilityState st) {
             return st.get("armed", false) ? "<yellow>Assommage <white>arme" : null;
+        }
+        private static final Particle.DustOptions SPARK = new Particle.DustOptions(org.bukkit.Color.fromRGB(255, 226, 120), 0.7f);
+
+        /** Des etincelles le long de la lame qu'elle tient dans la main droite. */
+        static void blade(Player p) {
+            Location eye = p.getEyeLocation();
+            org.bukkit.util.Vector dir = eye.getDirection();
+            org.bukkit.util.Vector flat = dir.clone().setY(0);
+            if (flat.lengthSquared() < 1e-4) flat = new org.bukkit.util.Vector(0, 0, 1);
+            flat.normalize();
+            org.bukkit.util.Vector right = new org.bukkit.util.Vector(-flat.getZ(), 0, flat.getX());
+            // La garde, pres de sa hanche droite ; la lame monte vers l'avant.
+            Location grip = p.getLocation().add(0, 0.95, 0).add(right.multiply(0.38)).add(flat.clone().multiply(0.3));
+            org.bukkit.util.Vector along = flat.clone().multiply(0.75).add(new org.bukkit.util.Vector(0, 0.65, 0));
+            for (int k = 0; k < 3; k++) {
+                double f = 0.25 + Math.random() * 0.75;
+                p.getWorld().spawnParticle(Particle.DUST, grip.clone().add(along.clone().multiply(f)), 1, 0.02, 0.02, 0.02, 0, SPARK);
+            }
+            if (Math.random() < 0.25) p.getWorld().spawnParticle(Particle.ENCHANTED_HIT, grip.clone().add(along), 1, 0.05, 0.05, 0.05, 0);
         }
         @Override public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (!st.get("armed", false) || e.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
@@ -138,8 +175,41 @@ public final class Mikasa extends Character {
             String name = t instanceof Player tp ? tp.getName() : "le mannequin";
             Msg.send(p, "<red>Sus a la Cible : <white>" + name + "</white> est traque" + (erenLow(p) ? " <gray>(Force contre lui)" : "") + ".");
             p.getWorld().playSound(p.getLocation(), Sound.ENTITY_WOLF_GROWL, 1f, 0.8f);
+            point(p, cf, t);
             p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1, 0), 20, 0.4, 0.5, 0.4, 0, SCARF);
         }
+        /** Ticks pendant lesquels la cible est forcee de regarder Mikasa (une demi-seconde). */
+        static final int STARE = 10;
+
+        /** Mikasa pointe sa lame vers sa cible, qui ne peut regarder qu'elle pendant une demi-seconde. */
+        static void point(Player p, CfPlayer cf, LivingEntity t) {
+            Location from = p.getLocation(), to = t.getLocation();
+            org.bukkit.util.Vector toward = to.toVector().subtract(from.toVector());
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "mikasa", cf.character().createWeapon(), "debout");
+            if (pu != null) {
+                if (toward.lengthSquared() > 1e-4) pu.face(from.clone().setDirection(toward).getYaw());
+                pu.pose("mikasa_pointe", 3);
+                pu.endAfter(STARE + 6, 3);
+            }
+            p.getWorld().playSound(p.getLocation(), Sound.ITEM_TRIDENT_RETURN, 1f, 1.4f);
+            if (t instanceof Player tp) {
+                tp.playSound(tp.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 0.5f, 1.6f);
+                Effects.say(tp, "<red>" + p.getName() + " te prend pour cible !");
+            }
+            new org.bukkit.scheduler.BukkitRunnable() {
+                int n = 0;
+                @Override public void run() {
+                    if (n++ >= STARE || !p.isOnline() || t.isDead() || !t.isValid() || !t.getWorld().equals(p.getWorld())) { cancel(); return; }
+                    Location eye = p.getEyeLocation();
+                    if (t instanceof Player tp) tp.lookAt(eye.getX(), eye.getY(), eye.getZ(), io.papermc.paper.entity.LookAnchor.EYES);
+                    else {
+                        org.bukkit.util.Vector d = eye.toVector().subtract(t.getEyeLocation().toVector());
+                        if (d.lengthSquared() > 1e-4) { Location l = t.getLocation().setDirection(d); t.setRotation(l.getYaw(), l.getPitch()); }
+                    }
+                }
+            }.runTaskTimer(SNK.plugin(), 0L, 1L);
+        }
+
         @Override public void onDealDamage(Player attacker, LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
             if (System.currentTimeMillis() > st.get("focusUntil", 0L)) return;
             if (victim.getUniqueId().toString().equals(st.get("focus", ""))) e.setDamage(e.getDamage() + 3.0);
@@ -166,6 +236,38 @@ public final class Mikasa extends Character {
         JeLeSauverais() {
             super("mikasa_ult", "Je le sauverai", "Mikasa se teleporte sur Eren : pendant 30 secondes, tant qu'Eren est a moins de 10 blocs, il est invincible et Mikasa gagne Force, Resistance et Speed. Sans Eren, Mikasa garde les bonus.", Material.RED_WOOL);
         }
+        private static final Particle.DustOptions SLASH = new Particle.DustOptions(org.bukkit.Color.fromRGB(215, 30, 40), 1.5f);
+
+        /** Le lancement : les deux lames croisees au-dessus de sa tete, puis rabattues en croix devant elle. */
+        static void crossSlash(Player p, CfPlayer cf) {
+            org.bukkit.inventory.ItemStack blade = cf.character().createWeapon();
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "mikasa", blade, "debout");
+            if (pu != null) {
+                pu.second(blade);
+                pu.pose("mikasa_croix_arme", 3);
+                pu.endAfter(13, 3);
+            }
+            org.bukkit.Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
+                if (!p.isOnline() || p.isDead()) return;
+                if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.pose("mikasa_croix", 2);
+                World w = p.getWorld();
+                // La croix : deux sillons rouges qui se coupent, a un bloc et demi devant elle.
+                Vector flat = p.getLocation().getDirection().setY(0);
+                if (flat.lengthSquared() < 1e-4) flat = new Vector(0, 0, 1);
+                flat.normalize();
+                Vector right = new Vector(-flat.getZ(), 0, flat.getX());
+                Location c = p.getLocation().add(0, 1.2, 0).add(flat.clone().multiply(1.5));
+                for (int k = -6; k <= 6; k++) {
+                    double f = k / 6.0 * 1.1;
+                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, f, 0), 1, 0, 0, 0, 0, SLASH);
+                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, -f, 0), 1, 0, 0, 0, 0, SLASH);
+                }
+                w.spawnParticle(Particle.SWEEP_ATTACK, c, 2, 0.3, 0.3, 0.3, 0);
+                w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.8f);
+                w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.3f);
+            }, 4L);
+        }
+
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             Player eren = SNK.erenOf(p);
             World w = p.getWorld();
@@ -182,6 +284,18 @@ public final class Mikasa extends Character {
             }
             Boosts.set(p, "mikasa_ult", new Boosts.Boost(1, 1, 1, 0));
             w.playSound(p.getLocation(), Sound.ENTITY_WOLF_GROWL, 1f, 0.5f);
+            crossSlash(p, cf);
+            // Des particules rouges la suivent pendant tout l'ultime : autour d'elle, et une trainee derriere ses pas.
+            new BukkitRunnable() {
+                int t = 0;
+                @Override public void run() {
+                    t += 2;
+                    if (!p.isOnline() || p.isDead() || t > 600) { cancel(); return; }
+                    Location at = p.getLocation();
+                    p.getWorld().spawnParticle(Particle.DUST, at.clone().add(0, 1.0, 0), 3, 0.35, 0.55, 0.35, 0, SCARF);
+                    p.getWorld().spawnParticle(Particle.DUST, at.clone().add(0, 0.15, 0), 2, 0.2, 0.05, 0.2, 0, SCARF);
+                }
+            }.runTaskTimer(SNK.plugin(), 2L, 2L);
             UUID erenId = eren == null ? null : eren.getUniqueId();
             new BukkitRunnable() {
                 int t = 0;

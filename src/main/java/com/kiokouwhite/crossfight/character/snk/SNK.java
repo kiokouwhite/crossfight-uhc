@@ -107,6 +107,37 @@ public final class SNK {
 
     static void rush(Player p, Location to, int ticks, Particle particle) { Effects.rush(p, to, ticks, particle); }
 
+    /**
+     * La pose de vol de l'equipement tridimensionnel : le buste couche vers l'avant, les deux bras rejetes en
+     * arriere, une lame dans chaque main. Le pantin suit le joueur ; {@link #aim} l'oriente dans le sens du vol,
+     * {@link #land} le fait se redresser. Null sans le modele du personnage dans le pack.
+     */
+    static com.kiokouwhite.crossfight.util.Puppet flight(Player p) {
+        CfPlayer cf = plugin().players().get(p);
+        if (cf.character() == null || Eren.isTitan(p)) return null;
+        ItemStack blade = cf.character().createWeapon();
+        if (blade == null) blade = new ItemStack(Material.IRON_SWORD);
+        com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, cf.character().id(), blade, "snk_vol");
+        if (pu == null) return null;
+        pu.second(blade);
+        pu.endAfter(70, 4);
+        return pu;
+    }
+
+    /** Le pantin en vol regarde ou il va et suit la pente de sa trajectoire. */
+    static void aim(com.kiokouwhite.crossfight.util.Puppet pu, Player p, Vector dir) {
+        if (pu == null || com.kiokouwhite.crossfight.util.Puppet.of(p) != pu || dir.lengthSquared() < 1e-6) return;
+        Location heading = p.getLocation().setDirection(dir);
+        pu.face(heading.getYaw());
+        // Il est deja couche vers l'avant : on ne suit qu'une partie de la pente, pour qu'il ne pique pas du nez.
+        pu.spin(new Vector3f(1, 0, 0), Math.max(-35f, Math.min(35f, heading.getPitch() * 0.6f)), new Vector3f(0, 16, 0), 0);
+    }
+
+    /** Fin du vol : il se redresse. */
+    static void land(Player p, com.kiokouwhite.crossfight.util.Puppet pu) {
+        if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.endAfter(1, 4);
+    }
+
     /** Degats directs a soi-meme (ignorent l'armure), sans jamais tuer. */
     static void selfDamage(Player p, double amount) {
         double hp = Math.max(1.0, p.getHealth() - amount);
@@ -209,6 +240,7 @@ public final class SNK {
             Effects.softFallUntil(p, 5000);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.8f, 1.6f);
+            com.kiokouwhite.crossfight.util.Puppet fly = flight(p);
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
@@ -221,6 +253,7 @@ public final class SNK {
                         if (dist < 2.0) { stop(); return; }
                         Vector vel = diff.normalize().multiply(1.35).add(new Vector(0, 0.06, 0));
                         p.setVelocity(vel);
+                        aim(fly, p, vel);
                         cable(p, target);
                         if (t % 3 == 0) w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.8, 0), 3, 0.3, 0.2, 0.3, 0, GAS);
                         if (t % 5 == 0) w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_IDLE_AIR, 0.5f, 1.8f);
@@ -229,6 +262,7 @@ public final class SNK {
                 void stop() {
                     st.setEnabled(false);
                     st.set("stop", false);
+                    land(p, fly);
                     if (p.isOnline()) {
                         Vector v = p.getVelocity();
                         p.setVelocity(v.multiply(0.4));

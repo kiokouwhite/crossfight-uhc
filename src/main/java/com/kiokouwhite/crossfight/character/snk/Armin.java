@@ -74,6 +74,7 @@ public final class Armin extends Character {
         Effects.softFallUntil(p, 5000);
         World w = p.getWorld();
         w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.4f);
+        com.kiokouwhite.crossfight.util.Puppet fly = SNK.flight(p);
         new BukkitRunnable() {
             int t = 0;
             @Override public void run() {
@@ -83,11 +84,12 @@ public final class Armin extends Character {
                     Vector diff = ally.getLocation().add(0, 1, 0).toVector().subtract(p.getLocation().add(0, 1, 0).toVector());
                     if (diff.length() < 2.0) { p.setVelocity(p.getVelocity().multiply(0.2)); stop(); return; }
                     p.setVelocity(diff.normalize().multiply(2.2).add(new Vector(0, 0.04, 0)));
+                    SNK.aim(fly, p, diff);
                     SNK.OdmGear.cable(p, ally.getLocation().add(0, 1, 0));
                     w.spawnParticle(Particle.DUST, p.getLocation().add(0, 0.8, 0), 3, 0.3, 0.2, 0.3, 0, SNK.GAS);
                 } catch (Exception ex) { stop(); }
             }
-            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
+            void stop() { gearSt.setEnabled(false); gearSt.set("stop", false); SNK.land(p, fly); if (p.isOnline()) Effects.softFallUntil(p, 5000); cancel(); }
         }.runTaskTimer(SNK.plugin(), 0L, 1L);
     }
 
@@ -109,6 +111,12 @@ public final class Armin extends Character {
         }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
             List<Player> allies = SNK.allies(p);
+            if (allies.isEmpty() && com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(p)) {
+                // Mode d'essai a la troisieme personne, sans allie : le geste seul, personne n'est rappele.
+                raiseFist(p);
+                Msg.actionBar(p, "<blue>Regroupement : aucun allie a rappeler.");
+                return true;
+            }
             if (allies.isEmpty()) { Msg.actionBar(p, "<red>Aucun allie en vie."); return false; }
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (Player a : allies) {
@@ -119,10 +127,20 @@ public final class Armin extends Character {
             ChoiceMenu.open(p, "<blue><bold>Regroupement Militaire", options);
             return false;
         }
+        /** Le signal du regroupement : Armin leve le poing. */
+        static void raiseFist(Player p) {
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "armin", null, "debout");
+            if (pu == null) return;
+            pu.pose("yang_poing_leve", 3);
+            pu.endAfter(16, 4);
+            p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 2.4, 0), 12, 0.25, 0.2, 0.25, 0, BLUE);
+        }
+
         void bring(Player p, CfPlayer cf, AbilityState st, List<Player> who) {
             st.startCooldown((int) Math.ceil(cooldownSeconds() * cf.cooldownFactor()));
             // La capacite part au choix dans le menu, pas a son ouverture : son bruitage et sa replique aussi.
             com.kiokouwhite.crossfight.util.Sounds.ability(p, id());
+            raiseFist(p);
             World w = p.getWorld();
             int i = 0;
             for (Player a : who) {
