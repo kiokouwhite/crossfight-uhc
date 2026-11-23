@@ -965,10 +965,14 @@ passif.takumi
 passif.weiss
 passif.yang
 passif.yuki
+select.card.blake
 select.card.byleth
 select.card.corrin
 select.card.marth
+select.card.ruby
 select.card.takumi
+select.card.weiss
+select.card.yang
 select.logo.fire_emblem
 select.voie.chasse
 select.voie.destruction
