@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.joml.Vector3f;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -92,11 +93,15 @@ public final class Livai extends Character {
             Effects.noFallUntil(p, 7000);
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+            // Les deux bras tendus, une lame au bout de chacun, il tourne sur lui-meme a toute vitesse (trois tours par seconde).
+            com.kiokouwhite.crossfight.util.Puppet pu = lunge(p, cf, "livai_toupie");
+            if (pu != null) pu.endAfter(104, 4);
             new BukkitRunnable() {
                 int t = 0;
                 @Override public void run() {
                     t++;
-                    if (!p.isOnline() || p.isDead() || t > 100) { cancel(); return; }
+                    if (!p.isOnline() || p.isDead() || t > 100) { SNK.land(p, pu); cancel(); return; }
+                    if (pu != null && com.kiokouwhite.crossfight.util.Puppet.of(p) == pu) pu.spin(new Vector3f(0, 1, 0), t * 54f, new Vector3f(), 1);
                     double ang = t * 0.9;
                     Location c = p.getLocation().add(0, 1, 0);
                     for (int k = 0; k < 2; k++) {

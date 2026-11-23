@@ -1340,3 +1340,14 @@ pose livai_plonge
   leg_l -22 0 5
   item_world -60 0 0
   item2 52 0 0
+
+# Livai, Toupie : les deux bras tendus a l'horizontale de chaque cote, une lame dans le prolongement de chacun,
+# le corps droit, les jambes serrees ; le pantin tourne ensuite sur lui-meme a toute vitesse.
+pose livai_toupie
+  root  0 0 0   0 2 0
+  head  6 0 0
+  arm_r 0 0 -90
+  arm_l 0 0 90
+  leg_r 8 0 -3
+  leg_l -8 0 3
+  item_world 0 -90 0
