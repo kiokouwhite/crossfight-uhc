@@ -125,6 +125,10 @@ RECIPES = {
         # L'equipement tridimensionnel, commun aux quatre personnages : un grappin au bout de sa chaine.
         "Commun": [
             ("Équipement tridimensionnel", "snk_odm", "Rogue 30 gris"),
+            # Les trois bonus des menus d'Armin (Strategie, Abnegation), aux couleurs de leurs particules.
+            ("Bonus Force", "bonus_force", "Warrior 31 rouge"),
+            ("Bonus Résistance", "bonus_resistance", "Warrior 27 gris"),
+            ("Bonus Speed", "bonus_speed", "Rogue 3 bleu"),
         ],
         "Eren Jaeger": [
             ("Charge tridimensionnelle", "eren_charge", "Warrior 9 vert"),

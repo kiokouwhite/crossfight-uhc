@@ -163,6 +163,8 @@ public final class Armin extends Character {
     static final class Strategie extends SwitchAbility implements CustomUse {
         static final String[] EFFECTS = {"Force", "Resistance", "Speed"};
         static final Material[] ICONS = {Material.BLAZE_POWDER, Material.SHIELD, Material.SUGAR};
+        /** Les icones du pack complet pour ces trois effets (a la place des objets de Minecraft, quand le pack les a). */
+        static final String[] MODELS = {"bonus_force", "bonus_resistance", "bonus_speed"};
         Strategie() {
             super("armin_strategie", "Strategie", "Menu : Armin donne a un allie Force, Resistance ou Speed. Il peut changer d'allie ou d'effet quand il le souhaite.", Material.MAP, List.of(EFFECTS));
         }
@@ -188,7 +190,7 @@ public final class Armin extends Character {
             List<ChoiceMenu.Option> options = new ArrayList<>();
             for (int i = 0; i < EFFECTS.length; i++) {
                 final int mode = i;
-                options.add(new ChoiceMenu.Option(ICONS[i], EFFECTS[i], List.of(ally == null ? "<gray>Dans le vide (essai)" : "<gray>Pour " + ally.getName()), () -> apply(p, cf, st, ally, mode)));
+                options.add(new ChoiceMenu.Option(ICONS[i], EFFECTS[i], List.of(ally == null ? "<gray>Dans le vide (essai)" : "<gray>Pour " + ally.getName()), () -> apply(p, cf, st, ally, mode), MODELS[mode]));
             }
             ChoiceMenu.open(p, "<blue><bold>Strategie : quel effet ?", options);
         }
@@ -331,9 +333,9 @@ public final class Armin extends Character {
         }
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             List<ChoiceMenu.Option> options = List.of(
-                    new ChoiceMenu.Option(Material.SUGAR, "Speed II", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 2, 0, 0), "Speed II", 2)),
-                    new ChoiceMenu.Option(Material.SHIELD, "Resistance", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 0, 1, 0), "Resistance", 1)),
-                    new ChoiceMenu.Option(Material.BLAZE_POWDER, "Force", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(1, 0, 0, 0), "Force", 0)));
+                    new ChoiceMenu.Option(Material.SUGAR, "Speed II", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 2, 0, 0), "Speed II", 2), "bonus_speed"),
+                    new ChoiceMenu.Option(Material.SHIELD, "Resistance", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(0, 0, 1, 0), "Resistance", 1), "bonus_resistance"),
+                    new ChoiceMenu.Option(Material.BLAZE_POWDER, "Force", List.of("<gray>Pour toute l'equipe, 1 minute"), () -> apply(p, new Boosts.Boost(1, 0, 0, 0), "Force", 0), "bonus_force"));
             ChoiceMenu.open(p, "<gold><bold>Abnegation : quel bonus ?", options);
             return true;
         }
