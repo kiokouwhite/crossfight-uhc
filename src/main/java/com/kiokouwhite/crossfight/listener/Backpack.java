@@ -69,7 +69,7 @@ public final class Backpack implements Listener {
     public static boolean isBackpack(ItemStack it) { return it != null && Items.tag(it, KEY) != null; }
 
     private static ItemStack item() {
-        ItemStack it = Items.of(Material.CHEST, "<gold><bold>Sac a dos d'equipe",
+        ItemStack it = Items.of(Material.CHEST, "<gold><bold>Sac à dos d'équipe",
                 List.of("<gray>Un coffre partage par toute ton equipe,", "<gray>ou que soient tes allies.", "", "<yellow>Clic <gray>: ouvrir"));
         Items.tag(it, KEY, "1");
         // Son icone du pack complet, quand il en a une (tools/build_icones.py : "sac_a_dos").
@@ -113,7 +113,7 @@ public final class Backpack implements Listener {
         Inventory inv = bags.get(key);
         // La fenetre du pack d'interface est posee par le titre, et chacun la voit ou non selon son pack : le coffre est
         // donc recree pour celui qui l'ouvre si son titre ne lui convient pas, avec le meme contenu.
-        var title = com.kiokouwhite.crossfight.util.ChoiceMenu.window(p, "Sac a dos d'equipe", 3);
+        var title = com.kiokouwhite.crossfight.util.ChoiceMenu.window(p, "Sac à dos d'équipe", 3);
         boolean fancy = Sounds.has("font.choix") && Sounds.hasPackLoaded(p);
         if (inv == null || ((Bag) inv.getHolder()).fancy != fancy) {
             Bag holder = new Bag();

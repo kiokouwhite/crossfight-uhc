@@ -164,7 +164,9 @@ public final class ChoiceMenu implements Listener {
         String text = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(plain);
         return net.kyori.adventure.text.Component.text("\uE100" + image + "\uE101")
                 .font(net.kyori.adventure.key.Key.key(Sounds.NS, "choix")).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
-                .append(net.kyori.adventure.text.Component.text(text).font(net.kyori.adventure.key.Key.key("minecraft", "default")).color(INK));
+                .append(net.kyori.adventure.text.Component.text(text)
+                        // Le titre dans la police de titre du pack d'interface (tools/build_selection.py), sinon celle de Minecraft.
+                        .font(Sounds.has("font.hud_titre") ? net.kyori.adventure.key.Key.key(Sounds.NS, "hud_titre") : net.kyori.adventure.key.Key.key("minecraft", "default")).color(INK));
     }
 
     /**
