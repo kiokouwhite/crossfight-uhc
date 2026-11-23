@@ -63,7 +63,7 @@
   "jett_flottement": {"vous": "Tant que c'est actif, vous avez Chute lente.", "court": "Chute lente"},
   "jett_ult": {"vous": "Vous invoquez 5 couteaux autour de vous. Chaque clic droit sur cet objet en lance un, infligeant 2 cœurs.", "court": "5 couteaux, 2 PV chacun"},
 
-  "snk_odm": {"vous": "Clic droit : vous lancez un grappin à 30 blocs ; là où il s'accroche, vous êtes tiré dans les airs (s'accroupir lâche le câble). Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.", "court": "Grappin 30 blocs, gaz"},
+  "snk_odm": {"vous": "Clic droit : vous lancez un grappin à 30 blocs ; là où il s'accroche, vous êtes tiré dans les airs (s'accroupir lâche le câble). Chaque utilisation dépense 2 % de gaz, qui remonte de 1 % toutes les 2 secondes.", "court": "Grappin 30 blocs, 2 % de gaz"},
   "eren_style": {"vous": "Style Haine : si votre grappin attrape un adversaire, vous lui foncez dessus et lui infligez 2 cœurs à l'impact (10 s).", "court": "Grappin sur un ennemi : dash, 2 PV"},
   "mikasa_force": {"vous": "Très à l'aise avec l'équipement tridimensionnel, vous avez Force en permanence (cumulable).", "court": "Force permanente"},
   "livai_style": {"vous": "Style Toupie : clic droit avec les lames dans les airs pour une toupie de 5 secondes.", "court": "Clic droit en l'air : toupie 5 s"},
@@ -88,7 +88,7 @@
   "livai_charge": {"vous": "Vous foncez en avant sur 10 blocs en vous infligeant 3 cœurs. Chaque adversaire touché perd 5 cœurs.", "court": "Charge 10 blocs, 5 PV, -3 PV à vous"},
   "livai_assaut": {"vous": "Vous sautez à 5 blocs puis retombez : 3 cœurs aux adversaires à 2 blocs de l'impact. Si vous ratez, vous perdez 3 cœurs.", "court": "Chute 3 PV, raté = -3 PV"},
   "livai_camarades": {"vous": "Plus vous perdez d'alliés, plus vous vous renforcez : 1 allié éliminé = Speed ; 2 = Force et Speed ; 3 = Speed, Force et Résistance.", "court": "Bonus par allié perdu"},
-  "livai_ult": {"vous": "Pendant 30 secondes : clic droit pour foncer là où vous visez (30 blocs). Sur un ennemi, vous l'attrapez et le frappez (2 cœurs). Dans les airs vous gagnez Force. Pas de gaz consommé.", "court": "Dashs libres 30 s, Force en l'air"},
+  "livai_ult": {"vous": "Pendant 30 secondes : votre équipement tridimensionnel est beaucoup plus rapide et ne dépense pas de gaz. Si vous attrapez un ennemi, vous le frappez en arrivant sur lui (2 cœurs). Vous gagnez Force.", "court": "30 s : équipement très rapide, sans gaz, Force"},
   "armin_regroupement": {"vous": "Menu : vous téléportez un allié au choix, ou tous vos alliés, à côté de vous.", "court": "Téléporte les alliés à vous"},
   "armin_strategie": {"vous": "Menu : vous donnez à un allié Force, Résistance ou Speed. Vous pouvez changer d'allié ou d'effet quand vous le souhaitez.", "court": "Un bonus à un allié"},
   "armin_annulation": {"vous": "Tous les 5 coups infligés, vous annulez toutes les capacités de l'adversaire touché pendant 5 secondes.", "court": "5e coup : silence 5 s"},

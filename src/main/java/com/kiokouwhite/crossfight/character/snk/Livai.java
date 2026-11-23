@@ -58,7 +58,17 @@ public final class Livai extends Character {
                 "<white>Charge Destructrice : 10 blocs, 5 coeurs (3 pour lui)",
                 "<white>Assaut Impetueux : saut puis frappe en retombant",
                 "<white>Mes camarades tombes : plus fort a chaque allie perdu",
-                "<light_purple>Ultime : 30 s de deplacements instantanes");
+                "<light_purple>Ultime : 30 s d'equipement bien plus rapide, sans gaz, Force");
+    }
+
+    /** L'ultime : en arrivant sur l'ennemi que son grappin a attrape, Livai le frappe (2 coeurs) et le souleve. */
+    static void proStrike(Player p, LivingEntity target) {
+        if (target.isDead() || !p.isOnline()) return;
+        World w = target.getWorld();
+        Effects.damage(target, 4.0, p);
+        target.setVelocity(new Vector(0, 0.5, 0));
+        w.spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.3, 0.3, 0.3, 0);
+        w.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
     }
 
     static boolean ultActive(Player p) {
@@ -231,45 +241,12 @@ public final class Livai extends Character {
 
     // ----------------------------------------------------------------- ultime
 
-    /** 30 secondes : clic droit pour se deplacer quasi instantanement la ou Livai vise, attraper les ennemis ; Force dans les airs. */
-    static final class ProDeLEquipement extends UltimateAbility implements CustomUse {
+    /** 30 secondes : son equipement tridimensionnel est bien plus rapide et ne depense plus de gaz, il frappe l'ennemi qu'il attrape, et il a Force. */
+    static final class ProDeLEquipement extends UltimateAbility {
         ProDeLEquipement() {
-            super("livai_ult", "Pro de l'equipement tridimensionnel", "Pendant 30 secondes : clic droit pour foncer quasi instantanement la ou Livai vise (30 blocs). S'il vise un ennemi, il l'attrape et le frappe (2 coeurs). Dans les airs il gagne Force. Pas de gaz consomme.", Material.ELYTRA);
+            super("livai_ult", "Pro de l'equipement tridimensionnel", "Pendant 30 secondes : l'equipement tridimensionnel de Livai est beaucoup plus rapide (grappin et traction) et ne depense pas de gaz. S'il attrape un ennemi, il le frappe en arrivant sur lui (2 coeurs). Il gagne Force.", Material.ELYTRA);
         }
         static boolean active(AbilityState st) { return System.currentTimeMillis() < st.get("proUntil", 0L); }
-
-        /** Chaque bond de l'ultime a son propre son (un cri bref), pas la replique du lancement. */
-        @Override public String useSoundKey() { return "livai_ult_fonce"; }
-
-        @Override public boolean onUse(Player p, CfPlayer cf, AbilityState st, boolean sneaking) {
-            if (!active(st)) return false;
-            World w = p.getWorld();
-            Location eye = p.getEyeLocation();
-            Vector dir = eye.getDirection();
-            RayTraceResult hit = w.rayTrace(eye, dir, 30, FluidCollisionMode.NEVER, true, 0.8, e -> e instanceof LivingEntity le && Effects.isEnemy(p, le));
-            if (hit != null && hit.getHitEntity() instanceof LivingEntity target) {
-                Vector back = p.getLocation().toVector().subtract(target.getLocation().toVector()).setY(0);
-                if (back.lengthSquared() < 0.01) back = new Vector(1, 0, 0);
-                Location to = target.getLocation().add(back.normalize().multiply(1.0));
-                to.setDirection(target.getLocation().add(0, 1, 0).toVector().subtract(to.toVector().add(new Vector(0, 1.6, 0))));
-                SNK.rush(p, to, 2, Particle.SWEEP_ATTACK);
-                Bukkit.getScheduler().runTaskLater(SNK.plugin(), () -> {
-                    if (target.isDead()) return;
-                    Effects.damage(target, 4.0, p);
-                    target.setVelocity(new Vector(0, 0.5, 0));
-                    w.spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.3, 0.3, 0.3, 0);
-                    w.playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_CRIT, 1f, 1.2f);
-                }, 3L);
-                return true;
-            }
-            Location to = hit != null && hit.getHitBlock() != null
-                    ? hit.getHitPosition().toLocation(w).add(hit.getHitBlockFace().getDirection().multiply(0.6))
-                    : eye.clone().add(dir.clone().multiply(30));
-            to.setDirection(dir);
-            SNK.rush(p, to, 2, Particle.CLOUD);
-            w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 1f, 1.5f);
-            return true;
-        }
 
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             st.set("proUntil", System.currentTimeMillis() + 30000L);
@@ -277,11 +254,11 @@ public final class Livai extends Character {
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_CHARGE, 1f, 1.2f);
             w.spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0.05);
-            Msg.send(p, "<aqua><bold>Pro de l'equipement :</bold> <gray>clic droit sur l'ultime pour foncer ou tu vises.");
+            Msg.send(p, "<aqua><bold>Pro de l'equipement :</bold> <gray>ton equipement tridimensionnel est bien plus rapide et ne depense plus de gaz.");
+            Boosts.set(p, "livai_air", new Boosts.Boost(1, 0, 0, 0));
             new BukkitRunnable() {
                 @Override public void run() {
-                    if (!p.isOnline() || !active(st)) { Boosts.remove(p, "livai_air"); cancel(); return; }
-                    SNK.boostIf(p, "livai_air", !p.isOnGround(), new Boosts.Boost(1, 0, 0, 0));
+                    if (!p.isOnline() || !active(st)) { Boosts.remove(p, "livai_air"); cancel(); }
                 }
             }.runTaskTimer(SNK.plugin(), 1L, 2L);
             return true;

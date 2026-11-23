@@ -36,4 +36,4 @@ Temps de chargement : 15 secondes
 
 ### Pro de l'équipement tridimensionnel
 
-Pendant 30 secondes : clic droit pour foncer quasi instantanément la ou Livai vise (30 blocs). S'il vise un ennemi, il l'attrape et le frappe (2 cœurs). Dans les airs il gagne Force. Pas de gaz consomme.
+Pendant 30 secondes : l'équipement tridimensionnel de Livai est beaucoup plus rapide (grappin et traction) et ne dépense pas de gaz. S'il attrape un ennemi, il le frappe en arrivant sur lui (2 cœurs). Il gagne Force.

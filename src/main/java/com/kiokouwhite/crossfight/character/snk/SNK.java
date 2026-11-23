@@ -164,8 +164,8 @@ public final class SNK {
         OdmGear(Style style, String extra) {
             super("snk_odm", "Equipement tridimensionnel",
                     "Clic droit : lance un grappin a 30 blocs ; il s'accroche et te tire dans les airs (s'accroupir lache le cable). " + extra
-                            + " Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.",
-                    Material.BOW, 1.0, 0.5);
+                            + " Chaque utilisation depense 2 % de gaz, qui remonte de 1 % toutes les 2 secondes.",
+                    Material.BOW, 0.0, 0.5);
             this.style = style;
             this.styleNote = extra;
         }
@@ -183,9 +183,15 @@ public final class SNK {
             return true;
         }
 
+        /** Le gaz que coute chaque utilisation (sur 100). */
+        static final double COST = 2.0;
+
         void fire(Player p, AbilityState st) {
+            // L'ultime de Livai : un equipement bien plus rapide (grappin et traction), qui ne depense pas de gaz.
+            boolean pro = Livai.ultActive(p);
+            if (!pro) st.setGauge(Math.max(0, st.gauge() - COST));
             Vector dir = p.getEyeLocation().getDirection();
-            Arrow a = Effects.shootInstantArrow(p, dir, 3.0, 0.0);
+            Arrow a = Effects.shootInstantArrow(p, dir, pro ? 6.0 : 3.0, 0.0);
             a.setGravity(false);
             a.setInvisible(true);
             a.getPersistentDataContainer().set(HOOK, PersistentDataType.BYTE, (byte) 1);
@@ -203,7 +209,7 @@ public final class SNK {
                 int t = 0;
                 @Override public void run() {
                     t++;
-                    if (!a.isValid() || t > 12 || !p.isOnline()) {
+                    if (!a.isValid() || t > (pro ? 6 : 12) || !p.isOnline()) {
                         hook.remove();
                         if (a.isValid()) a.remove();
                         st.set("hooking", false);
@@ -228,7 +234,9 @@ public final class SNK {
                 if (style == Style.HAINE && Effects.isEnemy(p, target) && Eren.haineReady(p, st)) { Eren.haineDash(p, st, target); return; }
                 if (style == Style.SOUTIEN && Effects.isAlly(p, target) && Armin.soutienReady(p, st)
                         && target.getLocation().distance(p.getLocation()) <= 20) { Armin.soutienDash(p, st, target); return; }
-                pull(p, st, () -> target.isDead() ? null : target.getLocation().add(0, 1, 0));
+                // Pendant l'ultime de Livai, il attrape l'ennemi vise et le frappe en arrivant sur lui.
+                Runnable strike = Livai.ultActive(p) && Effects.isEnemy(p, target) ? () -> Livai.proStrike(p, target) : null;
+                pull(p, st, () -> target.isDead() ? null : target.getLocation().add(0, 1, 0), strike);
                 return;
             }
             if (e.getHitBlock() == null) { st.set("stop", true); return; }
@@ -238,7 +246,13 @@ public final class SNK {
         }
 
         /** Le joueur est tire vers l'ancre tant qu'il n'y est pas (ou tant qu'il a du gaz). */
-        void pull(Player p, AbilityState st, Supplier<Location> anchor) {
+        void pull(Player p, AbilityState st, Supplier<Location> anchor) { pull(p, st, anchor, null); }
+
+        /** @param arrived ce qui se passe quand il atteint l'ancre (null : rien) ; pas appele si le vol est interrompu */
+        void pull(Player p, AbilityState st, Supplier<Location> anchor, Runnable arrived) {
+            boolean pro = Livai.ultActive(p);
+            double speed = pro ? 3.2 : 1.35;
+            if (pro) com.kiokouwhite.crossfight.util.Sounds.ability(p, "livai_ult_fonce");
             st.set("stop", false);
             st.setEnabled(true);
             Effects.softFallUntil(p, 5000);
@@ -255,8 +269,8 @@ public final class SNK {
                         if (!p.isOnline() || p.isDead() || target == null || st.get("stop", false) || t > 60 || (t > 3 && p.isSneaking())) { stop(); return; }
                         Vector diff = target.toVector().subtract(p.getLocation().add(0, 1, 0).toVector());
                         double dist = diff.length();
-                        if (dist < 2.0) { stop(); return; }
-                        Vector vel = diff.normalize().multiply(1.35).add(new Vector(0, 0.06, 0));
+                        if (dist < Math.max(2.0, speed)) { stop(); if (arrived != null) arrived.run(); return; }
+                        Vector vel = diff.normalize().multiply(speed).add(new Vector(0, 0.06, 0));
                         p.setVelocity(vel);
                         aim(fly, p, vel);
                         cable(p, target);
