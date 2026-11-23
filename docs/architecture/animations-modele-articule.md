@@ -63,7 +63,7 @@ Animations de Blake :
 
 Animations d'Eren :
 
-- **Équipement tridimensionnel** (les quatre personnages) : pendant qu'il est tiré par son grappin, le joueur vole le buste couché vers l'avant, les deux bras rejetés en arrière, une lame dans chaque main (pose `snk_vol`, `SNK.flight`). Le pantin regarde où il va et suit en partie la pente de sa trajectoire ; il se redresse à l'arrivée. Vaut aussi pour le dash du style Haine d'Eren et celui du style Soutien d'Armin.
+- **Équipement tridimensionnel** (les quatre personnages) : s'accroupir pendant le vol lâche le câble (le vol s'arrête, comme les dashs des styles Haine et Soutien). Pendant qu'il est tiré par son grappin, le joueur vole le buste couché vers l'avant, les deux bras rejetés en arrière, une lame dans chaque main (pose `snk_vol`, `SNK.flight`). Le pantin regarde où il va et suit en partie la pente de sa trajectoire ; il se redresse à l'arrivée. Vaut aussi pour le dash du style Haine d'Eren et celui du style Soutien d'Armin.
 - **Mikasa** :
   - *Assommage* : elle porte un coup d'épée droit devant elle (la garde, puis la fente), et sa lame scintille tant que le coup armé n'est pas porté.
   - *Sus à la Cible* : elle pointe sa lame sur la cible choisie (pose `mikasa_pointe`), qui est forcée de la regarder pendant une demi-seconde (`Player.lookAt` à chaque tick).

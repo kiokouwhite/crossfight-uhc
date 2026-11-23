@@ -80,7 +80,7 @@ public final class Armin extends Character {
             @Override public void run() {
                 t++;
                 try {
-                    if (!p.isOnline() || p.isDead() || ally.isDead() || t > 25 || gearSt.get("stop", false)) { stop(); return; }
+                    if (!p.isOnline() || p.isDead() || ally.isDead() || t > 25 || gearSt.get("stop", false) || (t > 3 && p.isSneaking())) { stop(); return; }
                     Vector diff = ally.getLocation().add(0, 1, 0).toVector().subtract(p.getLocation().add(0, 1, 0).toVector());
                     if (diff.length() < 2.0) { p.setVelocity(p.getVelocity().multiply(0.2)); stop(); return; }
                     p.setVelocity(diff.normalize().multiply(2.2).add(new Vector(0, 0.04, 0)));

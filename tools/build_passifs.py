@@ -158,7 +158,13 @@ def text_of(a, text, tv=""):
 def weapon_abilities(character):
     """Les passifs portes par l'arme : une seule carte, celle de l'arme. (Un actif d'arme, comme la Falchion,
     n'apparait que quand il sert : la carte d'actif, sous les passifs.)"""
-    return [a for a in character["abilities"] if a["weapon"] and a["type"] == "Passif"]
+    own = [a for a in character["abilities"] if a["weapon"] and a["type"] == "Passif"]
+    # Une arme dont l'effet n'est porte par aucune capacite liee a l'arme (le style de l'equipement de SNK,
+    # "weaponNote" dans l'export) : sa carte porte cet effet, sous l'id <perso>_style dans tools/textes_hud.json.
+    if not own and character.get("weaponNote"):
+        own = [{"id": character["id"] + "_style", "name": character.get("weapon") or "Arme", "description": character["weaponNote"],
+                "type": "Passif", "weapon": True, "icon": character.get("weaponIcon") or "iron_sword"}]
+    return own
 
 
 # Les armes dont la carte change selon un choix du joueur : variante -> textes (le suffixe du code de l'image).

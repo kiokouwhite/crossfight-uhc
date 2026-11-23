@@ -222,7 +222,7 @@ public final class Eren extends Character implements Listener {
             @Override public void run() {
                 t++;
                 try {
-                    if (!p.isOnline() || p.isDead() || target.isDead() || t > 25 || gearSt.get("stop", false)) { stop(); return; }
+                    if (!p.isOnline() || p.isDead() || target.isDead() || t > 25 || gearSt.get("stop", false) || (t > 3 && p.isSneaking())) { stop(); return; }
                     Vector diff = target.getLocation().add(0, 1, 0).toVector().subtract(p.getLocation().add(0, 1, 0).toVector());
                     if (Effects.distanceToBox(p.getLocation().add(0, 1, 0), target) < 1.6) {
                         Effects.damage(target, 4.0, p);

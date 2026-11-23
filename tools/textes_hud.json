@@ -63,7 +63,11 @@
   "jett_flottement": {"vous": "Tant que c'est actif, vous avez Chute lente.", "court": "Chute lente"},
   "jett_ult": {"vous": "Vous invoquez 5 couteaux autour de vous. Chaque clic droit sur cet objet en lance un, infligeant 2 cœurs.", "court": "5 couteaux, 2 PV chacun"},
 
-  "snk_odm": {"vous": "Clic droit : vous lancez un grappin à 30 blocs ; là où il s'accroche, vous êtes tiré dans les airs. Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.", "court": "Grappin 30 blocs, gaz"},
+  "snk_odm": {"vous": "Clic droit : vous lancez un grappin à 30 blocs ; là où il s'accroche, vous êtes tiré dans les airs (s'accroupir lâche le câble). Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.", "court": "Grappin 30 blocs, gaz"},
+  "eren_style": {"vous": "Style Haine : si votre grappin attrape un adversaire, vous lui foncez dessus et lui infligez 2 cœurs à l'impact (10 s).", "court": "Grappin sur un ennemi : dash, 2 PV"},
+  "mikasa_style": {"vous": "Style Force : très à l'aise avec l'équipement, vous gagnez Force (cumulable).", "court": "Force permanente"},
+  "livai_style": {"vous": "Style Toupie : clic droit avec les lames dans les airs pour une toupie de 5 secondes.", "court": "Clic droit en l'air : toupie 5 s"},
+  "armin_style": {"vous": "Style Soutien : quand un allié passe sous 5 cœurs, vous gagnez Force ; quand votre grappin attrape un allié (20 blocs), vous foncez sur lui (10 s).", "court": "Allié bas : Force. Grappin sur allié : dash"},
   "eren_charge": {"vous": "Vous foncez vers l'adversaire le plus proche à 15 blocs maximum.", "court": "Dash vers l'ennemi, 15 blocs"},
   "eren_morale": {"vous": "Vous gagnez 0,2 point de Force supplémentaire par kill de l'adversaire que vous frappez.", "court": "+0,2 Force / kill de la cible"},
   "eren_titans": {"vous": "4 adversaires sont choisis au hasard au début de la partie (leurs pseudos sont dans le tableau de droite) : chaque fois que vous en tuez un, vous volez les pouvoirs d'un des 7 titans primordiaux.", "court": "Vol des pouvoirs des titans"},

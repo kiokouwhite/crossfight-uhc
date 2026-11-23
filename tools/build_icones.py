@@ -122,6 +122,10 @@ RECIPES = {
         ],
     },
     "SNK": {
+        # L'equipement tridimensionnel, commun aux quatre personnages : un grappin au bout de sa chaine.
+        "Commun": [
+            ("Équipement tridimensionnel", "snk_odm", "Rogue 30 gris"),
+        ],
         "Eren Jaeger": [
             ("Charge tridimensionnelle", "eren_charge", "Warrior 9 vert"),
             ("Élimination Morale", "eren_morale", "Acolyte 21 vert"),

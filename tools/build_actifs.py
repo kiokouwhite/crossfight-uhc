@@ -47,16 +47,26 @@ TOMES = {"hano_tome_fire_protection", "hano_tome_respiration",
          "eren_t_colossal", "eren_t_feminin", "eren_t_bestial", "eren_t_machoire", "eren_t_charrette", "eren_t_marteau"}
 
 
+# Les chiffres du compte a rebours, dessines point par point (3 x 5, doubles : 6 x 10 pixels, traits de 2 pixels).
+# La police du pack, tiree a une taille qui n'est pas un multiple de la sienne, perdait des traits (le 0 en deux points).
+DIGITS = {"0": "111101101101111", "1": "010110010010111", "2": "111001111100111", "3": "111001111001111", "4": "101101111001001",
+          "5": "111100111001111", "6": "111100111101111", "7": "111001001001001", "8": "111101111101111", "9": "111101111001111"}
+
+
 def badge(im, x, y, seconds, small, edge=None):
     """Les secondes restantes, dans une pastille sombre en bas a droite de l'icone (liseret de la couleur de la carte)."""
     edge = edge or EDGE
     d = ImageDraw.Draw(im)
-    d.fontmode = "1"
     label = str(seconds)
-    w = int(d.textlength(label, font=small)) + 6
+    w = len(label) * 8 - 2 + 6
     x0, y0 = x + CELL - w + 2, y + CELL - 15
     d.rectangle([x0, y0, x0 + w - 1, y0 + 14], fill=(18, 14, 22, 235), outline=edge)
-    d.text((x0 + 3, y0 + 1), label, font=small, fill=(255, 240, 180, 255))
+    for k, ch in enumerate(label):
+        bits = DIGITS[ch]
+        for n, bit in enumerate(bits):
+            if bit == "1":
+                px, py = x0 + 3 + k * 8 + (n % 3) * 2, y0 + 2 + (n // 3) * 2
+                d.rectangle([px, py, px + 1, py + 1], fill=(255, 240, 180, 255))
 
 
 def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant="", tv=""):

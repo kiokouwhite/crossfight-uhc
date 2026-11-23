@@ -163,7 +163,7 @@ public final class SNK {
 
         OdmGear(Style style, String extra) {
             super("snk_odm", "Equipement tridimensionnel",
-                    "Clic droit : lance un grappin a 30 blocs ; la ou il s'accroche, tu es tire dans les airs. " + extra
+                    "Clic droit : lance un grappin a 30 blocs ; il s'accroche et te tire dans les airs (s'accroupir lache le cable). " + extra
                             + " Le gaz baisse de 1 par seconde de vol et remonte de 1 toutes les 2 secondes.",
                     Material.BOW, 1.0, 0.5);
             this.style = style;
@@ -251,7 +251,8 @@ public final class SNK {
                     t++;
                     try {
                         Location target = anchor.get();
-                        if (!p.isOnline() || p.isDead() || target == null || st.get("stop", false) || t > 60) { stop(); return; }
+                        // S'accroupir lache le cable (apres quelques ticks : un joueur accroupi peut quand meme tirer son grappin).
+                        if (!p.isOnline() || p.isDead() || target == null || st.get("stop", false) || t > 60 || (t > 3 && p.isSneaking())) { stop(); return; }
                         Vector diff = target.toVector().subtract(p.getLocation().add(0, 1, 0).toVector());
                         double dist = diff.length();
                         if (dist < 2.0) { stop(); return; }

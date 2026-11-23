@@ -99,7 +99,8 @@ public final class PassiveHud {
     public static boolean hasWeaponCard(Character c) {
         if (c == null) return false;
         for (Ability a : c.allAbilities()) if (a.isWeaponBound() && a.type() == AbilityType.PASSIVE) return true;
-        return false;
+        // L'arme dont l'effet tient a une autre capacite (le style de l'equipement de SNK) a sa carte aussi.
+        return !c.weaponGuide().isEmpty();
     }
 
     /** Le mode de texte d'une zone : 0 aucun, 1 long (dit au joueur), 2 court (/cf hud, Textes courts). */
