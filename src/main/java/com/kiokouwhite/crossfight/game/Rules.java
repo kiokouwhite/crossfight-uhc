@@ -46,6 +46,7 @@ public final class Rules {
         toggle("doublons", "game.duplicates", true, "Deux equipes peuvent avoir la meme licence (et deux solitaires le meme personnage)");
         toggle("regeneration", "game.natural-regeneration", false, "Regeneration naturelle de la vie");
         toggle("jour-permanent", "game.eternal-day", false, "Il fait toujours jour");
+        add("blocs-poses", "game.placed-block-seconds", 15, 0, 600, "s", "Les blocs poses par les joueurs se cassent d'eux-memes apres ce delai (0 : jamais)");
         toggle("armure-depart", "game.starting-armor", true, "Les joueurs commencent avec une armure en fer complete, Protection I");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");
         add("lootbox-nombre", "game.lootbox-count", 6, 1, 50, "", "Nombre de Lootbox qui apparaissent");

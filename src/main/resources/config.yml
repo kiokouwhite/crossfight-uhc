@@ -21,6 +21,8 @@ game:
   # Regeneration naturelle de la vie ; jour permanent
   natural-regeneration: false
   eternal-day: false
+  # Les blocs poses par les joueurs se cassent d'eux-memes apres ce delai, en secondes (0 : jamais)
+  placed-block-seconds: 15
   # Armure en fer complete, Protection I, portee des le depart
   starting-armor: true
   # Toutes ces regles se changent en jeu : /cf regle <nom> <valeur> (operateurs et administrateurs de partie, /cf admin)

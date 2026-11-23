@@ -103,6 +103,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         ores.boostLoaded();
         pm.registerEvents(new DeathListener(this), this);
         pm.registerEvents(new RestrictionListener(this), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.listener.PlacedBlocks(this), this);
         pm.registerEvents(characterRegistry.selectMenu(this), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.ChoiceMenu(), this);
         pm.registerEvents(new com.kiokouwhite.crossfight.util.Mannequins(), this);

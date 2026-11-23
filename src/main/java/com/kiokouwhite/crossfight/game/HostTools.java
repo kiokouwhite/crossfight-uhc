@@ -59,9 +59,9 @@ public final class HostTools implements Listener {
     private record Dial(Material icon, int step) {}
 
     private static final Map<String, Dial> DIALS = new LinkedHashMap<>();
-    /** La place de chaque regle dans le menu (5 rangees). */
+    /** La place de chaque regle dans le menu (6 rangees). */
     private static final Map<String, Integer> PLACES = new LinkedHashMap<>();
-    private static final int MENU_SIZE = 45;
+    private static final int MENU_SIZE = 54;
 
     private static void dial(String rule, int place, Material icon, int step) {
         DIALS.put(rule, new Dial(icon, step));
@@ -90,6 +90,7 @@ public final class HostTools implements Listener {
         dial("judgement", 32, Material.LIGHTNING_ROD, 5);
         dial("omori", 33, Material.WHITE_TULIP, 5);
         dial("armure-depart", 34, Material.IRON_CHESTPLATE, 1);
+        dial("blocs-poses", 37, Material.COBBLESTONE, 5);
     }
 
     /** Le menu des regles d'un administrateur : ce qu'elles valaient a l'ouverture, pour annoncer les changements. */
