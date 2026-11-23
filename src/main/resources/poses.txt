@@ -632,13 +632,14 @@ pose blake_enfonce_fond
   arm_l -150 0 15
 
 # Eren, Charge tridimensionnelle : il fonce tete la premiere, le corps couche vers l'avant, les deux bras rejetes
-# en arriere, une lame dans chaque main qui traine derriere lui, une jambe repliee sous lui.
+# en arriere, une lame dans chaque main qui traine derriere lui, les deux jambes trainant derriere lui : il vole
+# a un bloc du sol, il ne court pas.
 pose eren_charge
-  root  64 0 0   0 -3 2
+  root  64 0 0   0 14 2
   head  -54 0 0
   arm_r 46 0 -20
   arm_l 46 0 20
-  leg_r -70 0 -4
+  leg_r -12 0 -4
   leg_l 16 0 4
   item  52 0 0
 
