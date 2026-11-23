@@ -247,6 +247,8 @@ public final class Livai extends Character {
             super("livai_ult", "Pro de l'equipement tridimensionnel", "Pendant 30 secondes : l'equipement tridimensionnel de Livai est beaucoup plus rapide (grappin et traction) et ne depense pas de gaz. S'il attrape un ennemi, il le frappe en arrivant sur lui (2 coeurs). Il gagne Force.", Material.ELYTRA);
         }
         static boolean active(AbilityState st) { return System.currentTimeMillis() < st.get("proUntil", 0L); }
+        /** La croix de Livai : un sillon d'acier clair. */
+        private static final Particle.DustOptions CROSS = new Particle.DustOptions(org.bukkit.Color.fromRGB(190, 235, 245), 1.5f);
 
         @Override public boolean cast(Player p, CfPlayer cf, AbilityState st) {
             st.set("proUntil", System.currentTimeMillis() + 30000L);
@@ -254,6 +256,8 @@ public final class Livai extends Character {
             World w = p.getWorld();
             w.playSound(p.getLocation(), Sound.ENTITY_BREEZE_CHARGE, 1f, 1.2f);
             w.spawnParticle(Particle.CLOUD, p.getLocation().add(0, 1, 0), 40, 0.6, 0.8, 0.6, 0.05);
+            // Il ouvre l'ultime par un coup en croix : les deux lames croisees au-dessus de lui, puis rabattues devant.
+            Mikasa.JeLeSauverais.crossSlash(p, cf, "livai", CROSS);
             Msg.send(p, "<aqua><bold>Pro de l'equipement :</bold> <gray>ton equipement tridimensionnel est bien plus rapide et ne depense plus de gaz.");
             Boosts.set(p, "livai_air", new Boosts.Boost(1, 0, 0, 0));
             new BukkitRunnable() {

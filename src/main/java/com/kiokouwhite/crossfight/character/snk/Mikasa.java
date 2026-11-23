@@ -249,9 +249,12 @@ public final class Mikasa extends Character {
         private static final Particle.DustOptions SLASH = new Particle.DustOptions(org.bukkit.Color.fromRGB(215, 30, 40), 1.5f);
 
         /** Le lancement : les deux lames croisees au-dessus de sa tete, puis rabattues en croix devant elle. */
-        static void crossSlash(Player p, CfPlayer cf) {
+        static void crossSlash(Player p, CfPlayer cf) { crossSlash(p, cf, "mikasa", SLASH); }
+
+        /** Le meme coup en croix pour un autre personnage de SNK (Livai, a l'activation de son ultime), dans sa couleur. */
+        static void crossSlash(Player p, CfPlayer cf, String skin, Particle.DustOptions tint) {
             org.bukkit.inventory.ItemStack blade = cf.character().createWeapon();
-            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, "mikasa", blade, "debout");
+            com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(p, skin, blade, "debout");
             if (pu != null) {
                 pu.second(blade);
                 pu.pose("mikasa_croix_arme", 3);
@@ -269,8 +272,8 @@ public final class Mikasa extends Character {
                 Location c = p.getLocation().add(0, 1.2, 0).add(flat.clone().multiply(1.5));
                 for (int k = -6; k <= 6; k++) {
                     double f = k / 6.0 * 1.1;
-                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, f, 0), 1, 0, 0, 0, 0, SLASH);
-                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, -f, 0), 1, 0, 0, 0, 0, SLASH);
+                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, f, 0), 1, 0, 0, 0, 0, tint);
+                    w.spawnParticle(Particle.DUST, c.clone().add(right.clone().multiply(f)).add(0, -f, 0), 1, 0, 0, 0, 0, tint);
                 }
                 w.spawnParticle(Particle.SWEEP_ATTACK, c, 2, 0.3, 0.3, 0.3, 0);
                 w.playSound(p.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.8f);
