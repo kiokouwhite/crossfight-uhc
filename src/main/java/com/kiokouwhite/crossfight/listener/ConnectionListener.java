@@ -22,7 +22,14 @@ public final class ConnectionListener implements Listener {
     @EventHandler
     public void onPackStatus(org.bukkit.event.player.PlayerResourcePackStatusEvent e) {
         Player p = e.getPlayer();
-        com.kiokouwhite.crossfight.util.Sounds.packLoaded(p, e.getStatus() == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED);
+        // Seuls un chargement reussi et un echec changent l'etat : les etapes intermediaires (accepte, telecharge), que
+        // certains clients renvoient aussi apres coup, ne doivent pas faire oublier un pack deja charge.
+        switch (e.getStatus()) {
+            case SUCCESSFULLY_LOADED -> com.kiokouwhite.crossfight.util.Sounds.packLoaded(p, true);
+            case DECLINED, FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD, DISCARDED -> com.kiokouwhite.crossfight.util.Sounds.packLoaded(p, false);
+            default -> { }
+        }
+        plugin.getLogger().info("Pack de " + p.getName() + " : " + e.getStatus());
         if (e.getStatus() == org.bukkit.event.player.PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) plugin.scoreboard().refresh(p);
         switch (e.getStatus()) {
             case SUCCESSFULLY_LOADED -> { Msg.send(p, "<green>Sons et voix charges."); com.kiokouwhite.crossfight.util.Sounds.packSettled(p); }

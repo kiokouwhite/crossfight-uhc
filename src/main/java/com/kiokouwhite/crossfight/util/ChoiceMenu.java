@@ -60,7 +60,12 @@ public final class ChoiceMenu implements Listener {
      * avec un autre nombre de choix, c'est le menu en rangees.
      */
     public static void openWheel(Player p, String title, List<Option> options, Consumer<Player> onCancel) {
-        if (options.size() != 3 || !Sounds.has("font.choix") || !Sounds.hasPackLoaded(p)) { open(p, title, options, onCancel); return; }
+        if (options.size() != 3 || !Sounds.has("font.choix") || !Sounds.hasPackLoaded(p)) {
+            Bukkit.getLogger().info("[Crossfight] Roue remplacee par le menu en rangees pour " + p.getName() + " : habillage dans le plugin = "
+                    + Sounds.has("font.choix") + ", pack charge chez le joueur = " + Sounds.hasPackLoaded(p));
+            open(p, title, options, onCancel);
+            return;
+        }
         Holder holder = new Holder();
         holder.options = options;
         holder.onCancel = onCancel;
