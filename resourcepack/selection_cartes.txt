@@ -5,6 +5,6 @@
 # Le visage est place au milieu de la carte, a 20 % de sa hauteur. Sans ligne, cadrage automatique.
 # id      voie         visage_x  visage_y  zoom
 marth     harmonie     0.475     0.22      1.9
-corrin    destruction  0.505     0.175     2.8
-takumi    chasse       0.47      0.30      0.95
-byleth    harmonie     0.50      0.28      1.00
+corrin    destruction  0.495     0.175     2.8
+takumi    chasse       0.455     0.27      0.95
+byleth    harmonie     0.50      0.28      1.12
