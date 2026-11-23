@@ -326,8 +326,11 @@ PORTAL_FRAMES = 24
 
 # Les cartes animees : le personnage est decoupe en calques (tools/selection_rig.py), en une boucle de CARD_FRAMES
 # images de CARD_FRAMETIME ticks chacune (20 x 800 = 16 000 pixels de haut : juste sous la limite des textures du jeu).
-ANIMATED = {"marth"}
-CARD_FRAMES, CARD_FRAMETIME = 20, 3
+# Deux manieres : "calques" (le decoupage de selection_rig.py) ou "zoom" (l'illustration grossit a peine puis revient,
+# autour du visage : ZOOM_AMOUNT, la part de grossissement).
+ANIMATED = {"marth": "zoom"}
+CARD_FRAMES, CARD_FRAMETIME = 20, 4
+ZOOM_AMOUNT = 0.035
 
 
 def portal():
@@ -500,8 +503,12 @@ def main() -> int:
             # haut en bas, fondues l'une dans l'autre par le jeu.
             import selection_rig
             sheet = Image.new("RGBA", (CARD_PX[0], CARD_PX[1] * CARD_FRAMES), (0, 0, 0, 0))
-            for n, pose in enumerate(selection_rig.frames(art, cid, CARD_FRAMES)):
-                sheet.paste(card(pose, name, color, voies.get(voie), framing or auto_framing(art)), (0, CARD_PX[1] * n))
+            fx, fy, zoom = framing or auto_framing(art)
+            poses = selection_rig.frames(art, cid, CARD_FRAMES) if ANIMATED[cid] == "calques" else [art] * CARD_FRAMES
+            for n, pose in enumerate(poses):
+                # Le zoom : une montee et une descente douces par boucle, le visage reste a sa place.
+                k = 1 + ZOOM_AMOUNT * (0.5 - 0.5 * math.cos(2 * math.pi * n / CARD_FRAMES)) if ANIMATED[cid] == "zoom" else 1
+                sheet.paste(card(pose, name, color, voies.get(voie), (fx, fy, zoom * k)), (0, CARD_PX[1] * n))
             made.append(save(sheet, PRIVATE, f"card/{cid}"))
             Path(str(made[-1]) + ".mcmeta").write_text(json.dumps({"animation": {
                 "frametime": CARD_FRAMETIME, "interpolate": True, "width": CARD_PX[0], "height": CARD_PX[1]}}, indent=1), encoding="utf-8")
