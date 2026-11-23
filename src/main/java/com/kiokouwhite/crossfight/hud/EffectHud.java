@@ -102,6 +102,8 @@ public final class EffectHud implements Listener {
             st.ultImage = active ? ultimate(p) : null;
             boolean pack = active && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
             st.passiveImage = pack ? PassiveHud.image(p) : null;
+            // Fige dans le temps : il ne voit plus rien, un ecran gris a la place de ses passifs (blind).
+            if (pack && blinded(p)) st.passiveImage = "overlay_ult/temps/arret";
             List<String> inf = pack ? InfluenceHud.images(p) : List.of();
             st.influence0 = inf.size() > 0 ? inf.get(0) : null;
             // Quatre images au plus (les cases d'armure) : la carte d'un actif a gauche passe avant la seconde ligne de droite.
@@ -165,6 +167,27 @@ public final class EffectHud implements Listener {
     /** Vrai si ce joueur a l'orbe de l'ultime a l'ecran (le pack d'interface charge, hud.ultime) : la charge n'a alors plus a etre ecrite ailleurs. */
     public boolean showsUltimate(Player p) {
         return plugin.getConfig().getBoolean("hud.ultime", true) && com.kiokouwhite.crossfight.util.Sounds.has("overlay.ultime") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+    }
+
+    /** Les joueurs dont la vue est coupee (figes dans le temps), et jusqu'a quand. */
+    private static final Map<UUID, Long> BLIND = new HashMap<>();
+
+    /**
+     * Coupe la vue d'un joueur pendant {@code ticks} : un ecran gris opaque en plein ecran (l'image "overlay.temps" du
+     * pack complet). Rend false si le joueur ne peut pas la voir (pas de pack) : a l'appelant de l'aveugler autrement.
+     */
+    public static boolean blind(Player p, int ticks) {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("overlay.temps") || !com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p)) return false;
+        BLIND.merge(p.getUniqueId(), System.currentTimeMillis() + ticks * 50L, Math::max);
+        return true;
+    }
+
+    private static boolean blinded(Player p) {
+        Long until = BLIND.get(p.getUniqueId());
+        if (until == null) return false;
+        if (until > System.currentTimeMillis()) return true;
+        BLIND.remove(p.getUniqueId());
+        return false;
     }
 
     private final Map<String, ItemStack> items = new HashMap<>();

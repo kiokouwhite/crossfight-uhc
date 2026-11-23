@@ -104,6 +104,11 @@ public final class Seraphina extends Character {
      */
     static void freeze(LivingEntity e, int ticks) {
         Effects.root(e, ticks);
+        // Sa vue s'arrete aussi : un ecran gris en plein ecran avec le pack complet, sinon Cecite et Obscurite.
+        if (e instanceof Player seen && !com.kiokouwhite.crossfight.util.MannequinPlayer.isProxy(seen) && !com.kiokouwhite.crossfight.hud.EffectHud.blind(seen, ticks)) {
+            Effects.give(seen, PotionEffectType.BLINDNESS, 0, ticks);
+            Effects.give(seen, PotionEffectType.DARKNESS, 0, ticks);
+        }
         Player pl = e instanceof Player real ? real : com.kiokouwhite.crossfight.util.MannequinPlayer.of(e);
         if (pl == null) return;
         CfPlayer cf = Unordinary.plugin().players().get(pl);
@@ -116,37 +121,30 @@ public final class Seraphina extends Character {
     }
 
     /**
-     * Un rouage (l'icone "seraphina_rouage" du pack complet) qui flotte a ce point du trajet : il apparait, pivote
-     * sur lui-meme pendant deux secondes, puis se referme. Sans le pack complet, il n'y a que les engrenages de particules.
+     * Un rouage qui flotte a ce point du trajet : l'image animee "rouage" du pack (tools/build_glyphs.py), dont les
+     * dents tournent image par image. Il apparait, tourne deux secondes, puis se referme. Sans cette image dans le
+     * pack, il n'y a que les engrenages de particules.
      */
     static void cog(Location at, int n) {
-        if (!com.kiokouwhite.crossfight.util.Sounds.has("icone.seraphina_rouage")) return;
-        org.bukkit.inventory.ItemStack it = new org.bukkit.inventory.ItemStack(Material.PAPER);
-        var meta = it.getItemMeta();
-        meta.setItemModel(new org.bukkit.NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/seraphina_rouage"));
-        it.setItemMeta(meta);
-        // Disperses autour du trajet, de tailles inegales, un sur deux tournant dans l'autre sens.
+        if (!com.kiokouwhite.crossfight.util.Fx.has("rouage")) return;
+        // Disperses autour du trajet, de tailles inegales ; un sur deux est vu en miroir : il tourne dans l'autre sens.
         double a = n * 2.4;
         Location l = at.clone().add(Math.cos(a) * 0.9, 0.5 + (n % 5) * 0.35, Math.sin(a) * 0.9);
         l.setYaw(0); l.setPitch(0);
-        float size = 0.45f + (n % 3) * 0.2f;
-        int way = n % 8 < 4 ? 1 : -1;
-        // Chaque rouage garde son orientation dans le monde et tourne autour de son axe, comme dans un mecanisme.
-        l.setYaw((n * 47) % 360);
-        org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, it, 0.05f, false);
-        new BukkitRunnable() {
-            int t = 0;
-            @Override public void run() {
-                t += 3;
-                if (!d.isValid() || t > 42) { d.remove(); cancel(); return; }
-                // Il grossit en apparaissant, tourne (un tour toutes les 12 ticks), puis se referme.
-                float s = t <= 6 ? size : t >= 36 ? 0.02f : size;
-                d.setInterpolationDelay(0);
-                d.setInterpolationDuration(3);
-                d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(),
-                        new org.joml.Quaternionf().rotationZ((float) Math.toRadians(way * t * 30f)), new org.joml.Vector3f(s, s, s), new org.joml.Quaternionf()));
-            }
-        }.runTaskTimer(Unordinary.plugin(), 2L, 3L);
+        float size = 0.6f + (n % 3) * 0.25f;
+        float way = n % 8 < 4 ? 1f : -1f;
+        org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, com.kiokouwhite.crossfight.util.Fx.image("rouage", Color.WHITE), 0.05f, true);
+        var plugin = Unordinary.plugin();
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> scale(d, way * size, size, 5), 2L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> scale(d, way * 0.02f, 0.02f, 5), 36L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, d::remove, 42L);
+    }
+
+    private static void scale(org.bukkit.entity.ItemDisplay d, float x, float y, int ticks) {
+        if (!d.isValid()) return;
+        d.setInterpolationDelay(0);
+        d.setInterpolationDuration(ticks);
+        d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(), new org.joml.Quaternionf(), new org.joml.Vector3f(x, y, Math.abs(x)), new org.joml.Quaternionf()));
     }
 
     /** Les positions sont relevees a chaque tick (5 secondes = 100 positions). */
@@ -277,7 +275,6 @@ public final class Seraphina extends Character {
             java.util.List<String> frozen = new java.util.ArrayList<>();
             for (LivingEntity enemy : enemies) {
                 freeze(enemy, 60);
-                Effects.give(enemy, PotionEffectType.BLINDNESS, 0, 60);
                 frozen.add(enemy.getUniqueId().toString());
                 w.spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.6, 0.3, 0, GOLD);
             }

@@ -185,6 +185,100 @@ def griffes() -> Image.Image:
     return img
 
 
+def rouage(frames: int = 4) -> Image.Image:
+    """Le rouage du Retour dans le temps de Seraphina (pack public) : un rouage epais a huit dents, vu de trois
+    quarts, rose. Une vraie animation image par image : les images, empilees de haut en bas, le font tourner d'une
+    dent (45 degres) ; rejouees en boucle (rouage.png.mcmeta), il tourne sans fin. La lumiere, elle, ne tourne pas :
+    le haut reste clair, la tranche sombre."""
+    import math
+    S, Z = 32, 8                       # taille d'une image, et finesse du trace avant reduction
+    cx, cy, tilt, thick = 16.0, 13.5, 0.8, 4.0
+    r_out, r_root, r_hole, teeth = 12.6, 9.4, 4.6, 8
+    outline, dark, mid, light, shine = (70, 22, 60), (150, 60, 115), (215, 110, 165), (250, 175, 208), (255, 236, 244)
+
+    def contour(turn, dy=0.0):
+        pts = []
+        for k in range(720):
+            phi = 2 * math.pi * k / 720
+            # Une dent : large a la racine, plus etroite au sommet.
+            u = ((phi - turn) * teeth / (2 * math.pi)) % 1.0
+            d = abs(u - 0.5)
+            r = r_out if d < 0.16 else r_root if d > 0.27 else r_out + (r_root - r_out) * (d - 0.16) / 0.11
+            pts.append(((cx + r * math.cos(phi)) * Z, (cy + dy + r * math.sin(phi) * tilt) * Z))
+        return pts
+
+    def ellipse(r, dy=0.0):
+        return [(cx - r) * Z, (cy + dy - r * tilt) * Z, (cx + r) * Z, (cy + dy + r * tilt) * Z]
+
+    sheet = Image.new("RGBA", (S, S * frames), (0, 0, 0, 0))
+    for n in range(frames):
+        turn = 2 * math.pi / teeth * n / frames
+        big = Image.new("RGBA", (S * Z, S * Z), (0, 0, 0, 0))
+        d = ImageDraw.Draw(big)
+        # La tranche : le contour descendu de l'epaisseur du rouage, du bas vers le haut.
+        for i in range(int(thick * Z), 0, -1):
+            d.polygon(contour(turn, i / Z), fill=dark + (255,))
+        # Le dessus : clair en haut, plus soutenu vers le bas (la lumiere vient d'en haut).
+        top = Image.new("L", big.size, 0)
+        ImageDraw.Draw(top).polygon(contour(turn), fill=255)
+        shade = Image.new("RGBA", big.size, mid + (255,))
+        sd = ImageDraw.Draw(shade)
+        sd.rectangle([0, 0, big.width, (cy - 1.0) * Z], fill=light + (255,))
+        sd.rectangle([0, 0, big.width, (cy - 7.5) * Z], fill=shine + (255,))
+        big.paste(shade, (0, 0), top)
+        d = ImageDraw.Draw(big)
+        # Le moyeu : un trou sombre, avec la paroi du fond qu'on apercoit en haut.
+        d.ellipse(ellipse(r_hole), fill=outline + (255,))
+        wall = Image.new("L", big.size, 0)
+        ImageDraw.Draw(wall).ellipse(ellipse(r_hole), fill=255)
+        ImageDraw.Draw(wall).ellipse(ellipse(r_hole, 2.2), fill=0)
+        big.paste(Image.new("RGBA", big.size, dark + (255,)), (0, 0), wall)
+        # Reduction en pixels nets (le point au centre de chaque pixel), puis un contour sombre autour de la forme.
+        small = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+        bp, sp = big.load(), small.load()
+        for y in range(S):
+            for x in range(S):
+                sp[x, y] = bp[x * Z + Z // 2, y * Z + Z // 2]
+        edged = small.copy()
+        ep = edged.load()
+        for y in range(S):
+            for x in range(S):
+                if sp[x, y][3]:
+                    continue
+                if any(0 <= x + dx < S and 0 <= y + dy < S and sp[x + dx, y + dy][3] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    ep[x, y] = outline + (255,)
+        sheet.paste(edged, (0, S * n))
+    return sheet
+
+
+def temps_arrete() -> Image.Image:
+    """Ce que voit un joueur fige dans le temps par Seraphina : plus rien. Un ecran gris opaque (960 x 540, etire en
+    plein ecran comme les images du HUD), assombri vers les bords, avec un cadran d'horloge arrete a peine visible."""
+    import math
+    W, H = 960, 540
+    img = Image.new("RGBA", (W, H), (112, 112, 120, 255))
+    px = img.load()
+    for y in range(H):
+        for x in range(W):
+            d = math.hypot((x - W / 2) / (W / 2), (y - H / 2) / (H / 2))
+            v = max(0.0, min(1.0, (d - 0.35) / 0.9))
+            g = round(118 - 62 * v)
+            px[x, y] = (g, g, g + 6, 255)
+    d = ImageDraw.Draw(img)
+    cx, cy = W // 2, H // 2
+    ring = (138, 138, 148, 255)
+    for r, w in ((190, 5), (176, 2)):
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=ring, width=w)
+    for k in range(12):
+        a = math.pi * 2 * k / 12
+        d.line([cx + math.cos(a) * 150, cy + math.sin(a) * 150, cx + math.cos(a) * 170, cy + math.sin(a) * 170], fill=ring, width=5 if k % 3 == 0 else 3)
+    # Les aiguilles, arretees.
+    d.line([cx, cy, cx + 62, cy - 78], fill=ring, width=7)
+    d.line([cx, cy, cx - 34, cy - 132], fill=ring, width=4)
+    d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=ring)
+    return img
+
+
 def photo(src: Path) -> Image.Image:
     """Une image fournie sur fond blanc, gardee en couleurs : on la recadre sur son sujet (tout ce qui n'est pas
     le blanc du fond), on rend le fond transparent autour de son rectangle, et on la centre dans un carre."""
@@ -292,6 +386,16 @@ def main() -> int:
         print(write(name, img, PUBLIC).relative_to(ROOT))
     # Shingeki no Kyojin : les griffes du Titan Machoire.
     print(write("griffes", griffes(), PUBLIC).relative_to(ROOT))
+    # unOrdinary : le rouage anime du Retour dans le temps de Seraphina (une image toutes les 2 ticks, en boucle).
+    tex = write("rouage", rouage(), PUBLIC)
+    Path(str(tex) + ".mcmeta").write_text(json.dumps({"animation": {"frametime": 2}}, indent=1), encoding="utf-8")
+    print(tex.relative_to(ROOT))
+    # La vue d'un joueur fige dans le temps : un ecran gris (camera_overlay, hud/EffectHud.blind). Avec les autres
+    # images de plein ecran du HUD, dans le pack complet ("overlay.temps").
+    veil = OUT / "textures" / "overlay_ult" / "temps" / "arret.png"
+    veil.parent.mkdir(parents=True, exist_ok=True)
+    temps_arrete().save(veil, optimize=True)
+    print(veil.relative_to(ROOT))
     # L'evenement Omori : la porte blanche de l'Espace Blanc.
     print(write("porte_blanche", white_door(), PUBLIC).relative_to(ROOT))
     # Les images officielles fournies remplacent, dans le pack complet, le dessin public du meme nom.
