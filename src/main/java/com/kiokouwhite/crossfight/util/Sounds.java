@@ -246,7 +246,12 @@ public final class Sounds {
     /** Pour les essais (client dont le pack est installe a la main) : -Dcrossfight.pack=true fait comme si tous l'avaient. */
     private static final boolean PACK_FORCED = Boolean.getBoolean("crossfight.pack");
 
-    public static boolean hasPackLoaded(Player p) { return PACK_FORCED || PACK_LOADED.contains(p.getUniqueId()); }
+    public static boolean hasPackLoaded(Player p) {
+        if (PACK_FORCED) return true;
+        // Le mannequin du mode test en troisieme personne : c'est son joueur qui voit le menu, donc son pack qui compte.
+        UUID controller = MannequinPlayer.isProxy(p) ? MannequinPlayer.controllerId(p) : null;
+        return PACK_LOADED.contains(controller != null ? controller : p.getUniqueId());
+    }
 
     public static void packSettled(Player p) {
         PACK_PENDING.remove(p.getUniqueId());
