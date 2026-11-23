@@ -11,4 +11,4 @@ byleth    harmonie     0.515     0.255     1.12
 ruby      chasse       0.46      0.215     1.0
 weiss     destruction  0.50      0.275     1.12
 yang      chasse       0.46      0.275     1.08
-blake     nihilite     0.49      0.225     1.0
+blake     nihilite     0.49      0.225     1.12
