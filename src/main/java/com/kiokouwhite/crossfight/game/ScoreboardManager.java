@@ -182,14 +182,19 @@ public final class ScoreboardManager {
         return sb.toString();
     }
 
-    /** Une ligne d'allie : son nom et sa vie en coeurs (un demi-coeur compte : "9,5"), ou "mort". */
-    private static String allyLine(String head, String name, double health, boolean alive) {
+    private static double maxHealth(Player p) {
+        var attr = p.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        return attr == null ? 20.0 : attr.getValue();
+    }
+
+    /** Une ligne d'allie : son nom et sa vie en pourcentage de sa vie maximale, ou "mort". */
+    private static String allyLine(String head, String name, double health, double max, boolean alive) {
         // Avec sa tete, plus besoin de puce devant le nom.
         String lead = head.isEmpty() ? "<gray> \u2022 " : " " + head;
         if (!alive) return lead + "<gray>" + name + " <dark_gray>mort";
-        double hearts = Math.ceil(health) / 2.0;
-        String shown = hearts == Math.floor(hearts) ? String.valueOf((int) hearts) : String.valueOf(hearts).replace('.', ',');
-        return lead + "<green>" + name + " <red>\u2764 <white>" + shown;
+        // Arrondi vers le haut : un allie encore en vie n'est jamais a 0 %.
+        int percent = max <= 0 ? 0 : (int) Math.min(100, Math.ceil(health * 100.0 / max));
+        return lead + "<green>" + name + " <red>\u2764 <white>" + percent + "%";
     }
 
     /**
@@ -244,7 +249,7 @@ public final class ScoreboardManager {
                 lines.add("<white>Allies :");
                 List<String> faces = com.kiokouwhite.crossfight.util.Heads.known();
                 for (int i = 1; i <= 3; i++)
-                    lines.add(allyLine(faces.isEmpty() ? "" : com.kiokouwhite.crossfight.util.Heads.tag(p, faces.get((i - 1) % faces.size())), "Allie" + i, 20.0, true));
+                    lines.add(allyLine(faces.isEmpty() ? "" : com.kiokouwhite.crossfight.util.Heads.tag(p, faces.get((i - 1) % faces.size())), "Allie" + i, 20.0, 20.0, true));
             }
             case SELECTING, STARTING -> {
                 lines.add("<white>Etat : <yellow>Preparation");
@@ -273,7 +278,7 @@ public final class ScoreboardManager {
                     for (Player ally : t.onlineMembers()) {
                         if (ally == p) continue;
                         CfPlayer acf = plugin.players().get(ally);
-                        allies.add(allyLine(com.kiokouwhite.crossfight.util.Heads.tag(p, ally), ally.getName(), ally.getHealth(), acf.isAlive() && !ally.isDead()));
+                        allies.add(allyLine(com.kiokouwhite.crossfight.util.Heads.tag(p, ally), ally.getName(), ally.getHealth(), maxHealth(ally), acf.isAlive() && !ally.isDead()));
                     }
                     if (!allies.isEmpty()) { lines.add("<white>Allies :"); lines.addAll(allies); }
                 } else {
