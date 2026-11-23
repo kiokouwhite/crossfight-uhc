@@ -16,6 +16,9 @@ de personnages sous licence. Ensuite : python3 tools/build_pack.py
 
 Les parties acceptent une teinte (custom_model_data, blanc par defaut) : Puppet.tint en fait une
 silhouette coloree. python3 tools/add_skin.py --teinte l'ajoute aux modeles fabriques avant.
+
+python3 tools/add_skin.py --gris fabrique la version grisee de chaque skin (<personnage>_gris), a relancer
+apres avoir ajoute ou change un skin : c'est l'apparence d'un joueur fige dans le temps (Seraphina).
 """
 import json
 import sys
@@ -62,6 +65,36 @@ def tintable(base: Path) -> int:
     return n
 
 
+def grey(base: Path) -> int:
+    """Une version grisee de chaque skin, sous le nom <personnage>_gris : le plugin la montre a la place du joueur
+    fige dans le temps (Seraphina). Memes modeles, seule l'image change : son niveau de gris, un peu eclairci."""
+    folder = base / "textures" / "item" / "pose"
+    n = 0
+    for tex in sorted(folder.glob("*.png")) if folder.is_dir() else []:
+        name = tex.stem
+        # Pas les etapes d'une transformation ni les silhouettes : seuls les skins que portent les joueurs.
+        if name.endswith("_gris") or name in ("silhouette", "eren_muscles", "eren_squelette", "omori_negatif"):
+            continue
+        img = Image.open(tex).convert("RGBA")
+        px = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                r, g, b, a = px[x, y]
+                v = round(0.299 * r + 0.587 * g + 0.114 * b)
+                v = round(40 + v * 0.72)          # ni noir ni blanc : la pierre grise d'un instant arrete
+                px[x, y] = (v, v, min(255, v + 6), a)
+        img.save(folder / f"{name}_gris.png")
+        for sub in ("models/item/pose", "items/pose"):
+            for f in sorted((base / sub).glob(f"{name}_*.json")):
+                part = f.stem[len(name) + 1:]
+                if part not in ("head", "body", "arm_r", "arm_l", "leg_r", "leg_l"):
+                    continue
+                text = f.read_text(encoding="utf-8").replace(f"item/pose/{name}_{part}", f"item/pose/{name}_gris_{part}").replace(f'item/pose/{name}"', f'item/pose/{name}_gris"')
+                (f.parent / f"{name}_gris_{part}.json").write_text(text, encoding="utf-8")
+        n += 1
+    return n
+
+
 def element(box, uv, grow):
     x1, y1, z1, x2, y2, z2 = box
     w, h, d = x2 - x1, y2 - y1, z2 - z1
@@ -87,6 +120,11 @@ def main() -> int:
         for base in (ROOT / "resourcepack" / "assets" / NS, ROOT / "resourcepack-prive" / "assets" / NS):
             if base.is_dir():
                 print(f"{base.parent.parent.relative_to(ROOT)} : {tintable(base)} modeles rendus teintables")
+        return 0
+    if "--gris" in sys.argv:
+        for base in (ROOT / "resourcepack" / "assets" / NS, ROOT / "resourcepack-prive" / "assets" / NS):
+            if base.is_dir():
+                print(f"{base.parent.parent.relative_to(ROOT)} : {grey(base)} skins grises")
         return 0
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if len(args) != 2:

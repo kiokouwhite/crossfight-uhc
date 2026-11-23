@@ -99,8 +99,25 @@ public final class Seraphina extends Character {
     }
 
     /**
-     * Un rouage (l'icone "seraphina_rouage" du pack complet) qui flotte a ce point du trajet : il apparait, tourne
-     * sur lui-meme une seconde et demie, puis se referme. Sans le pack complet, il n'y a que les engrenages de particules.
+     * Fige quelqu'un dans le temps : immobile, et son skin passe en gris le temps de l'arret (le skin "<personnage>_gris"
+     * du pack complet, tools/add_skin.py --gris). Sans ce skin, il est seulement immobilise.
+     */
+    static void freeze(LivingEntity e, int ticks) {
+        Effects.root(e, ticks);
+        Player pl = e instanceof Player real ? real : com.kiokouwhite.crossfight.util.MannequinPlayer.of(e);
+        if (pl == null) return;
+        CfPlayer cf = Unordinary.plugin().players().get(pl);
+        if (cf == null || cf.character() == null) return;
+        String grey = cf.character().id() + "_gris";
+        if (!com.kiokouwhite.crossfight.util.Puppet.available(grey)) return;
+        org.bukkit.inventory.ItemStack held = pl.getInventory().getItemInMainHand();
+        com.kiokouwhite.crossfight.util.Puppet pu = com.kiokouwhite.crossfight.util.Puppet.show(pl, grey, held.getType().isAir() ? null : held, "debout");
+        if (pu != null) pu.endAfter(ticks, 3);
+    }
+
+    /**
+     * Un rouage (l'icone "seraphina_rouage" du pack complet) qui flotte a ce point du trajet : il apparait, pivote
+     * sur lui-meme pendant deux secondes, puis se referme. Sans le pack complet, il n'y a que les engrenages de particules.
      */
     static void cog(Location at, int n) {
         if (!com.kiokouwhite.crossfight.util.Sounds.has("icone.seraphina_rouage")) return;
@@ -113,14 +130,23 @@ public final class Seraphina extends Character {
         Location l = at.clone().add(Math.cos(a) * 0.9, 0.5 + (n % 5) * 0.35, Math.sin(a) * 0.9);
         l.setYaw(0); l.setPitch(0);
         float size = 0.45f + (n % 3) * 0.2f;
-        float turn = (n % 8 < 4 ? 1 : -1) * 170f;
-        org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, it, 0.05f, true);
-        var plugin = Unordinary.plugin();
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn, 6); }, 2L);
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn * 2, 12); }, 9L);
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, size, turn * 3, 12); }, 21L);
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> { if (d.isValid()) com.kiokouwhite.crossfight.util.Fx.resize(d, 0.02f, turn * 4, 6); }, 33L);
-        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, d::remove, 40L);
+        int way = n % 8 < 4 ? 1 : -1;
+        // Chaque rouage garde son orientation dans le monde et tourne autour de son axe, comme dans un mecanisme.
+        l.setYaw((n * 47) % 360);
+        org.bukkit.entity.ItemDisplay d = com.kiokouwhite.crossfight.util.Fx.show(l, it, 0.05f, false);
+        new BukkitRunnable() {
+            int t = 0;
+            @Override public void run() {
+                t += 3;
+                if (!d.isValid() || t > 42) { d.remove(); cancel(); return; }
+                // Il grossit en apparaissant, tourne (un tour toutes les 12 ticks), puis se referme.
+                float s = t <= 6 ? size : t >= 36 ? 0.02f : size;
+                d.setInterpolationDelay(0);
+                d.setInterpolationDuration(3);
+                d.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(),
+                        new org.joml.Quaternionf().rotationZ((float) Math.toRadians(way * t * 30f)), new org.joml.Vector3f(s, s, s), new org.joml.Quaternionf()));
+            }
+        }.runTaskTimer(Unordinary.plugin(), 2L, 3L);
     }
 
     /** Les positions sont relevees a chaque tick (5 secondes = 100 positions). */
@@ -196,7 +222,7 @@ public final class Seraphina extends Character {
             int hits = st.get("hits", 0) + 1;
             if (hits < 6) { st.set("hits", hits); return; }
             st.set("hits", 0);
-            Effects.root(victim, 40);
+            freeze(victim, 40);
             clockBurst(victim.getWorld(), victim.getLocation(), 1.0, 16);
             victim.getWorld().playSound(victim.getLocation(), Sound.BLOCK_BELL_RESONATE, 0.8f, 1.6f);
             Effects.say(victim, "<gold>Choc Temporel : immobilise 2 s !");
@@ -250,7 +276,7 @@ public final class Seraphina extends Character {
             Effects.give(p, PotionEffectType.SPEED, 2, 60);
             java.util.List<String> frozen = new java.util.ArrayList<>();
             for (LivingEntity enemy : enemies) {
-                Effects.root(enemy, 60);
+                freeze(enemy, 60);
                 Effects.give(enemy, PotionEffectType.BLINDNESS, 0, 60);
                 frozen.add(enemy.getUniqueId().toString());
                 w.spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 15, 0.3, 0.6, 0.3, 0, GOLD);
@@ -313,7 +339,7 @@ public final class Seraphina extends Character {
                             if (t % 4 == 0) w.playSound(c.clone().add(rNow, 0, 0), Sound.ENTITY_GENERIC_EXPLODE, 0.5f, 1.2f + t * 0.02f);
                             for (LivingEntity enemy : Effects.within(c, rNow + 1.0, le -> Effects.isEnemy(p, le))) {
                                 if (!frozen.add(enemy.getUniqueId())) continue;
-                                Effects.root(enemy, 100);
+                                freeze(enemy, 100);
                                 Effects.say(enemy, "<gold>Explosion temporelle : fige 5 s !");
                                 w.spawnParticle(Particle.DUST, enemy.getLocation().add(0, 1, 0), 20, 0.3, 0.6, 0.3, 0, GREY);
                                 clockBurst(w, enemy.getLocation(), 1.0, 16);
