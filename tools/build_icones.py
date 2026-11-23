@@ -186,7 +186,7 @@ RECIPES = {
         "Seraphina": [
             ("Retour dans le temps", "seraphina_retour", "Objets 342 violet"),
             # Les rouages qui flottent le long de son trajet pendant le Retour dans le temps (pas une capacite).
-            ("Rouage", "seraphina_rouage", "Objets 18 rose-pale"),
+            ("Rouage", "seraphina_rouage", "Objets 2 rose-pale"),
             ("Choc Temporel", "seraphina_choc", "Warrior 17 violet"),
             ("Arrêt Temporel", "seraphina_arret", "Objets 3230"),
             ("Explosion temporelle", "seraphina_ult", "Wizard 12 violet"),
