@@ -540,10 +540,10 @@ public final class WorldMap implements Listener {
             while (cursors.size() > 0) cursors.removeCursor(cursors.getCursor(0));
             for (int i = 0; i < places.size(); i++) {
                 Structures.Placed pl = places.get(i);
-                cursors.addCursor(new MapCursor(at(pl.x() + pl.sx() / 2.0, scale), at(pl.z() + pl.sz() / 2.0, scale), (byte) 8, MapCursor.Type.SMALL_WHITE_CIRCLE, true,
+                cursors.addCursor(new MapCursor(at(pl.x() + pl.sx() / 2.0, scale), at(pl.z() + pl.sz() / 2.0, scale), (byte) 8, MapCursor.Type.PLAYER_OFF_MAP, true,
                         Component.text(plugin.structures().title(pl.name()))));
             }
-            cursors.addCursor(new MapCursor(at(arena.getX(), scale), at(arena.getZ(), scale), (byte) 8, MapCursor.Type.SMALL_WHITE_CIRCLE, true, Component.text("Arene de Ferox")));
+            cursors.addCursor(new MapCursor(at(arena.getX(), scale), at(arena.getZ(), scale), (byte) 8, MapCursor.Type.PLAYER_OFF_MAP, true, Component.text("Arene de Ferox")));
             Aim aim = aims.get(p.getUniqueId());
             if (!p.getWorld().equals(w)) {
                 if (aim != null) cursors.addCursor(new MapCursor((byte) aim.u, (byte) aim.v, (byte) 8, MapCursor.Type.RED_X, true));
