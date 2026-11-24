@@ -49,6 +49,10 @@ public final class Rules {
         add("blocs-poses", "game.placed-block-seconds", 15, 0, 600, "s", "Les blocs poses par les joueurs se cassent d'eux-memes apres ce delai (0 : jamais)");
         toggle("armures-incassables", "game.unbreakable-armor", true, "Les armures ne s'usent pas");
         toggle("armure-depart", "game.starting-armor", true, "Les joueurs commencent avec une armure en fer complete, Protection I");
+        toggle("seau-de-lave", "game.lava-bucket", true, "Les seaux de lave peuvent etre vides");
+        toggle("briquet", "game.flint-and-steel", true, "Les briquets (et boules de feu) peuvent allumer un feu");
+        toggle("aura-fire-aspect", "game.aura-fire-aspect", true, "Les epees d'Aura peuvent recevoir Aura de feu (Fire Aspect)");
+        toggle("roche-en-cobble", "game.rock-to-cobble", true, "Sous terre, toute roche minee qui n'est pas un minerai donne de la pierre taillee, empilable par 99");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");
         add("lootbox-nombre", "game.lootbox-count", 6, 1, 50, "", "Nombre de Lootbox qui apparaissent");
         add("regna-ferox", "game.events.regna-ferox", 30, 0, 600, "min", "Minute de l'evenement Regna Ferox");

@@ -109,6 +109,11 @@ public final class Unordinary {
         return id == null ? null : Aura.byId(id);
     }
 
+    /** Vrai si cet objet est une epee d'Aura. */
+    public static boolean isAura(ItemStack it) {
+        return it != null && it.hasItemMeta() && auraOf(it) != null;
+    }
+
     static boolean isUnordinary(Player p) {
         CfPlayer cf = plugin().players().get(p);
         return cf.character() != null && cf.character().licence() != null && "unordinary".equals(cf.character().licence().id());

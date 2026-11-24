@@ -27,6 +27,14 @@ game:
   unbreakable-armor: true
   # Armure en fer complete, Protection I, portee des le depart
   starting-armor: true
+  # Les seaux de lave peuvent etre vides
+  lava-bucket: true
+  # Les briquets et les boules de feu peuvent allumer un feu
+  flint-and-steel: true
+  # Les epees d'Aura (unOrdinary) peuvent recevoir Aura de feu
+  aura-fire-aspect: true
+  # La roche minee qui n'est pas un minerai donne de la pierre taillee, empilable par 99
+  rock-to-cobble: true
   # Toutes ces regles se changent en jeu : /cf regle <nom> <valeur> (operateurs et administrateurs de partie, /cf admin)
   # Nombre de Lootbox qui apparaissent a la minute de l'evenement
   lootbox-count: 6

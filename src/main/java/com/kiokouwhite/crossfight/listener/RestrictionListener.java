@@ -88,6 +88,12 @@ public final class RestrictionListener implements Listener {
 
     @EventHandler
     public void onEnchant(EnchantItemEvent e) {
+        // Regle aura-fire-aspect : la table d'enchantement ne met pas Aura de feu sur une epee d'Aura.
+        if (!plugin.game().rules().on("aura-fire-aspect") && com.kiokouwhite.crossfight.character.unordinary.Unordinary.isAura(e.getItem())
+                && e.getEnchantsToAdd().remove(Enchantment.FIRE_ASPECT) != null) {
+            Msg.actionBar(e.getEnchanter(), "<red>Aura de feu est desactivee sur les epees d'Aura.");
+            if (e.getEnchantsToAdd().isEmpty()) { e.setCancelled(true); return; }
+        }
         if (mayForgeWeapons(e.getEnchanter())) return;
         if (isWeapon(e.getItem())) {
             e.setCancelled(true);
@@ -98,6 +104,13 @@ public final class RestrictionListener implements Listener {
     @EventHandler
     public void onAnvil(PrepareAnvilEvent e) {
         ItemStack first = e.getInventory().getFirstItem();
+        // Regle aura-fire-aspect : l'enclume ne sort pas d'epee d'Aura portant Aura de feu.
+        ItemStack out = e.getResult();
+        if (out != null && !plugin.game().rules().on("aura-fire-aspect") && com.kiokouwhite.crossfight.character.unordinary.Unordinary.isAura(out)
+                && out.containsEnchantment(Enchantment.FIRE_ASPECT) && (first == null || !first.containsEnchantment(Enchantment.FIRE_ASPECT))) {
+            e.setResult(null);
+            return;
+        }
         if (!e.getViewers().isEmpty() && mayForgeWeapons(e.getViewers().get(0))) { ItemStack r = e.getResult(); if (r != null && capProtection(r)) e.setResult(r); return; }
         if (isWeapon(first) || isWeapon(e.getResult())) {
             e.setResult(null);
@@ -187,5 +200,65 @@ public final class RestrictionListener implements Listener {
         org.bukkit.inventory.EquipmentSlot slot = e.getItem().getType().getEquipmentSlot();
         if (slot == org.bukkit.inventory.EquipmentSlot.HEAD || slot == org.bukkit.inventory.EquipmentSlot.CHEST
                 || slot == org.bukkit.inventory.EquipmentSlot.LEGS || slot == org.bukkit.inventory.EquipmentSlot.FEET) e.setCancelled(true);
+    }
+
+    // ------------------------------------------------------------------ feu et lave
+
+    /** Regle seau-de-lave : un seau de lave ne se vide pas. */
+    @EventHandler(ignoreCancelled = true)
+    public void onLavaBucket(org.bukkit.event.player.PlayerBucketEmptyEvent e) {
+        if (e.getBucket() != Material.LAVA_BUCKET || plugin.game().rules().on("seau-de-lave")) return;
+        e.setCancelled(true);
+        Msg.actionBar(e.getPlayer(), "<red>Les seaux de lave sont desactives.");
+    }
+
+    /** Regle briquet : ni le briquet ni la boule de feu n'allument quoi que ce soit (bloc, TNT, creeper). */
+    @EventHandler(priority = EventPriority.LOW)
+    public void onLighter(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK || e.getItem() == null) return;
+        Material held = e.getItem().getType();
+        if ((held != Material.FLINT_AND_STEEL && held != Material.FIRE_CHARGE) || plugin.game().rules().on("briquet")) return;
+        e.setCancelled(true);
+        Msg.actionBar(e.getPlayer(), "<red>Les briquets sont desactives.");
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onLighterOnMob(org.bukkit.event.player.PlayerInteractEntityEvent e) {
+        ItemStack held = e.getPlayer().getInventory().getItem(e.getHand());
+        if (held.getType() == Material.FLINT_AND_STEEL && !plugin.game().rules().on("briquet")) e.setCancelled(true);
+    }
+
+    // ------------------------------------------------------------------ la roche des mines
+
+    /** La roche qui n'est pas un minerai : minee, elle donne de la pierre taillee. */
+    private static final java.util.Set<Material> ROCK = java.util.EnumSet.of(Material.STONE, Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, Material.GRANITE,
+            Material.DIORITE, Material.ANDESITE, Material.TUFF, Material.CALCITE, Material.DRIPSTONE_BLOCK, Material.SMOOTH_BASALT, Material.BASALT, Material.BLACKSTONE);
+    /** Minecraft ne permet pas de pile de plus de 99 objets. */
+    private static final int COBBLE_STACK = 99;
+
+    /** Une pile de pierre taillee qui s'empile par 99. */
+    public static ItemStack cobble(int amount) {
+        ItemStack it = new ItemStack(Material.COBBLESTONE, amount);
+        ItemMeta meta = it.getItemMeta();
+        meta.setMaxStackSize(COBBLE_STACK);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    /** Regle roche-en-cobble : la roche minee dans le monde de jeu lache de la pierre taillee. */
+    @EventHandler(ignoreCancelled = true)
+    public void onRockDrop(org.bukkit.event.block.BlockDropItemEvent e) {
+        if (!ROCK.contains(e.getBlockState().getType()) || !plugin.game().rules().on("roche-en-cobble")) return;
+        if (!e.getBlock().getWorld().equals(plugin.game().world())) return;
+        for (org.bukkit.entity.Item drop : e.getItems()) drop.setItemStack(cobble(drop.getItemStack().getAmount()));
+    }
+
+    /** La pierre taillee ramassee autrement (coffre, autre joueur) rejoint les memes piles de 99. */
+    @EventHandler(ignoreCancelled = true)
+    public void onCobblePickup(org.bukkit.event.entity.EntityPickupItemEvent e) {
+        if (!(e.getEntity() instanceof Player) || !plugin.game().rules().on("roche-en-cobble")) return;
+        ItemStack it = e.getItem().getItemStack();
+        if (it.getType() != Material.COBBLESTONE || it.hasItemMeta()) return;
+        e.getItem().setItemStack(cobble(it.getAmount()));
     }
 }
