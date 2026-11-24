@@ -148,9 +148,9 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `blocs-poses` | 15 s | Les blocs posés par les joueurs se cassent d'eux-mêmes après ce délai, en se fissurant, et lâchent leur objet (0 : jamais). Restent en place les blocs qu'on ouvre ou qu'on utilise (établi, four, coffre, enclume, lit…) et les sources de lumière (torches, lanternes) |
 | `armures-incassables` | oui | Les pièces d'armure (casque, plastron, jambières, bottes, élytres) ne s'usent pas, d'où qu'elles viennent |
 | `armure-depart` | oui | Les joueurs commencent avec une armure en fer complète, Protection I, déjà portée |
-| `seau-de-lave` | oui | Les seaux de lave peuvent être vidés. Sur « non », un seau de lave ne se pose plus (on peut toujours en remplir un) |
-| `briquet` | oui | Les briquets et les boules de feu peuvent allumer un feu. Sur « non », ils n'allument plus rien (bloc, TNT, creeper) |
-| `aura-fire-aspect` | oui | Les épées d'Aura (unOrdinary) peuvent recevoir Aura de feu (Fire Aspect). Sur « non », ni la table d'enchantement ni l'enclume ne la leur donnent |
+| `seau-de-lave` | non | Sur « non », un seau de lave ne se pose pas (on peut toujours en remplir un). Sur « oui », les seaux de lave peuvent être vidés |
+| `briquet` | non | Sur « non », les briquets et les boules de feu n'allument rien (bloc, TNT, creeper). Sur « oui », ils allument un feu |
+| `aura-fire-aspect` | non | Sur « non », ni la table d'enchantement ni l'enclume ne donnent Aura de feu (Fire Aspect) aux épées d'Aura (unOrdinary). Sur « oui », elles peuvent la recevoir |
 | `roche-en-cobble` | oui | Dans le monde de jeu, toute roche minée qui n'est pas un minerai (pierre, ardoise des abîmes, granite, diorite, andésite, tuf, calcite, spéléothème, basalte, pierre noire) donne de la pierre taillée, qui s'empile par 99 (le maximum que Minecraft autorise) |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
