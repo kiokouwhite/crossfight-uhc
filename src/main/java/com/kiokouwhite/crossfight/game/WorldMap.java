@@ -424,8 +424,8 @@ public final class WorldMap implements Listener {
     private final class Terrain {
         final UUID world;
         final int border;
-        /** Les lieux poses quand le releve a commence : un lieu de plus, et il est refait. */
-        final int built;
+        /** Les lieux poses au dernier releve : un lieu de plus, et les troncons des lieux sont releves de nouveau. */
+        int built;
         /** Par pixel : 0 pas encore releve, 1 terre, 2 eau. */
         final byte[] kind = new byte[SIZE * SIZE];
         final int[] rgb = new int[SIZE * SIZE];
@@ -492,14 +492,32 @@ public final class WorldMap implements Listener {
             rgb[at] = b.getBlockData().getMapColor().asRGB();
         }
 
+        /** Un lieu vient d'etre pose : seuls les troncons que couvrent les lieux sont a refaire, le reste du terrain n'a pas change. */
+        void again(World w, List<Structures.Placed> places, int built) {
+            this.built = built;
+            java.util.Set<Long> waiting = new java.util.HashSet<>();
+            for (long[] c : queue) waiting.add(c[0]);
+            for (long key : pixels.keySet()) {
+                int cx = (int) (key >> 32), cz = (int) key;
+                for (Structures.Placed pl : places) {
+                    if (cx * 16 + 15 < pl.x() || cx * 16 > pl.x() + pl.sx() || cz * 16 + 15 < pl.z() || cz * 16 > pl.z() + pl.sz()) continue;
+                    if (waiting.add(key)) { queue.add(new long[]{key, cx, cz}); total++; }
+                    break;
+                }
+            }
+            if (task.isCancelled() && !queue.isEmpty()) task = Bukkit.getScheduler().runTaskTimer(plugin, this::feed, 1L, 2L);
+        }
+
         /** Change a mesure que la carte se remplit (par paliers, pour ne pas redessiner a chaque troncon). */
-        long progress() { return arrived >= total ? -1 : arrived / 48; }
+        long progress() { return arrived >= total ? -1L - total : arrived / 48; }
     }
 
     private Terrain terrain;
 
-    private Terrain terrain(World w, int border, int built) {
-        if (terrain == null || !terrain.world.equals(w.getUID()) || terrain.border != border || terrain.built != built) {
+    private Terrain terrain(World w, int border, List<Structures.Placed> places) {
+        int built = places.hashCode();
+        if (terrain != null && terrain.world.equals(w.getUID()) && terrain.border == border && terrain.built != built) terrain.again(w, places, built);
+        if (terrain == null || !terrain.world.equals(w.getUID()) || terrain.border != border) {
             if (terrain != null && terrain.task != null) terrain.task.cancel();
             terrain = new Terrain(w, border, built);
         }
@@ -528,7 +546,7 @@ public final class WorldMap implements Listener {
             Location arena = plugin.ferox().centre();
             Location middle = w.getWorldBorder().getCenter();
             double now = Math.min(w.getWorldBorder().getSize() / 2, border * 1.05);
-            Terrain ground = terrain(w, border, places.hashCode());
+            Terrain ground = terrain(w, border, places);
             long stamp = 31L * border + w.getName().hashCode();
             stamp = stamp * 31 + ground.progress();
             for (Structures.Placed pl : places) stamp = stamp * 31 + pl.hashCode();
