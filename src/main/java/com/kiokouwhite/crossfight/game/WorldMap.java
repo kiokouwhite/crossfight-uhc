@@ -43,7 +43,7 @@ import java.util.UUID;
  * La carte de la map (/cf map) : un objet de carte qu'on tient en main et qui dit ou est quoi. Toute la map y tient,
  * d'un bord a l'autre de la bordure de depart, le nord en haut. Le fond est le terrain vu du ciel (forets, eau, sable,
  * neige, relief ; les lieux et l'arene s'y voient tels qu'ils sont batis) ; chaque lieu pose est cerne a sa couleur, avec
- * un point et son nom, l'arene de Ferox aussi ; le cadre rouge est la bordure du moment, qui se resserre.
+ * son nom, l'arene de Ferox aussi (le nom est ecrit sous une marque que le pack efface : sans le pack, un point blanc) ; le cadre rouge est la bordure du moment, qui se resserre.
  * Le pointeur blanc est celui qui tient la carte (il tourne avec lui), les marques bleues sont ses coequipiers : la
  * carte est dessinee pour chaque joueur. Les adversaires n'y sont jamais.
  *

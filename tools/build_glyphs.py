@@ -386,6 +386,11 @@ def main() -> int:
     print(veil.relative_to(ROOT))
     # L'evenement Omori : la porte blanche de l'Espace Blanc.
     print(write("porte_blanche", white_door(), PUBLIC).relative_to(ROOT))
+    # La carte de la map (game/WorldMap.java) ecrit le nom des lieux sous une marque : la marque elle-meme est effacee.
+    dot = ROOT / "resourcepack" / "assets" / "minecraft" / "textures" / "map" / "decorations" / "player_off_map.png"
+    dot.parent.mkdir(parents=True, exist_ok=True)
+    Image.new("RGBA", (8, 8), (0, 0, 0, 0)).save(dot)
+    print(dot.relative_to(ROOT))
     # Les images officielles fournies remplacent, dans le pack complet, le dessin public du meme nom.
     if PHOTOS.is_dir():
         for src in sorted(PHOTOS.iterdir()):
