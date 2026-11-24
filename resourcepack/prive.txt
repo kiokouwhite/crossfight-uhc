@@ -1037,6 +1037,12 @@ skin.weiss
 skin.weiss_gris
 skin.yang
 skin.yang_gris
+voice.arlo_barriere 730
+voice.arlo_barriere_ultime 2050
+voice.arlo_enfermement 900
+voice.arlo_etouffement 990
+voice.arlo_selection 1760
+voice.arlo_ult 2300
 voice.armin_kill 3560
 voice.armin_mort 3500
 voice.armin_regroupement 2060

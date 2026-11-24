@@ -1319,6 +1319,12 @@ skin.weiss
 skin.weiss_gris
 skin.yang
 skin.yang_gris
+voice.arlo_barriere
+voice.arlo_barriere_ultime
+voice.arlo_enfermement
+voice.arlo_etouffement
+voice.arlo_selection
+voice.arlo_ult
 voice.armin_kill
 voice.armin_mort
 voice.armin_regroupement
