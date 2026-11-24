@@ -57,7 +57,8 @@ import java.util.UUID;
 public final class WorldMap implements Listener {
 
     private static final int SIZE = 128, MARGIN = 6;
-    private static final Color PAPER = new Color(214, 194, 152), FRAME = new Color(120, 92, 58), BORDER = new Color(230, 30, 30);
+    /** Le terrain pas encore releve, le tour de la carte (le bleu nuit du pack d'interface), la bordure, et l'encre du « N ». */
+    private static final Color PAPER = new Color(58, 63, 94), FRAME = new Color(24, 26, 48), BORDER = new Color(230, 30, 30), INK = new Color(255, 240, 214);
 
     /** Les couleurs des lieux, dans l'ordre : celle de leur contour sur la carte, et celle de leur ligne dans la legende. */
     private static final Color[] TINTS = {new Color(176, 46, 38), new Color(60, 68, 170), new Color(94, 124, 22), new Color(240, 200, 40), new Color(137, 50, 184),
@@ -160,6 +161,8 @@ public final class WorldMap implements Listener {
         for (String l : lines) lore.add(Msg.mm(l).decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
         if (admin(p)) lore.add(Msg.mm("<yellow>Admin : clic droit pour viser, clic pour s'y teleporter.").decoration(net.kyori.adventure.text.format.TextDecoration.ITALIC, false));
         meta.lore(lore);
+        // Dans l'inventaire : son icone du pack complet, quand il en a une (tools/build_icones.py : "carte"). En main, c'est toujours la carte.
+        if (com.kiokouwhite.crossfight.util.Sounds.has("icone.carte")) meta.setItemModel(new NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/carte"));
         meta.getPersistentDataContainer().set(mark, PersistentDataType.BYTE, (byte) 1);
         map.setItemMeta(meta);
 
@@ -628,7 +631,7 @@ public final class WorldMap implements Listener {
             for (int i = bz1; i <= bz2; i++) { dot(canvas, bx1, i, BORDER); dot(canvas, bx2, i, BORDER); }
             // Le nord, en haut.
             for (int x = SIZE / 2 - 4; x <= SIZE / 2 + 4; x++) for (int y = 0; y < MARGIN + 3 && y < 9; y++) dot(canvas, x, y, FRAME);
-            canvas.drawText(SIZE / 2 - 2, 0, MinecraftFont.Font, "§" + org.bukkit.map.MapPalette.matchColor(PAPER) + ";N");
+            canvas.drawText(SIZE / 2 - 2, 0, MinecraftFont.Font, "§" + org.bukkit.map.MapPalette.matchColor(INK) + ";N");
         }
     }
 }

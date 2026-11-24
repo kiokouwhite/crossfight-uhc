@@ -386,6 +386,27 @@ def portal():
     return sheet, {"animation": {"frametime": 2, "width": lw, "height": lh}}
 
 
+def map_frame():
+    """Le tour de la carte tenue en main (game/WorldMap.java) : le cadre du pack d'interface a la place du parchemin de
+    Minecraft. Le jeu dessine ce fond sur 142 unites, la carte au milieu sur 128 : le cadre tient dans les 7 unites du tour.
+    Les deux textures du jeu sont remplacees (celle des cartes dessinees et celle des cartes vides)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from build_menu_franuka import nine
+    box = nine(ui_sprite("Background boxes", "BGbox_01B"), 160, 160)
+    box = box.crop(box.getbbox())
+    if box.size != (142, 142):
+        grow = 160 + 142 - box.width
+        box = nine(ui_sprite("Background boxes", "BGbox_01B"), grow, grow)
+        box = box.crop(box.getbbox())
+    out = ROOT / "resourcepack-prive" / "assets" / "minecraft" / "textures" / "map"
+    out.mkdir(parents=True, exist_ok=True)
+    made = []
+    for name in ("map_background.png", "map_background_checkerboard.png"):
+        box.save(out / name)
+        made.append(out / name)
+    return made
+
+
 def hud_fonts():
     """Les polices du HUD pour les textes de l'ecran (noms, capacites, pseudos) : les deux polices du pack
     d'interface, rangees dans le pack complet et declarees comme polices "crossfight:hud_titre" et
@@ -512,6 +533,7 @@ def main() -> int:
     made.append(save(sheet, PUBLIC, "portal"))
     Path(str(made[-1]) + ".mcmeta").write_text(json.dumps(meta, indent=1), encoding="utf-8")
     made += hud_fonts()
+    made += map_frame()
     voies = {}
     for f in sources("voie"):
         voies[f.stem] = icon(load(f))

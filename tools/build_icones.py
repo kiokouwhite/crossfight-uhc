@@ -131,6 +131,8 @@ RECIPES = {
             ("Bonus Speed", "bonus_speed", "Rogue 3 bleu"),
             # Le sac a dos d'equipe (listener/Backpack) : le sac de cuir de la collection.
             ("Sac à dos d'équipe", "sac_a_dos", "Objets 1868"),
+            # La carte de la map (game/WorldMap) : le parchemin a la fleche du nord.
+            ("Carte de la map", "carte", "Objets 1704"),
         ],
         "Eren Jaeger": [
             ("Charge tridimensionnelle", "eren_charge", "Warrior 9 vert"),
