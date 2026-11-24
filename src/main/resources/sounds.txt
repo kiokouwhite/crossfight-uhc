@@ -1354,6 +1354,9 @@ voice.corrin_selection
 voice.corrin_ult
 voice.duo_blake_yang_blake
 voice.duo_blake_yang_yang
+voice.duo_hannah_eirika_hannah
+voice.duo_kaze_hannah_hannah
+voice.duo_netsu_hannah_hannah
 voice.duo_ruby_blake_blake
 voice.duo_ruby_blake_ruby
 voice.duo_ruby_weiss_ruby
@@ -1369,6 +1372,12 @@ voice.eren_kill
 voice.eren_mort
 voice.eren_selection
 voice.eren_ult
+voice.hannah_abnegation
+voice.hannah_mort
+voice.hannah_protection
+voice.hannah_resister
+voice.hannah_selection
+voice.hannah_ult
 voice.jett_courant
 voice.jett_kill
 voice.jett_mort
@@ -1431,6 +1440,9 @@ voice.sova_mort
 voice.sova_reco
 voice.sova_selection
 voice.sova_ult
+voice.syn_hannah_eirika_hannah
+voice.syn_kaze_hannah_hannah
+voice.syn_netsu_hannah_hannah
 voice.takumi_contre
 voice.takumi_furie
 voice.takumi_kill

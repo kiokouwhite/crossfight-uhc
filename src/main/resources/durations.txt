@@ -34,6 +34,9 @@ voice.corrin_selection 1105
 voice.corrin_ult 785
 voice.duo_blake_yang_blake 2578
 voice.duo_blake_yang_yang 3041
+voice.duo_hannah_eirika_hannah 2050
+voice.duo_kaze_hannah_hannah 2910
+voice.duo_netsu_hannah_hannah 2460
 voice.duo_ruby_blake_blake 3608
 voice.duo_ruby_blake_ruby 2420
 voice.duo_ruby_weiss_ruby 1870
@@ -49,6 +52,12 @@ voice.eren_kill 3170
 voice.eren_mort 4820
 voice.eren_selection 2340
 voice.eren_ult 4040
+voice.hannah_abnegation 3000
+voice.hannah_mort 3060
+voice.hannah_protection 2780
+voice.hannah_resister 2660
+voice.hannah_selection 2520
+voice.hannah_ult 2410
 voice.jett_courant 300
 voice.jett_kill 1000
 voice.jett_mort 680
@@ -111,6 +120,9 @@ voice.sova_mort 980
 voice.sova_reco 830
 voice.sova_selection 1160
 voice.sova_ult 1850
+voice.syn_hannah_eirika_hannah 2890
+voice.syn_kaze_hannah_hannah 2550
+voice.syn_netsu_hannah_hannah 2130
 voice.takumi_contre 630
 voice.takumi_furie 510
 voice.takumi_kill 1270
