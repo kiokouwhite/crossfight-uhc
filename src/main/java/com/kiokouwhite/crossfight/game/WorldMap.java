@@ -41,8 +41,9 @@ import java.util.UUID;
 
 /**
  * La carte de la map (/cf map) : un objet de carte qu'on tient en main et qui dit ou est quoi. Toute la map y tient,
- * d'un bord a l'autre de la bordure de depart, le nord en haut : chaque lieu pose est un rectangle a sa couleur, avec
- * une banniere et son nom ; l'arene de Ferox a son icone ; le cadre rouge est la bordure du moment, qui se resserre.
+ * d'un bord a l'autre de la bordure de depart, le nord en haut. Le fond est le terrain vu du ciel (forets, eau, sable,
+ * neige, relief ; les lieux et l'arene s'y voient tels qu'ils sont batis) ; chaque lieu pose est cerne a sa couleur, avec
+ * un point et son nom, l'arene de Ferox aussi ; le cadre rouge est la bordure du moment, qui se resserre.
  * Le pointeur blanc est celui qui tient la carte (il tourne avec lui), les marques bleues sont ses coequipiers : la
  * carte est dessinee pour chaque joueur. Les adversaires n'y sont jamais.
  *
@@ -56,13 +57,9 @@ import java.util.UUID;
 public final class WorldMap implements Listener {
 
     private static final int SIZE = 128, MARGIN = 6;
-    private static final Color PAPER = new Color(214, 194, 152), FRAME = new Color(120, 92, 58), GRID = new Color(196, 174, 132),
-            AXIS = new Color(168, 140, 96), BORDER = new Color(200, 30, 30), ARENA = new Color(150, 96, 52), INK = new Color(60, 44, 28);
+    private static final Color PAPER = new Color(214, 194, 152), FRAME = new Color(120, 92, 58), BORDER = new Color(230, 30, 30);
 
-    /** Les couleurs des lieux, dans l'ordre : celle de la banniere, et celle du rectangle. */
-    private static final MapCursor.Type[] BANNERS = {MapCursor.Type.BANNER_RED, MapCursor.Type.BANNER_BLUE, MapCursor.Type.BANNER_GREEN, MapCursor.Type.BANNER_YELLOW,
-            MapCursor.Type.BANNER_PURPLE, MapCursor.Type.BANNER_ORANGE, MapCursor.Type.BANNER_CYAN, MapCursor.Type.BANNER_PINK, MapCursor.Type.BANNER_LIME,
-            MapCursor.Type.BANNER_LIGHT_BLUE, MapCursor.Type.BANNER_MAGENTA, MapCursor.Type.BANNER_BROWN, MapCursor.Type.BANNER_WHITE, MapCursor.Type.BANNER_GRAY};
+    /** Les couleurs des lieux, dans l'ordre : celle de leur contour sur la carte, et celle de leur ligne dans la legende. */
     private static final Color[] TINTS = {new Color(176, 46, 38), new Color(60, 68, 170), new Color(94, 124, 22), new Color(240, 200, 40), new Color(137, 50, 184),
             new Color(230, 128, 30), new Color(22, 156, 156), new Color(243, 139, 170), new Color(128, 199, 31), new Color(58, 179, 218), new Color(199, 78, 189),
             new Color(131, 84, 50), new Color(240, 240, 240), new Color(90, 90, 90)};
@@ -417,6 +414,104 @@ public final class WorldMap implements Listener {
     private static final java.util.Set<Material> HARMFUL = java.util.Set.of(Material.LAVA, Material.MAGMA_BLOCK, Material.FIRE, Material.SOUL_FIRE, Material.CAMPFIRE,
             Material.SOUL_CAMPFIRE, Material.CACTUS, Material.SWEET_BERRY_BUSH, Material.POWDER_SNOW, Material.WITHER_ROSE, Material.POINTED_DRIPSTONE);
 
+    // ------------------------------------------------------------------------------------------------- le terrain
+
+    /**
+     * Le terrain vu du ciel, un pixel de la carte apres l'autre : la couleur du bloc le plus haut (celle des cartes de
+     * Minecraft), sa hauteur (pour le relief) ou la profondeur de l'eau. Releve une fois par map et par bordure de
+     * depart, troncon apres troncon sans bloquer le serveur, le centre d'abord : la carte se remplit a mesure.
+     */
+    private final class Terrain {
+        final UUID world;
+        final int border;
+        /** Les lieux poses quand le releve a commence : un lieu de plus, et il est refait. */
+        final int built;
+        /** Par pixel : 0 pas encore releve, 1 terre, 2 eau. */
+        final byte[] kind = new byte[SIZE * SIZE];
+        final int[] rgb = new int[SIZE * SIZE];
+        /** La hauteur du sol ; pour l'eau, sa profondeur. */
+        final short[] level = new short[SIZE * SIZE];
+        /** Les troncons a relever, avec les pixels que chacun porte. */
+        final java.util.ArrayDeque<long[]> queue = new java.util.ArrayDeque<>();
+        final Map<Long, List<Integer>> pixels = new HashMap<>();
+        int flying, arrived, total;
+        BukkitTask task;
+
+        Terrain(World w, int border, int built) {
+            this.world = w.getUID();
+            this.border = border;
+            this.built = built;
+            double scale = (SIZE - 2.0 * MARGIN) / (2.0 * border);
+            for (int y = 0; y < SIZE; y++) for (int x = 0; x < SIZE; x++) {
+                double bx = (x - SIZE / 2.0) / scale, bz = (y - SIZE / 2.0) / scale;
+                if (Math.abs(bx) > border || Math.abs(bz) > border) continue;
+                long key = (((long) Math.floorDiv((int) Math.floor(bx), 16)) << 32) ^ (Math.floorDiv((int) Math.floor(bz), 16) & 0xffffffffL);
+                pixels.computeIfAbsent(key, k -> new ArrayList<>()).add(y * SIZE + x);
+            }
+            List<long[]> order = new ArrayList<>();
+            for (long key : pixels.keySet()) order.add(new long[]{key, (int) (key >> 32), (int) key});
+            order.sort(java.util.Comparator.comparingLong(c -> c[1] * c[1] + c[2] * c[2]));
+            queue.addAll(order);
+            total = order.size();
+            task = Bukkit.getScheduler().runTaskTimer(plugin, this::feed, 1L, 2L);
+        }
+
+        /** Demande les troncons suivants, sans en avoir trop en route a la fois. */
+        private void feed() {
+            World w = Bukkit.getWorld(world);
+            if (w == null || queue.isEmpty()) { if (flying == 0 || w == null) { task.cancel(); queue.clear(); } return; }
+            double scale = (SIZE - 2.0 * MARGIN) / (2.0 * border);
+            while (flying < 24 && !queue.isEmpty()) {
+                long[] c = queue.poll();
+                flying++;
+                w.getChunkAtAsync((int) c[1], (int) c[2]).whenComplete((chunk, error) -> {
+                    flying--;
+                    arrived++;
+                    if (chunk == null) return;
+                    for (int at : pixels.get(c[0])) survey(w, at, scale);
+                });
+            }
+        }
+
+        private void survey(World w, int at, double scale) {
+            int x = (int) Math.floor((at % SIZE - SIZE / 2.0) / scale), z = (int) Math.floor((at / SIZE - SIZE / 2.0) / scale);
+            Block b = w.getHighestBlockAt(x, z, org.bukkit.HeightMap.WORLD_SURFACE);
+            int floor = w.getMinHeight();
+            // Les herbes, les fleurs et ce qui n'a pas de couleur de carte ne cachent pas le sol.
+            while (b.getY() > floor && !b.isLiquid() && (b.isPassable() && b.getType() != Material.SNOW || b.getBlockData().getMapColor().asRGB() == 0)) b = b.getRelative(BlockFace.DOWN);
+            if (b.getType() == Material.WATER) {
+                int depth = 0;
+                Block under = b;
+                while (depth < 12 && under.getY() > floor && under.getType() == Material.WATER) { under = under.getRelative(BlockFace.DOWN); depth++; }
+                kind[at] = 2;
+                level[at] = (short) depth;
+            } else {
+                kind[at] = 1;
+                level[at] = (short) b.getY();
+            }
+            rgb[at] = b.getBlockData().getMapColor().asRGB();
+        }
+
+        /** Change a mesure que la carte se remplit (par paliers, pour ne pas redessiner a chaque troncon). */
+        long progress() { return arrived >= total ? -1 : arrived / 48; }
+    }
+
+    private Terrain terrain;
+
+    private Terrain terrain(World w, int border, int built) {
+        if (terrain == null || !terrain.world.equals(w.getUID()) || terrain.border != border || terrain.built != built) {
+            if (terrain != null && terrain.task != null) terrain.task.cancel();
+            terrain = new Terrain(w, border, built);
+        }
+        return terrain;
+    }
+
+    /** Oublie le terrain releve (une map regeneree, des lieux poses) : il le sera de nouveau au prochain regard. */
+    public void refresh() {
+        if (terrain != null && terrain.task != null) terrain.task.cancel();
+        terrain = null;
+    }
+
     /** Dessine la carte pour chaque joueur qui la tient : le fond quand il change, les marques a chaque fois. */
     private final class Painter extends MapRenderer {
         /** Par joueur : ce que montrait le fond la derniere fois qu'on l'a dessine. */
@@ -433,20 +528,22 @@ public final class WorldMap implements Listener {
             Location arena = plugin.ferox().centre();
             Location middle = w.getWorldBorder().getCenter();
             double now = Math.min(w.getWorldBorder().getSize() / 2, border * 1.05);
+            Terrain ground = terrain(w, border, places.hashCode());
             long stamp = 31L * border + w.getName().hashCode();
+            stamp = stamp * 31 + ground.progress();
             for (Structures.Placed pl : places) stamp = stamp * 31 + pl.hashCode();
             stamp = stamp * 31 + arena.getBlockX() * 7919L + arena.getBlockZ();
             stamp = stamp * 31 + Math.round(now * scale) * 977L + Math.round(middle.getX() * scale) * 131L + Math.round(middle.getZ() * scale);
-            if (!Long.valueOf(stamp).equals(drawn.put(p.getUniqueId(), stamp))) paint(canvas, border, scale, places, arena, middle, now);
+            if (!Long.valueOf(stamp).equals(drawn.put(p.getUniqueId(), stamp))) paint(canvas, ground, border, scale, places, arena, middle, now);
 
             MapCursorCollection cursors = canvas.getCursors();
             while (cursors.size() > 0) cursors.removeCursor(cursors.getCursor(0));
             for (int i = 0; i < places.size(); i++) {
                 Structures.Placed pl = places.get(i);
-                cursors.addCursor(new MapCursor(at(pl.x() + pl.sx() / 2.0, scale), at(pl.z() + pl.sz() / 2.0, scale), (byte) 8, BANNERS[i % BANNERS.length], true,
+                cursors.addCursor(new MapCursor(at(pl.x() + pl.sx() / 2.0, scale), at(pl.z() + pl.sz() / 2.0, scale), (byte) 8, MapCursor.Type.SMALL_WHITE_CIRCLE, true,
                         Component.text(plugin.structures().title(pl.name()))));
             }
-            cursors.addCursor(new MapCursor(at(arena.getX(), scale), at(arena.getZ(), scale), (byte) 8, MapCursor.Type.MANSION, true, Component.text("Arene de Ferox")));
+            cursors.addCursor(new MapCursor(at(arena.getX(), scale), at(arena.getZ(), scale), (byte) 8, MapCursor.Type.SMALL_WHITE_CIRCLE, true, Component.text("Arene de Ferox")));
             Aim aim = aims.get(p.getUniqueId());
             if (!p.getWorld().equals(w)) {
                 if (aim != null) cursors.addCursor(new MapCursor((byte) aim.u, (byte) aim.v, (byte) 8, MapCursor.Type.RED_X, true));
@@ -482,24 +579,30 @@ public final class WorldMap implements Listener {
             if (x >= 0 && y >= 0 && x < SIZE && y < SIZE) canvas.setPixelColor(x, y, c);
         }
 
-        private void paint(MapCanvas canvas, int border, double scale, List<Structures.Placed> places, Location arena, Location middle, double now) {
+        private void paint(MapCanvas canvas, Terrain ground, int border, double scale, List<Structures.Placed> places, Location arena, Location middle, double now) {
             int low = px(-border, scale), high = px(border, scale);
-            for (int x = 0; x < SIZE; x++) for (int y = 0; y < SIZE; y++) canvas.setPixelColor(x, y, x < low || y < low || x > high || y > high ? FRAME : PAPER);
-            // Un quadrillage : quatre cases par demi-cote ; les deux axes, un peu plus marques.
-            for (int k = -3; k <= 3; k++) {
-                int line = px(k * border / 4.0, scale);
-                for (int i = low; i <= high; i++) { dot(canvas, line, i, k == 0 ? AXIS : GRID); dot(canvas, i, line, k == 0 ? AXIS : GRID); }
+            // Le terrain vu du ciel : la couleur du sol, eclaircie ou assombrie par le relief (la lumiere vient du nord) ;
+            // l'eau fonce avec la profondeur. Ce qui n'est pas encore releve reste couleur de papier.
+            for (int x = 0; x < SIZE; x++) for (int y = 0; y < SIZE; y++) {
+                if (x < low || y < low || x > high || y > high) { canvas.setPixelColor(x, y, FRAME); continue; }
+                int at = y * SIZE + x;
+                if (ground.kind[at] == 0) { canvas.setPixelColor(x, y, PAPER); continue; }
+                double light;
+                if (ground.kind[at] == 2) light = ground.level[at] <= 2 ? 1.0 : ground.level[at] <= 6 ? 0.86 : 0.72;
+                else {
+                    int north = y > 0 && ground.kind[at - SIZE] == 1 ? ground.level[at - SIZE] : ground.level[at];
+                    light = Math.max(0.62, Math.min(1.0, 0.86 + 0.035 * (ground.level[at] - north)));
+                }
+                int c = ground.rgb[at];
+                canvas.setPixelColor(x, y, new Color((int) (((c >> 16) & 255) * light), (int) (((c >> 8) & 255) * light), (int) ((c & 255) * light)));
             }
-            // L'arene : un disque.
-            int ax = px(arena.getX(), scale), az = px(arena.getZ(), scale), ar = Math.max(3, (int) Math.round(92 * scale));
-            for (int dx = -ar; dx <= ar; dx++) for (int dz = -ar; dz <= ar; dz++) if (dx * dx + dz * dz <= ar * ar) dot(canvas, ax + dx, az + dz, ARENA);
-            // Les lieux : un rectangle a leur couleur (eclaircie), cerne de cette couleur.
+            // Les lieux : leur contour, a leur couleur (le lieu lui-meme se voit, il est bati sur le terrain).
             for (int i = 0; i < places.size(); i++) {
                 Structures.Placed pl = places.get(i);
                 Color edge = TINTS[i % TINTS.length];
-                Color fill = new Color((edge.getRed() + PAPER.getRed()) / 2, (edge.getGreen() + PAPER.getGreen()) / 2, (edge.getBlue() + PAPER.getBlue()) / 2);
                 int x1 = px(pl.x(), scale), x2 = Math.max(x1 + 2, px(pl.x() + pl.sx(), scale)), z1 = px(pl.z(), scale), z2 = Math.max(z1 + 2, px(pl.z() + pl.sz(), scale));
-                for (int x = x1; x <= x2; x++) for (int z = z1; z <= z2; z++) dot(canvas, x, z, x == x1 || x == x2 || z == z1 || z == z2 ? edge : fill);
+                for (int x = x1; x <= x2; x++) { dot(canvas, x, z1, edge); dot(canvas, x, z2, edge); }
+                for (int z = z1; z <= z2; z++) { dot(canvas, x1, z, edge); dot(canvas, x2, z, edge); }
             }
             // La bordure du moment : un cadre rouge.
             int bx1 = px(middle.getX() - now, scale), bx2 = px(middle.getX() + now, scale), bz1 = px(middle.getZ() - now, scale), bz2 = px(middle.getZ() + now, scale);
