@@ -43,7 +43,7 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `roche-en-cobble` | oui | Dans le monde de jeu, toute roche minée qui n'est pas un minerai (pierre, ardoise des abîmes, granite, diorite, andésite, tuf, calcite, spéléothème, basalte, pierre noire) donne de la pierre taillée, qui s'empile par 99 (le maximum que Minecraft autorise) |
 | `combat-1.7` | oui | Combat de la 1.7.10 : pas de délai d'attaque, recul, coups critiques, armure et Tranchant d'époque, canne à pêche qui repousse (détail plus bas, « Combat façon 1.7.10 ») |
 | `clic-maintenu` | oui | Avec le combat 1.7 : après un clic sur un ennemi, les coups s'enchaînent seuls à 9 par seconde tant qu'il reste dans le viseur |
-| `blocage-epee` | oui | Avec le combat 1.7 : le clic droit maintenu à l'épée pare la moitié des dégâts (sauf l'épée dont le clic droit lance une capacité) |
+| `blocage-epee` | non | Sur « oui », avec le combat 1.7 : le clic droit maintenu à l'épée pare la moitié des dégâts (sauf l'épée dont le clic droit lance une capacité) |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
 

@@ -225,7 +225,7 @@ pvp:
   # Avec le combat 1.7 : apres un clic sur un ennemi, les coups s'enchainent seuls a 9 par seconde tant qu'il reste dans le viseur
   hold-to-attack: true
   # Avec le combat 1.7 : le clic droit maintenu a l'epee pare la moitie des degats
-  sword-blocking: true
+  sword-blocking: false
 
 restrictions:
   max-diamond-pieces: 2

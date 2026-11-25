@@ -26,12 +26,12 @@ import java.util.UUID;
  * Combat facon 1.7.10 (regle combat-1.7) :
  *  - aucun temps de recharge d'attaque (spam clic a pleine puissance), pas d'attaque balayante ;
  *  - neuf coups par seconde au plus ; un clic sur un ennemi enchaine ensuite les coups tout seul, a ce rythme, tant qu'il
- *    reste dans le viseur (regle clic-maintenu) ;
+ *    reste dans le viseur, meme repousse hors de portee (regle clic-maintenu) ;
  *  - le recul d'epoque : 0,4 a l'horizontale et a la verticale, la vitesse de la victime divisee par deux, et le
  *    coup en courant (ou Recul) qui pousse de 0,5 de plus dans le regard de l'attaquant ;
  *  - les coups critiques d'epoque : un bonus tire au hasard (jusqu'a la moitie des degats, plus un), et permis en courant ;
  *  - Tranchant a 1,25 par niveau ; l'armure a 4 % par point, quelle que soit la force du coup ;
- *  - l'epee pare (regle blocage-epee) : clic droit maintenu, la moitie des degats, de tous les cotes (sauf l'epee dont
+ *  - l'epee peut parer (regle blocage-epee, non par defaut) : clic droit maintenu, la moitie des degats, de tous les cotes (sauf l'epee dont
  *    le clic droit lance une capacite) ;
  *  - la canne a peche, les boules de neige et les oeufs repoussent les joueurs ;
  *  - pas de delai entre deux perles ; la pomme doree enchantee rend ses effets d'epoque ; les joueurs ne se poussent pas.
@@ -110,7 +110,9 @@ public final class LegacyCombatListener implements Listener {
     /** La reserve de coups : elle se remplit de 0,45 par tick ; un peu plus d'un coup d'avance, pour que des clics reguliers tiennent bien 9 par seconde. */
     private static final double RESERVE = 1.45;
     /** En ticks : le clic est tenu pour relache quand l'ennemi a quitte le viseur depuis ce temps. */
-    private static final int LOST = 4;
+    private static final int LOST = 12;
+    /** En blocs : l'enchainement tient tant que l'ennemi est dans le viseur jusqu'a cette distance (repousse, il reste vise) ; les coups, eux, ne partent qu'a portee. */
+    private static final double KEPT = 14.0;
 
     private static final class Rhythm {
         double ready = RESERVE;
@@ -146,12 +148,15 @@ public final class LegacyCombatListener implements Listener {
         return enabled() && plugin.game().rules().on("clic-maintenu");
     }
 
-    /** L'ennemi que le joueur a dans le viseur, a portee et sans mur entre eux. */
-    private LivingEntity aimedAt(Player p) {
-        // La portee suit l'attribut de portee d'interaction (capacites de "Reach").
+    /** La portee de frappe du joueur : elle suit l'attribut de portee d'interaction (capacites de "Reach"). */
+    private double reach(Player p) {
         var range = p.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
-        double reach = range == null ? REACH : Math.max(1.0, range.getValue());
-        RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach, 0.3,
+        return range == null ? REACH : Math.max(1.0, range.getValue());
+    }
+
+    /** L'ennemi que le joueur a dans le viseur, jusqu'a cette distance et sans mur entre eux (le viseur est pris un peu large au-dela de la portee). */
+    private LivingEntity aimedAt(Player p, double reach) {
+        RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach, reach > 6 ? 0.7 : 0.3,
                 ent -> ent != p && ent instanceof LivingEntity le && (Effects.isEnemy(p, le) || Mannequins.isMannequin(le)));
         if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) return null;
         var block = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach);
@@ -166,7 +171,7 @@ public final class LegacyCombatListener implements Listener {
         if (!holds() || e.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
         Player p = e.getPlayer();
         if (!plugin.game().isRunning() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
-        if (aimedAt(p) != null) rhythm(p).aimed = Bukkit.getCurrentTick();
+        if (aimedAt(p, KEPT) != null) rhythm(p).aimed = Bukkit.getCurrentTick();
     }
 
     /**
@@ -180,10 +185,11 @@ public final class LegacyCombatListener implements Listener {
             Rhythm r = rhythms.get(p.getUniqueId());
             if (r == null || r.aimed < 0) continue;
             if (!plugin.game().isRunning() || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) { r.aimed = -1; continue; }
-            LivingEntity target = aimedAt(p);
-            if (target == null) { if (now - r.aimed > LOST) r.aimed = -1; continue; }
+            // Repousse hors de portee, l'ennemi reste vise : l'enchainement attend qu'il revienne a portee.
+            if (aimedAt(p, KEPT) == null) { if (now - r.aimed > LOST) r.aimed = -1; continue; }
             r.aimed = now;
-            if (rhythm(p).ready < 1) continue;
+            LivingEntity target = aimedAt(p, reach(p));
+            if (target == null || rhythm(p).ready < 1) continue;
             chained = true;
             try { p.swingMainHand(); p.attack(target); } finally { chained = false; }
         }
