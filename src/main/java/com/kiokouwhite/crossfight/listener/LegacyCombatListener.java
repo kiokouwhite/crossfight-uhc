@@ -25,7 +25,8 @@ import java.util.UUID;
 /**
  * Combat facon 1.7.10 (regle combat-1.7) :
  *  - aucun temps de recharge d'attaque (spam clic a pleine puissance), pas d'attaque balayante ;
- *  - maintenir le clic gauche sur un ennemi enchaine les coups tout seul ;
+ *  - neuf coups par seconde au plus ; un clic sur un ennemi enchaine ensuite les coups tout seul, a ce rythme, tant qu'il
+ *    reste dans le viseur (regle clic-maintenu) ;
  *  - le recul d'epoque : 0,4 a l'horizontale et a la verticale, la vitesse de la victime divisee par deux, et le
  *    coup en courant (ou Recul) qui pousse de 0,5 de plus dans le regard de l'attaquant ;
  *  - les coups critiques d'epoque : un bonus tire au hasard (jusqu'a la moitie des degats, plus un), et permis en courant ;
@@ -41,8 +42,6 @@ public final class LegacyCombatListener implements Listener {
     private static final double REACH = 3.0;
 
     private final CrossfightPlugin plugin;
-    /** Dernier tick ou le joueur a reellement frappe une entite (clic normal). */
-    private final Map<UUID, Integer> lastHitTick = new HashMap<>();
 
     public LegacyCombatListener(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -77,7 +76,7 @@ public final class LegacyCombatListener implements Listener {
                     inv.setItem(i, it);
                 }
             }
-        }, 20L, 20L);
+        }, 20L, 20L);        Bukkit.getScheduler().runTaskTimer(plugin, this::chain, 1L, 1L);
     }
 
     /** La parade de l'epee : pas de delai, la moitie des degats, de tous les cotes ; ce qui traverse un bouclier la traverse. */
@@ -104,37 +103,96 @@ public final class LegacyCombatListener implements Listener {
         if (enabled() && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) e.setCancelled(true);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onHit(EntityDamageByEntityEvent e) {
-        if (e.getDamager() instanceof Player p && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
-            lastHitTick.put(p.getUniqueId(), Bukkit.getCurrentTick());
-        }
+    // ------------------------------------------------------------------ le rythme des coups
+
+    /** Neuf coups par seconde au plus, et autant en gardant le clic gauche enfonce. */
+    private static final double CPS = 9.0, PER_TICK = CPS / 20.0;
+    /** La reserve de coups : elle se remplit de 0,45 par tick ; un peu plus d'un coup d'avance, pour que des clics reguliers tiennent bien 9 par seconde. */
+    private static final double RESERVE = 1.45;
+    /** En ticks : le clic est tenu pour relache quand l'ennemi a quitte le viseur depuis ce temps. */
+    private static final int LOST = 4;
+
+    private static final class Rhythm {
+        double ready = RESERVE;
+        int seen = Bukkit.getCurrentTick();
+        /** L'enchainement : le dernier tick ou un ennemi etait dans le viseur ; -1 hors enchainement. */
+        int aimed = -1;
     }
 
-    /**
-     * Chaque balancement de bras (clic maintenu) devient un coup si le joueur vise un ennemi
-     * a portee et n'a pas deja frappe ce tick.
-     */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onSwing(PlayerAnimationEvent e) {
-        if (!enabled() || e.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
-        Player p = e.getPlayer();
-        if (!plugin.game().isRunning() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
-        Integer last = lastHitTick.get(p.getUniqueId());
+    private final Map<UUID, Rhythm> rhythms = new HashMap<>();
+    /** Vrai pendant un coup que le plugin porte lui-meme (l'enchainement) : il ne relance pas l'enchainement. */
+    private boolean chained;
+
+    private Rhythm rhythm(Player p) {
+        Rhythm r = rhythms.computeIfAbsent(p.getUniqueId(), k -> new Rhythm());
         int now = Bukkit.getCurrentTick();
-        if (last != null && now - last <= 1) return;
+        r.ready = Math.min(RESERVE, r.ready + (now - r.seen) * PER_TICK);
+        r.seen = now;
+        return r;
+    }
+
+    /** Chaque coup porte prend dans la reserve : au-dela de 9 par seconde, il ne part pas. Un vrai clic sur un ennemi ouvre l'enchainement. */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onAttack(io.papermc.paper.event.player.PrePlayerAttackEntityEvent e) {
+        if (!enabled()) return;
+        Rhythm r = rhythm(e.getPlayer());
+        if (r.ready < 1) { e.setCancelled(true); return; }
+        r.ready -= 1;
+        if (!chained && holds() && plugin.game().isRunning() && e.getAttacked() instanceof LivingEntity) r.aimed = Bukkit.getCurrentTick();
+    }
+
+    /** Le clic gauche garde enfonce enchaine-t-il les coups ? */
+    public boolean holds() {
+        return enabled() && plugin.game().rules().on("clic-maintenu");
+    }
+
+    /** L'ennemi que le joueur a dans le viseur, a portee et sans mur entre eux. */
+    private LivingEntity aimedAt(Player p) {
         // La portee suit l'attribut de portee d'interaction (capacites de "Reach").
-        var range = p.getAttribute(org.bukkit.attribute.Attribute.ENTITY_INTERACTION_RANGE);
+        var range = p.getAttribute(Attribute.ENTITY_INTERACTION_RANGE);
         double reach = range == null ? REACH : Math.max(1.0, range.getValue());
         RayTraceResult hit = p.getWorld().rayTraceEntities(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach, 0.3,
                 ent -> ent != p && ent instanceof LivingEntity le && (Effects.isEnemy(p, le) || Mannequins.isMannequin(le)));
-        if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) return;
-        // Un bloc entre les deux ? On ne frappe pas a travers les murs.
+        if (hit == null || !(hit.getHitEntity() instanceof LivingEntity target)) return null;
         var block = p.getWorld().rayTraceBlocks(p.getEyeLocation(), p.getEyeLocation().getDirection(), reach);
         if (block != null && block.getHitPosition().distanceSquared(p.getEyeLocation().toVector())
-                < hit.getHitPosition().distanceSquared(p.getEyeLocation().toVector())) return;
-        lastHitTick.put(p.getUniqueId(), now);
-        p.attack(target);
+                < hit.getHitPosition().distanceSquared(p.getEyeLocation().toVector())) return null;
+        return target;
+    }
+
+    /** Un balancement de bras (un clic dans le vide, ou le clic tenu sur un bloc) : s'il vise un ennemi, l'enchainement s'ouvre. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSwing(PlayerAnimationEvent e) {
+        if (!holds() || e.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
+        Player p = e.getPlayer();
+        if (!plugin.game().isRunning() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) return;
+        if (aimedAt(p) != null) rhythm(p).aimed = Bukkit.getCurrentTick();
+    }
+
+    /**
+     * A chaque tick : tant que l'ennemi reste dans le viseur, les coups partent seuls, au rythme de la reserve (9 par seconde).
+     * Le jeu ne dit pas au serveur quand le bouton est relache : l'enchainement s'arrete quand le viseur quitte l'ennemi.
+     */
+    private void chain() {
+        if (!holds()) return;
+        int now = Bukkit.getCurrentTick();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            Rhythm r = rhythms.get(p.getUniqueId());
+            if (r == null || r.aimed < 0) continue;
+            if (!plugin.game().isRunning() || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR) { r.aimed = -1; continue; }
+            LivingEntity target = aimedAt(p);
+            if (target == null) { if (now - r.aimed > LOST) r.aimed = -1; continue; }
+            r.aimed = now;
+            if (rhythm(p).ready < 1) continue;
+            chained = true;
+            try { p.swingMainHand(); p.attack(target); } finally { chained = false; }
+        }
+    }
+
+    @EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
+        rhythms.remove(e.getPlayer().getUniqueId());
+        knock.remove(e.getPlayer().getUniqueId());
     }
 
     // ------------------------------------------------------------------ les degats d'epoque

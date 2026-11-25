@@ -222,6 +222,8 @@ pvp:
   # Combat facon 1.7.10 (regle combat-1.7) : pas de temps de recharge d'attaque, pas de balayage, recul, coups critiques,
   # armure et Tranchant d'epoque, canne a peche qui repousse ; maintenir le clic gauche enchaine les coups.
   legacy-combat: true
+  # Avec le combat 1.7 : apres un clic sur un ennemi, les coups s'enchainent seuls a 9 par seconde tant qu'il reste dans le viseur
+  hold-to-attack: true
   # Avec le combat 1.7 : le clic droit maintenu a l'epee pare la moitie des degats
   sword-blocking: true
 
