@@ -239,6 +239,16 @@ public final class AbilityEngine implements Listener {
         return Items.tag(it, ABILITY_KEY) != null;
     }
 
+    /** Vrai si le clic droit de cet objet lance une capacite de ce joueur : il ne sert alors a rien d'autre (parade de l'epee...). */
+    public boolean rightClickTaken(Player p, ItemStack it) {
+        String id = Items.tag(it, ABILITY_KEY);
+        if (id == null) return false;
+        if (!isWeaponItem(it)) return true;
+        CfPlayer cf = plugin.players().get(p);
+        Ability a = cf == null || cf.character() == null ? null : cf.character().ability(p, id);
+        return a != null && a.type() != AbilityType.PASSIVE;
+    }
+
     public static boolean isWeaponItem(ItemStack it) {
         return Items.tag(it, WEAPON_KEY) != null;
     }

@@ -49,6 +49,8 @@ public final class Rules {
         add("blocs-poses", "game.placed-block-seconds", 15, 0, 600, "s", "Les blocs poses par les joueurs se cassent d'eux-memes apres ce delai (0 : jamais)");
         toggle("armures-incassables", "game.unbreakable-armor", true, "Les armures ne s'usent pas");
         toggle("armure-depart", "game.starting-armor", true, "Les joueurs commencent avec une armure en fer complete, Protection I");
+        toggle("combat-1.7", "pvp.legacy-combat", true, "Combat de la 1.7.10 : pas de delai d'attaque, recul, coups critiques, armure et Tranchant d'epoque, canne a peche qui repousse");
+        toggle("blocage-epee", "pvp.sword-blocking", true, "Avec le combat 1.7 : le clic droit maintenu a l'epee pare la moitie des degats");
         toggle("seau-de-lave", "game.lava-bucket", false, "Les seaux de lave peuvent etre vides");
         toggle("briquet", "game.flint-and-steel", false, "Les briquets (et boules de feu) peuvent allumer un feu");
         toggle("aura-fire-aspect", "game.aura-fire-aspect", false, "Les epees d'Aura peuvent recevoir Aura de feu (Fire Aspect)");

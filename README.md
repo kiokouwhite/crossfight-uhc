@@ -152,6 +152,8 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `briquet` | non | Sur « non », les briquets et les boules de feu n'allument rien (bloc, TNT, creeper). Sur « oui », ils allument un feu |
 | `aura-fire-aspect` | non | Sur « non », ni la table d'enchantement ni l'enclume ne donnent Aura de feu (Fire Aspect) aux épées d'Aura (unOrdinary). Sur « oui », elles peuvent la recevoir |
 | `roche-en-cobble` | oui | Dans le monde de jeu, toute roche minée qui n'est pas un minerai (pierre, ardoise des abîmes, granite, diorite, andésite, tuf, calcite, spéléothème, basalte, pierre noire) donne de la pierre taillée, qui s'empile par 99 (le maximum que Minecraft autorise) |
+| `combat-1.7` | oui | Combat de la 1.7.10 : pas de délai d'attaque, recul, coups critiques, armure et Tranchant d'époque, canne à pêche qui repousse (détail plus bas, « Combat façon 1.7.10 ») |
+| `blocage-epee` | oui | Avec le combat 1.7 : le clic droit maintenu à l'épée pare la moitié des dégâts (sauf l'épée dont le clic droit lance une capacité) |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
 
@@ -641,7 +643,7 @@ Les chargeurs, munitions et jauges fonctionnent normalement.
 
 ### Hypothèses prises sur Bloody Snow
 
-- La portée de frappe (« Reach ») passe par l'attribut de portée d'interaction de Minecraft, que le combat façon 1.8 respecte aussi : Crawnatus en mode défensif 3,5 blocs, Vision Trigonométrique et certaines Synergies 4 blocs, Goût du risque limité à 2 blocs.
+- La portée de frappe (« Reach ») passe par l'attribut de portée d'interaction de Minecraft, que le combat façon 1.7 respecte aussi : Crawnatus en mode défensif 3,5 blocs, Vision Trigonométrique et certaines Synergies 4 blocs, Goût du risque limité à 2 blocs.
 - Marques de Sang : Eirika (et ceux que les Synergies y autorisent) en pose une tous les 5 coups ; 5 maximum par adversaire, 6 s chacune ; un adversaire marqué perd 0,5 cœur toutes les 2 s. L'Effroi sanglant et l'Exécution Atroce portent sur les adversaires à 30 blocs.
 - Netsu : les coups qu'elle reçoit frappent son clone (4 cœurs de dégâts après armure) pendant 30 s ; quand il est détruit elle vole en papillons 10 s, invisible et intouchable, et un clic droit sur l'item la fait réapparaître où elle vise (30 blocs). L'ultime dure 30 s ; les distances sont des textes flottants visibles d'elle seule ; clic droit sur l'ultime en visant un ennemi (à 100 blocs) pour se téléporter à 4 blocs de lui.
 - Kaze : Power Hit s'active quand au plus un adversaire est à 10 blocs. Home Run propulse Kaze et l'ennemi visé (4 blocs) dans son regard. Amour du danger : cœurs = 10 − distance (1 à 9).
@@ -776,10 +778,21 @@ Presque tout a été essayé avec des bots ou seul dans le client, jamais dans u
 - [ ] Guide du joueur relu de bout en bout
 - [ ] Hébergement du pack complet et procédure d'installation du serveur
 
-### Combat façon 1.8
+### Combat façon 1.7.10
 
-Activé par `pvp.legacy-combat` dans `config.yml` : aucun temps de recharge d'attaque, pas
-d'attaque balayante, et maintenir le clic gauche sur un ennemi à portée enchaîne les coups.
+Règle `combat-1.7` (oui par défaut ; `pvp.legacy-combat` dans `config.yml`), dans `listener/LegacyCombatListener.java` :
+
+- **Pas de délai d'attaque**, pas d'attaque balayante ; maintenir le clic gauche sur un ennemi à portée enchaîne les coups.
+- **Recul d'époque** : la vitesse de la victime est divisée par deux, puis 0,4 à l'horizontale (à l'opposé de l'attaquant) et 0,4 à la verticale (0,4 au plus). Un coup porté en courant, ou avec Recul, ajoute 0,5 par niveau dans le regard de l'attaquant et 0,1 vers le haut. C'est le calcul de la 1.7, envoyé à la place du recul du jeu.
+- **Coups critiques d'époque** : en tombant, un bonus tiré au hasard (de 0 à la moitié des dégâts plus un) au lieu de +50 %, et permis en courant.
+- **Tranchant** : +1,25 par niveau (au lieu de +0,5 par niveau, +0,5).
+- **Armure** : 4 % de dégâts en moins par point d'armure (80 % au plus), quelle que soit la force du coup ; Résistance, Protection et absorption suivent. Les dégâts des capacités, qui ignorent l'armure, ne changent pas.
+- **Parade à l'épée** (règle `blocage-epee`, oui par défaut ; `pvp.sword-blocking`) : clic droit maintenu, la moitié des dégâts, de tous les côtés, sans délai. Une épée dont le clic droit lance une capacité ne pare pas (ce clic est pris).
+- **Canne à pêche, boules de neige, œufs** : ils repoussent les joueurs (un coup sans dégâts).
+- **Perles** : pas de délai entre deux lancers. **Pomme dorée enchantée** : Régénération V 30 s, Absorption 2 min, Résistance et Résistance au feu 5 min.
+- **Les joueurs ne se poussent pas** (côté serveur).
+
+Ce qui reste d'aujourd'hui, parce que c'est le jeu du joueur qui le décide : la portée et la détection des coups, les animations, les sons d'attaque.
 
 ### Mannequins adversaires
 

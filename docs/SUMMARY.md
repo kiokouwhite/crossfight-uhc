@@ -50,7 +50,7 @@
   * [3. Événements à concevoir](feuille-de-route/3-evenements-a-concevoir.md)
   * [4. Habillage et contenu](feuille-de-route/4-habillage-et-contenu.md)
   * [5. Avant d'ouvrir à d'autres joueurs](feuille-de-route/5-avant-d-ouvrir-a-d-autres-joueurs.md)
-  * [Combat façon 1.8](feuille-de-route/combat-facon-1-8.md)
+  * [Combat façon 1.7.10](feuille-de-route/combat-facon-1-7-10.md)
   * [Mannequins adversaires](feuille-de-route/mannequins-adversaires.md)
 * [Documentation GitBook](documentation-gitbook.md)
 * [Télécharger le plugin sans compiler](telecharger-le-plugin-sans-compiler.md)

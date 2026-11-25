@@ -96,6 +96,7 @@ public final class HostTools implements Listener {
         dial("briquet", 40, Material.FLINT_AND_STEEL, 1);
         dial("aura-fire-aspect", 41, Material.BLAZE_ROD, 1);
         dial("roche-en-cobble", 42, Material.STONE_PICKAXE, 1);
+        dial("combat-1.7", 43, Material.FISHING_ROD, 1);
     }
 
     /** Le menu des regles d'un administrateur : ce qu'elles valaient a l'ouverture, pour annoncer les changements. */

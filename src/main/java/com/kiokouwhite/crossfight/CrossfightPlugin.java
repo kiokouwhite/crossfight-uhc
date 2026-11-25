@@ -122,6 +122,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         legacyCombat = new com.kiokouwhite.crossfight.listener.LegacyCombatListener(this);
         pm.registerEvents(legacyCombat, this);
         for (var p : getServer().getOnlinePlayers()) legacyCombat.apply(p);
+        legacyCombat.start();
         hostTools.refreshAll();
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
