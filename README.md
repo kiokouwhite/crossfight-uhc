@@ -152,8 +152,8 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `briquet` | non | Sur « non », les briquets et les boules de feu n'allument rien (bloc, TNT, creeper). Sur « oui », ils allument un feu |
 | `aura-fire-aspect` | non | Sur « non », ni la table d'enchantement ni l'enclume ne donnent Aura de feu (Fire Aspect) aux épées d'Aura (unOrdinary). Sur « oui », elles peuvent la recevoir |
 | `roche-en-cobble` | oui | Dans le monde de jeu, toute roche minée qui n'est pas un minerai (pierre, ardoise des abîmes, granite, diorite, andésite, tuf, calcite, spéléothème, basalte, pierre noire) donne de la pierre taillée, qui s'empile par 99 (le maximum que Minecraft autorise) |
-| `combat-1.7` | oui | Combat de la 1.7.10 : pas de délai d'attaque, recul, coups critiques, armure et Tranchant d'époque, canne à pêche qui repousse (détail plus bas, « Combat façon 1.7.10 ») |
-| `clic-maintenu` | oui | Avec le combat 1.7 : après un clic sur un ennemi, les coups s'enchaînent seuls à 9 par seconde tant qu'il reste dans le viseur |
+| `combat-1.7` | oui | Combat de la 1.7.10 : pas de délai d'attaque, 6 coups par seconde au plus, recul, coups critiques, armure et Tranchant d'époque, canne à pêche qui repousse (détail plus bas, « Combat façon 1.7.10 ») |
+| `clic-maintenu` | non | Sur « oui », avec le combat 1.7 : après un clic sur un ennemi, les coups s'enchaînent seuls à 6 par seconde tant qu'il reste dans le viseur |
 | `blocage-epee` | non | Sur « oui », avec le combat 1.7 : le clic droit maintenu à l'épée pare la moitié des dégâts (sauf l'épée dont le clic droit lance une capacité) |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
@@ -784,8 +784,8 @@ Presque tout a été essayé avec des bots ou seul dans le client, jamais dans u
 Règle `combat-1.7` (oui par défaut ; `pvp.legacy-combat` dans `config.yml`), dans `listener/LegacyCombatListener.java` :
 
 - **Pas de délai d'attaque**, pas d'attaque balayante.
-- **9 coups par seconde au plus** : au-delà, le coup ne part pas (une réserve qui se remplit de 0,45 coup par tick).
-- **Clic maintenu** (règle `clic-maintenu`, oui par défaut ; `pvp.hold-to-attack`) : après un clic sur un ennemi, les coups s'enchaînent seuls à 9 par seconde tant qu'il reste dans le viseur, sans mur entre eux. Repoussé hors de portée, l'ennemi reste visé (jusqu'à 14 blocs) : les coups reprennent dès qu'il revient à portée. Le jeu ne dit pas au serveur quand le bouton est relâché : l'enchaînement s'arrête quand le viseur a quitté l'ennemi depuis plus d'une demi-seconde, et un nouveau clic le relance.
+- **6 coups par seconde au plus** : au-delà, le coup ne part pas (une réserve qui se remplit de 0,3 coup par tick).
+- **Clic maintenu** (règle `clic-maintenu`, non par défaut ; `pvp.hold-to-attack`) : sur « oui », après un clic sur un ennemi, les coups s'enchaînent seuls à 6 par seconde tant qu'il reste dans le viseur, sans mur entre eux. Repoussé hors de portée, l'ennemi reste visé (jusqu'à 14 blocs) : les coups reprennent dès qu'il revient à portée. Le jeu ne dit pas au serveur quand le bouton est relâché : l'enchaînement s'arrête quand le viseur a quitté l'ennemi depuis plus d'une demi-seconde, et un nouveau clic le relance.
 - **Recul d'époque** : la vitesse de la victime est divisée par deux, puis 0,4 à l'horizontale (à l'opposé de l'attaquant) et 0,4 à la verticale (0,4 au plus). Un coup porté en courant, ou avec Recul, ajoute 0,5 par niveau dans le regard de l'attaquant et 0,1 vers le haut. C'est le calcul de la 1.7, envoyé à la place du recul du jeu.
 - **Coups critiques d'époque** : en tombant, un bonus tiré au hasard (de 0 à la moitié des dégâts plus un) au lieu de +50 %, et permis en courant.
 - **Tranchant** : +1,25 par niveau (au lieu de +0,5 par niveau, +0,5).

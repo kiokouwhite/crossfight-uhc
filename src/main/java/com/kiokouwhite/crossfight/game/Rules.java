@@ -49,8 +49,8 @@ public final class Rules {
         add("blocs-poses", "game.placed-block-seconds", 15, 0, 600, "s", "Les blocs poses par les joueurs se cassent d'eux-memes apres ce delai (0 : jamais)");
         toggle("armures-incassables", "game.unbreakable-armor", true, "Les armures ne s'usent pas");
         toggle("armure-depart", "game.starting-armor", true, "Les joueurs commencent avec une armure en fer complete, Protection I");
-        toggle("combat-1.7", "pvp.legacy-combat", true, "Combat de la 1.7.10 : pas de delai d'attaque, recul, coups critiques, armure et Tranchant d'epoque, canne a peche qui repousse");
-        toggle("clic-maintenu", "pvp.hold-to-attack", true, "Avec le combat 1.7 : apres un clic sur un ennemi, les coups s'enchainent seuls a 9 par seconde tant qu'il reste dans le viseur, meme repousse hors de portee");
+        toggle("combat-1.7", "pvp.legacy-combat", true, "Combat de la 1.7.10 : pas de delai d'attaque, 6 coups par seconde au plus, recul, coups critiques, armure et Tranchant d'epoque, canne a peche qui repousse");
+        toggle("clic-maintenu", "pvp.hold-to-attack", false, "Avec le combat 1.7 : apres un clic sur un ennemi, les coups s'enchainent seuls a 6 par seconde tant qu'il reste dans le viseur, meme repousse hors de portee");
         toggle("blocage-epee", "pvp.sword-blocking", false, "Avec le combat 1.7 : le clic droit maintenu a l'epee pare la moitie des degats");
         toggle("seau-de-lave", "game.lava-bucket", false, "Les seaux de lave peuvent etre vides");
         toggle("briquet", "game.flint-and-steel", false, "Les briquets (et boules de feu) peuvent allumer un feu");

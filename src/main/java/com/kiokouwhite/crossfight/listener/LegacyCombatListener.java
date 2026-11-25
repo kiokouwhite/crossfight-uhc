@@ -25,8 +25,8 @@ import java.util.UUID;
 /**
  * Combat facon 1.7.10 (regle combat-1.7) :
  *  - aucun temps de recharge d'attaque (spam clic a pleine puissance), pas d'attaque balayante ;
- *  - neuf coups par seconde au plus ; un clic sur un ennemi enchaine ensuite les coups tout seul, a ce rythme, tant qu'il
- *    reste dans le viseur, meme repousse hors de portee (regle clic-maintenu) ;
+ *  - six coups par seconde au plus ; avec la regle clic-maintenu (non par defaut), un clic sur un ennemi enchaine ensuite
+ *    les coups tout seul, a ce rythme, tant qu'il reste dans le viseur ;
  *  - le recul d'epoque : 0,4 a l'horizontale et a la verticale, la vitesse de la victime divisee par deux, et le
  *    coup en courant (ou Recul) qui pousse de 0,5 de plus dans le regard de l'attaquant ;
  *  - les coups critiques d'epoque : un bonus tire au hasard (jusqu'a la moitie des degats, plus un), et permis en courant ;
@@ -105,9 +105,9 @@ public final class LegacyCombatListener implements Listener {
 
     // ------------------------------------------------------------------ le rythme des coups
 
-    /** Neuf coups par seconde au plus, et autant en gardant le clic gauche enfonce. */
-    private static final double CPS = 9.0, PER_TICK = CPS / 20.0;
-    /** La reserve de coups : elle se remplit de 0,45 par tick ; un peu plus d'un coup d'avance, pour que des clics reguliers tiennent bien 9 par seconde. */
+    /** Six coups par seconde au plus (et autant pour l'enchainement, quand la regle clic-maintenu est activee). */
+    private static final double CPS = 6.0, PER_TICK = CPS / 20.0;
+    /** La reserve de coups : elle se remplit de 0,3 par tick ; un peu plus d'un coup d'avance, pour que des clics reguliers tiennent bien 6 par seconde. */
     private static final double RESERVE = 1.45;
     /** En ticks : le clic est tenu pour relache quand l'ennemi a quitte le viseur depuis ce temps. */
     private static final int LOST = 12;
@@ -133,7 +133,7 @@ public final class LegacyCombatListener implements Listener {
         return r;
     }
 
-    /** Chaque coup porte prend dans la reserve : au-dela de 9 par seconde, il ne part pas. Un vrai clic sur un ennemi ouvre l'enchainement. */
+    /** Chaque coup porte prend dans la reserve : au-dela de 6 par seconde, il ne part pas. Un vrai clic sur un ennemi ouvre l'enchainement. */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAttack(io.papermc.paper.event.player.PrePlayerAttackEntityEvent e) {
         if (!enabled()) return;
@@ -175,7 +175,7 @@ public final class LegacyCombatListener implements Listener {
     }
 
     /**
-     * A chaque tick : tant que l'ennemi reste dans le viseur, les coups partent seuls, au rythme de la reserve (9 par seconde).
+     * A chaque tick : tant que l'ennemi reste dans le viseur, les coups partent seuls, au rythme de la reserve (6 par seconde).
      * Le jeu ne dit pas au serveur quand le bouton est relache : l'enchainement s'arrete quand le viseur quitte l'ennemi.
      */
     private void chain() {
