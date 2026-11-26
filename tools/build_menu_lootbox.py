@@ -4,10 +4,11 @@
 Usage : python3 tools/build_menu_lootbox.py [--apercu image.png]
 
 Un coffre de trois rangees (176 x 166) dans une fenetre qui deborde de dix pixels de chaque cote (196 x 186). En haut,
-une banniere « Lootbox tier N » ; au milieu, la bande de la roulette : les neuf cases de la rangee du milieu (cases 9
-a 17), celle du centre (case 13) en or, une fleche au-dessus et une au-dessous ; en bas, l'inventaire du joueur.
-Quatre fenetres, une par tier, a sa couleur (blanc, cyan, violet, or) : pendant la roulette, le plugin les fait
-defiler et finit sur celle du tier de la Lootbox.
+une banniere « Lootbox tier N » ; dessous, trois roulettes verticales comme une machine a sous, chacune une bande
+sombre sur les trois rangees : les diamants (colonne 3 du coffre), l'objet (colonne 5), l'or (colonne 7). Leurs cases
+du milieu (11, 13 et 15) sont en or : la ligne gagnante, montree par une fleche a gauche et une a droite. En bas,
+l'inventaire du joueur. Quatre fenetres, une par tier, a sa couleur (blanc, cyan, violet, or) : pendant la roulette,
+le plugin les fait defiler et finit sur celle du tier de la Lootbox.
 
 Pack public : des fenetres dessinees ici, pixel par pixel. Pack complet : les memes, composees avec le pack
 d'interface de Franuka (resourcepack-prive/ui-franuka/, payant, jamais versionne), au meme nom et a la meme taille :
@@ -41,8 +42,8 @@ PREMIER, ESPACE = 0xE2A0, 0xE2AF
 # fenetre de Franuka : (teinte HSV sur 255, saturation multipliee, luminosite multipliee).
 COULEURS = {1: (226, 230, 238), 2: (90, 220, 255), 3: (206, 120, 255), 4: (255, 190, 40)}
 TEINTES = {1: (160, 0.15, 1.12), 2: (135, 3.2, 1.05), 3: (198, 3.0, 1.0), 4: (30, 4.2, 1.12)}
-CENTRE = 4                               # la colonne de la case du centre (case 13)
-LIGNE = 36                               # la rangee de la roulette (la deuxieme du coffre)
+ROULEAUX = (2, 4, 6)                     # les colonnes des trois roulettes : diamants, objet, or
+RANGEES = (18, 36, 54)                   # les trois rangees du coffre ; celle du milieu est la ligne gagnante
 INVENTAIRE = (84, 102, 120, 142)         # les rangees de l'inventaire du joueur, sous un coffre de trois rangees
 
 anna.LETTERS.setdefault("4", ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."])
@@ -72,20 +73,23 @@ def fenetre_publique(tier):
     bx1, bx2 = o + 88 - lw // 2 - 10, o + 88 + lw // 2 + 10
     anna.panel(d, bx1, o - 6, bx2, o + 11, 4)
     anna.text(im, o + 88 - lw // 2, o - 2, t, color=anna.WHITE)
-    # La bande de la roulette, plus sombre, et ses neuf cases ; celle du centre en or.
-    d.rounded_rectangle([o + 4, o + LIGNE - 4, o + W - 5, o + LIGNE + 19], radius=3, fill=fonce(c, 0.42), outline=anna.INK)
-    for col in range(9):
-        x, y = o + 8 + 18 * col, o + LIGNE
-        if col == CENTRE:
-            d.rectangle([x - 2, y - 2, x + 17, y + 17], fill=anna.GOLD, outline=anna.INK)
-            d.rectangle([x - 1, y - 1, x + 16, y + 16], fill=anna.GOLD_DEEP)
-            d.line([(x, y + 16), (x + 16, y + 16), (x + 16, y)], fill=anna.GOLD_LIGHT)
-        else:
-            anna.slot(d, x, y)
-    # Les fleches, au-dessus et au-dessous de la case du centre.
-    cx = o + 8 + 18 * CENTRE + 8
-    d.polygon([(cx - 5, o + LIGNE - 10), (cx + 5, o + LIGNE - 10), (cx, o + LIGNE - 5)], fill=anna.GOLD, outline=anna.INK)
-    d.polygon([(cx - 5, o + LIGNE + 25), (cx + 5, o + LIGNE + 25), (cx, o + LIGNE + 20)], fill=anna.GOLD, outline=anna.INK)
+    # Les trois roulettes : une bande sombre sur les trois rangees, et ses cases ; celle de la ligne gagnante en or.
+    for col in ROULEAUX:
+        x = o + 8 + 18 * col
+        d.rounded_rectangle([x - 4, o + RANGEES[0] - 4, x + 19, o + RANGEES[-1] + 19], radius=3, fill=fonce(c, 0.42), outline=anna.INK)
+        for k, y in enumerate(RANGEES):
+            y += o
+            if k == 1:
+                d.rectangle([x - 2, y - 2, x + 17, y + 17], fill=anna.GOLD, outline=anna.INK)
+                d.rectangle([x - 1, y - 1, x + 16, y + 16], fill=anna.GOLD_DEEP)
+                d.line([(x, y + 16), (x + 16, y + 16), (x + 16, y)], fill=anna.GOLD_LIGHT)
+            else:
+                anna.slot(d, x, y)
+    # Les fleches de la ligne gagnante, a gauche de la premiere roulette et a droite de la derniere.
+    cy = o + RANGEES[1] + 8
+    gauche, droite = o + 8 + 18 * ROULEAUX[0] - 6, o + 8 + 18 * ROULEAUX[-1] + 21
+    d.polygon([(gauche - 6, cy - 5), (gauche - 6, cy + 5), (gauche, cy)], fill=anna.GOLD, outline=anna.INK)
+    d.polygon([(droite + 6, cy - 5), (droite + 6, cy + 5), (droite, cy)], fill=anna.GOLD, outline=anna.INK)
     # L'inventaire du joueur.
     for y in INVENTAIRE:
         for col in range(9):
@@ -118,17 +122,20 @@ def fenetre_franuka(tier, police, cases):
     im = teinter(im, tier)
     # La police de titre du pack : ses lettres font 7 pixels de haut, 4 pixels sous le point ou on l'ecrit.
     franuka.write(im, o + 88, o - 6, f"Lootbox tier {tier}", police, (255, 244, 226, 255), (60, 40, 50, 255))
-    # La bande de la roulette, plus sombre que la fenetre.
+    # Les trois roulettes, des bandes plus sombres que la fenetre ; la ligne gagnante en cases dorees.
     fond = im.getpixel((o + 20, o + 75))
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle([o + 4, o + LIGNE - 4, o + W - 5, o + LIGNE + 19], radius=3, fill=fonce(fond, 0.5), outline=fonce(fond, 0.3))
-    for col in range(9):
-        im.alpha_composite(case_or if col == CENTRE else case, (o + 8 + 18 * col, o + LIGNE))
-    # Les fleches : le triangle du pack (sa version doree), tourne vers la case du centre.
+    for col in ROULEAUX:
+        x = o + 8 + 18 * col
+        d.rounded_rectangle([x - 4, o + RANGEES[0] - 4, x + 19, o + RANGEES[-1] + 19], radius=3, fill=fonce(fond, 0.5), outline=fonce(fond, 0.3))
+        for k, y in enumerate(RANGEES):
+            im.alpha_composite(case_or if k == 1 else case, (x, o + y))
+    # Les fleches : le triangle du pack (sa version doree), de part et d'autre de la ligne gagnante (le triangle occupe
+    # les pixels 3 a 13 de son image).
     fleche = franuka.sprite("Mini icons", "Icon_21_Selected")
-    x = o + 8 + 18 * CENTRE
-    im.alpha_composite(fleche.rotate(-90), (x, o + LIGNE - 17))
-    im.alpha_composite(fleche.rotate(90), (x, o + LIGNE + 17))
+    y = o + RANGEES[1]
+    im.alpha_composite(fleche, (o + 8 + 18 * ROULEAUX[0] - 19, y))
+    im.alpha_composite(fleche.transpose(Image.Transpose.FLIP_LEFT_RIGHT), (o + 8 + 18 * ROULEAUX[-1] + 19, y))
     for y in INVENTAIRE:
         for col in range(9):
             im.alpha_composite(case_inv, (o + 8 + 18 * col, o + y))

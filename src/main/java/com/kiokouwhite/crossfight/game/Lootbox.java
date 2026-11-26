@@ -151,8 +151,6 @@ public final class Lootbox implements Listener {
         int etat = FERMEE;
         /** Le contenu (case, objet), devoile a la fin de la roulette. */
         final Map<Integer, ItemStack> prix = new LinkedHashMap<>();
-        /** Les objets du tier, qui defilent dans la roulette. */
-        final List<String> pool = new ArrayList<>();
         /** Le tier dont la fenetre a la couleur (pendant la roulette, elle passe par les quatre). */
         int couleur;
 
@@ -167,10 +165,17 @@ public final class Lootbox implements Listener {
     }
 
     private static final int FERMEE = 0, ROULETTE = 1, OUVERTE = 2;
-    /** La roulette : la rangee du milieu du coffre (cases 9 a 17), l'objet gagne s'arrete dans celle du centre. */
-    private static final int BANDE = 9, CENTRE = 13;
-    /** Le nombre de crans de la roulette ; l'attente entre deux crans monte de 0 a ATTENTE ticks (en tout, 4 s). */
-    private static final int CRANS = 26, ATTENTE = 7;
+    /**
+     * Les trois roulettes, verticales, comme une machine a sous : les diamants, l'objet et l'or, dans les colonnes 3, 5
+     * et 7 du coffre. Chacune montre trois cases (une par rangee) ; ce qui s'arrete dans celle du milieu (cases 11, 13
+     * et 15, la ligne gagnante) est gagne.
+     */
+    private static final int DIAMANTS = 11, CENTRE = 13, OR = 15;
+    /**
+     * Les crans de chaque roulette (diamants, objet, or) : celle des diamants s'arrete la premiere, puis celle de l'or,
+     * celle de l'objet en dernier (4 s). L'attente entre deux crans monte de 0 a ATTENTE ticks.
+     */
+    private static final int CRANS_DIAMANTS = 14, CRANS_OR = 20, CRANS_OBJET = 28, ATTENTE = 7;
     /** La fenetre change de couleur au plus toutes les 6 ticks (pas plus de trois a quatre eclats par seconde). */
     private static final int ECLAT = 6;
     /** La fenetre de chaque tier dans le pack (tools/build_menu_lootbox.py) : un espace qui recule, puis son image. */
@@ -747,10 +752,9 @@ public final class Lootbox implements Listener {
         List<Loot> pool = new ArrayList<>();
         for (Loot l : LOOTS.values()) if (l.tier() == tier) pool.add(l);
         Loot loot = pool.get(r.nextInt(pool.size()));
-        for (Loot l : pool) box.pool.add(l.id());
-        box.prix.put(11, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
+        box.prix.put(DIAMANTS, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
         box.prix.put(CENTRE, item(loot.id()));
-        box.prix.put(15, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
+        box.prix.put(OR, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
         // Un arc a Infinite a besoin d'une fleche dans l'inventaire : a cote de lui.
         if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) box.prix.put(14, new ItemStack(Material.ARROW));
         // Le coffre au centre du bloc (le modele, de 0 a 16 pixels, est centre sur l'affichage), tourne d'un quart de
@@ -916,47 +920,112 @@ public final class Lootbox implements Listener {
     }
 
     /**
-     * La roulette : les objets du tier defilent de droite a gauche dans la rangee du milieu, de plus en plus lentement,
-     * et s'arretent sur l'objet gagne dans la case du centre. Pendant ce temps, la fenetre passe par les couleurs des
-     * quatre tiers et finit sur celle de la Lootbox. Puis le contenu apparait : les diamants et l'or de part et d'autre.
-     * Ceux qui ont la Lootbox ouverte la voient tous ; on ne peut rien prendre avant la fin.
+     * Une roulette verticale : sa colonne (la case du milieu), sa bande d'objets (l'indice 0 en bas au depart ; ils
+     * descendent d'une case a chaque cran), ses crans. Un objet de la bande est tire quand il apparait en haut ; celui
+     * de l'indice crans + 1 est l'objet gagne, au milieu au dernier cran.
+     */
+    private static final class Rouleau {
+        final int milieu, crans;
+        final ItemStack gagne;
+        final java.util.function.Supplier<ItemStack> tirage;
+        final List<ItemStack> bande = new ArrayList<>();
+        int cran, attente;
+        boolean arrete;
+
+        Rouleau(int milieu, int crans, ItemStack gagne, java.util.function.Supplier<ItemStack> tirage) {
+            this.milieu = milieu;
+            this.crans = crans;
+            this.gagne = gagne;
+            this.tirage = tirage;
+        }
+
+        ItemStack at(int i) {
+            while (bande.size() <= i) bande.add(null);
+            if (bande.get(i) == null) bande.set(i, i == crans + 1 ? gagne.clone() : tirage.get());
+            return bande.get(i);
+        }
+
+        /** Les objets visibles (sauf le gagnant) sont tires a nouveau : la roulette de l'objet change de tier. */
+        void retirer() {
+            for (int i = cran; i <= cran + 2 && i < bande.size(); i++) if (i != crans + 1) bande.set(i, null);
+        }
+
+        void montrer(Inventory inv) {
+            inv.setItem(milieu + 9, at(cran));
+            inv.setItem(milieu, at(cran + 1));
+            inv.setItem(milieu - 9, at(cran + 2));
+        }
+
+        /** Un tick : vrai si la roulette a avance d'un cran. */
+        boolean avancer() {
+            if (arrete) return false;
+            if (attente > 0) { attente--; return false; }
+            cran++;
+            if (cran >= crans) arrete = true;
+            else attente = (int) Math.round(ATTENTE * Math.pow(cran / (double) crans, 2.4));
+            return true;
+        }
+    }
+
+    /**
+     * La roulette : trois roulettes verticales, comme une machine a sous. Les diamants (de 2 a 8), l'objet et l'or (de
+     * 6 a 12) descendent, de plus en plus lentement, et s'arretent l'une apres l'autre : les diamants, l'or, puis
+     * l'objet. Ce qui s'arrete sur la ligne du milieu est gagne. Pendant ce temps, la fenetre passe par les couleurs des
+     * quatre tiers, et la roulette de l'objet montre les objets du tier dont la fenetre a la couleur ; peu avant que
+     * l'objet gagne n'apparaisse, la fenetre prend la couleur du tier de la Lootbox et la garde. Ceux qui ont la
+     * Lootbox ouverte la voient tous ; on ne peut rien prendre avant la fin.
      */
     private void roulette(Box box) {
         ThreadLocalRandom r = ThreadLocalRandom.current();
-        // La bande : CRANS + 9 objets ; au dernier cran, la case du centre montre l'objet gagne.
-        List<ItemStack> bande = new ArrayList<>();
-        int gagnant = CRANS + (CENTRE - BANDE);
-        for (int i = 0; i < CRANS + 9; i++) {
-            bande.add(i == gagnant ? box.prix.get(CENTRE).clone() : item(box.pool.get(r.nextInt(box.pool.size()))));
-        }
+        List<List<String>> parTier = new ArrayList<>();
+        for (int t = 1; t <= 4; t++) parTier.add(idsOf(t));
+        Rouleau diamants = new Rouleau(DIAMANTS, CRANS_DIAMANTS, box.prix.get(DIAMANTS), () -> new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
+        Rouleau or = new Rouleau(OR, CRANS_OR, box.prix.get(OR), () -> new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
+        Rouleau objet = new Rouleau(CENTRE, CRANS_OBJET, box.prix.get(CENTRE), () -> {
+            List<String> ids = parTier.get(box.couleur - 1);
+            return item(ids.get(r.nextInt(ids.size())));
+        });
+        Rouleau[] rouleaux = {diamants, objet, or};
+        for (Rouleau ro : rouleaux) ro.montrer(box.inv);
         new BukkitRunnable() {
-            int cran = 0, attente = 0, depuis = ECLAT;
+            int depuis = 0;
+            boolean fixee = false;
 
             @Override public void run() {
                 if (boxes.get(box.block) != box) { cancel(); return; }
                 depuis++;
-                if (attente-- > 0) return;
-                for (int i = 0; i < 9; i++) box.inv.setItem(BANDE + i, bande.get(cran + i));
-                boolean fin = cran == CRANS;
-                // La couleur suivante (au plus tous les ECLAT ticks), celle du tier au dernier cran.
-                if (fin || depuis >= ECLAT) {
-                    box.couleur = fin ? box.tier : box.couleur % 4 + 1;
-                    depuis = 0;
+                // La couleur suivante, au plus tous les ECLAT ticks ; puis celle du tier, juste avant que l'objet gagne
+                // n'entre par le haut. La roulette de l'objet suit la couleur de la fenetre.
+                int couleur = box.couleur;
+                if (!fixee && objet.cran >= objet.crans - 2) { couleur = box.tier; fixee = true; }
+                else if (!fixee && depuis >= ECLAT) couleur = box.couleur % 4 + 1;
+                if (couleur != box.couleur || depuis >= ECLAT) depuis = 0;
+                if (couleur != box.couleur) {
+                    box.couleur = couleur;
+                    objet.retirer();
+                    objet.montrer(box.inv);
                     for (var v : new ArrayList<>(box.inv.getViewers())) if (v instanceof Player pl) retitrer(pl, box, box.couleur);
                 }
-                for (var v : box.inv.getViewers()) {
-                    if (v instanceof Player pl) pl.playSound(pl, Sound.UI_BUTTON_CLICK, 0.25f, 1.4f + 0.6f * cran / CRANS);
+                boolean clic = false;
+                for (int k = 0; k < rouleaux.length; k++) {
+                    Rouleau ro = rouleaux[k];
+                    if (!ro.avancer()) continue;
+                    ro.montrer(box.inv);
+                    clic = true;
+                    if (ro.arrete) {
+                        // La roulette s'arrete : une note, plus aigue pour la suivante.
+                        for (var v : box.inv.getViewers()) if (v instanceof Player pl) pl.playSound(pl, Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, ro == objet ? 1.6f : ro == or ? 1.3f : 1.0f);
+                    }
                 }
-                if (fin) { cancel(); devoiler(box); return; }
-                cran++;
-                attente = (int) Math.round(ATTENTE * Math.pow(cran / (double) CRANS, 2.4));
+                if (clic) for (var v : box.inv.getViewers()) if (v instanceof Player pl) pl.playSound(pl, Sound.UI_BUTTON_CLICK, 0.2f, 1.5f);
+                if (diamants.arrete && objet.arrete && or.arrete) { cancel(); devoiler(box); }
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    /** La fin de la roulette : la rangee se vide, l'objet gagne reste au centre, le reste du contenu apparait. */
+    /** La fin de la roulette : les roulettes se vident, il reste ce qui est sur la ligne gagnante (et la fleche d'un arc). */
     private void devoiler(Box box) {
-        for (int i = 0; i < 9; i++) box.inv.setItem(BANDE + i, null);
+        for (int col : new int[]{DIAMANTS, CENTRE, OR}) { box.inv.setItem(col - 9, null); box.inv.setItem(col + 9, null); }
         for (var e : box.prix.entrySet()) box.inv.setItem(e.getKey(), e.getValue());
         box.etat = OUVERTE;
         Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
