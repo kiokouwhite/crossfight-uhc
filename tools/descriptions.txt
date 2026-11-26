@@ -25,18 +25,18 @@ byleth_embleme	Byleth régénère 25 % des dégâts qu'elle inflige ; ses allié
 byleth_tutorat	Byleth fait progresser un allié, où qu'il soit, dans une catégorie au choix : arme, physique ou capacités.\nTemps de chargement : 15 minutes
 byleth_epine	Les ennemis dans une zone de 5 blocs devant Byleth sont projetés à 10 blocs et perdent 3 cœurs.\nTemps de chargement : 20 secondes
 byleth_ult	Byleth emmène les ennemis à moins de 20 blocs dans une autre dimension. Ils n'en sortent que si elle meurt ; cette mort ne lui coûte pas de vie.
-ruby_crescent	Clic droit : Ruby tire une balle (puissance d'une flèche Puissance III). 3 balles ; une balle revient toutes les 7 secondes.
+ruby_crescent	Ruby tire une balle (puissance d'une flèche Puissance III). 3 balles ; une balle revient toutes les 7 secondes.
 ruby_petales_rapide	Ruby fonce sur 8 blocs devant elle. Si elle touche un adversaire, elle s'arrête et lui inflige 2 cœurs.\nTemps de chargement : 10 secondes
 ruby_petales_lent	Tant que c'est actif, Ruby a Vitesse II et est invisible. Jauge de 5 secondes ; une seconde revient toutes les 3 secondes.
 ruby_yeux	Quand Ruby passe sous 5 cœurs, tous les ennemis à moins de 10 blocs perdent 3 cœurs. Une fois par minute et demie.
 rwby_duo	Se charge avec les dégâts infligés par deux alliés de RWBY à moins de 10 blocs l'un de l'autre (300 %). L'effet dépend de la paire.
 ruby_ult	Pendant 15 secondes, Ruby a Vitesse III, est invisible et ne peut pas s'arrêter.
-yang_ember	Clic droit : Yang tire deux décharges de feu sur l'adversaire le plus proche (4 blocs) : 1 cœur, puis 1 cœur et une explosion qui l'enflamme.\nTemps de chargement : 5 secondes
+yang_ember	Yang tire deux décharges de feu sur l'adversaire le plus proche (4 blocs) : 1 cœur, puis 1 cœur et une explosion qui l'enflamme.\nTemps de chargement : 5 secondes
 yang_brulure	Pendant 10 secondes, Yang gagne 0,5 point d'attaque par cœur perdu depuis la dernière Brûlure.\nTemps de chargement : 20 secondes
 yang_incendie	Tant que c'est actif, Yang a Force I mais perd un demi-cœur par seconde.
 yang_colere	Sous 5 cœurs, les coups de Yang enflamment ses adversaires.
 yang_ult	Pendant 25 secondes, Yang ne peut pas mourir. À la fin, elle régénère toute sa vie.
-weiss_myrtenaster	Clic droit : change de Dust (Rouge, Bleue, Jaune, Cyan, Blanche, Violette), ce qui change l'effet des trois Glyphs. Accroupi + clic droit : Dust précédente.
+weiss_myrtenaster	Change de Dust (Rouge, Bleue, Jaune, Cyan, Blanche, Violette), ce qui change l'effet des trois Glyphs. Accroupi : Dust précédente.
 weiss_glyphs1	Rouge : Aura de feu pendant 10 secondes. Bleue : le prochain ennemi touché est enfermé dans une cage de glace à casser. Jaune : une zone de Vitesse II pour l'équipe pendant 10 secondes.\nTemps de chargement : 15 secondes
 weiss_glyphs1.2	Cyan : une barrière de verre de 5x5, incassable, pendant 10 secondes. Blanche : le prochain coup a Recul III. Violette : le prochain coup inflige Lenteur II pendant 10 secondes.
 weiss_glyphs2	Rouge : une flèche qui enflamme une zone de 5x5. Bleue : une patinoire de 10x10 qui donne Vitesse pendant 10 secondes. Jaune : un éclair frappe tous les ennemis à moins de 10 blocs.\nTemps de chargement : 15 secondes
@@ -44,18 +44,18 @@ weiss_glyphs2.2	Cyan : un cercle de verre tire 5 flèches à effet. Blanche : l'
 weiss_glyphs2.3	Violette : l'ennemi le plus proche est retenu un instant, puis le sol s'ouvre sous lui et il tombe 10 blocs plus bas.
 weiss_glyphs_passif	Rouge : 25 % de chances d'enflammer. Bleue : Vitesse 0,5. Jaune : 10 % de chances de foudroyer qui la frappe. Cyan : Résistance 0,5. Blanche : Recul I. Violette : 25 % de chances de ralentir.
 weiss_ult	Weiss ramène un ennemi que son équipe a éliminé définitivement : il rejoint son équipe avec une vie, avec Faiblesse et sans pouvoir porter de plastron.
-blake_gambol	Accroupi + clic droit : change de forme. Couperet (9,5 points de dégâts) : Résistance. Katana (8 points de dégâts) : clic droit pour lancer la lame, Blake se rend là où elle tombe (toutes les 10 secondes).
-blake_gambol.2	Pistolet (puissance d'une flèche Puissance II) : clic droit tire une balle par seconde. 10 balles ; une balle revient toutes les 3 secondes.
+blake_gambol	Accroupi : change de forme. Couperet (9,5 points de dégâts) : Résistance. Katana (8 points de dégâts) : Blake lance la lame et se rend là où elle tombe (toutes les 10 secondes).
+blake_gambol.2	Pistolet (puissance d'une flèche Puissance II) : une balle par seconde. 10 balles ; une balle revient toutes les 3 secondes.
 blake_ombre	Blake crée 3 copies d'elle-même qui courent vers l'adversaire sans attaquer. S'il frappe une copie, il est aveuglé 4 secondes ; une copie qui l'atteint disparaît.\nTemps de chargement : 20 secondes
 blake_discretion	Blake devient invisible et redevient visible dès qu'elle frappe. Jauge de 100 : -5 par seconde active, +1 par seconde au repos.
 blake_effacement	À plus de 20 blocs d'un ennemi, Blake est invisible pour lui.
-blake_ult	Pendant 30 secondes, Blake a Vitesse II et peut bondir de 2 blocs en avant (clic droit sur l'objet).
-uno_aura	Clic droit avec l'Épée d'Aura : son effet dépend de son craft (Soin, Immunité, Laser, Chaleur augmentée, Glue).
+blake_ult	Pendant 30 secondes, Blake a Vitesse II et peut bondir de 2 blocs en avant.
+uno_aura	L'effet de l'Épée d'Aura dépend de son craft (Soin, Immunité, Laser, Chaleur augmentée, Glue).
 arlo_jauge	La jauge d'Aura d'Arlo : 100 points, +3 par seconde. Les barrières et les bulles la consomment.
 arlo_barriere	Tant qu'elle est active, Arlo ne subit que la moitié des dégâts. Coût : 5 points d'Aura par seconde.
 arlo_barriere_ultime	Tant qu'elle est active, Arlo ne subit aucun dégât, et celui qui le frappe subit les dégâts à sa place. Coût : 10 points d'Aura par seconde.
-arlo_enfermement	Clic droit vers un adversaire : il est enfermé dans une bulle infranchissable. Accroupi + clic droit sur lui : il est relâché. Plusieurs bulles possibles. Coût : 5 points d'Aura par seconde.
-arlo_etouffement	Clic droit vers un adversaire : il est plaqué au sol et perd 1 cœur par seconde. Accroupi + clic droit sur lui : il est relâché. Plusieurs bulles possibles. Coût : 10 points d'Aura par seconde.
+arlo_enfermement	L'adversaire visé est enfermé dans une bulle infranchissable. Accroupi en le visant : il est relâché. Plusieurs bulles possibles. Coût : 5 points d'Aura par seconde.
+arlo_etouffement	L'adversaire visé est plaqué au sol et perd 1 cœur par seconde. Accroupi en le visant : il est relâché. Plusieurs bulles possibles. Coût : 10 points d'Aura par seconde.
 arlo_ult	Pendant 1 minute, une cage de verre indestructible de 30 blocs de rayon entoure Arlo. Ses alliés à l'intérieur ont Force.
 john_absorption	Quand John frappe un personnage d'une équipe de trois, il peut utiliser ses pouvoirs. Il en garde 3 au maximum, chacun pendant 5 minutes (/cf choose pour choisir).
 john_ult	John lance l'ultime d'un personnage en vie, au choix.
