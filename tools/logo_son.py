@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""Les bruitages du logo anime, synthetises ici (aucun son enregistre), cales sur tools/logo_anime.py.
+"""Les bruitages du logo anime : des sons libres (CC0) d'OpenGameArt, places et mixes ici, cales sur tools/logo_anime.py.
 
-Usage : python3 tools/logo_son.py <dossier>      ecrit <dossier>/crossfight_uhc_anime.wav (48 kHz, stereo)
+Usage : python3 -I tools/logo_son.py <dossier>    ecrit <dossier>/crossfight_uhc_anime.wav (48 kHz, stereo)
 
 Ensuite, node tools/logo_video.js <dossier> le pose sur le MP4 et le WebM.
 
-  - chaque lettre de CROSSFIGHT qui apparait : un petit tintement, de plus en plus aigu, de gauche a droite ;
-  - chaque barre : un souffle qui monte, puis l'impact (un grave qui tombe, un claquement, la resonance metallique
-    d'une lame), plus fort pour la barre horizontale ;
-  - UHC qui tombe : un souffle qui descend, puis un choc sourd ;
-  - le reflet : des scintillements qui traversent de gauche a droite ;
-  - la disparition : une montee (comme une cymbale a l'envers), l'implosion, les barres qui se retirent, les lettres
-    qui s'envolent une a une, UHC qui remonte, puis le tintement de la derniere etincelle.
-Le tout passe dans une reverberation, puis est limite en douceur.
+Les packs (SOURCES, tous CC0) sont telecharges une fois dans build/vendor/sons_logo/, chacun dans son dossier ; s'y
+ajoutent des explosions de la bibliotheque du pack de ressources (resourcepack/assets/crossfight/sounds/sfx, CC0 elles
+aussi : resourcepack/CREDITS.md).
+  - chaque lettre de CROSSFIGHT : un petit souffle d'arme et un cliquetis, de plus en plus aigus, de gauche a droite ;
+  - chaque barre : un grand souffle, puis le choc de deux lames, le coup sourd d'un bouclier et le grondement d'un canon ;
+  - UHC qui tombe : un souffle court, puis un choc sourd ;
+  - le reflet : une lame qui glisse, de gauche a droite, et un tintement ;
+  - la disparition : un souffle au ralenti qui monte, coupe net par l'implosion (lames, bouclier, explosion), un souffle
+    pour les barres, un pour chaque lettre qui s'envole, un pour UHC, puis une cloche pour la derniere etincelle.
 """
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,173 +23,148 @@ import numpy as np
 from scipy import signal
 from scipy.io import wavfile
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
 import logo_anime as la  # noqa: E402
 
 SR = 48000
 TOTAL = la.DUREE + 0.25          # la video : l'animation et quelques images vides (tools/logo_video.js)
-rng = np.random.default_rng(7)
+VENDOR = ROOT / "build" / "vendor" / "sons_logo"
+BIBLIO = ROOT / "resourcepack" / "assets" / "crossfight" / "sounds" / "sfx"
+OGA = "https://opengameart.org/sites/default/files/"
+# Les packs : (dossier, fichier a telecharger, auteur, page). Tous en CC0 (domaine public).
+SOURCES = [
+    ("epees", "sword_-_starninjas_1.zip", "StarNinjas", "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes"),
+    ("chocs_epees", "sword_clash_-_starninjas_0.zip", "StarNinjas", "https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes"),
+    ("boucliers", "impact_-_starninjas.zip", "StarNinjas", "https://opengameart.org/content/10-impactshield-blocks"),
+    ("souffles", "swishes.zip", "artisticdude", "https://opengameart.org/content/swishes-sound-pack"),
+    ("vent", "qubodup-timehitwind.zip", "qubodup", "https://opengameart.org/content/wind-hit-time-morph"),
+    ("chutes", "sfx_breaking_and_falling.zip", "rubberduck", "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"),
+    ("cloches", "bell_ding4.wav", "PWL", "https://opengameart.org/content/bell-dingschimes"),
+    ("metal", "bing1.wav", "BMacZero", "https://opengameart.org/content/metal-impact-sounds"),
+    ("metal", "clink1_0.wav", "BMacZero", "https://opengameart.org/content/metal-impact-sounds"),
+    ("metal", "clink2.wav", "BMacZero", "https://opengameart.org/content/metal-impact-sounds"),
+    ("metal", "clink3.wav", "BMacZero", "https://opengameart.org/content/metal-impact-sounds"),
+    ("metal", "thud2.wav", "BMacZero", "https://opengameart.org/content/metal-impact-sounds"),
+]
 
 
-def temps(d):
-    return np.arange(int(d * SR)) / SR
+def telecharger():
+    """Les packs, une fois : chacun dans son dossier de build/vendor/sons_logo/ (les archives y sont decompressees)."""
+    for dossier, fichier, _, _ in SOURCES:
+        d = VENDOR / dossier
+        cible = d / fichier
+        if cible.exists():
+            continue
+        d.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["curl", "-sSfL", "--max-time", "120", "-o", str(cible), OGA + fichier], check=True)
+        if fichier.endswith(".zip"):
+            subprocess.run(["unzip", "-q", "-o", str(cible), "-d", str(d)], check=True)
 
 
-def bruit(d):
-    return rng.standard_normal(int(d * SR))
+def charger(chemin, vitesse=1.0):
+    """Un son en mono a 48 kHz (decode par ffmpeg), normalise ; vitesse > 1 le rend plus court et plus aigu."""
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", str(chemin), "-ac", "1", "-ar", str(SR), "-f", "f32le", "-"],
+                       capture_output=True, check=True)
+    x = np.frombuffer(r.stdout, dtype=np.float32).astype(float)
+    if vitesse != 1.0:
+        x = np.interp(np.arange(0, len(x) - 1, vitesse), np.arange(len(x)), x)
+    return x / (np.abs(x).max() + 1e-9)
+
+
+def trouve(dossier, nom):
+    """Le fichier nom dans le dossier d'un pack (les archives ont parfois un sous-dossier)."""
+    return next(p for p in (VENDOR / dossier).rglob(nom) if "__MACOSX" not in str(p))
+
+
+def pic(x):
+    """L'instant (secondes) ou le son est le plus fort : c'est lui qu'on cale sur l'evenement."""
+    env = np.convolve(np.abs(x), np.ones(480) / 480, mode="same")
+    return env.argmax() / SR
 
 
 def filtre(x, kind, f):
-    sos = signal.butter(2 if kind != "bandpass" else 2, f, btype=kind, fs=SR, output="sos")
-    return signal.sosfilt(sos, x)
+    return signal.sosfilt(signal.butter(2, f, btype=kind, fs=SR, output="sos"), x)
 
 
-def balayage(d, f0, f1, largeur=0.35, env=None):
-    """Un souffle : du bruit dont seule une bande passe, et cette bande glisse de f0 a f1 (en Hz)."""
-    x = bruit(d)
-    f, t, z = signal.stft(x, SR, nperseg=1024, noverlap=768)
-    centre = f0 * (f1 / f0) ** np.clip(t / d, 0, 1)
-    masque = np.exp(-0.5 * (np.log(np.maximum(f[:, None], 1) / centre[None, :]) / largeur) ** 2)
-    _, y = signal.istft(z * masque, SR, nperseg=1024, noverlap=768)
-    y = y[: len(x)]
-    y = np.pad(y, (0, len(x) - len(y)))
-    if env is not None:
-        y *= env
-    return y / (np.abs(y).max() + 1e-9)
-
-
-def tintement(f, d=0.14):
-    t = temps(d)
-    ton = np.sin(2 * np.pi * f * t) * np.exp(-t / 0.03)
-    clic = filtre(bruit(d), "highpass", 3000) * np.exp(-t / 0.004) * 0.25
-    corps = np.sin(2 * np.pi * f / 2 * t) * np.exp(-t / 0.05) * 0.35
-    return ton * 0.6 + clic + corps
-
-
-def impact(f_metal, force=1.0, grave=45.0):
-    d = 1.6
-    t = temps(d)
-    freq = grave + 120 * np.exp(-t / 0.06)
-    boum = np.tanh(2.2 * np.sin(2 * np.pi * np.cumsum(freq) / SR)) * np.exp(-t / 0.3)
-    claque = filtre(bruit(d), "highpass", 1400) * np.exp(-t / 0.03)
-    corps = filtre(bruit(d), "lowpass", 420) * np.exp(-t / 0.12) * 2
-    metal = np.zeros_like(t)
-    for k, (r, dec, a) in enumerate(((1, .9, .22), (2.32, .65, .2), (4.25, .45, .15), (6.63, .3, .10), (9.38, .2, .07))):
-        metal += a * np.sin(2 * np.pi * f_metal * r * t + k) * np.exp(-t / dec)
-    attaque = np.minimum(1, t / 0.002)
-    return force * attaque * (boum * 1.0 + claque * 0.55 + corps * 0.45 + metal * 0.5)
-
-
-def choc_sourd():
-    d = 0.6
-    t = temps(d)
-    freq = 38 + 70 * np.exp(-t / 0.04)
-    boum = np.sin(2 * np.pi * np.cumsum(freq) / SR) * np.exp(-t / 0.2)
-    bois = np.sin(2 * np.pi * 230 * t) * np.exp(-t / 0.05) * 0.35
-    clic = filtre(bruit(d), "bandpass", (900, 4000)) * np.exp(-t / 0.008) * 0.3
-    return boum + bois + clic
-
-
-def cloche(f, d=2.0):
-    t = temps(d)
-    s = np.zeros_like(t)
-    for r, dec, a in ((1, 1.5, .5), (2.0, 1.0, .25), (2.76, .8, .2), (4.07, .5, .12), (5.4, .3, .08)):
-        s += a * np.sin(2 * np.pi * f * r * t) * np.exp(-t / dec)
-    return s * np.minimum(1, t / 0.004)
-
-
-def poser(piste, son, t, pan=0.0, gain=1.0):
-    """Ajoute un son (mono) a l'instant t (secondes), place de -1 (gauche) a 1 (droite)."""
-    i = int(round(t * SR))
-    if i >= piste.shape[1]:
-        return
-    son = son[: piste.shape[1] - i] * gain
-    a = (pan + 1) * np.pi / 4
+def poser(piste, son, t, pan=0.0, gain=1.0, cale=True, pan_fin=None):
+    """Ajoute un son a l'instant t (son pic cale sur t, sauf cale=False), place de -1 (gauche) a 1 (droite) ; avec
+    pan_fin, il glisse de pan a pan_fin pendant sa duree."""
+    i = int(round((t - (pic(son) if cale else 0)) * SR))
+    if i < 0:
+        son, i = son[-i:], 0
+    son = son[: max(0, piste.shape[1] - i)] * gain
+    p = np.full(len(son), pan) if pan_fin is None else np.linspace(pan, pan_fin, len(son))
+    a = (p + 1) * np.pi / 4
     piste[0, i:i + len(son)] += son * np.cos(a) * np.sqrt(2)
     piste[1, i:i + len(son)] += son * np.sin(a) * np.sqrt(2)
 
 
-def reverb(piste, duree=1.6, humide=0.22):
-    t = temps(duree)
+def reverb(piste, duree=1.4, humide=0.18):
+    rng = np.random.default_rng(3)
+    t = np.arange(int(duree * SR)) / SR
     sortie = np.zeros_like(piste)
     for c in range(2):
-        ir = filtre(bruit(duree), "lowpass", 5500) * np.exp(-t / 0.33)
+        ir = filtre(rng.standard_normal(len(t)), "lowpass", 6000) * np.exp(-t / 0.3)
         ir /= np.sqrt((ir ** 2).sum())
-        # Pas de graves dans la salle : ils brouilleraient les impacts.
-        sortie[c] = signal.fftconvolve(filtre(piste[c], "highpass", 180), ir)[: piste.shape[1]]
+        sortie[c] = signal.fftconvolve(filtre(piste[c], "highpass", 200), ir)[: piste.shape[1]]
     return piste + humide * sortie
 
 
 def main():
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-    if out is None:
+    if len(sys.argv) < 2:
         print(__doc__)
         return 1
-    n = int(TOTAL * SR)
-    p = np.zeros((2, n))
+    out = Path(sys.argv[1])
+    telecharger()
+    p = np.zeros((2, int(TOTAL * SR)))
     V, H, U, F = la.V, la.H, la.U, la.FIN
+    E = lambda n: trouve("epees", f"sword.{n}.ogg")
+    C = lambda n: trouve("chocs_epees", f"sword_clash.{n}.ogg")
+    B = lambda n: trouve("boucliers", f"impact.{n}.ogg")
+    S = lambda n: trouve("souffles", f"swish-{n}.wav")
 
-    # Les lettres : une gamme pentatonique qui monte, de gauche a droite.
-    gamme = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21]
+    # Les lettres : un petit souffle et un cliquetis, de plus en plus aigus, de gauche a droite.
     for i in range(10):
-        t0 = la.LETTRE0 + i * la.LETTRE_PAS + 0.07
-        poser(p, tintement(660 * 2 ** (gamme[i] / 12)), t0, pan=-0.6 + 1.2 * i / 9, gain=0.28)
-        poser(p, balayage(0.09, 2500, 6000, env=np.hanning(int(0.09 * SR))), t0 - 0.05, pan=-0.6 + 1.2 * i / 9, gain=0.06)
+        t0 = la.LETTRE0 + i * la.LETTRE_PAS + 0.08
+        pan = -0.6 + 1.2 * i / 9
+        poser(p, charger(S(1 + i % 13), 1.0 + 0.04 * i), t0, pan=pan, gain=0.22)
+        poser(p, charger(trouve("metal", f"clink{(i % 3) + 1}{'_0' if i % 3 == 0 else ''}.wav"), 1.0 + 0.05 * i), t0 + 0.02, pan=pan, gain=0.1)
 
-    # Les barres : un souffle qui monte jusqu'a l'impact.
-    for t_imp, f_metal, force, grave in ((V, 415, 0.85, 48), (H, 330, 1.0, 40)):
-        d = 0.32
-        env = np.linspace(0, 1, int(d * SR)) ** 2.5
-        poser(p, balayage(d, 350, 5200, env=env), t_imp - d, gain=0.32)
-        poser(p, impact(f_metal, force, grave), t_imp, gain=0.9)
+    # Les barres : le grand souffle, puis les lames, le bouclier et le canon. L'horizontale frappe plus fort.
+    for t_imp, souffle, lame, bouclier, canon, force in ((V, "qubodup-megaswosh1.wav", 4, 8, ("explosion", 3), 0.85),
+                                                          (H, "qubodup-megaswosh2.wav", 7, 10, ("big_explosion", 2), 1.0)):
+        poser(p, charger(trouve("vent", souffle)), t_imp - 0.05, gain=0.45 * force)
+        poser(p, charger(C(lame)), t_imp, gain=0.75 * force)
+        poser(p, charger(B(bouclier)), t_imp, gain=0.5 * force)
+        poser(p, filtre(charger(BIBLIO / canon[0] / f"{canon[1]}.ogg"), "lowpass", 2500), t_imp + 0.01, gain=0.7 * force)
 
-    # UHC tombe de la barre : un souffle qui descend, puis le choc.
-    d = 0.2
-    poser(p, balayage(d, 3200, 500, env=np.hanning(int(d * SR)) ** 0.7), U - d, gain=0.2)
-    poser(p, choc_sourd(), U, gain=0.55)
+    # UHC tombe de la barre : un souffle court, puis le choc sourd.
+    poser(p, charger(S(9), 0.85), U - 0.06, gain=0.25)
+    poser(p, charger(trouve("metal", "thud2.wav")), U, gain=0.45)
+    poser(p, charger(trouve("chutes", "bfh1_hit_02.ogg")), U, gain=0.4)
 
-    # Le reflet : des scintillements de gauche a droite, et un souffle tres aigu qui les porte.
+    # Le reflet : une lame qui glisse de gauche a droite, et un tintement au milieu.
     r0, r1 = la.REFLET
-    for k in range(28):
-        u = (k + rng.uniform(0, 1)) / 28
-        f = rng.uniform(2600, 7200)
-        dd = rng.uniform(0.06, 0.18)
-        t = temps(dd)
-        ping = np.sin(2 * np.pi * f * t) * np.exp(-t / (dd / 3))
-        poser(p, ping, r0 + u * (r1 - r0), pan=-0.85 + 1.7 * u, gain=0.05)
-    d = r1 - r0
-    air = filtre(bruit(d), "highpass", 6500) * np.hanning(int(d * SR))
-    for k in range(8):
-        a, b = int(k * len(air) / 8), int((k + 1) * len(air) / 8)
-        poser(p, air[a:b], r0 + a / SR, pan=-0.8 + 1.6 * k / 7, gain=0.04)
+    poser(p, charger(E(3)), (r0 + r1) / 2, pan=-0.7, pan_fin=0.7, gain=0.35)
+    poser(p, charger(trouve("metal", "bing1.wav")), r0 + 0.25, pan=-0.2, gain=0.18)
 
-    # La disparition. La montee, comme une cymbale a l'envers, coupee net par l'implosion.
-    d = 0.44
-    t = temps(d)
-    montee = filtre(bruit(d), "highpass", 2200) * (t / d) ** 3
-    montee += 0.25 * np.sin(2 * np.pi * np.cumsum(200 * (4.5 ** (t / d))) / SR) * (t / d) ** 2
-    poser(p, montee, F + 0.14 - d, gain=0.28)
-    imp = impact(370, 1.0, 42)
-    t = temps(0.55)
-    tombe = np.sin(2 * np.pi * np.cumsum(320 * (40 / 320) ** (t / 0.55)) / SR) * np.exp(-t / 0.3) * 0.5
-    poser(p, imp, F + 0.14, gain=0.85)
-    poser(p, tombe, F + 0.14, gain=0.4)
+    # La disparition : le souffle au ralenti qui monte jusqu'a l'implosion.
+    poser(p, charger(trouve("vent", "qubodup-slomo1.wav")), F + 0.14, gain=0.55)
+    poser(p, charger(C(6)), F + 0.14, gain=0.8)
+    poser(p, charger(B(4)), F + 0.14, gain=0.5)
+    poser(p, filtre(charger(BIBLIO / "big_explosion" / "1.ogg"), "lowpass", 2500), F + 0.15, gain=0.8)
     # Les barres se retirent, les lettres s'envolent, UHC remonte.
-    poser(p, balayage(0.2, 4200, 700, env=np.hanning(int(0.2 * SR))), F + 0.15, gain=0.22)
+    poser(p, charger(trouve("vent", "60009__qubodup__swosh_22.flac")), F + 0.24, gain=0.35)
     for i in range(10):
-        poser(p, balayage(0.13, 3000, 8500, env=np.hanning(int(0.13 * SR))), F + 0.15 + i * 0.026,
-              pan=-0.6 + 1.2 * i / 9, gain=0.07)
-    poser(p, balayage(0.22, 500, 3200, env=np.hanning(int(0.22 * SR))), F + 0.2, gain=0.14)
-    # La derniere etincelle : une cloche claire, et quelques eclats autour.
-    poser(p, cloche(1568), F + 0.64, gain=0.22)
-    for k in range(6):
-        f = 3136 * 2 ** (rng.integers(0, 12) / 12)
-        t = temps(0.25)
-        poser(p, np.sin(2 * np.pi * f * t) * np.exp(-t / 0.06), F + 0.64 + k * 0.045, pan=rng.uniform(-0.4, 0.4), gain=0.035)
+        poser(p, charger(S(1 + (i * 3) % 13), 1.15 + 0.03 * i), F + 0.2 + i * 0.026, pan=-0.6 + 1.2 * i / 9, gain=0.14)
+    poser(p, charger(S(7), 1.3), F + 0.32, gain=0.18)
+    # La derniere etincelle.
+    poser(p, charger(trouve("cloches", "bell_ding4.wav")), F + 0.7, gain=0.28)
 
-    # La salle, puis une limite douce, et un fondu sur les derniers instants.
+    # La salle, une limite douce, un fondu sur les derniers instants.
     p = reverb(p)
-    p = np.tanh(1.3 * p / (np.abs(p).max() + 1e-9))
+    p = np.tanh(1.2 * p / (np.abs(p).max() + 1e-9))
     p *= 0.89 / np.abs(p).max()
     fondu = int(0.15 * SR)
     p[:, -fondu:] *= np.linspace(1, 0, fondu)
