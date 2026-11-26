@@ -18,7 +18,8 @@ const dir = path.resolve(process.argv[2]);
 const svg = fs.readFileSync(path.join(dir, 'crossfight_uhc_anime.svg'), 'utf8');
 // La duree de l'animation est ecrite dans le SVG (data-duree) ; TENUE : quelques images vides a la fin.
 const DUREE = Number((svg.match(/data-duree="([0-9.]+)"/) || [0, 4.2])[1]);
-const W = 1920, H = 1080, LOGO = 1500, FPS = 60, TENUE = 0.25, FOND = '#14161f';
+// Le fond de la video opaque : data-fond du SVG (logo aux couleurs d'un personnage), sinon le bleu nuit habituel.
+const W = 1920, H = 1080, LOGO = 1500, FPS = 60, TENUE = 0.25, FOND = (svg.match(/data-fond="(#[0-9a-f]{6})"/) || [0, '#14161f'])[1];
 
 (async () => {
   const browser = await chromium.launch();

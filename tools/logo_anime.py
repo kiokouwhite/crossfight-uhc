@@ -4,7 +4,11 @@ et UHC sort de la barre horizontale. Le logo tient un instant, puis disparait (a
 eclair part du croisement des barres, les barres se retirent d'un coup, les lettres de CROSSFIGHT s'envolent une a une
 en se brouillant, UHC remonte dans la barre, et une derniere etincelle brille au croisement.
 
-Usage : python3 tools/logo_anime.py <dossier de sortie>
+Usage : python3 tools/logo_anime.py <dossier de sortie> [--perso <id>]
+
+--perso <id> : aux couleurs d'un personnage (sa couleur de resourcepack/selection.txt) : le rouge du logo prend sa
+couleur, le bleu une version sombre de celle-ci, les lueurs et les sillages une version claire ; le fond de la video
+opaque (data-fond, lu par tools/logo_video.js) devient un noir teinte de sa couleur.
 
 Ecrit <dossier>/crossfight_uhc_anime.svg : un SVG anime (CSS), fond transparent, a ouvrir dans un navigateur ou a
 poser sur une page web. Ensuite, pour la video : node tools/logo_video.js <dossier> (MP4, GIF, WebM transparent).
@@ -185,8 +189,27 @@ def main():
   <rect class="flash" x="-2000" y="-2000" width="5200" height="4700" fill="#ffffff"/>
 </svg>
 '''
+    if "--perso" in sys.argv:
+        svg = aux_couleurs(svg, sys.argv[sys.argv.index("--perso") + 1])
     (out / "crossfight_uhc_anime.svg").write_text(svg, encoding="utf-8")
     print(out / "crossfight_uhc_anime.svg", "duree", d)
+
+def aux_couleurs(svg, cid):
+    """Le logo anime aux couleurs d'un personnage (voir --perso)."""
+    sel = Path(__file__).resolve().parent.parent / "resourcepack" / "selection.txt"
+    ligne = next((l.split() for l in sel.read_text(encoding="utf-8").splitlines() if l.split()[:1] == [cid]), None)
+    if not ligne:
+        sys.exit("Personnage inconnu de resourcepack/selection.txt : " + cid)
+    p = tuple(int(ligne[-1].lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
+    mix = lambda a, b, t: "#%02x%02x%02x" % tuple(round(x + (y - x) * t) for x, y in zip(a, b))
+    blanc, noir = (255, 255, 255), (14, 14, 18)
+    couleur, sombre = mix(p, p, 0), mix(p, noir, 0.62)
+    clair, moyen, fond = mix(p, blanc, 0.85), mix(p, blanc, 0.4), mix(noir, p, 0.12)
+    for avant, apres in (("#eb5863", couleur), ("#eb5963", couleur), ("#5556a2", sombre), ("#5456a2", sombre),
+                         ("#e6eeff", clair), ("#8fa8ff", moyen), ("#dfe8ff", clair), ("#ffd0d4", clair)):
+        svg = svg.replace(avant, apres)
+    return svg.replace('data-duree=', f'data-fond="{fond}" data-duree=', 1)
+
 
 if __name__ == "__main__":
     main()
