@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """La video de presentation d'un personnage : il monte du bas de l'ecran, et son nom s'ecrit en bas.
 
-Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6] [--graine N] [--surnom "..."]
+Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6] [--graine N] [--surnom "..."] [--flottant]
 
 Le personnage, son nom et sa couleur viennent de resourcepack/selection.txt ; sa voie et le cadrage de son visage, de
 resourcepack/selection_cartes.txt (comme sa carte de selection) ; son surnom, de tools/surnoms.txt ; son illustration et
@@ -19,7 +19,9 @@ Toute la scene est penchee (PENTE degres) : un plateau plus grand que l'ecran, t
     (eclair, secousse) puis respire doucement.
   - En bas, la bande de nom des cartes traverse l'ecran ; le cartouche du HUD s'y deplie et le nom y tombe lettre par
     lettre (police de titre du HUD), puis le surnom apparait dans un cartouche plus petit dessous (meme police).
-  - Le logo Crossfight UHC est en haut a gauche.
+    --flottant : sans la bande, les deux cartouches flottent (ombre, lueur, leger balancement) ; la scene et la video
+    s'appellent alors <personnage>_flottant.
+  - Le logo Crossfight UHC est en haut a gauche, droit (hors de la scene penchee).
 
 Ecrit <dossier>/<personnage>.html (la scene, a ouvrir dans un navigateur), <dossier>/<personnage>.mp4 (1920x1080,
 60 images par seconde ; rendu par tools/rendu_video.js : Playwright, Chromium et ffmpeg) et <dossier>/fond_concorde.html
@@ -47,7 +49,7 @@ OX, OY = (W - PW) // 2, (H - PH) // 2
 PIXEL = 8                  # un pixel de dessin du portail = 8 pixels du plateau
 VISAGE = (0.5, 0.31)       # ou se place le visage du personnage, en fraction de l'ecran
 CARTE = 1.25               # l'illustration, 1,25 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
-NOM_Y = 0.79               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
+NOM_Y = 0.83               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
 K_NOM, K_SURNOM = 6, 3     # un pixel du HUD = 6 (nom) ou 3 (surnom) pixels a l'ecran
 
 
@@ -137,6 +139,8 @@ def main():
     D = float(option(sys.argv, "--duree", "6"))
     graine = int(option(sys.argv, "--graine", str(zlib.crc32(cid.encode()) % 999999 + 1)))
     surnom = option(sys.argv, "--surnom", surnom_de(cid))
+    flottant = "--flottant" in sys.argv
+    sortie = cid + ("_flottant" if flottant else "")
     out.mkdir(parents=True, exist_ok=True)
     import build_selection as bs
     names = {i: (n, c) for i, n, c in bs.roster()}
@@ -203,7 +207,6 @@ def main():
 
     logo = (ROOT / "tools" / "logo" / "crossfight_uhc.svg").read_text(encoding="utf-8")
     (out / "logo.svg").write_text(logo, encoding="utf-8")
-    lx, ly = plateau(0.035, 0.05)
     pc = lambda t: f"{t / D * 100:.2f}%"
     navy, sombre = "rgb(38,41,74)", "rgb(24,26,48)"
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>
@@ -233,7 +236,10 @@ html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; backgrou
 .surnom {{ position: absolute; animation: surnom {D}s ease-out both; }}
 .surnom img {{ position: absolute; left: 0; top: 0; }}
 @keyframes surnom {{ 0%, {pc(2.05)} {{ opacity: 0; transform: translateY(-30px) scaleX(.4); }} {pc(2.4)} {{ opacity: 1; transform: scaleX(1.06); }} {pc(2.5)}, 100% {{ opacity: 1; transform: none; }} }}
-.logo {{ position: absolute; left: {round(lx)}px; top: {round(ly)}px; width: 250px; animation: logo {D}s ease-out both; }}
+.flotte {{ position: absolute; inset: 0; animation: flotte 1.7s ease-in-out infinite alternate; }}
+@keyframes flotte {{ from {{ transform: translateY(-6px); }} to {{ transform: translateY(6px); }} }}
+.flotte .plaque, .flotte .surnom img:first-child {{ filter: drop-shadow(0 {2 * K_NOM}px 0 rgba(8,9,18,.45)) drop-shadow(0 0 26px {color}aa); }}
+.logo {{ position: absolute; left: 56px; top: 44px; width: 250px; animation: logo {D}s ease-out both; }}
 @keyframes logo {{ 0%, {pc(0.5)} {{ opacity: 0; transform: translateX(-30px); }} {pc(1.1)}, 100% {{ opacity: .95; transform: none; }} }}
 .flash {{ position: absolute; inset: 0; background: radial-gradient(ellipse 55% 65% at 50% 55%, #fff 0%, {color}aa 40%, transparent 75%); mix-blend-mode: screen; opacity: 0; animation: flash {D}s linear both; }}
 @keyframes flash {{ 0%, {pc(1.19)} {{ opacity: 0; }} {pc(1.2)} {{ opacity: .5; }} {pc(1.45)}, 100% {{ opacity: 0; }} }}
@@ -243,10 +249,9 @@ html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; backgrou
 <div id="fond"></div>
 <div class="monte"><img class="perso" src="{cid}.png"></div>
 <div class="voile"></div>
-<div class="bande"></div>
-{plaque_html}
-<img class="logo" src="logo.svg">
+{'<div class="flotte">' + plaque_html + '</div>' if flottant else '<div class="bande"></div>' + plaque_html}
 </div>
+<img class="logo" src="logo.svg">
 <div class="flash"></div>
 </div>
 <script src="p5.min.js"></script><script src="fond_concorde.js"></script>
@@ -269,7 +274,7 @@ Promise.all([charge('portail.png'), {f"charge('{signe}')" if signe else "null"}]
   }};
 }}));
 </script></body></html>"""
-    page = out / f"{cid}.html"
+    page = out / f"{sortie}.html"
     page.write_text(html, encoding="utf-8")
     shutil.copy(p5(), out / "p5.min.js")
     algo = (ROOT / "tools" / "fond_concorde.js").read_text(encoding="utf-8")
@@ -280,8 +285,8 @@ Promise.all([charge('portail.png'), {f"charge('{signe}')" if signe else "null"}]
     vue = vue.replace("seed: 12345,", f"seed: {graine},").replace('value="12345"', f'value="{graine}"')
     vue = vue.replace("'#4a4fc4'", f"'{color}'").replace('"#4a4fc4"', f'"{color}"').replace(">#4a4fc4<", f">{color}<")
     (out / "fond_concorde.html").write_text(vue, encoding="utf-8")
-    subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(page), str(out / f"{cid}.mp4"), str(D)], check=True, cwd="/tmp")
-    print(out / f"{cid}.mp4")
+    subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(page), str(out / f"{sortie}.mp4"), str(D)], check=True, cwd="/tmp")
+    print(out / f"{sortie}.mp4")
 
 
 if __name__ == "__main__":
