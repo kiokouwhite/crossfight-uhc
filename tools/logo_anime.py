@@ -15,6 +15,11 @@ import sys
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parent / "logo" / "crossfight_uhc.svg"
+# Les instants (secondes) : les lettres de CROSSFIGHT (LETTRE0 + i * LETTRE_PAS), les impacts de la barre verticale (V)
+# et de l'horizontale (H), l'arrivee de UHC (U), le reflet, puis la disparition (FIN). tools/logo_son.py s'y cale.
+LETTRE0, LETTRE_PAS = 0.1, 0.065
+V, H, U = 1.36, 1.80, 2.16
+REFLET = (2.95, 3.65)
 FIN = 5.2    # le debut de la disparition (secondes)
 DUREE = 6.25  # secondes : l'arrivee, la tenue, la disparition
 
@@ -39,9 +44,9 @@ def main():
     d = DUREE
     def k(sec): return f"{sec / d * 100:.2f}%"
     # Les instants des deux impacts, et de l'arrivee de UHC.
-    V, H, U, F = 1.36, 1.80, 2.16, FIN
+    F = FIN
     def lettre(i):
-        return (f'<g class="lettre" style="animation: lettre 0.5s cubic-bezier(.2,.9,.3,1.25) {0.1 + i * 0.065:.3f}s both, '
+        return (f'<g class="lettre" style="animation: lettre 0.5s cubic-bezier(.2,.9,.3,1.25) {LETTRE0 + i * LETTRE_PAS:.3f}s both, '
                 f'sortie 0.32s cubic-bezier(.4,0,.7,.7) {F + 0.15 + i * 0.026:.3f}s forwards">{white_cf[i]}</g>')
     def bloc(classe, idx):
         # Une partie de CROSSFIGHT avec son ombre : repoussee d'un cote a l'impact de la barre verticale.
@@ -141,7 +146,7 @@ def main():
     .ombre-bleue {{ animation: ombre-bleue {d}s ease-out both; }}
     @keyframes ombre-bleue {{ 0%, {k(U)} {{ opacity: 0; transform: translate(-12px, -12px); }} {k(U + .3)}, {k(F + .18)} {{ opacity: .7; transform: none; }} {k(F + .38)}, 100% {{ opacity: 0; transform: translate(-12px, -12px); }} }}
     .reflet {{ animation: reflet {d}s ease-in-out both; }}
-    @keyframes reflet {{ 0%, {k(2.95)} {{ transform: translateX(-300px); }} {k(3.65)}, 100% {{ transform: translateX(1500px); }} }}
+    @keyframes reflet {{ 0%, {k(REFLET[0])} {{ transform: translateX(-300px); }} {k(REFLET[1])}, 100% {{ transform: translateX(1500px); }} }}
 """
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1189.91 678.52" data-duree="{d}">
   <defs>

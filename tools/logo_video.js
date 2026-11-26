@@ -6,6 +6,7 @@
 // Ecrit    crossfight_uhc_anime.mp4    1920x1080, fond sombre, 60 images par seconde
 //          crossfight_uhc_anime.gif    960 de large, fond sombre, en boucle (le logo disparait avant de recommencer)
 //          crossfight_uhc_anime.webm   1920x1080, fond transparent (VP9 avec transparence), a poser sur une video
+// Si crossfight_uhc_anime.wav est dans le dossier (les bruitages : tools/logo_son.py), il est pose sur le MP4 et le WebM.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -37,8 +38,12 @@ const W = 1920, H = 1080, LOGO = 1500, FPS = 60, TENUE = 0.25, FOND = '#14161f';
   }
   await browser.close();
   const ff = (...a) => execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', ...a]);
-  ff('-framerate', String(FPS), '-i', path.join(dir, 'images_opaque', '%04d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '16', path.join(dir, 'crossfight_uhc_anime.mp4'));
-  ff('-framerate', String(FPS), '-i', path.join(dir, 'images_transparent', '%04d.png'), '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-b:v', '0', '-crf', '24', '-auto-alt-ref', '0', path.join(dir, 'crossfight_uhc_anime.webm'));
+  const wav = path.join(dir, 'crossfight_uhc_anime.wav');
+  const son = fs.existsSync(wav) ? ['-i', wav] : [];
+  const aac = son.length ? ['-c:a', 'aac', '-b:a', '192k', '-shortest'] : [];
+  const opus = son.length ? ['-c:a', 'libopus', '-b:a', '160k', '-shortest'] : [];
+  ff('-framerate', String(FPS), '-i', path.join(dir, 'images_opaque', '%04d.png'), ...son, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '16', ...aac, path.join(dir, 'crossfight_uhc_anime.mp4'));
+  ff('-framerate', String(FPS), '-i', path.join(dir, 'images_transparent', '%04d.png'), ...son, '-c:v', 'libvpx-vp9', '-pix_fmt', 'yuva420p', '-b:v', '0', '-crf', '24', '-auto-alt-ref', '0', ...opus, path.join(dir, 'crossfight_uhc_anime.webm'));
   // Le GIF : 25 images par seconde ; le logo disparait de lui-meme a la fin, la boucle repart sans saut.
   ff('-framerate', String(FPS), '-i', path.join(dir, 'images_opaque', '%04d.png'), '-vf',
     `fps=25,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=sierra2_4a`,
