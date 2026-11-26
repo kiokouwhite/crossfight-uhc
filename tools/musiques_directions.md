@@ -6,7 +6,7 @@ paire) melange les deux, comme un vrai morceau qui fusionne les deux styles (pas
 | Licence | Sonorite | Morceau de reference |
 |---|---|---|
 | Fire Emblem | royal | a choisir |
-| RWBY | jazzy | [Showtime! (Jens Vide)](https://jens-vide.itch.io/showtime) : jazz d'action, cuivres heroiques |
+| RWBY | jazzy | [Showtime! (Jens Vide)](https://jens-vide.itch.io/showtime) : jazz d'action, cuivres heroiques ; gratuit, usage commercial permis en creditant Jens Vide, .ogg qui boucle fourni |
 | SNK | guerrier | a choisir |
 | Unordinary | phonk | a choisir |
 | Valorant | techno, boombass | a choisir |
