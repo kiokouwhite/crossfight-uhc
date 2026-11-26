@@ -2,7 +2,9 @@
 """L'overlay des capacites en couches, pour le montage : une base fixe, et pour chaque capacite ses textes, qui entrent
 et sortent en s'etirant comme une image qui saute ; et un volet qui couvre la fenetre de la video pendant la coupe.
 
-Usage : python3 tools/overlay_anime.py <personnage> <dossier> [--capacites contre,ult] [--verifier 0.2,0.5]
+Usage : python3 tools/overlay_anime.py <personnage> <dossier> [--capacites contre,ult] [--textes-seuls] [--verifier 0.2,0.5]
+
+--textes-seuls : seulement la base et les textes des capacites choisies (ni le volet ni l'apercu).
 
 Ecrit dans <dossier> (WebM VP9 et MOV ProRes 4444, a transparence) :
   <personnage>_overlay_base.png              tout ce qui ne change pas : le fond, l'illustration, le cadre, le nom
@@ -159,6 +161,7 @@ def main():
         base.save(out / f"{cid}_overlay_base.png", optimize=True)
 
     css = css_commun(color)
+    seuls = "--textes-seuls" in sys.argv
     # L'apercu d'un changement : de la deuxieme capacite a la derniere, la coupe a T.
     a1, a2 = caps[1 % len(caps)], caps[-1]
     k1, k2 = a1["id"].removeprefix(cid + "_"), a2["id"].removeprefix(cid + "_")
@@ -182,18 +185,21 @@ def main():
     if verifier:
         rendre(travail / "apercu.html", D, travail, verifier=verifier)
         return 0
-    rendre(travail / "apercu.html", D, travail, out / f"{cid}_changement_apercu.mp4")
-
-    # Les videos : le volet, puis l'entree et la sortie des textes de chaque capacite.
-    v_css, v_corps = volet_html(rgb, bs, 0)
-    (travail / "volet.html").write_text(page(css + "\n".join(v_css), v_corps), encoding="utf-8")
-    rendre(travail / "volet.html", VOLET, travail, out / f"{cid}_volet")
+    if not seuls:
+        rendre(travail / "apercu.html", D, travail, out / f"{cid}_changement_apercu.mp4")
+        # Le volet.
+        v_css, v_corps = volet_html(rgb, bs, 0)
+        (travail / "volet.html").write_text(page(css + "\n".join(v_css), v_corps), encoding="utf-8")
+        rendre(travail / "volet.html", VOLET, travail, out / f"{cid}_volet")
+    # L'entree et la sortie des textes de chaque capacite.
     for cle, elements in couches.items():
         for mode, duree, nom in (("entre", ENTREE, "entree"), ("sort", SORTIE, "sortie")):
             f = travail / f"{cle}_{nom}.html"
             f.write_text(page(css, elements_html(elements, f"{cle}_", mode, 0)), encoding="utf-8")
             rendre(f, duree, travail, out / f"{cid}_{cle}_textes_{nom}")
     for f in sorted(out.glob(f"{cid}_*textes*")) + sorted(out.glob(f"{cid}_volet.*")) + [out / f"{cid}_overlay_base.png", out / f"{cid}_changement_apercu.mp4"]:
+        if not f.exists():
+            continue
         print(f.name, f"{f.stat().st_size / 1e6:.1f} Mo")
 
 

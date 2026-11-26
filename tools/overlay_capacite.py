@@ -53,14 +53,15 @@ def capacites(cid):
 
 
 def descriptions():
-    """Les descriptions accentuees (tools/descriptions.txt : "<id>\t<texte>" par ligne)."""
+    """Les descriptions accentuees (tools/descriptions.txt : "<id>\t<texte>" par ligne ; \\n dans le texte : un retour
+    a la ligne)."""
     f = ROOT / "tools" / "descriptions.txt"
     out = {}
     if f.exists():
         for line in f.read_text(encoding="utf-8").splitlines():
             if "\t" in line and not line.startswith("#"):
                 k, v = line.split("\t", 1)
-                out[k.strip()] = v.strip()
+                out[k.strip()] = v.strip().replace("\\n", "\n")
     return out
 
 
@@ -80,17 +81,20 @@ def texte_pixel(text, police, taille, couleur, ombre, k):
 
 
 def paragraphe(text, police, taille, largeur, interligne, couleur, ombre, k):
-    """Un paragraphe coupe en lignes de largeur pixels d'image au plus, centrees, agrandi k fois."""
+    """Un paragraphe coupe en lignes de largeur pixels d'image au plus, centrees, agrandi k fois. Un retour a la ligne
+    du texte force une nouvelle ligne."""
     font = ImageFont.truetype(str(police), taille)
-    lignes, ligne = [], ""
-    for mot in text.split():
-        essai = (ligne + " " + mot).strip()
-        if font.getlength(essai) * k <= largeur or not ligne:
-            ligne = essai
-        else:
-            lignes.append(ligne)
-            ligne = mot
-    lignes.append(ligne)
+    lignes = []
+    for morceau in text.split("\n"):
+        ligne = ""
+        for mot in morceau.split():
+            essai = (ligne + " " + mot).strip()
+            if font.getlength(essai) * k <= largeur or not ligne:
+                ligne = essai
+            else:
+                lignes.append(ligne)
+                ligne = mot
+        lignes.append(ligne)
     lw = max(int(font.getlength(l)) for l in lignes) + 4
     im = Image.new("RGBA", (lw, interligne * len(lignes) + 4), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
@@ -248,7 +252,8 @@ def composer(cid, a, description):
     # En haut, au-dessus du cadre : le type (a la couleur du personnage), puis le nom.
     banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
     milieu = pp.interieur(bs, "BannerMedium_01B", K_UI)
-    typ, typ_m = ligne_hud(a["type"].upper(), K_UI, bs, pp)
+    # Le type : ARME pour la capacite de l'arme, sinon celui du guide (Actif, Passif, Ultime).
+    typ, typ_m = ligne_hud("ARME" if a.get("weapon") else a["type"].upper(), K_UI, bs, pp)
     cap, cap_m = ligne_hud(a["name"].upper(), K_UI, bs, pp)
     t1 = gros(recolore(wide(banniere, max(48, math.ceil((typ.width / K_UI + 36) / 16) * 16)), FOND_CARTOUCHE, rgb), K_UI)
     t2 = gros(wide(banniere, max(48, math.ceil((cap.width / K_UI + 36) / 16) * 16)), K_UI)
