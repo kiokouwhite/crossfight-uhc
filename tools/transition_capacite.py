@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
-"""La transition qui annonce une capacite, entre deux videos de jeu, a fond transparent.
+"""Les transitions des videos de capacites, a fond transparent : la transition seule, et une carte par categorie.
 
-Usage : python3 tools/transition_capacite.py <personnage> <capacite> <dossier> [--categorie "..."] [--verifier 0.3,1.5]
+Usage : python3 tools/transition_capacite.py <personnage> <dossier> [--categories arme,capacite,ultime]
+                                             [--verifier transition|arme|capacite|ultime 0.3,0.8]
 
-<capacite> comme pour tools/overlay_capacite.py (marth_contre, contre ou son numero). La categorie vient du guide : ARME
-pour la capacite de l'arme, ULTIME, PASSIF, sinon CAPACITE ; --categorie en donne une autre.
+Deux sortes de videos, separees pour etre posees independamment au montage :
+  - la transition (TRANSITION secondes) : le signe de la voie du personnage surgit en grand au centre en tournant
+    (plein a sa couleur, cerne de bleu nuit) dans une onde et une gerbe d'eclats ; des traits en biais a sa couleur
+    balaient l'ecran de gauche a droite, le couvrent entierement de COUVERT[0] a COUVERT[1] secondes, puis repartent
+    par la droite et laissent voir ce qu'il y a dessous ;
+  - une carte par categorie (CARTE secondes) : opaque des la premiere image (le fond des overlays, le signe en
+    filigrane, le cadre du pack), le mot de la categorie (ARME, CAPACITE, ULTIME) arrive de la gauche dans un grand
+    cartouche a la couleur du personnage, entre deux ornements du pack qui arrivent en sens contraire, avec des
+    trainees ; il derive doucement, puis la carte se decoupe en tranches qui filent de part et d'autre.
+Pour les enchainer : poser la carte sur une piste sous la transition, COUVERT[0] secondes apres son debut (l'ecran est
+alors couvert) ; les traits repartent en la devoilant.
 
-Deroule (DUREE secondes) :
-  - le signe de la voie du personnage surgit en grand au centre, en tournant, dans un eclair et une gerbe d'eclats ;
-  - des traits en biais a la couleur du personnage balaient l'ecran de gauche a droite et le couvrent ;
-  - derriere eux, la carte de titre : le fond des overlays (mur a losanges, portail des cartes), le signe en filigrane,
-    le cadre du pack ; la categorie arrive de la gauche dans un cartouche a la couleur du personnage, le nom de la
-    capacite de la droite dans un grand cartouche bleu nuit, tous deux avec des trainees ; ils derivent doucement ;
-  - la carte se decoupe en tranches qui filent de part et d'autre, et laisse voir la video suivante.
-
-Ecrit dans <dossier> : <personnage>_<capacite>_transition.webm (VP9 a transparence), .mov (ProRes 4444 a transparence,
-pour les logiciels de montage) et _transition_apercu.mp4 (posee sur l'apercu de l'overlay de la capacite, s'il existe).
+Ecrit dans <dossier> : <personnage>_transition.(webm|mov), <personnage>_carte_<categorie>.(webm|mov) (WebM VP9 et MOV
+ProRes 4444, tous deux a transparence), et <personnage>_enchainement_<categorie>_apercu.mp4 (transition et carte
+enchainees sur l'apercu de l'overlay d'une capacite de cette categorie, s'il existe : tools/overlay_capacite.py).
 Les images et les polices viennent du pack prive : les videos restent hors du depot (sous prive/).
 """
 import math
+import os
 import shutil
 import subprocess
 import sys
@@ -30,138 +34,56 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 W, H = 1920, 1080
-DUREE, IPS = 3.4, 60
-K_CAT, K_NOM = 5, 8            # un pixel du pack = 5 (cartouche de la categorie) ou 8 (cartouche du nom) pixels
-TRANCHES = 8                   # la carte se decoupe en autant de tranches a la sortie
-TRAITS = 7                     # les traits en biais du balayage
+IPS = 60
+TRANSITION, CARTE = 1.3, 2.5
+COUVERT = (0.8, 0.86)          # l'ecran est entierement couvert par les traits entre ces deux instants de la transition
+K_MOT = 9                      # un pixel du pack = 9 pixels dans le grand cartouche
+TRANCHES, TRAITS = 8, 7
+CATEGORIES = {"arme": "ARME", "capacite": "CAPACITÉ", "ultime": "ULTIME", "passif": "PASSIF"}
 
 
 def option(argv, name, default):
     return argv[argv.index(name) + 1] if name in argv else default
 
 
-def categorie_de(a):
-    if a.get("weapon"):
-        return "ARME"
-    return {"Ultime": "ULTIME", "Passif": "PASSIF"}.get(a["type"], "CAPACITÉ")
-
-
 def mele(c1, c2, t):
     return tuple(round(c1[i] + (c2[i] - c1[i]) * t) for i in range(3))
 
 
-def main():
-    if len(sys.argv) < 4:
-        print(__doc__)
-        return 1
-    import build_selection as bs
-    import overlay_capacite as oc
-    import presentation_perso as pp
-    from build_menu_franuka import wide
+def categorie_de(a):
+    if a.get("weapon"):
+        return "arme"
+    return {"Ultime": "ultime", "Passif": "passif"}.get(a["type"], "capacite")
 
-    cid, cle, out = sys.argv[1], sys.argv[2], Path(sys.argv[3]).resolve()
-    ch = oc.capacites(cid)
-    a = next((a for n, a in enumerate(ch["abilities"]) if cle in (a["id"], a["id"].removeprefix(cid + "_"), str(n))), None)
-    if a is None:
-        sys.exit(f"Capacite inconnue : {cle} (python3 tools/overlay_capacite.py {cid} pour la liste)")
-    categorie = option(sys.argv, "--categorie", categorie_de(a))
-    base = f"{cid}_{a['id'].removeprefix(cid + '_')}"
-    tr = out / f"{base}_transition"
-    tr.mkdir(parents=True, exist_ok=True)
-    name, color = {i: (n, c) for i, n, c in bs.roster()}[cid]
-    rgb = bs.hexrgb(color)
 
-    # La carte de titre : le fond des overlays, le cadre du pack.
-    fond = bs.backdrop((W, H)).convert("RGBA")
-    sheet, _ = bs.portal(W // 8, H // 8, (W / 16, H / 16), card=False)
-    portail = ImageChops.multiply(sheet.crop((0, 0, W // 8, H // 8)), Image.new("RGBA", (W // 8, H // 8), rgb + (255,)))
-    portail = portail.resize((W, H), Image.NEAREST)
-    portail.putalpha(120)
-    fond.alpha_composite(portail)
-    fond.convert("RGB").save(tr / "fond.png")
-    lw, lh = (W - 96) // 4, (H - 96) // 4
-    oc.gros(bs.ui_frame(lw, lh), 4).save(tr / "cadre.png")
+def page(css, corps):
+    return ("<!doctype html><html><head><meta charset=\"utf-8\"><style>\n"
+            f"html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; background: transparent; }}\n"
+            + "\n".join(css) + "</style></head><body>" + corps + "</body></html>")
 
-    # Le signe de la voie (l'embleme du debut et le filigrane de la carte).
-    voie, _ = bs.framings().get(cid, (None, None))
-    signe_src = next(iter(sorted((ROOT / "resourcepack-prive" / "selection" / "voie").glob((voie or "_") + ".*"))), None)
-    sombre = mele(rgb, bs.NAVY_DARK, 0.45)
-    clair = mele(rgb, (255, 255, 255), 0.35)
-    if signe_src:
-        signe = pp.signe_voie(signe_src).resize((760, 760), Image.LANCZOS)
-        signe.save(tr / "signe.png")
-        # L'embleme : le signe plein, a la couleur du personnage (ses parties claires plus claires), cerne de bleu nuit.
-        al = signe.getchannel("A")
-        plein = al.point(lambda v: 255 if v > 50 else round(v * 5.1))
-        haut = al.point(lambda v: 255 if v > 150 else 0)
-        teinte = Image.composite(Image.new("RGBA", signe.size, clair + (255,)), Image.new("RGBA", signe.size, rgb + (255,)), haut)
-        teinte.putalpha(plein)
-        emb = Image.new("RGBA", signe.size, bs.NAVY_DARK + (0,))
-        emb.putalpha(plein.filter(ImageFilter.MaxFilter(15)))
-        emb.alpha_composite(teinte)
-        emb.save(tr / "embleme.png")
 
-    # Les deux cartouches, le texte deja pose dedans, et leur lueur sombre.
-    banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
-
-    def cartouche(texte, k, largeur, teinte):
-        t, tm = oc.ligne_hud(texte, k, bs, pp)
-        lb = max(48, math.ceil(max(largeur, t.width + 36 * k) / k / 16) * 16)
-        b = wide(banniere, lb)
-        if teinte:
-            b = oc.recolore(b, oc.FOND_CARTOUCHE, rgb)
-        b = oc.gros(b, k)
-        milieu = pp.interieur(bs, "BannerMedium_01B", k)
-        b.alpha_composite(t, (round(b.width / 2 - t.width / 2), round(milieu - tm)))
-        halo = oc.lueur(b, bs.NAVY_DARK, 14)
-        halo.alpha_composite(b, (28, 28))
-        return halo
-
-    cat = cartouche(categorie.upper(), K_CAT, 1400, True)
-    nom = cartouche(a["name"].upper(), K_NOM, 1560, False)
-    cat.save(tr / "categorie.png")
-    nom.save(tr / "nom.png")
-
-    # Les places : le nom un peu au-dessus du milieu, la categorie posee sur lui.
-    ny = round(H / 2 + 30 - nom.height / 2)
-    cy = round(ny + 28 + 5 * K_NOM - (24 * K_CAT) - 28 + 2 * K_CAT)
-    pc = lambda t: f"{t / DUREE * 100:.3f}%"
-    couleurs = [rgb, sombre, clair, rgb, sombre, rgb, clair]
-
+def transition_html(color, rgb, bs, avec_signe):
+    """L'embleme qui surgit, puis les traits qui couvrent l'ecran et repartent."""
+    D = TRANSITION
+    pc = lambda t: f"{t / D * 100:.3f}%"
     css = [f"""
-html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; background: transparent; }}
-.embleme {{ position: absolute; left: {W // 2 - 380}px; top: {H // 2 - 380}px; width: 760px; height: 760px; animation: embleme {DUREE}s linear both; }}
+.embleme {{ position: absolute; left: {W // 2 - 380}px; top: {H // 2 - 380}px; width: 760px; height: 760px; animation: embleme {D}s linear both; }}
 .embleme img {{ width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgb(255,240,214)) drop-shadow(0 0 40px {color}); }}
 @keyframes embleme {{
   0% {{ opacity: 0; transform: scale(2.6) rotate(-150deg); filter: blur(16px); animation-timing-function: cubic-bezier(.2,.8,.3,1); }}
   {pc(0.28)} {{ opacity: 1; transform: scale(.9) rotate(10deg); filter: blur(0); }}
   {pc(0.36)} {{ transform: scale(1) rotate(0deg); animation-timing-function: ease-in; }}
-  {pc(0.74)} {{ opacity: 1; transform: scale(1.3) rotate(50deg); }}
-  {pc(0.76)}, 100% {{ opacity: 0; transform: scale(1.3) rotate(50deg); }} }}
+  {pc(COUVERT[0] - 0.04)} {{ opacity: 1; transform: scale(1.3) rotate(50deg); }}
+  {pc(COUVERT[0] - 0.02)}, 100% {{ opacity: 0; transform: scale(1.3) rotate(50deg); }} }}
 .onde {{ position: absolute; left: {W // 2 - 110}px; top: {H // 2 - 110}px; width: 196px; height: 196px; border-radius: 50%;
-  border: 12px solid rgb(255,240,214); box-shadow: 0 0 30px {color}, inset 0 0 30px {color}; animation: onde {DUREE}s linear both; }}
+  border: 12px solid rgb(255,240,214); box-shadow: 0 0 30px {color}, inset 0 0 30px {color}; animation: onde {D}s linear both; }}
 @keyframes onde {{ 0%, {pc(0.16)} {{ opacity: 0; transform: scale(.3); }} {pc(0.18)} {{ opacity: 1; transform: scale(.5); animation-timing-function: cubic-bezier(.1,.7,.3,1); }}
   {pc(0.6)}, 100% {{ opacity: 0; transform: scale(7); }} }}
 .eclat {{ position: absolute; left: {W // 2 - 9}px; top: {H // 2 - 9}px; width: 18px; height: 18px; background: rgb(255,240,214);
   box-shadow: 0 0 12px {color}; opacity: 0; }}
 .trait {{ position: absolute; left: 0; width: 2600px; }}
-.carte {{ position: absolute; inset: 0; }}
-.carte > img {{ position: absolute; }}
-.filigrane {{ left: {W // 2 - 520}px; top: {H // 2 - 520}px; width: 1040px; height: 1040px; opacity: .12; animation: filigrane {DUREE}s linear both; }}
-@keyframes filigrane {{ from {{ transform: rotate(-12deg) scale(1.08); }} to {{ transform: rotate(10deg) scale(1); }} }}
-.cadre {{ left: 48px; top: 48px; opacity: .6; }}
-.cat, .nom {{ will-change: transform; }}
-.cat {{ left: {round(W / 2 - cat.width / 2)}px; top: {cy}px; animation: cat {DUREE}s linear both; }}
-.nom {{ left: {round(W / 2 - nom.width / 2)}px; top: {ny}px; animation: nom {DUREE}s linear both; }}
-.ombre1 {{ opacity: .45; animation-delay: .045s !important; }}
-.ombre2 {{ opacity: .22; animation-delay: .09s !important; }}
-@keyframes cat {{ 0%, {pc(0.95)} {{ transform: translateX(-2300px); animation-timing-function: cubic-bezier(.15,.85,.3,1.15); }}
-  {pc(1.22)} {{ transform: translateX(26px); }} {pc(1.32)} {{ transform: translateX(0); animation-timing-function: linear; }} 100% {{ transform: translateX(-16px); }} }}
-@keyframes nom {{ 0%, {pc(1.04)} {{ transform: translateX(2300px); animation-timing-function: cubic-bezier(.15,.85,.3,1.15); }}
-  {pc(1.31)} {{ transform: translateX(-30px); }} {pc(1.41)} {{ transform: translateX(0); animation-timing-function: linear; }} 100% {{ transform: translateX(16px); }} }}
 """]
-    # La gerbe d'eclats : des losanges qui partent du centre.
-    eclats = []
+    corps = '<div class="onde"></div>'
     for i in range(16):
         ang = 2 * math.pi * i / 16 + (0.2 if i % 2 else 0)
         d = 380 + 160 * (i % 3)
@@ -169,69 +91,180 @@ html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; backgrou
         css.append(f"""@keyframes eclat{i} {{ 0%, {pc(0.17)} {{ opacity: 0; transform: translate(0, 0) rotate(45deg) scale(1); }}
   {pc(0.19)} {{ opacity: 1; animation-timing-function: cubic-bezier(.1,.7,.3,1); }}
   {pc(0.62)}, 100% {{ opacity: 0; transform: translate({dx}px, {dy}px) rotate(45deg) scale(.4); }} }}""")
-        eclats.append(f'<i class="eclat" style="animation: eclat{i} {DUREE}s linear both"></i>')
-    # Les traits en biais : ils entrent par la gauche, couvrent l'ecran, puis sortent par la droite.
-    traits = []
+        corps += f'<i class="eclat" style="animation: eclat{i} {D}s linear both"></i>'
+    if avec_signe:
+        corps += '<div class="embleme"><img src="embleme.png"></div>'
+    # Les traits : chacun entre par la gauche et couvre sa bande au plus tard a COUVERT[0], repart a partir de COUVERT[1].
+    couleurs = [rgb, mele(rgb, bs.NAVY_DARK, 0.45), mele(rgb, (255, 255, 255), 0.35)]
     bande = H / TRAITS
     for i in range(TRAITS):
-        t0, t1 = 0.40 + i * 0.035, 0.80 + i * 0.03
-        c = couleurs[i % len(couleurs)]
+        t0 = COUVERT[0] - 0.24 - (TRAITS - 1 - i) * 0.03
+        t1 = COUVERT[1] + i * 0.03
+        c = couleurs[(i * 2) % 3]
         css.append(f"""@keyframes trait{i} {{ 0%, {pc(t0)} {{ transform: translateX(-2900px) skewX(-28deg); animation-timing-function: cubic-bezier(.5,0,.3,1); }}
   {pc(t0 + 0.24)}, {pc(t1)} {{ transform: translateX(-340px) skewX(-28deg); animation-timing-function: cubic-bezier(.6,0,.8,.4); }}
-  {pc(t1 + 0.26)}, 100% {{ transform: translateX(2300px) skewX(-28deg); }} }}""")
-        traits.append(f'<div class="trait" style="top:{round(i * bande - 6)}px;height:{round(bande + 12)}px;'
-                      f'background:linear-gradient(90deg, rgb{c} 0 96%, rgb(255,240,214) 96% 100%);animation: trait{i} {DUREE}s linear both"></div>')
-    # La carte, en tranches : chacune la montre entiere a travers sa bande, puis file d'un cote ou de l'autre.
+  {pc(min(D, t1 + 0.24))}, 100% {{ transform: translateX(2300px) skewX(-28deg); }} }}""")
+        corps += (f'<div class="trait" style="top:{round(i * bande - 6)}px;height:{round(bande + 12)}px;'
+                  f'background:linear-gradient(90deg, rgb{c} 0 96%, rgb(255,240,214) 96% 100%);animation: trait{i} {D}s linear both"></div>')
+    return page(css, corps)
+
+
+def carte_html(mot_png, mot, orne, avec_signe):
+    """La carte d'une categorie : opaque des le debut, le mot arrive, derive, puis la carte part en tranches."""
+    D = CARTE
+    pc = lambda t: f"{t / D * 100:.3f}%"
+    my = round(H / 2 - mot.height / 2)
+    css = [f"""
+.carte {{ position: absolute; inset: 0; }}
+.carte > img {{ position: absolute; }}
+.filigrane {{ left: {W // 2 - 520}px; top: {H // 2 - 520}px; width: 1040px; height: 1040px; opacity: .12; animation: filigrane {D}s linear both; }}
+@keyframes filigrane {{ from {{ transform: rotate(-12deg) scale(1.08); }} to {{ transform: rotate(10deg) scale(1); }} }}
+.cadre {{ left: 48px; top: 48px; opacity: .6; }}
+.mot {{ left: {round(W / 2 - mot.width / 2)}px; top: {my}px; animation: mot {D}s linear both; }}
+.orne {{ left: {round(W / 2 - orne.width / 2)}px; }}
+.haut {{ top: {my - orne.height + 40}px; animation: orne_g {D}s linear both; }}
+.bas {{ top: {my + mot.height - 40}px; animation: orne_d {D}s linear both; }}
+.ombre1 {{ opacity: .45; animation-delay: .045s !important; }}
+.ombre2 {{ opacity: .22; animation-delay: .09s !important; }}
+@keyframes mot {{ 0%, {pc(0.15)} {{ transform: translateX(-2300px); animation-timing-function: cubic-bezier(.15,.85,.3,1.15); }}
+  {pc(0.42)} {{ transform: translateX(30px); }} {pc(0.52)} {{ transform: translateX(0); animation-timing-function: linear; }} 100% {{ transform: translateX(-18px); }} }}
+@keyframes orne_g {{ 0%, {pc(0.22)} {{ transform: translateX(2300px); animation-timing-function: cubic-bezier(.15,.85,.3,1.1); }}
+  {pc(0.5)} {{ transform: translateX(-20px); }} {pc(0.6)} {{ transform: translateX(0); animation-timing-function: linear; }} 100% {{ transform: translateX(14px); }} }}
+@keyframes orne_d {{ 0%, {pc(0.26)} {{ transform: translateX(2300px); animation-timing-function: cubic-bezier(.15,.85,.3,1.1); }}
+  {pc(0.54)} {{ transform: translateX(-20px); }} {pc(0.64)} {{ transform: translateX(0); animation-timing-function: linear; }} 100% {{ transform: translateX(14px); }} }}
+"""]
     interieur = ('<img src="fond.png" style="left:0;top:0">'
-                 + ('<img class="filigrane" src="signe.png">' if signe_src else '')
+                 + ('<img class="filigrane" src="signe.png">' if avec_signe else '')
                  + '<img class="cadre" src="cadre.png">'
-                 + '<img class="cat ombre2" src="categorie.png"><img class="cat ombre1" src="categorie.png"><img class="cat" src="categorie.png">'
-                 + '<img class="nom ombre2" src="nom.png"><img class="nom ombre1" src="nom.png"><img class="nom" src="nom.png">')
-    tranches = []
+                 + '<img class="orne haut ombre1" src="orne.png"><img class="orne haut" src="orne.png">'
+                 + '<img class="orne bas ombre1" src="orne.png"><img class="orne bas" src="orne.png">'
+                 + f'<img class="mot ombre2" src="{mot_png}"><img class="mot ombre1" src="{mot_png}"><img class="mot" src="{mot_png}">')
+    corps = ""
     for i in range(TRANCHES):
         h0, h1 = i * H / TRANCHES, (i + 1) * H / TRANCHES
-        t0 = 2.75 + i * 0.028
+        t0 = D - 0.55 + i * 0.028
         sens = -1 if i % 2 else 1
-        css.append(f"""@keyframes tranche{i} {{ 0%, {pc(0.745)} {{ opacity: 0; transform: none; }} {pc(0.75)}, {pc(t0)} {{ opacity: 1; transform: none; animation-timing-function: cubic-bezier(.55,0,.9,.5); }}
-  {pc(t0 + 0.3)}, 100% {{ opacity: 1; transform: translateX({sens * 2200}px); }} }}""")
-        tranches.append(f'<div class="carte" style="clip-path: inset({h0:.1f}px 0 {H - h1:.1f}px 0);animation: tranche{i} {DUREE}s linear both">{interieur}</div>')
+        css.append(f"""@keyframes tranche{i} {{ 0%, {pc(t0)} {{ transform: none; animation-timing-function: cubic-bezier(.55,0,.9,.5); }}
+  {pc(min(D, t0 + 0.3))}, 100% {{ transform: translateX({sens * 2200}px); }} }}""")
+        corps += f'<div class="carte" style="clip-path: inset({h0:.1f}px 0 {H - h1:.1f}px 0);animation: tranche{i} {D}s linear both">{interieur}</div>'
+    return page(css, corps)
 
-    html = ("<!doctype html><html><head><meta charset=\"utf-8\"><style>" + "\n".join(css) + "</style></head><body>"
-            + "".join(tranches)
-            + '<div class="onde"></div>' + "".join(eclats)
-            + (f'<div class="embleme"><img src="embleme.png"></div>' if signe_src else '')
-            + "".join(traits) + "</body></html>")
-    page = tr / "transition.html"
-    page.write_text(html, encoding="utf-8")
 
-    verifier = option(sys.argv, "--verifier", "")
+def rendre(html_path, duree, images, verifier=""):
+    env = dict(os.environ, ALPHA="1", IMAGES_DANS=str(images))
     if verifier:
-        # Quelques instants seulement (en secondes), en PNG sur fond gris, pour regarder vite.
-        env = dict(__import__("os").environ, IMAGES=verifier)
-        subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(page), str(tr / "verif"), str(DUREE), str(IPS)],
-                       check=True, cwd="/tmp", env=env)
-        return 0
-
-    # Les images, a fond transparent, puis les videos.
-    images = tr / "images"
+        env = dict(os.environ, IMAGES=verifier)
     shutil.rmtree(images, ignore_errors=True)
-    env = dict(__import__("os").environ, ALPHA="1", IMAGES_DANS=str(images))
-    subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(page), str(tr / "x.mp4"), str(DUREE), str(IPS)],
+    subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(html_path), str(images) + ".verif", str(duree), str(IPS)],
                    check=True, cwd="/tmp", env=env)
+
+
+def encoder(images, sortie):
     seq = str(images / "%04d.png")
     ff = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-framerate", str(IPS), "-i", seq]
-    webm, mov, apercu = out / f"{base}_transition.webm", out / f"{base}_transition.mov", out / f"{base}_transition_apercu.mp4"
-    subprocess.run(ff + ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24", "-row-mt", "1", str(webm)], check=True)
+    subprocess.run(ff + ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24", "-row-mt", "1",
+                         str(sortie) + ".webm"], check=True)
     subprocess.run(ff + ["-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le", "-qscale:v", "9",
-                         "-vendor", "apl0", str(mov)], check=True)
-    sous = out / f"{base}_apercu.png"
-    if sous.exists():
-        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-loop", "1", "-framerate", str(IPS), "-i", str(sous),
-                        "-framerate", str(IPS), "-i", seq, "-filter_complex", "[0][1]overlay=shortest=1,format=yuv420p",
-                        "-c:v", "libx264", "-crf", "18", str(apercu)], check=True)
-    shutil.rmtree(images)
-    for f in (webm, mov, apercu):
-        if f.exists():
+                         "-vendor", "apl0", str(sortie) + ".mov"], check=True)
+
+
+def main():
+    if len(sys.argv) < 3:
+        print(__doc__)
+        return 1
+    import build_selection as bs
+    import overlay_capacite as oc
+    import presentation_perso as pp
+    from build_menu_franuka import wide
+
+    cid, out = sys.argv[1], Path(sys.argv[2]).resolve()
+    cats = option(sys.argv, "--categories", "arme,capacite,ultime").split(",")
+    ch = oc.capacites(cid)
+    travail = out / f"{cid}_transitions"
+    travail.mkdir(parents=True, exist_ok=True)
+    name, color = {i: (n, c) for i, n, c in bs.roster()}[cid]
+    rgb = bs.hexrgb(color)
+
+    # Les images communes : le fond des overlays, le cadre du pack, le signe, l'embleme, les ornements.
+    fond = bs.backdrop((W, H)).convert("RGBA")
+    sheet, _ = bs.portal(W // 8, H // 8, (W / 16, H / 16), card=False)
+    portail = ImageChops.multiply(sheet.crop((0, 0, W // 8, H // 8)), Image.new("RGBA", (W // 8, H // 8), rgb + (255,)))
+    portail = portail.resize((W, H), Image.NEAREST)
+    portail.putalpha(120)
+    fond.alpha_composite(portail)
+    fond.convert("RGB").save(travail / "fond.png")
+    oc.gros(bs.ui_frame((W - 96) // 4, (H - 96) // 4), 4).save(travail / "cadre.png")
+    voie, _ = bs.framings().get(cid, (None, None))
+    signe_src = next(iter(sorted((ROOT / "resourcepack-prive" / "selection" / "voie").glob((voie or "_") + ".*"))), None)
+    if signe_src:
+        signe = pp.signe_voie(signe_src).resize((760, 760), Image.LANCZOS)
+        signe.save(travail / "signe.png")
+        al = signe.getchannel("A")
+        plein = al.point(lambda v: 255 if v > 50 else round(v * 5.1))
+        haut = al.point(lambda v: 255 if v > 150 else 0)
+        teinte = Image.composite(Image.new("RGBA", signe.size, mele(rgb, (255, 255, 255), 0.35) + (255,)),
+                                 Image.new("RGBA", signe.size, rgb + (255,)), haut)
+        teinte.putalpha(plein)
+        emb = Image.new("RGBA", signe.size, bs.NAVY_DARK + (0,))
+        emb.putalpha(plein.filter(ImageFilter.MaxFilter(15)))
+        emb.alpha_composite(teinte)
+        emb.save(travail / "embleme.png")
+    orne = oc.gros(wide(bs.ui_sprite("Dividers", "Divider_06"), 192), 6)
+    orne_l = oc.lueur(orne, bs.NAVY_DARK, 10)
+    orne_l.alpha_composite(orne, (20, 20))
+    orne_l.save(travail / "orne.png")
+    banniere = oc.recolore(wide(bs.ui_sprite("Title banners", "BannerMedium_01B"), 160), oc.FOND_CARTOUCHE, rgb)
+    milieu = pp.interieur(bs, "BannerMedium_01B", K_MOT)
+
+    def mot_image(texte):
+        t, tm = oc.ligne_hud(texte, K_MOT, bs, pp)
+        b = oc.gros(banniere, K_MOT)
+        b.alpha_composite(t, (round(b.width / 2 - t.width / 2), round(milieu - tm)))
+        halo = oc.lueur(b, bs.NAVY_DARK, 16)
+        halo.alpha_composite(b, (32, 32))
+        return halo
+
+    quoi, instants = "", ""
+    if "--verifier" in sys.argv:
+        i = sys.argv.index("--verifier")
+        quoi, instants = sys.argv[i + 1], sys.argv[i + 2]
+
+    # La transition seule.
+    (travail / "transition.html").write_text(transition_html(color, rgb, bs, signe_src is not None), encoding="utf-8")
+    if quoi == "transition":
+        rendre(travail / "transition.html", TRANSITION, travail / "transition", instants)
+        return 0
+    if not quoi:
+        rendre(travail / "transition.html", TRANSITION, travail / "transition")
+        encoder(travail / "transition", out / f"{cid}_transition")
+
+    # Une carte par categorie, puis l'enchainement sur l'apercu de l'overlay.
+    for cat in cats:
+        mot = mot_image(CATEGORIES[cat])
+        mot.save(travail / f"mot_{cat}.png")
+        (travail / f"carte_{cat}.html").write_text(carte_html(f"mot_{cat}.png", mot, orne_l, signe_src is not None), encoding="utf-8")
+        if quoi:
+            if quoi == cat:
+                rendre(travail / f"carte_{cat}.html", CARTE, travail / f"carte_{cat}", instants)
+            continue
+        rendre(travail / f"carte_{cat}.html", CARTE, travail / f"carte_{cat}")
+        encoder(travail / f"carte_{cat}", out / f"{cid}_carte_{cat}")
+        a = next((a for a in ch["abilities"] if categorie_de(a) == cat), None)
+        sous = out / f"{cid}_{a['id'].removeprefix(cid + '_')}_apercu.png" if a else None
+        if sous and sous.exists():
+            total = COUVERT[0] + CARTE + 0.6
+            subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+                            "-loop", "1", "-framerate", str(IPS), "-i", str(sous),
+                            "-framerate", str(IPS), "-i", str(travail / f"carte_{cat}" / "%04d.png"),
+                            "-framerate", str(IPS), "-i", str(travail / "transition" / "%04d.png"),
+                            "-filter_complex", f"[1]setpts=PTS+{COUVERT[0]}/TB[c];[0][c]overlay=eof_action=pass[a];"
+                                               "[a][2]overlay=eof_action=pass,format=yuv420p",
+                            "-t", f"{total:.2f}", "-c:v", "libx264", "-crf", "18", str(out / f"{cid}_enchainement_{cat}_apercu.mp4")],
+                           check=True)
+        shutil.rmtree(travail / f"carte_{cat}")
+    if not quoi:
+        shutil.rmtree(travail / "transition", ignore_errors=True)
+        for f in sorted(out.glob(f"{cid}_transition.*")) + sorted(out.glob(f"{cid}_carte_*")) + sorted(out.glob(f"{cid}_enchainement_*")):
             print(f, f"{f.stat().st_size / 1e6:.1f} Mo")
 
 
