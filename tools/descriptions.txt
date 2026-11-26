@@ -92,3 +92,6 @@ remi_electrocution.nom	Électrocution
 remi_ult.nom	Dôme électrique
 seraphina_arret.nom	Arrêt Temporel
 seraphina_ult.nom	Explosion temporelle
+duo_ruby_weiss	Une patinoire de 50 blocs de large apparaît autour de Weiss pendant 30 secondes. Les alliés qui s'y trouvent ont Vitesse III.
+duo_ruby_blake	Ruby et Blake sont invisibles et ont Vitesse III pendant 30 secondes.
+duo_ruby_yang	Yang projette Ruby sur 10 blocs. Ruby détruit les blocs qu'elle traverse et inflige 5 cœurs aux adversaires à moins de 3 blocs.

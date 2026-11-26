@@ -58,6 +58,13 @@ def capacites(cid):
                         base = next((a for a in ch["abilities"] if a["id"] == t[1]), None)
                         if base:
                             ch["abilities"].append(dict(base, id=t[0], name=t[2], description=""))
+                # Les ultimes en duo (RWBY) et les Synergies de sa licence ou il figure : une capacite de plus chacun, avec
+                # son icone (icone/<id>.png) et le type "Ultime en duo" ou "Synergie".
+                for duo in lic.get("duos", []):
+                    if cid in (duo["a"], duo["b"]):
+                        ch["abilities"].append(dict(id=duo["id"], name=duo["name"], description=duo["description"],
+                                                    type="Synergie" if duo["id"].startswith("syn_") else "Ultime en duo",
+                                                    weapon=False, item=True, cooldown=0, icon=""))
                 return ch
     sys.exit("Personnage inconnu du guide : " + cid)
 
