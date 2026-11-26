@@ -8,4 +8,4 @@ marth_sainte_falchion	Marth régénère 10 cœurs. La régénération prend 3 se
 marth_contre	Si Marth est frappé dans la seconde qui suit l'activation, il ne subit aucun dégât, renvoie les dégâts du coup à l'adversaire et l'immobilise pendant 1 seconde.\nTemps de chargement : 5 secondes
 marth_charisme	Marth a Vitesse I en permanence, tout comme ses alliés à moins de 10 blocs de lui.
 marth_leader	Tant que Marth a plus de 5 cœurs, tous ses alliés ont Force I.
-marth_ult	Marth lève son épée 0,8 seconde, puis fonce de 10 blocs dans la direction où il regarde, invulnérable. Chaque ennemi touché perd 5 cœurs ; Marth et ses alliés gagnent Force pendant 1 minute (un niveau par ennemi touché, jusqu'à V).
+marth_ult	Marth fonce de 10 blocs dans la direction où il regarde, invulnérable. Chaque ennemi touché perd 5 cœurs ; Marth et ses alliés gagnent Force pendant 1 minute (un niveau par ennemi touché, jusqu'à V).
