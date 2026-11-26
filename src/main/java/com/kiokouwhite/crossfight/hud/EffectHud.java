@@ -62,6 +62,7 @@ public final class EffectHud implements Listener {
 
     public void start() {
         Bukkit.getScheduler().runTaskTimer(plugin, this::update, 20L, 1L);
+        for (Player p : Bukkit.getOnlinePlayers()) ClientSlots.relay(p);
     }
 
     private boolean enabled() { return plugin.getConfig().getBoolean("hud.effets", true); }
@@ -113,9 +114,12 @@ public final class EffectHud implements Listener {
             st.active2 = pack && self != null && p.getInventory().getItemInOffHand().getType().isAir() ? InfluenceHud.selfImage2(p) : null;
             if (st.active2 == null && st.offhandShown) {
                 st.offhandShown = false;
+                ClientSlots.pin(p, new int[]{OFFHAND}, new ItemStack[]{null});
                 ClientSlots.show(p, OFFHAND, p.getInventory().getItemInOffHand());
             }
             if (st.ultImage == null && st.passiveImage == null && st.influence0 == null && st.influence1 == null) {
+                // Plus d'image : les cases ne sont plus tenues, le vrai contenu repasse.
+                ClientSlots.unpinAll(p);
                 if (st.shown) { st.shown = false; p.updateInventory(); }
                 return;
             }
@@ -125,6 +129,14 @@ public final class EffectHud implements Listener {
     }
 
     private void send(Player p, State st) {
+        // Les cases qui portent une image sont tenues (util/ClientSlots) : un renvoi de la vraie armure par le serveur
+        // (clic droit refuse, inventaire renvoye a la fin d'une animation...) ne les efface plus entre deux ticks.
+        ClientSlots.pin(p, new int[]{HEAD, CHEST, LEGS, FEET, OFFHAND}, new ItemStack[]{
+                st.passiveImage == null ? null : overlayItem(EquipmentSlot.HEAD, st.passiveImage),
+                st.influence0 == null ? null : overlayItem(EquipmentSlot.CHEST, st.influence0),
+                st.influence1 == null ? null : overlayItem(EquipmentSlot.LEGS, st.influence1),
+                st.ultImage == null ? null : overlayItem(EquipmentSlot.FEET, st.ultImage),
+                st.active2 == null ? null : overlayItem(EquipmentSlot.OFF_HAND, st.active2)});
         st.shown = ClientSlots.show(p, new int[]{HEAD, CHEST, LEGS, FEET}, new ItemStack[]{
                 st.passiveImage == null ? p.getInventory().getHelmet() : overlayItem(EquipmentSlot.HEAD, st.passiveImage),
                 st.influence0 == null ? p.getInventory().getChestplate() : overlayItem(EquipmentSlot.CHEST, st.influence0),
@@ -273,6 +285,7 @@ public final class EffectHud implements Listener {
     /** A l'arrivee, les effets deja portes perdent leur icone aussi. */
     @EventHandler
     public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        ClientSlots.relay(e.getPlayer());
         if (plugin.getConfig().getBoolean("hud.icones-minecraft", false)) return;
         Player p = e.getPlayer();
         Bukkit.getScheduler().runTask(plugin, () -> { for (PotionEffect fx : p.getActivePotionEffects()) hideIcon(p, fx.getType()); });
@@ -281,6 +294,7 @@ public final class EffectHud implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         states.remove(e.getPlayer().getUniqueId());
+        ClientSlots.unpinAll(e.getPlayer());
         PassiveHud.forget(e.getPlayer());
         InfluenceHud.forget(e.getPlayer());
     }

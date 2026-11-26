@@ -5,7 +5,7 @@ const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Te
 bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
 let msgs = []; bot.on('message', m => msgs.push(m.toString()));
 bot.on('death', () => { setTimeout(() => bot._client.write('client_command', { actionId: 0 }), 300); });
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const hpOf = async () => { msgs = []; bot.chat('/data get entity @e[tag=cf_mannequin_pilote,limit=1] Health'); await sleep(600); return parseFloat((msgs.join(' ').match(/([0-9.]+)f/) || [0, 'NaN'])[1]); };
 const posOf = () => { const m = body(); return m ? m.position.clone() : null; };
 const place = async () => { bot.chat('/tp @s 0.5 65 3 180 0'); bot.chat('/cf heal'); await sleep(700); };

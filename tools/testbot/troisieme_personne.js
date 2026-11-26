@@ -12,7 +12,7 @@ bot._client.on('action_bar', d => { const red = /"color".{0,40}"red"/.test(JSON.
 bot._client.on('system_chat', d => { const red = /"color".{0,40}"red"/.test(JSON.stringify(d.content).slice(0, 500)); events.push({ kind: d.isActionBar ? 'bar' : 'chat', text: flat(d.content).slice(0, 140), red }); });
 let sounds = []; bot._client.on('packet', (d, m) => { if (/sound/.test(m.name)) { const x = JSON.stringify(d).match(/crossfight:[a-z0-9_.]+/); if (x) sounds.push(x[0].slice(11)); } });
 bot.on('death', () => { setTimeout(() => bot._client.write('client_command', { actionId: 0 }), 300); });
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const only = process.argv[2] ? process.argv[2].split(',') : null;
 bot.once('spawn', async () => {
   await sleep(3000); if (bot.health <= 0) bot._client.write('client_command', { actionId: 0 }); await sleep(800);

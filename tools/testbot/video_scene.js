@@ -7,7 +7,7 @@ const [perso, objet, go, z = '3.5', fois = '1', ecart = '900', accroupi = 'non']
 const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
 bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
 bot.on('death', () => setTimeout(() => bot._client.write('client_command', { actionId: 0 }), 300));
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;
 bot.once('spawn', async () => {
   await sleep(2500);

@@ -261,7 +261,7 @@ public final class ThirdPerson implements Listener {
             if (inst != null) inst.setBaseValue(1.0);
         }
         body.setCustomNameVisible(true);
-        body.setDescription(Msg.mm("<gray>Troisieme personne"));
+        body.setDescription(null);   // pas de ligne sous le nom (« PNJ » par defaut) : il a l'air d'un joueur
         var mh = body.getAttribute(Attribute.MAX_HEALTH);
         if (mh != null) mh.setBaseValue(20.0);
         body.setHealth(20.0);

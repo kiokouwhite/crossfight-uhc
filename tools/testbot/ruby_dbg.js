@@ -5,7 +5,7 @@ bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receiv
 const models = {}; const meta = {};
 bot._client.on('entity_metadata', d => { for (const m of d.metadata) { const x = JSON.stringify(m.value || '').match(/crossfight:[a-z_\/]+/); if (x) models[d.entityId] = x[0]; } meta[d.entityId] = (meta[d.entityId] || 0) + 1; });
 let chat = []; bot.on('messagestr', m => chat.push(m));
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;
 bot.once('spawn', async () => {
   await sleep(3000);

@@ -166,6 +166,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         com.kiokouwhite.crossfight.util.PackHost.stop();
         if (rhythm != null) rhythm.reset();
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
+        com.kiokouwhite.crossfight.util.ClientSlots.unrelayAll();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (selectionStage != null) selectionStage.closeAll(true);
         if (gameManager != null) gameManager.shutdown();

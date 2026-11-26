@@ -9,7 +9,7 @@ bot.on('death', () => { console.log('  (le testeur est mort)'); setTimeout(() =>
 const models = {}; const transforms = {};
 bot._client.on('entity_metadata', d => { for (const m of d.metadata) { const x = JSON.stringify(m.value || '').match(/crossfight:[a-z_\/]+/); if (x) models[d.entityId] = x[0]; } transforms[d.entityId] = (transforms[d.entityId] || 0) + 1; });
 let particles = {}; bot._client.on('packet', (d, m) => { if (m.name === 'world_particles') { const k = JSON.stringify(d.particle || d.particleId).match(/type":"?([a-z_]+)/); const n = k ? k[1] : '?'; particles[n] = (particles[n] || 0) + 1; } });
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const displays = (re) => Object.values(bot.entities).filter(e => e.name === 'item_display' && re.test(models[e.id] || ''));
 const summary = (re) => { const c = {}; for (const e of displays(re)) { const k = models[e.id].replace('crossfight:', ''); c[k] = (c[k] || 0) + 1; } return Object.entries(c).map(([k, v]) => v > 1 ? k + 'x' + v : k).join(',') || '(rien)'; };
 const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;

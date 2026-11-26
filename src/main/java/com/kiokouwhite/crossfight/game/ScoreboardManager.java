@@ -211,21 +211,33 @@ public final class ScoreboardManager {
      * le glyphe. Un joueur sans personnage, ou dont la tete n'est pas dans le pack, quitte son equipe.
      */
     private void nameTags(Player viewer, Scoreboard board) {
-        for (Player q : Bukkit.getOnlinePlayers()) {
-            CfPlayer qcf = plugin.players().get(q);
-            String id = qcf == null || qcf.character() == null ? null : qcf.character().id();
-            net.kyori.adventure.text.Component face = com.kiokouwhite.crossfight.util.Heads.prefix(viewer, id);
-            org.bukkit.scoreboard.Team now = board.getEntryTeam(q.getName());
-            if (face == null) {
-                if (now != null && now.getName().startsWith("tete_")) now.removeEntry(q.getName());
-                continue;
-            }
-            String name = "tete_" + id;
-            if (now != null && now.getName().equals(name)) continue;
-            org.bukkit.scoreboard.Team team = board.getTeam(name);
-            if (team == null) { team = board.registerNewTeam(name); team.prefix(face); }
-            team.addEntry(q.getName());
+        for (Player q : Bukkit.getOnlinePlayers()) face(viewer, board, q.getName(), characterId(q));
+        // Le mannequin du mode test en troisieme personne a la tete de son personnage devant son nom, comme un joueur
+        // (une entite qui n'est pas un joueur est inscrite dans une equipe par son uuid).
+        for (Player q : com.kiokouwhite.crossfight.util.MannequinPlayer.all()) {
+            var body = com.kiokouwhite.crossfight.util.MannequinPlayer.body(q);
+            if (body != null) face(viewer, board, body.getUniqueId().toString(), characterId(q));
         }
+    }
+
+    private String characterId(Player q) {
+        CfPlayer qcf = plugin.players().get(q);
+        return qcf == null || qcf.character() == null ? null : qcf.character().id();
+    }
+
+    /** La tete du personnage devant le nom de cette entree (un pseudo, ou l'uuid d'une entite), pour ce joueur. */
+    private void face(Player viewer, Scoreboard board, String entry, String id) {
+        net.kyori.adventure.text.Component face = com.kiokouwhite.crossfight.util.Heads.prefix(viewer, id);
+        org.bukkit.scoreboard.Team now = board.getEntryTeam(entry);
+        if (face == null) {
+            if (now != null && now.getName().startsWith("tete_")) now.removeEntry(entry);
+            return;
+        }
+        String name = "tete_" + id;
+        if (now != null && now.getName().equals(name)) return;
+        org.bukkit.scoreboard.Team team = board.getTeam(name);
+        if (team == null) { team = board.registerNewTeam(name); team.prefix(face); }
+        team.addEntry(entry);
     }
 
     private List<String> buildLines(Player p) {

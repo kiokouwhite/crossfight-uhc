@@ -323,10 +323,13 @@ public final class Mannequins implements Listener {
             var c = CrossfightPlugin.get().characters().character(partnerCharacterOf(e));
             label = "<green>" + (c == null ? "Partenaire" : c.name()) + " <dark_green>(mannequin duo)";
         } else if (isPilot(e)) {
+            // Le mannequin du mode test en troisieme personne a l'air d'un joueur : juste le nom de son personnage, en blanc,
+            // sans sa vie ni mention du mode (la tete du personnage devant le nom vient du tableau, comme pour un joueur).
             Player pilot = MannequinPlayer.of(e);
             var cf = pilot == null ? null : CrossfightPlugin.get().players().get(pilot);
             var c = cf == null ? null : cf.character();
-            label = "<aqua>" + (c == null ? "Mannequin" : c.name()) + " <dark_aqua>(3e personne)";
+            e.customName(net.kyori.adventure.text.Component.text(c == null ? "Mannequin" : c.name()));
+            return;
         } else label = isAggressive(e) ? "<dark_red>Mannequin agressif" : isAlly(e) ? "<green>Mannequin allie" : "<gold>Mannequin";
         int pct = (int) Math.round(hp / maxHealthOf(e) * 100);
         e.customName(Msg.mm(label + " <red>❤ " + pct + "%"));

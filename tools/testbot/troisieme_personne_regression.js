@@ -34,7 +34,7 @@ bot.once('spawn', async () => {
   bot.chat('/cf test third-person'); await sleep(4000);
   console.log('troisieme personne :', await dim(), '|', (await q('/data get entity @e[tag=cf_mannequin_pilote,limit=1] CustomName')).slice(0, 90));
   bot.chat('/cf change yuki'); await sleep(1500);
-  const m = Object.values(bot.entities).find(e => e.name === 'mannequin' && /3e personne/.test(JSON.stringify(e.metadata || [])));
+  const m = Object.values(bot.entities).find(e => e.name === 'mannequin' && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
   bot.chat('/tp @s 0.5 65 4 180 0'); await sleep(500); if (m) await bot.lookAt(m.position.offset(0, 1.5, 0), true);
   const k5 = [...Array(9).keys()].find(i => bot.inventory.slots[36 + i] && bot.inventory.slots[36 + i].name === 'nether_star');
   await useSlot(k5); await sleep(3000);

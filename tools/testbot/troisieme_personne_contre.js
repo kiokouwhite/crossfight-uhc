@@ -4,7 +4,7 @@ const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Te
 bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
 let msgs = []; bot.on('message', m => msgs.push(m.toString()));
 let bars = []; bot._client.on('action_bar', d => bars.push(JSON.stringify(d.text).match(/"value":"([^"]{4,})"/g)?.map(x => x.slice(9, -1)).join(' ') || ''));
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const hpOf = async () => { msgs = []; bot.chat('/data get entity @e[tag=cf_mannequin_pilote,limit=1] Health'); await sleep(500); return (msgs.join(' ').match(/([0-9.]+)f/) || [0, '?'])[1]; };
 bot.once('spawn', async () => {
   await sleep(4000);

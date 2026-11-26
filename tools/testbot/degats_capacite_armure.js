@@ -3,7 +3,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
 bot._client.on('add_resource_pack', d => bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 1 }));
 let msgs = []; bot.on('message', m => msgs.push(m.toString()));
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 bot.once('spawn', async () => {
   await sleep(3000);
   bot.chat('/cf stop'); await sleep(1000);

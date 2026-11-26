@@ -8,7 +8,7 @@ const models = {}, tints = {}, glows = {};
 bot._client.on('entity_metadata', d => { for (const m of d.metadata) { const j = JSON.stringify(m.value || ''); const x = j.match(/crossfight:[a-z_\/]+/); if (x) { models[d.entityId] = x[0]; tints[d.entityId] = /colors/.test(j) && /custom_model_data/.test(j) && /colors":\[\d/.test(j.replace(/\s/g, '')); } if (m.key === 22 || m.key === 0) glows[d.entityId] = m.value; } });
 let particles = {}; bot._client.on('packet', (d, m) => { if (m.name === 'world_particles') { const k = JSON.stringify(d.particle || d.particleId).match(/type":"?([a-z_]+)/); const n = k ? k[1] : '?'; particles[n] = (particles[n] || 0) + 1; } });
 let sounds = []; bot._client.on('packet', (d, m) => { if (m.name === 'sound_effect' || m.name === 'entity_sound_effect') sounds.push(JSON.stringify(d.sound || d.soundId || d).slice(0, 60)); });
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const summary = (re) => { const c = {}; for (const e of Object.values(bot.entities)) { if (e.name !== 'item_display' || !re.test(models[e.id] || '')) continue; const k = models[e.id].replace('crossfight:', ''); c[k] = (c[k] || 0) + 1; } return Object.entries(c).map(([k, v]) => v > 1 ? k + 'x' + v : k).join(',') || '(rien)'; };
 const slotOf = (txt) => bot.inventory.slots.findIndex((i, n) => n >= 36 && n <= 44 && i && JSON.stringify(i.customName || i.name).includes(txt)) - 36;
 async function use(txt, sneak) {

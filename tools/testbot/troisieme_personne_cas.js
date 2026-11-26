@@ -9,7 +9,7 @@ let sounds = []; bot._client.on('packet', (d, m) => { if (/sound/.test(m.name)) 
 let meta = {}; bot._client.on('entity_metadata', d => { meta[d.entityId] = (meta[d.entityId] || []).concat(d.metadata.map(x => x.key + '=' + String(JSON.stringify(x.value)).slice(0, 40))); });
 bot.on('death', () => { setTimeout(() => bot._client.write('client_command', { actionId: 0 }), 300); });
 const dim = async () => { msgs = []; bot.chat('/data get entity @s Dimension'); await sleep(700); return (msgs.join(' ').match(/minecraft:[a-z_0-9]+/) || ['?'])[0]; };
-const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && /3e personne/.test(JSON.stringify(e.metadata || [])));
+const body = () => Object.values(bot.entities).find(e => e.name === 'mannequin' && e !== bot.entity && e.metadata && e.metadata[2] && !/[(❤]/.test(JSON.stringify(e.metadata[2])));
 const hotbar = () => [...Array(9).keys()].map(k => { const s = bot.inventory.slots[36 + k]; return s ? s.name : '-'; }).join(',');
 const use = async (k, sneak) => { bot.setQuickBarSlot(k); await sleep(200); if (sneak) { bot.setControlState('sneak', true); await sleep(300); } sounds = []; msgs = []; bot.activateItem(); await sleep(80); bot.deactivateItem(); await sleep(1500); if (sneak) bot.setControlState('sneak', false); };
 bot.once('spawn', async () => {

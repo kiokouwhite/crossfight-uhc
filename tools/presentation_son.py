@@ -166,7 +166,8 @@ def voix_et_mixage(sfx, cid, out, video):
     charger, poser = ls.charger, ls.poser
     X = pp.EXPLOSION
     # La voix d'arrivee, juste apres l'explosion ; les bruitages baissent sous elle.
-    voix = sorted(VOIX.glob(f"{cid}_selection_*.ogg"), key=lambda f: -len(charger(f)))
+    # <personnage>_selection_<N>.ogg, ou une seule replique : <personnage>_selection.ogg.
+    voix = sorted([*VOIX.glob(f"{cid}_selection_*.ogg"), *VOIX.glob(f"{cid}_selection.ogg")], key=lambda f: -len(charger(f)))
     choix = option(sys.argv, "--voix", "")
     voix = [VOIX / f"{cid}_selection_{choix}.ogg"] if choix else voix
     piste_voix = np.zeros_like(sfx)
