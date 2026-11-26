@@ -96,7 +96,7 @@ public final class Marth extends Character {
 
     static final class Falchion extends ActiveAbility {
         Falchion() {
-            super(FALCHION_ID, "Falchion", "Clic droit : Marth regenere 5 coeurs (10 avec la Sainte-Falchion) en 3 secondes sans pouvoir bouger.", Material.IRON_SWORD, 60);
+            super(FALCHION_ID, "Falchion", "Clic droit : Marth regenere 5 coeurs (10 avec la Sainte-Falchion) en 3 secondes sans pouvoir bouger ni frapper.", Material.IRON_SWORD, 60);
         }
 
         @Override
@@ -105,6 +105,8 @@ public final class Marth extends Character {
             double total = holy ? 20.0 : 10.0;
             Effects.root(p, 60);
             showFor(p, 60);
+            // Pendant le soin, Marth ne peut pas frapper (onDealDamage).
+            st.set("regenUntil", System.currentTimeMillis() + 3000L);
             Msg.actionBar(p, "<green>Regeneration...");
             // La pose : l'epee plantee dans le sol, les deux mains sur le pommeau, le temps du soin.
             var puppet = com.kiokouwhite.crossfight.util.Puppet.show(p, "marth", Contre.heldFalchion(p), "debout");
@@ -120,6 +122,12 @@ public final class Marth extends Character {
             }.runTaskTimer(plugin(), 10L, 10L);
             p.playSound(p.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.4f);
             return true;
+        }
+
+        /** Pendant la regeneration (3 s), ses coups ne portent pas : l'epee est plantee dans le sol. */
+        @Override
+        public void onDealDamage(Player attacker, org.bukkit.entity.LivingEntity victim, EntityDamageByEntityEvent e, AbilityState st) {
+            if (System.currentTimeMillis() < st.get("regenUntil", 0L) && e.getDamager() == attacker) e.setCancelled(true);
         }
     }
 

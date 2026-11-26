@@ -22,7 +22,7 @@ Animations de Marth :
   - Le modèle reste droit dans le pack ; ses réglages d'affichage le posent exactement comme l'image de l'arc de Minecraft (poignée du modèle à la place de celle de l'image), en main à la première et à la troisième personne, au sol, dans l'inventaire. Un modèle peint se montre sous ses vraies couleurs : l'arme marquée perd son reflet d'enchantement.
 
 - **Contre** : garde, épée tenue haut lame vers le bas, puis fente avant à la riposte.
-- **Falchion** : l'épée plantée dans le sol devant lui, les deux mains sur le pommeau, tête baissée, pendant les 3 secondes du soin.
+- **Falchion** : l'épée plantée dans le sol devant lui, les deux mains sur le pommeau, tête baissée, pendant les 3 secondes du soin. Pendant ces 3 secondes, ses coups ne portent pas (`Falchion.onDealDamage`).
 - **Coup Critique**, d'après le Final Smash de Smash Bros : moulinet, épée levée vers le ciel avec un éclat à la pointe (0,8 s, immobile, pendant lesquelles il choisit sa direction en regardant), il se ramasse, fonce à l'horizontale dans une traînée blanche et bleue, puis tient l'estoc bras tendu. Il est invulnérable de la levée d'épée à la fin de la charge. Bruitages d'origine dans le pack privé : `ability.marth_ult_eclat`, `ability.marth_ult_charge`, `ability.marth_ult_hit`.
 
 Animation de Corrin : pendant son Ultime, elle se met à quatre pattes comme son dragon, les deux bras plantés dans le sol, l'eau jaillissant autour de ses mains et ses ailes de dragon déployées sur son dos ; elle ne peut pas bouger pendant cette pose (1,5 s).

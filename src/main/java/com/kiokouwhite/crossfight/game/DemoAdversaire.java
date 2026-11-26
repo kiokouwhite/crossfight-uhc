@@ -54,16 +54,11 @@ public final class DemoAdversaire implements Listener {
     private static final int CADENCE = 12;
     private static final double PERTE = 2.0, PLANCHER = 10.0;
 
-    /** Sa fausse vie (en points, comme un joueur : 20 = 10 coeurs) remonte au plein apres ce nombre de ticks sans coup. */
-    private static final double FAUSSE_VIE = 20.0;
-    private static final int REPOS = 100;
-
     private static final class Demo {
         final Mannequin corps;
         final String mode, perso, pseudo;
         boolean combat;
-        int attente, calme;
-        double vie = FAUSSE_VIE;
+        int attente;
         BukkitTask tache;
         Demo(Mannequin corps, String mode, String perso, String pseudo) { this.corps = corps; this.mode = mode; this.perso = perso; this.pseudo = pseudo; }
         void retirer() {
@@ -89,9 +84,17 @@ public final class DemoAdversaire implements Listener {
             old.retirer();
             if (old.mode.equals(mode)) return false;
         }
-        // Un skin de personnage au hasard (pas celui de Marth), et un faux pseudo.
+        // Un skin de personnage au hasard (pas celui de Marth), de preference un qui a sa tete dans le pack (affichee devant
+        // le pseudo, comme pour un joueur), et un faux pseudo.
         List<String> ids = new ArrayList<>(Skins.characters());
         ids.remove("marth");
+        List<String> avecTete = new ArrayList<>(ids);
+        avecTete.retainAll(com.kiokouwhite.crossfight.util.Heads.known());
+        if (!avecTete.isEmpty()) ids = avecTete;
+        // ... et dont le modele articule est dans le pack : ses coups d'epee se jouent avec lui (frappe()).
+        List<String> avecModele = new ArrayList<>(ids);
+        avecModele.removeIf(id -> !com.kiokouwhite.crossfight.util.Puppet.available(id));
+        if (!avecModele.isEmpty()) ids = avecModele;
         String perso = ids.isEmpty() ? null : ids.get(RND.nextInt(ids.size()));
         Demo d = new Demo(spawn(p, perso), mode, perso, pseudo());
         afficher(d);
@@ -115,10 +118,11 @@ public final class DemoAdversaire implements Listener {
             if (!m.isValid() || !p.isOnline()) return;
             face(m, p);
             avance(m, p, 0.32);
+            armer(d, p);
         }, 2L);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!m.isValid() || !p.isOnline() || !m.getWorld().equals(p.getWorld())) return;
-            frappe(m, p, 4.0);
+            frappe(d, p, 4.0);
         }, COUP);
         // Apres la riposte (projection, puis 1 s immobilise), il revient se placer devant le joueur.
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -128,11 +132,10 @@ public final class DemoAdversaire implements Listener {
         }, COUP + RETOUR);
     }
 
-    /** Chaque tick : sa fausse vie remonte apres un moment sans coup ; en falchion, il poursuit et frappe le joueur. */
+    /** Chaque tick : en falchion, il poursuit et frappe le joueur. */
     private static void tick(Player p, Demo d) {
         Mannequin m = d.corps;
         if (!p.isOnline() || !m.isValid()) { d.retirer(); DEMOS.remove(p.getUniqueId(), d); return; }
-        if (d.vie < FAUSSE_VIE && ++d.calme >= REPOS) { d.vie = FAUSSE_VIE; afficher(d); }
         if (d.mode.equals("falchion")) combat(p, d);
     }
 
@@ -144,53 +147,42 @@ public final class DemoAdversaire implements Listener {
         face(m, p);
         double dist = m.getLocation().distance(p.getLocation());
         if (dist > 2.0) avance(m, p, 0.22);
-        if (d.attente == 3 && dist <= 3.4) avance(m, p, 0.3);   // l'elan, juste avant le coup
+        if (d.attente == 4 && dist <= 3.6) armer(d, p);          // l'epee armee au-dessus de l'epaule...
+        if (d.attente == 3 && dist <= 3.4) avance(m, p, 0.3);   // ... l'elan, juste avant le coup
         if (d.attente > 0) { d.attente--; return; }
         if (dist <= 3.0) {
             // Le coup (animation, son, recul) avec des degats infimes, puis la vraie perte, fixe : jamais sous 5 coeurs.
             double avant = p.getHealth();
-            frappe(m, p, 0.01);
+            frappe(d, p, 0.01);
             if (!p.isDead()) p.setHealth(Math.max(PLANCHER, Math.min(p.getHealth(), avant - PERTE)));
             if (p.getHealth() <= PLANCHER) d.combat = false;
             d.attente = CADENCE;
         }
     }
 
-    /**
-     * On frappe l'adversaire (ou la riposte du Contre le touche) : sa fausse vie baisse (sans jamais tomber a zero ; elle
-     * remonte apres un moment sans coup). L'adversaire « falchion » entre en combat (si le joueur a plus de 5 coeurs).
-     */
+    /** On frappe l'adversaire « falchion » : il entre en combat (si le joueur a plus de 5 coeurs). Il ne meurt jamais. */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onHit(org.bukkit.event.entity.EntityDamageEvent e) {
+    public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Mannequin m) || !m.getScoreboardTags().contains(TAG)) return;
         Bukkit.getScheduler().runTask(CrossfightPlugin.get(), () -> { if (m.isValid()) m.setHealth(VIE); });
         Demo d = null;
         for (Demo x : DEMOS.values()) if (x.corps == m) d = x;
         if (d == null) return;
-        // Un joueur en armure prendrait a peu pres la moitie du coup : la fausse vie baisse d'autant, jusqu'a un demi-coeur.
-        d.vie = Math.max(1.0, d.vie - e.getFinalDamage() * 0.5);
-        d.calme = 0;
-        afficher(d);
-        if (!(e instanceof EntityDamageByEntityEvent ede)) return;
-        if (!(com.kiokouwhite.crossfight.listener.DamageListener.livingAttackerOf(ede.getDamager()) instanceof Player p)) return;
+        if (!(com.kiokouwhite.crossfight.listener.DamageListener.livingAttackerOf(e.getDamager()) instanceof Player p)) return;
         if (DEMOS.get(p.getUniqueId()) != d || !d.mode.equals("falchion") || d.combat || p.getHealth() <= PLANCHER) return;
         d.combat = true;
         d.attente = 6;
     }
 
-    /** Au-dessus de sa tete, comme un joueur : son faux pseudo, puis sa fausse vie en coeurs. */
+    /**
+     * Au-dessus de sa tete, exactement comme un joueur : son faux pseudo, en blanc, la tete du personnage de son skin
+     * devant (posee par le tableau : ScoreboardManager), rien d'autre.
+     */
     private static void afficher(Demo d) {
         if (!d.corps.isValid()) return;
         d.corps.customName(net.kyori.adventure.text.Component.text(d.pseudo));
         d.corps.setCustomNameVisible(true);
-        // Dix coeurs : pleins en rouge, un demi-coeur en rose, perdus en gris.
-        int demi = (int) Math.round(d.vie);
-        StringBuilder coeurs = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            int reste = demi - 2 * i;
-            coeurs.append(reste >= 2 ? "<red>" : reste == 1 ? "<#ff8a8a>" : "<dark_gray>").append("\u2764");
-        }
-        d.corps.setDescription(com.kiokouwhite.crossfight.util.Msg.mm(coeurs.toString()));
+        d.corps.setDescription(null);
     }
 
     /** Un faux pseudo de joueur, assemble au hasard. */
@@ -213,12 +205,28 @@ public final class DemoAdversaire implements Listener {
     }
 
     /**
-     * Un coup d'epee qui se voit : le bras balance, l'arc blanc du coup de taille entre les deux, le son d'un coup
-     * d'epee appuye, puis le coup lui-meme.
+     * Il arme son coup : son modele articule (le meme que celui des animations de capacites) prend la place du
+     * mannequin, l'epee levee au-dessus de l'epaule droite. Sans le modele dans le pack, rien (le bras balancera).
      */
-    private static void frappe(Mannequin m, Player p, double degats) {
+    private static void armer(Demo d, Player p) {
+        Mannequin m = d.corps;
+        if (!m.isValid() || d.perso == null || !com.kiokouwhite.crossfight.util.Puppet.available(d.perso)) return;
         face(m, p);
-        m.swingMainHand();
+        var eq = m.getEquipment();
+        var pu = com.kiokouwhite.crossfight.util.Puppet.show(m, d.perso, eq == null ? null : eq.getItemInMainHand(), "debout");
+        if (pu != null) { pu.pose("weiss_feu_arme", 3); pu.endAfter(14, 4); }
+    }
+
+    /**
+     * Un coup d'epee qui se voit : le modele articule tranche en grande diagonale (sinon le bras du mannequin balance),
+     * l'arc blanc du coup de taille entre les deux, le son d'un coup d'epee appuye, puis le coup lui-meme.
+     */
+    private static void frappe(Demo d, Player p, double degats) {
+        Mannequin m = d.corps;
+        face(m, p);
+        var pu = com.kiokouwhite.crossfight.util.Puppet.of(m);
+        if (pu != null) { pu.pose("weiss_feu_tranche", 2); pu.endAfter(7, 4); }
+        else m.swingMainHand();
         Vector vers = p.getLocation().toVector().subtract(m.getLocation().toVector()).setY(0);
         if (vers.lengthSquared() > 1e-4) vers.normalize(); else vers = m.getLocation().getDirection().setY(0);
         Location arc = m.getLocation().add(vers.clone().multiply(1.1)).add(0, 1.15, 0);
