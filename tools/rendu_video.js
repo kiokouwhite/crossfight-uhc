@@ -3,7 +3,11 @@
 //
 // Usage :  node tools/rendu_video.js <page.html> <sortie.mp4> <secondes> [images par seconde]
 //
-// La page fait 1920x1080. Les animations infinies (grains, rayons) sont arretees au meme instant que les autres.
+// La page fait 1920x1080. Les animations infinies sont arretees au meme instant que les autres. Si la page dessine une
+// simulation (un canevas p5), elle met window.pret a false tant qu'elle se prepare et fournit window.avancer(t) : la
+// simulation est avancee jusqu'a chaque instant, dans l'ordre, avant que l'image soit prise.
+//
+// IMAGES=0.5,1.2,3 : ne prend que ces instants (en secondes), en PNG a cote de la sortie, pour verifier vite.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -15,13 +19,26 @@ const FPS = Number(ips || 60), DUREE = Number(secondes);
   const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
   const p = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
   await p.goto('file://' + path.resolve(page));
-  await p.waitForTimeout(500);
+  await p.waitForFunction(() => window.pret !== false, null, { timeout: 60000 });
+  await p.waitForTimeout(300);
+  const instant = t => p.evaluate(t => {
+    if (window.avancer) window.avancer(t / 1000);
+    for (const a of document.getAnimations()) { a.pause(); a.currentTime = t; }
+  }, t);
+  if (process.env.IMAGES) {
+    for (const s of process.env.IMAGES.split(',').map(Number).sort((a, b) => a - b)) {
+      await instant(s * 1000);
+      await p.screenshot({ path: path.resolve(sortie) + '.' + s.toFixed(2) + '.png' });
+    }
+    await browser.close();
+    return;
+  }
   const frames = path.resolve(sortie) + '.images';
   fs.rmSync(frames, { recursive: true, force: true });
   fs.mkdirSync(frames, { recursive: true });
   const n = Math.round(DUREE * FPS);
   for (let i = 0; i < n; i++) {
-    await p.evaluate(t => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = t; } }, i / FPS * 1000);
+    await instant(i / FPS * 1000);
     await p.screenshot({ path: path.join(frames, String(i).padStart(4, '0') + '.png') });
   }
   await browser.close();

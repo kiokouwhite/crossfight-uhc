@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """La video de presentation d'un personnage : il monte du bas de l'ecran, et son nom s'ecrit en bas.
 
-Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6]
+Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6] [--graine N]
 
 Le personnage, son nom et sa couleur viennent de resourcepack/selection.txt ; sa licence et sa voie, du guide
 (tools/guide_capacites.json) ; son illustration, de resourcepack-prive/selection/art/<personnage>.* (fournie, jamais
@@ -11,19 +11,41 @@ cartes de l'ecran de selection.
 Ecrit <dossier>/<personnage>.html (la scene animee, a ouvrir dans un navigateur) et <dossier>/<personnage>.mp4
 (1920x1080, 60 images par seconde ; rendu par tools/rendu_video.js : Playwright, Chromium et ffmpeg).
 
-Deroule : le fond s'allume a la couleur du personnage ; une colonne de lumiere monte et le personnage surgit du bas de
-l'ecran, s'arrete net (eclair, secousse) puis respire doucement ; une barre traverse le bas de l'ecran, la licence
+Le fond est algorithmique (tools/fond_concorde.js, p5.js ; sa philosophie : tools/fond_concorde.md) : des milliers de
+particules montent en colonne avec le personnage, une onde de choc part a son arrivee et remet leurs phases a zero, puis
+elles s'accordent (modele de Kuramoto) en une pulsation commune et se rangent sur trois orbites d'un halo aux eclats
+dores. La graine vient du personnage (--graine pour en essayer une autre) ; <dossier>/fond_concorde.html est la
+visionneuse pour explorer les graines et les reglages (le personnage a ses couleurs par defaut). p5.js est telecharge
+une fois dans build/vendor/.
+
+Deroule : le fond s'allume a la couleur du personnage ; le personnage surgit du bas de l'ecran avec la colonne de
+particules, s'arrete net (eclair, secousse) puis respire doucement ; une barre traverse le bas de l'ecran, la licence
 s'ecrit au-dessus, le nom tombe lettre par lettre (blanc, decale de son ombre a la couleur du personnage, comme le
 logo), et la voie s'ecrit dessous. Le logo Crossfight UHC est en haut a gauche.
 """
 import json
-import random
+import shutil
 import subprocess
+import zlib
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
+P5 = ROOT / "build" / "vendor" / "p5-1.7.0.min.js"
+
+
+def p5():
+    """p5.js (bibliotheque libre, LGPL), pris une fois sur le registre npm et garde dans build/vendor/."""
+    if not P5.exists():
+        paquet = P5.parent / "p5-1.7.0"
+        shutil.rmtree(paquet, ignore_errors=True)
+        paquet.mkdir(parents=True)
+        subprocess.run(["npm", "pack", "p5@1.7.0", "--silent"], check=True, cwd=paquet, stdout=subprocess.DEVNULL)
+        subprocess.run(["tar", "-xzf", "p5-1.7.0.tgz", "package/lib/p5.min.js"], check=True, cwd=paquet)
+        shutil.copy(paquet / "package" / "lib" / "p5.min.js", P5)
+        shutil.rmtree(paquet)
+    return P5
 
 
 def option(argv, name, default):
@@ -36,6 +58,7 @@ def main():
         return 1
     cid, out = sys.argv[1], Path(sys.argv[2]).resolve()
     duree = float(option(sys.argv, "--duree", "6"))
+    graine = int(option(sys.argv, "--graine", str(zlib.crc32(cid.encode()) % 999999 + 1)))
     out.mkdir(parents=True, exist_ok=True)
     import build_selection as bs
     names = {i: (n, c) for i, n, c in bs.entries()} if hasattr(bs, "entries") else {}
@@ -60,12 +83,6 @@ def main():
     logo = (ROOT / "tools" / "logo" / "crossfight_uhc.svg").read_text(encoding="utf-8")
     (out / "logo.svg").write_text(logo, encoding="utf-8")
 
-    # Les grains de lumiere qui montent : places au hasard, mais toujours les memes.
-    rnd = random.Random(cid)
-    grains = "\n".join(
-        f'<i class="grain" style="left:{rnd.uniform(2, 98):.1f}%;width:{s:.1f}px;height:{s:.1f}px;'
-        f'animation-duration:{rnd.uniform(4, 9):.2f}s;animation-delay:-{rnd.uniform(0, 9):.2f}s;opacity:{rnd.uniform(.3, .9):.2f}"></i>'
-        for s in (rnd.uniform(2, 7) for _ in range(46)))
     lettres = "".join(f'<span style="animation-delay:{1.55 + i * 0.07:.2f}s">{c if c != " " else "&nbsp;"}</span>' for i, c in enumerate(name.upper()))
     # Le personnage occupe la hauteur de l'ecran, son bas sous le nom.
     haut = 900
@@ -75,22 +92,7 @@ def main():
 @font-face {{ font-family: Titre; src: url("file:///usr/share/fonts/truetype/crosextra/Caladea-Bold.ttf"); }}
 html, body {{ margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #0b0d18; }}
 #scene {{ position: absolute; inset: 0; overflow: hidden; animation: secousse {D}s linear both; }}
-.fond {{ position: absolute; inset: 0; background: radial-gradient(ellipse 60% 70% at 50% 58%, {color}cc 0%, {color}44 35%, #0b0d18 75%);
-  animation: fond 0.9s ease-out both; }}
-@keyframes fond {{ from {{ opacity: 0; transform: scale(1.15); }} to {{ opacity: 1; transform: none; }} }}
-.rayons {{ position: absolute; left: 50%; top: 62%; width: 3000px; height: 3000px; margin: -1500px 0 0 -1500px; opacity: .16;
-  background: repeating-conic-gradient(from 0deg, #fff 0deg 3deg, transparent 3deg 18deg);
-  -webkit-mask: radial-gradient(circle, #000 0%, transparent 45%); animation: tourne 40s linear infinite, rayons 1.2s ease-out both; }}
-@keyframes tourne {{ to {{ transform: rotate(360deg); }} }}
-@keyframes rayons {{ from {{ opacity: 0; }} to {{ opacity: .16; }} }}
-.grain {{ position: absolute; bottom: -20px; border-radius: 50%; background: #fff; box-shadow: 0 0 10px 3px {color};
-  animation-name: grain; animation-timing-function: linear; animation-iteration-count: infinite; }}
-@keyframes grain {{ from {{ transform: translateY(0); }} to {{ transform: translateY(-1150px); }} }}
-.colonne {{ position: absolute; left: 50%; bottom: 0; width: 520px; height: 1080px; margin-left: -260px;
-  background: linear-gradient(to top, #ffffffcc, {color}88 40%, transparent 85%); filter: blur(30px);
-  transform-origin: 50% 100%; animation: colonne {D}s linear both; }}
-@keyframes colonne {{ 0%, {0.2 / D * 100:.2f}% {{ opacity: 0; transform: scaleY(0); }} {0.9 / D * 100:.2f}% {{ opacity: 1; transform: scaleY(1); }}
-  {1.4 / D * 100:.2f}% {{ opacity: .9; transform: scaleX(1.25); }} {2.4 / D * 100:.2f}%, 100% {{ opacity: .22; transform: scaleX(.8); }} }}
+#fond, #fond canvas {{ position: absolute; inset: 0; }}
 .monte {{ position: absolute; left: 50%; bottom: 60px; width: {large}px; height: {haut}px; margin-left: -{large // 2}px;
   animation: monte {D}s linear both; }}
 @keyframes monte {{
@@ -115,20 +117,43 @@ html, body {{ margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgr
 .logo {{ position: absolute; left: 56px; top: 44px; width: 250px; animation: logo {D}s ease-out both; }}
 @keyframes logo {{ 0%, {0.5 / D * 100:.2f}% {{ opacity: 0; transform: translateX(-30px); }} {1.1 / D * 100:.2f}%, 100% {{ opacity: .9; transform: none; }} }}
 .flash {{ position: absolute; inset: 0; background: radial-gradient(ellipse 55% 65% at 50% 60%, #fff 0%, {color}aa 40%, transparent 75%); mix-blend-mode: screen; opacity: 0; animation: flash {D}s linear both; }}
-@keyframes flash {{ 0%, {1.19 / D * 100:.2f}% {{ opacity: 0; }} {1.2 / D * 100:.2f}% {{ opacity: .85; }} {1.45 / D * 100:.2f}%, 100% {{ opacity: 0; }} }}
+@keyframes flash {{ 0%, {1.19 / D * 100:.2f}% {{ opacity: 0; }} {1.2 / D * 100:.2f}% {{ opacity: .5; }} {1.45 / D * 100:.2f}%, 100% {{ opacity: 0; }} }}
 @keyframes secousse {{ 0%, {1.19 / D * 100:.2f}% {{ transform: none; }} {1.21 / D * 100:.2f}% {{ transform: translate(0, 14px); }} {1.25 / D * 100:.2f}% {{ transform: translate(-8px, -9px); }}
   {1.3 / D * 100:.2f}% {{ transform: translate(5px, 5px); }} {1.36 / D * 100:.2f}% {{ transform: translate(-2px, -2px); }} {1.42 / D * 100:.2f}%, 100% {{ transform: none; }} }}
 </style></head><body><div id="scene">
-<div class="fond"></div><div class="rayons"></div>{grains}
-<div class="colonne"></div>
+<div id="fond"></div>
 <div class="monte"><img class="perso" src="{cid}.png"></div>
 <div class="voile"></div>
 <div class="bas"><div class="licence">{licence}</div><div class="barre"></div><div class="nom">{lettres}</div><div class="voie">{voie}</div></div>
 <img class="logo" src="logo.svg">
 <div class="flash"></div>
-</div></body></html>"""
+</div>
+<script src="p5.min.js"></script><script src="fond_concorde.js"></script>
+<script>
+window.pret = false;
+new p5(p => {{
+  p.setup = () => {{
+    p.pixelDensity(1);
+    p.createCanvas(1920, 1080).parent('fond');
+    p.noLoop();
+    const c = new Concorde(p, {{ graine: {graine}, couleur: '{color}' }});
+    window.avancer = t => {{ c.avancer(t); c.dessiner(); }};
+    window.avancer(0);
+    window.pret = true;
+  }};
+}});
+</script></body></html>"""
     page = out / f"{cid}.html"
     page.write_text(html, encoding="utf-8")
+    shutil.copy(p5(), out / "p5.min.js")
+    algo = (ROOT / "tools" / "fond_concorde.js").read_text(encoding="utf-8")
+    (out / "fond_concorde.js").write_text(algo, encoding="utf-8")
+    # La visionneuse, autonome (l'algorithme inclus), aux couleurs et a la graine du personnage.
+    vue = (ROOT / "tools" / "fond_concorde.html").read_text(encoding="utf-8")
+    vue = vue.replace('<script src="fond_concorde.js"></script>', "<script>\n" + algo + "\n</script>")
+    vue = vue.replace("seed: 12345,", f"seed: {graine},").replace('value="12345"', f'value="{graine}"')
+    vue = vue.replace("'#4a4fc4'", f"'{color}'").replace('"#4a4fc4"', f'"{color}"').replace(">#4a4fc4<", f">{color}<")
+    (out / "fond_concorde.html").write_text(vue, encoding="utf-8")
     subprocess.run(["node", str(ROOT / "tools" / "rendu_video.js"), str(page), str(out / f"{cid}.mp4"), str(D)], check=True, cwd="/tmp")
     print(out / f"{cid}.mp4")
 
