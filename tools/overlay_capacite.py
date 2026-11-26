@@ -122,6 +122,11 @@ def lueur(img, couleur, rayon):
     return halo
 
 
+def capacite(ch, cid, cle):
+    """La capacite designee par son identifiant (marth_contre), sans le prefixe (contre) ou son numero."""
+    return next((a for n, a in enumerate(ch["abilities"]) if cle in (a["id"], a["id"].removeprefix(cid + "_"), str(n))), None)
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -133,12 +138,46 @@ def main():
             print(f"{n}  {a['id']:28} {a['type']:8} {a['name']}")
         return 0
     cle, out = sys.argv[2], Path(sys.argv[3]).resolve()
-    a = next((a for n, a in enumerate(ch["abilities"]) if cle in (a["id"], a["id"].removeprefix(cid + "_"), str(n))), None)
+    a = capacite(ch, cid, cle)
     if a is None:
         sys.exit(f"Capacite inconnue : {cle} (python3 tools/overlay_capacite.py {cid} pour la liste)")
     description = option(sys.argv, "--description", descriptions().get(a["id"], a["description"]))
     out.mkdir(parents=True, exist_ok=True)
+    img, elements = composer(cid, a, description)
+    for nom, el, x, y in elements:
+        img.alpha_composite(el, (x, y))
+    fx0, fy0, fw, fh = FENETRE
+    base = f"{cid}_{a['id'].removeprefix(cid + '_')}"
+    img.save(out / f"{base}.png", optimize=True)
+    apercu(img, option(sys.argv, "--apercu", str(ROOT / "prive" / "skins" / f"{cid}_en_jeu.png"))).save(out / f"{base}_apercu.png", optimize=True)
+    print(out / f"{base}.png")
+    print(f"fenetre de la video : x={fx0} y={fy0}, {fw}x{fh}")
 
+
+def apercu(img, source):
+    """L'overlay avec une image de jeu dans la fenetre (RGB)."""
+    fx0, fy0, fw, fh = FENETRE
+    fond = Image.new("RGBA", (W, H), (0, 0, 0, 255))
+    if Path(source).exists():
+        fond.alpha_composite(dans_fenetre(Image.open(source)), (fx0, fy0))
+    fond.alpha_composite(img)
+    return fond.convert("RGB")
+
+
+def dans_fenetre(jeu):
+    """Une image de jeu recadree a la taille de la fenetre (en la remplissant)."""
+    fx0, fy0, fw, fh = FENETRE
+    jeu = jeu.convert("RGBA")
+    k = max(fw / jeu.width, fh / jeu.height)
+    jeu = jeu.resize((math.ceil(jeu.width * k), math.ceil(jeu.height * k)), Image.LANCZOS)
+    return jeu.crop(((jeu.width - fw) // 2, (jeu.height - fh) // 2, (jeu.width - fw) // 2 + fw, (jeu.height - fh) // 2 + fh))
+
+
+def composer(cid, a, description):
+    """L'overlay d'une capacite en deux parts : la base (tout ce qui ne change pas d'une capacite a l'autre du meme
+    personnage : le fond, l'illustration, le cadre, le nom vertical, le logo, les boites vides ; la fenetre transparente)
+    et les elements propres a la capacite, [(nom, image, x, y)] dans l'ordre ou les poser : le type, le nom, l'icone
+    (ou, sans icone, le signe de la voie), la description."""
     import build_selection as bs
     import presentation_perso as pp
     from build_menu_franuka import nine, wide
@@ -193,15 +232,16 @@ def main():
     if voie:
         src = next(iter(sorted((ROOT / "resourcepack-prive" / "selection" / "voie").glob(voie + ".*"))), None)
         if src:
-            signe = pp.signe_voie(src).resize((132, 132), Image.LANCZOS)
+            signe = pp.signe_voie(src).resize((256, 256), Image.LANCZOS)
     nom = texte_pixel(name.upper(), bs.UI_TITLE, 17, bs.CREAM, rgb, K_NOM).rotate(90, expand=True)
     ecart = 44
-    haut_groupe = nom.height + ((signe.height + ecart) if signe else 0)
+    haut_groupe = nom.height + ((132 + ecart) if signe else 0)
     gy, colonne = round(H / 2 - haut_groupe / 2), 126
     if signe:
-        img.alpha_composite(lueur(signe, rgb, 14), (colonne - signe.width // 2 - 28, gy - 28))
-        img.alpha_composite(signe, (colonne - signe.width // 2, gy))
-        gy += signe.height + ecart
+        petit = signe.resize((132, 132), Image.LANCZOS)
+        img.alpha_composite(lueur(petit, rgb, 14), (colonne - petit.width // 2 - 28, gy - 28))
+        img.alpha_composite(petit, (colonne - petit.width // 2, gy))
+        gy += petit.height + ecart
     img.alpha_composite(lueur(nom, bs.NAVY_DARK, 10), (colonne - nom.width // 2 - 20, gy - 20))
     img.alpha_composite(nom, (colonne - nom.width // 2, gy))
 
@@ -218,10 +258,12 @@ def main():
     # Le bas visible des cartouches (rangee 24 de la banniere) mord un peu sur le cadre, sans toucher la fenetre.
     ty = fy0 - bord + 14 - 24 * K_UI
     centre_y = ty + milieu
-    for plaque, texte, tm, px in ((t1, typ, typ_m, x), (t2, cap, cap_m, x + t1.width - chevauche)):
-        img.alpha_composite(lueur(plaque, bs.NAVY_DARK, 8), (px - 16, ty - 16))
-        img.alpha_composite(plaque, (px, ty))
-        img.alpha_composite(texte, (round(px + plaque.width / 2 - texte.width / 2), round(centre_y - tm)))
+    elements = []
+    for cle, plaque, texte, tm, px in (("type", t1, typ, typ_m, x), ("nom", t2, cap, cap_m, x + t1.width - chevauche)):
+        el = lueur(plaque, bs.NAVY_DARK, 8)
+        el.alpha_composite(plaque, (16, 16))
+        el.alpha_composite(texte, (round(16 + plaque.width / 2 - texte.width / 2), round(16 + milieu - tm)))
+        elements.append((cle, el, px - 16, ty - 16))
 
     # En bas, sous le cadre : l'icone de la capacite, puis sa description, dans des boites du pack au fond bleu nuit.
     boite_px = bs.ui_sprite("Background boxes", "BGbox_01B")
@@ -231,18 +273,22 @@ def main():
     by = haut_vis - bm * K_BOITE
     cy_b = by + bh * K_BOITE / 2
     icone_src = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "item" / "icone" / (a["id"] + ".png")
-    dx = fx0
+    # Une boite carree (toujours la, pour que la base serve a toutes les capacites), l'icone en gros pixels au milieu
+    # (la plus grande taille entiere qui y tient) ; sans icone, le signe de la voie.
+    boite_i = gros(recolore(nine(boite_px, bh, bh), FOND_BOITE, bs.NAVY), K_BOITE)
+    img.alpha_composite(lueur(boite_i, bs.NAVY_DARK, 8), (fx0 - bm * K_BOITE - 16, by - 16))
+    img.alpha_composite(boite_i, (fx0 - bm * K_BOITE, by))
+    place = (bh - 2 * bm - 10) * K_BOITE
     if icone_src.exists():
-        # Une boite carree, l'icone en gros pixels au milieu (la plus grande taille entiere qui y tient).
-        boite_i = gros(recolore(nine(boite_px, bh, bh), FOND_BOITE, bs.NAVY), K_BOITE)
         ic = Image.open(icone_src).convert("RGBA")
-        k = max(1, (bh - 2 * bm - 10) * K_BOITE // ic.height)
-        ic = gros(ic, k)
-        img.alpha_composite(lueur(boite_i, bs.NAVY_DARK, 8), (fx0 - bm * K_BOITE - 16, by - 16))
-        img.alpha_composite(boite_i, (fx0 - bm * K_BOITE, by))
-        img.alpha_composite(lueur(ic, rgb, 10), (round(fx0 - bm * K_BOITE + boite_i.width / 2 - ic.width / 2) - 20, round(cy_b - ic.height / 2) - 20))
-        img.alpha_composite(ic, (round(fx0 - bm * K_BOITE + boite_i.width / 2 - ic.width / 2), round(cy_b - ic.height / 2)))
-        dx = fx0 + boite_i.width - 2 * bm * K_BOITE + 16
+        ic = gros(ic, max(1, place // ic.height))
+    else:
+        ic = signe.resize((round(place * 0.9), round(place * 0.9)), Image.LANCZOS) if signe else None
+    if ic:
+        el = lueur(ic, rgb, 10)
+        el.alpha_composite(ic, (20, 20))
+        elements.append(("icone", el, round(fx0 - bm * K_BOITE + boite_i.width / 2 - ic.width / 2) - 20, round(cy_b - ic.height / 2) - 20))
+    dx = fx0 + boite_i.width - 2 * bm * K_BOITE + 16
     boite_d = gros(recolore(nine(boite_px, (fx0 + fw - dx) // K_BOITE + 2 * bm, bh), FOND_BOITE, bs.NAVY), K_BOITE)
     img.alpha_composite(lueur(boite_d, bs.NAVY_DARK, 8), (dx - bm * K_BOITE - 16, by - 16))
     img.alpha_composite(boite_d, (dx - bm * K_BOITE, by))
@@ -253,31 +299,20 @@ def main():
         desc = paragraphe(description, bs.UI_TEXT, 12, interieur_l, 11, bs.CREAM, bs.NAVY_DARK, k)
         if desc.height <= interieur_h:
             break
-    img.alpha_composite(desc, (round(dx - bm * K_BOITE + boite_d.width / 2 - desc.width / 2), round(cy_b - desc.height / 2)))
+    elements.append(("description", desc, round(dx - bm * K_BOITE + boite_d.width / 2 - desc.width / 2), round(cy_b - desc.height / 2)))
 
     # Le logo (un SVG), rendu par Chromium, en haut a gauche.
     logo = logo_png(200)
     if logo:
         img.alpha_composite(logo, (24, 18))
 
-    # La fenetre de la video : transparente.
-    trou = Image.new("RGBA", (fw, fh), (0, 0, 0, 0))
-    img.paste(trou, (fx0, fy0))
-    base = f"{cid}_{a['id'].removeprefix(cid + '_')}"
-    img.save(out / f"{base}.png", optimize=True)
-
-    # L'apercu : une image de jeu dans la fenetre.
-    apercu_src = option(sys.argv, "--apercu", str(ROOT / "prive" / "skins" / f"{cid}_en_jeu.png"))
-    fond = Image.new("RGBA", (W, H), (0, 0, 0, 255))
-    if Path(apercu_src).exists():
-        jeu = Image.open(apercu_src).convert("RGBA")
-        k = max(fw / jeu.width, fh / jeu.height)
-        jeu = jeu.resize((math.ceil(jeu.width * k), math.ceil(jeu.height * k)), Image.LANCZOS)
-        fond.alpha_composite(jeu.crop(((jeu.width - fw) // 2, (jeu.height - fh) // 2, (jeu.width - fw) // 2 + fw, (jeu.height - fh) // 2 + fh)), (fx0, fy0))
-    fond.alpha_composite(img)
-    fond.convert("RGB").save(out / f"{base}_apercu.png", optimize=True)
-    print(out / f"{base}.png")
-    print(f"fenetre de la video : x={fx0} y={fy0}, {fw}x{fh}")
+    # La fenetre de la video : transparente, dans la base comme dans les elements (les lueurs des cartouches y debordent).
+    img.paste(Image.new("RGBA", (fw, fh), (0, 0, 0, 0)), (fx0, fy0))
+    for i, (cle, el, x, y) in enumerate(elements):
+        el = el.copy()
+        el.paste(Image.new("RGBA", (fw, fh), (0, 0, 0, 0)), (fx0 - x, fy0 - y))
+        elements[i] = (cle, el, x, y)
+    return img, elements
 
 
 def ligne_hud(text, k, bs, pp):

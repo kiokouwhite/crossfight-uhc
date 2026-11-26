@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """L'animation du logo : CROSSFIGHT s'ecrit seul, puis les deux barres le transpercent (la verticale, puis l'horizontale),
-et UHC sort de la barre horizontale.
+et UHC sort de la barre horizontale. Le logo tient un instant, puis disparait (a partir de FIN) : il se gonfle, un
+eclair part du croisement des barres, les barres se retirent d'un coup, les lettres de CROSSFIGHT s'envolent une a une
+en se brouillant, UHC remonte dans la barre, et une derniere etincelle brille au croisement.
 
 Usage : python3 tools/logo_anime.py <dossier de sortie>
 
@@ -13,7 +15,8 @@ import sys
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parent / "logo" / "crossfight_uhc.svg"
-DUREE = 4.2  # secondes, sans la boucle
+FIN = 5.2    # le debut de la disparition (secondes)
+DUREE = 6.25  # secondes : l'arrivee, la tenue, la disparition
 
 def main():
     out = Path(sys.argv[1]); out.mkdir(parents=True, exist_ok=True)
@@ -36,9 +39,10 @@ def main():
     d = DUREE
     def k(sec): return f"{sec / d * 100:.2f}%"
     # Les instants des deux impacts, et de l'arrivee de UHC.
-    V, H, U = 1.36, 1.80, 2.16
+    V, H, U, F = 1.36, 1.80, 2.16, FIN
     def lettre(i):
-        return f'<g class="lettre" style="animation-delay:{0.1 + i * 0.065:.3f}s">{white_cf[i]}</g>'
+        return (f'<g class="lettre" style="animation: lettre 0.5s cubic-bezier(.2,.9,.3,1.25) {0.1 + i * 0.065:.3f}s both, '
+                f'sortie 0.32s cubic-bezier(.4,0,.7,.7) {F + 0.15 + i * 0.026:.3f}s forwards">{white_cf[i]}</g>')
     def bloc(classe, idx):
         # Une partie de CROSSFIGHT avec son ombre : repoussee d'un cote a l'impact de la barre verticale.
         return (f'<g class="{classe}"><g class="cls-1"><g class="ombre-rouge">{"".join(red[i] for i in idx)}</g></g>'
@@ -67,14 +71,19 @@ def main():
       {k(H)} {{ transform: translate(30px, 6px) scale(1.09); }} {k(H + .03)} {{ transform: translate(-20px, -8px) scale(1.05); }}
       {k(H + .06)} {{ transform: translate(13px, 5px) scale(1.03); }} {k(H + .10)} {{ transform: translate(-7px, -3px) scale(1.015); }}
       {k(H + .15)} {{ transform: translate(3px, 1px); }} {k(H + .22)} {{ transform: none; }}
-      {k(U - 0.01)} {{ transform: none; }} {k(U)} {{ transform: translate(0, 10px) scale(1.02); }} {k(U + .05)} {{ transform: translate(0, -4px); }} {k(U + .1)}, 100% {{ transform: none; }} }}
-    .lettre {{ opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: lettre 0.5s cubic-bezier(.2,.9,.3,1.25) both; }}
+      {k(U - 0.01)} {{ transform: none; }} {k(U)} {{ transform: translate(0, 10px) scale(1.02); }} {k(U + .05)} {{ transform: translate(0, -4px); }} {k(U + .1)} {{ transform: none; }}
+      {k(F)} {{ transform: none; animation-timing-function: cubic-bezier(.3,0,.7,1); }} {k(F + .12)} {{ transform: scale(1.04); }}
+      {k(F + .14)} {{ transform: translate(-14px, 10px) scale(1.06); }} {k(F + .18)} {{ transform: translate(10px, -8px) scale(1.04); }}
+      {k(F + .23)} {{ transform: translate(-5px, 4px) scale(1.02); }} {k(F + .3)}, 100% {{ transform: none; }} }}
+    .lettre {{ opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; }}
+    @keyframes sortie {{ 0% {{ opacity: 1; transform: none; filter: none; }} 100% {{ opacity: 0; transform: translateY(-60px) scale(1.25, .6); filter: blur(10px); }} }}
     @keyframes lettre {{ 0% {{ opacity: 0; transform: translateY(30px) scale(.85); filter: blur(7px); }} 100% {{ opacity: 1; transform: none; filter: none; }} }}
     .ombre-rouge {{ animation: ombre-rouge {d}s linear both; }}
     @keyframes ombre-rouge {{
       0%, {k(.75)} {{ opacity: 0; transform: translate(-10px, -10px); }} {k(1.2)} {{ opacity: 1; transform: none; }}
       {k(V - .01)} {{ transform: none; }} {k(V)} {{ transform: translate(22px, -14px); }} {k(V + .05)} {{ transform: translate(-10px, 8px); }} {k(V + .12)} {{ transform: none; }}
-      {k(H - .01)} {{ transform: none; }} {k(H)} {{ transform: translate(-20px, 18px); }} {k(H + .05)} {{ transform: translate(9px, -7px); }} {k(H + .12)}, 100% {{ opacity: 1; transform: none; }} }}
+      {k(H - .01)} {{ transform: none; }} {k(H)} {{ transform: translate(-20px, 18px); }} {k(H + .05)} {{ transform: translate(9px, -7px); }} {k(H + .12)}, {k(F + .14)} {{ opacity: 1; transform: none; }}
+      {k(F + .45)}, 100% {{ opacity: 0; transform: translate(-16px, -26px); }} }}
     /* La barre verticale ecarte CROSSFIGHT : ce qui est a gauche part a gauche, le reste a droite, et le O se tord. */
     .pousse-g {{ animation: pousse-g {d}s cubic-bezier(.2,.8,.3,1) both; }}
     @keyframes pousse-g {{ 0%, {k(V - .01)} {{ transform: none; }} {k(V + .02)} {{ transform: translate(-46px, 4px) rotate(-2deg); }} {k(V + .2)} {{ transform: translate(6px, 0); }} {k(V + .32)}, 100% {{ transform: none; }} }}
@@ -87,13 +96,13 @@ def main():
     @keyframes pousse-haut {{ 0%, {k(H - .01)} {{ transform: none; }} {k(H + .02)} {{ transform: translate(0, -40px); }} {k(H + .2)} {{ transform: translate(0, 5px); }} {k(H + .32)}, 100% {{ transform: none; }} }}
     /* Les barres : elles arrivent en un eclair, s'epaississent sous le choc, puis s'affinent. */
     .barre-v {{ transform-box: fill-box; transform-origin: 50% 0%; animation: barre-v {d}s linear both; }}
-    @keyframes barre-v {{ 0%, {k(V - .07)} {{ transform: scale(1, 0); animation-timing-function: cubic-bezier(.6,0,1,1); }} {k(V)} {{ transform: scale(4, 1); }} {k(V + .1)} {{ transform: scale(1.6, 1); }} {k(V + .25)}, 100% {{ transform: none; }} }}
+    @keyframes barre-v {{ 0%, {k(V - .07)} {{ transform: scale(1, 0); animation-timing-function: cubic-bezier(.6,0,1,1); }} {k(V)} {{ transform: scale(4, 1); }} {k(V + .1)} {{ transform: scale(1.6, 1); }} {k(V + .25)}, {k(F + .12)} {{ transform: none; }} {k(F + .15)} {{ transform: scale(2.6, 1); animation-timing-function: cubic-bezier(.6,0,1,.6); }} {k(F + .3)}, 100% {{ transform: scale(.4, 0); }} }}
     .barre-h {{ transform-box: fill-box; transform-origin: 0% 50%; animation: barre-h {d}s linear both; }}
-    @keyframes barre-h {{ 0%, {k(H - .07)} {{ transform: scale(0, 1); animation-timing-function: cubic-bezier(.6,0,1,1); }} {k(H)} {{ transform: scale(1, 4.5); }} {k(H + .1)} {{ transform: scale(1, 1.6); }} {k(H + .25)}, 100% {{ transform: none; }} }}
+    @keyframes barre-h {{ 0%, {k(H - .07)} {{ transform: scale(0, 1); animation-timing-function: cubic-bezier(.6,0,1,1); }} {k(H)} {{ transform: scale(1, 4.5); }} {k(H + .1)} {{ transform: scale(1, 1.6); }} {k(H + .25)}, {k(F + .14)} {{ transform: none; }} {k(F + .17)} {{ transform: scale(1, 3); animation-timing-function: cubic-bezier(.6,0,1,.6); }} {k(F + .33)}, 100% {{ transform: scale(0, .4); }} }}
     .reflet-v {{ transform-box: fill-box; transform-origin: 50% 0%; animation: reflet-v {d}s linear both; }}
-    @keyframes reflet-v {{ 0%, {k(V - .03)} {{ transform: scaleY(0); }} {k(V + .04)}, 100% {{ transform: scaleY(1); }} }}
+    @keyframes reflet-v {{ 0%, {k(V - .03)} {{ transform: scaleY(0); }} {k(V + .04)}, {k(F + .12)} {{ transform: scaleY(1); }} {k(F + .28)}, 100% {{ transform: scaleY(0); }} }}
     .trait-h {{ transform-box: fill-box; transform-origin: 0% 50%; animation: trait-h {d}s linear both; }}
-    @keyframes trait-h {{ 0%, {k(H - .03)} {{ transform: scaleX(0); }} {k(H + .04)}, 100% {{ transform: scaleX(1); }} }}
+    @keyframes trait-h {{ 0%, {k(H - .03)} {{ transform: scaleX(0); }} {k(H + .04)}, {k(F + .14)} {{ transform: scaleX(1); }} {k(F + .3)}, 100% {{ transform: scaleX(0); }} }}
     /* Le sillage lumineux des barres. */
     .sillage {{ filter: blur(10px); opacity: 0; }}
     .sillage-v {{ transform-box: fill-box; transform-origin: 50% 0%; animation: sillage-v {d}s linear both; }}
@@ -102,7 +111,7 @@ def main():
     @keyframes sillage-h {{ 0%, {k(H - .07)} {{ opacity: 0; transform: scale(0, 5); }} {k(H)} {{ opacity: 1; transform: scale(1, 10); }} {k(H + .35)}, 100% {{ opacity: 0; transform: scale(1, 2); }} }}
     /* Le flash de tout l'ecran, l'eclair au point d'impact, l'onde de choc et les etincelles. */
     .flash {{ opacity: 0; animation: flash {d}s linear both; }}
-    @keyframes flash {{ 0%, {k(V - .01)} {{ opacity: 0; }} {k(V)} {{ opacity: .75; }} {k(V + .12)} {{ opacity: 0; }} {k(H - .01)} {{ opacity: 0; }} {k(H)} {{ opacity: .85; }} {k(H + .14)}, 100% {{ opacity: 0; }} }}
+    @keyframes flash {{ 0%, {k(V - .01)} {{ opacity: 0; }} {k(V)} {{ opacity: .75; }} {k(V + .12)} {{ opacity: 0; }} {k(H - .01)} {{ opacity: 0; }} {k(H)} {{ opacity: .85; }} {k(H + .14)} {{ opacity: 0; }} {k(F + .13)} {{ opacity: 0; }} {k(F + .14)} {{ opacity: .6; }} {k(F + .3)}, 100% {{ opacity: 0; }} }}
     .eclair {{ transform-box: fill-box; transform-origin: 50% 50%; opacity: 0; }}
     .eclair-1 {{ animation: eclair-1 {d}s linear both; }}
     .eclair-2 {{ animation: eclair-2 {d}s linear both; }}
@@ -113,19 +122,28 @@ def main():
     .onde-2 {{ animation: onde-2 {d}s cubic-bezier(.1,.7,.3,1) both; }}
     @keyframes onde-1 {{ 0%, {k(V - .01)} {{ opacity: 0; transform: scale(.2); stroke-width: 14px; }} {k(V)} {{ opacity: 1; }} {k(V + .45)}, 100% {{ opacity: 0; transform: scale(9); stroke-width: 1px; }} }}
     @keyframes onde-2 {{ 0%, {k(H - .01)} {{ opacity: 0; transform: scale(.2); stroke-width: 14px; }} {k(H)} {{ opacity: 1; }} {k(H + .45)}, 100% {{ opacity: 0; transform: scale(11); stroke-width: 1px; }} }}
+    .eclair-3 {{ animation: eclair-3 {d}s linear both; }}
+    @keyframes eclair-3 {{ 0%, {k(F + .13)} {{ opacity: 0; transform: scale(.3); }} {k(F + .14)} {{ opacity: 1; transform: scale(2); }} {k(F + .5)}, 100% {{ opacity: 0; transform: scale(4.2); }} }}
+    .onde-3 {{ animation: onde-3 {d}s cubic-bezier(.1,.7,.3,1) both; }}
+    @keyframes onde-3 {{ 0%, {k(F + .13)} {{ opacity: 0; transform: scale(.2); stroke-width: 16px; }} {k(F + .14)} {{ opacity: 1; }} {k(F + .6)}, 100% {{ opacity: 0; transform: scale(13); stroke-width: 1px; }} }}
+    .gerbe-3 {{ opacity: 0; animation: gerbe-3 {d}s cubic-bezier(.1,.8,.3,1) both; }}
+    @keyframes gerbe-3 {{ 0%, {k(F + .13)} {{ opacity: 0; transform: scale(.3); }} {k(F + .14)} {{ opacity: 1; transform: scale(.6); }} {k(F + .5)}, 100% {{ opacity: 0; transform: scale(3.4); }} }}
+    .etoile {{ transform-box: fill-box; transform-origin: 50% 50%; opacity: 0; animation: etoile {d}s linear both; }}
+    @keyframes etoile {{ 0%, {k(F + .6)} {{ opacity: 0; transform: scale(0) rotate(0deg); }} {k(F + .72)} {{ opacity: 1; transform: scale(1.4) rotate(45deg); animation-timing-function: ease-in; }}
+      {k(F + 1.0)}, 100% {{ opacity: 0; transform: scale(0) rotate(90deg); }} }}
     .gerbe-1 {{ opacity: 0; animation: gerbe-1 {d}s cubic-bezier(.1,.8,.3,1) both; }}
     .gerbe-2 {{ opacity: 0; animation: gerbe-2 {d}s cubic-bezier(.1,.8,.3,1) both; }}
     @keyframes gerbe-1 {{ 0%, {k(V - .01)} {{ opacity: 0; transform: scale(.3); }} {k(V)} {{ opacity: 1; transform: scale(.5); }} {k(V + .3)}, 100% {{ opacity: 0; transform: scale(2.6); }} }}
     @keyframes gerbe-2 {{ 0%, {k(H - .01)} {{ opacity: 0; transform: scale(.3); }} {k(H)} {{ opacity: 1; transform: scale(.5); }} {k(H + .3)}, 100% {{ opacity: 0; transform: scale(2.9); }} }}
     /* UHC tombe de la barre horizontale et s'ecrase en place. */
     .uhc {{ animation: uhc {d}s linear both; }}
-    @keyframes uhc {{ 0%, {k(U - .2)} {{ transform: translateY(-200px); animation-timing-function: cubic-bezier(.5,0,1,.6); }} {k(U)} {{ transform: translateY(16px) scaleY(.92); }} {k(U + .07)} {{ transform: translateY(-6px); }} {k(U + .13)}, 100% {{ transform: none; }} }}
+    @keyframes uhc {{ 0%, {k(U - .2)} {{ transform: translateY(-200px); animation-timing-function: cubic-bezier(.5,0,1,.6); }} {k(U)} {{ transform: translateY(16px) scaleY(.92); }} {k(U + .07)} {{ transform: translateY(-6px); }} {k(U + .13)}, {k(F + .2)} {{ transform: none; animation-timing-function: cubic-bezier(.4,-0.4,.9,.5); }} {k(F + .42)}, 100% {{ transform: translateY(-220px); }} }}
     .ombre-bleue {{ animation: ombre-bleue {d}s ease-out both; }}
-    @keyframes ombre-bleue {{ 0%, {k(U)} {{ opacity: 0; transform: translate(-12px, -12px); }} {k(U + .3)}, 100% {{ opacity: .7; transform: none; }} }}
+    @keyframes ombre-bleue {{ 0%, {k(U)} {{ opacity: 0; transform: translate(-12px, -12px); }} {k(U + .3)}, {k(F + .18)} {{ opacity: .7; transform: none; }} {k(F + .38)}, 100% {{ opacity: 0; transform: translate(-12px, -12px); }} }}
     .reflet {{ animation: reflet {d}s ease-in-out both; }}
     @keyframes reflet {{ 0%, {k(2.95)} {{ transform: translateX(-300px); }} {k(3.65)}, 100% {{ transform: translateX(1500px); }} }}
 """
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1189.91 678.52">
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1189.91 678.52" data-duree="{d}">
   <defs>
     <style>{css}</style>
     <clipPath id="sous-la-barre"><rect x="-50" y="356" width="1300" height="400"/></clipPath>
@@ -154,6 +172,10 @@ def main():
     <circle class="onde onde-2" cx="331" cy="354" r="40" stroke="#ffffff"/>
     {gerbe("gerbe-1", 331, 270, 14, 7)}
     {gerbe("gerbe-2", 331, 354, 16, 11)}
+    <circle class="eclair eclair-3" cx="331" cy="330" r="90" fill="url(#lueur)"/>
+    <circle class="onde onde-3" cx="331" cy="330" r="40" stroke="#ffffff"/>
+    {gerbe("gerbe-3", 331, 330, 20, 23)}
+    <path class="etoile" d="M331 270 L340 321 L391 330 L340 339 L331 390 L322 339 L271 330 L322 321 Z" fill="#ffffff"/>
   </g>
   <rect class="flash" x="-2000" y="-2000" width="5200" height="4700" fill="#ffffff"/>
 </svg>
