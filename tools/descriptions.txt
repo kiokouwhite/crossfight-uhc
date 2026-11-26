@@ -6,6 +6,6 @@ marth_falchion	Marth régénère 5 cœurs en 3 secondes, il ne peut pas bouger �
 marth_falchion.2	À chaque lootbox, Marth a 10 % de chances d'obtenir l'« Emblème de Feu », qui transforme sa Falchion en Sainte-Falchion.
 marth_sainte_falchion	Marth régénère 10 cœurs. La régénération prend 3 secondes et Marth ne peut pas bouger durant ce moment-là.\nTemps de chargement : 1 minute
 marth_contre	Si Marth est frappé dans la seconde qui suit l'activation, il ne subit aucun dégât, renvoie les dégâts du coup à l'adversaire et l'immobilise pendant 1 seconde.\nTemps de chargement : 5 secondes
-marth_charisme	Marth a Vitesse. Ses alliés à moins de 10 blocs aussi.
-marth_leader	Tant que Marth a plus de 5 cœurs, ses alliés ont Force.
-marth_ult	Marth lève son épée un instant, puis fonce de 10 blocs dans la direction où il regarde ; invulnérable du début à la fin. Les ennemis touchés perdent 5 cœurs et tous les alliés gagnent Force (1 niveau par ennemi touché) pendant 1 minute.
+marth_charisme	Marth a Vitesse I en permanence, tout comme ses alliés à moins de 10 blocs de lui.
+marth_leader	Tant que Marth a plus de 5 cœurs, tous ses alliés ont Force I.
+marth_ult	Marth lève son épée 0,8 seconde, puis fonce de 10 blocs dans la direction où il regarde, invulnérable. Chaque ennemi touché perd 5 cœurs ; Marth et ses alliés gagnent Force pendant 1 minute (un niveau par ennemi touché, jusqu'à V).
