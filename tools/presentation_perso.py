@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """La video de presentation d'un personnage : il monte du bas de l'ecran, et son nom s'ecrit en bas.
 
-Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6] [--graine N] [--surnom "..."] [--flottant]
+Usage : python3 tools/presentation_perso.py <personnage> <dossier> [--duree 6] [--graine N] [--surnom "..."] [--bande]
 
 Le personnage, son nom et sa couleur viennent de resourcepack/selection.txt ; sa voie et le cadrage de son visage, de
 resourcepack/selection_cartes.txt (comme sa carte de selection) ; son surnom, de tools/surnoms.txt ; son illustration et
@@ -17,10 +17,10 @@ Toute la scene est penchee (PENTE degres) : un plateau plus grand que l'ecran, t
     rangent sur trois orbites d'un halo, ponctue du signe de sa voie qui tourne sur lui-meme.
   - Le personnage, cadre sur son visage (plus grand que sur sa carte : CARTE), surgit du bas de l'ecran, s'arrete net
     (eclair, secousse) puis respire doucement.
-  - En bas, la bande de nom des cartes traverse l'ecran ; le cartouche du HUD s'y deplie et le nom y tombe lettre par
-    lettre (police de titre du HUD), puis le surnom apparait dans un cartouche plus petit dessous (meme police).
-    --flottant : sans la bande, les deux cartouches flottent (ombre, lueur, leger balancement) ; la scene et la video
-    s'appellent alors <personnage>_flottant.
+  - En bas, le cartouche du HUD se deplie et le nom y tombe lettre par lettre (police de titre du HUD), puis le surnom
+    apparait dans un cartouche plus petit dessous (meme police) ; les deux flottent (ombre, lueur, leger balancement).
+    --bande : la bande de nom des cartes traverse l'ecran sous les cartouches ; la scene et la video s'appellent alors
+    <personnage>_bande.
   - Le logo Crossfight UHC est en haut a gauche, droit (hors de la scene penchee).
 
 Ecrit <dossier>/<personnage>.html (la scene, a ouvrir dans un navigateur), <dossier>/<personnage>.mp4 (1920x1080,
@@ -47,10 +47,10 @@ PENTE = -6                 # la scene penchee, en degres (negatif : elle monte v
 PW, PH = 2200, 1400        # le plateau tourne, plus grand que l'ecran pour en couvrir les coins
 OX, OY = (W - PW) // 2, (H - PH) // 2
 PIXEL = 8                  # un pixel de dessin du portail = 8 pixels du plateau
-VISAGE = (0.5, 0.31)       # ou se place le visage du personnage, en fraction de l'ecran
-CARTE = 1.25               # l'illustration, 1,25 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
-NOM_Y = 0.83               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
-K_NOM, K_SURNOM = 6, 3     # un pixel du HUD = 6 (nom) ou 3 (surnom) pixels a l'ecran
+VISAGE = (0.5, 0.34)       # ou se place le visage du personnage, en fraction de l'ecran
+CARTE = 1.5                # l'illustration, 1,5 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
+NOM_Y = 0.79               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
+K_NOM, K_SURNOM = 8, 4     # un pixel du HUD = 8 (nom) ou 4 (surnom) pixels a l'ecran
 
 
 def p5():
@@ -139,8 +139,8 @@ def main():
     D = float(option(sys.argv, "--duree", "6"))
     graine = int(option(sys.argv, "--graine", str(zlib.crc32(cid.encode()) % 999999 + 1)))
     surnom = option(sys.argv, "--surnom", surnom_de(cid))
-    flottant = "--flottant" in sys.argv
-    sortie = cid + ("_flottant" if flottant else "")
+    flottant = "--bande" not in sys.argv
+    sortie = cid + ("" if flottant else "_bande")
     out.mkdir(parents=True, exist_ok=True)
     import build_selection as bs
     names = {i: (n, c) for i, n, c in bs.roster()}
@@ -205,6 +205,8 @@ def main():
                         f'width:{petite.width}px;height:{petite.height}px"><img src="plaque_surnom.png">'
                         f'<img src="surnom.png" style="left:{round(petite.width / 2 - sur_w / 2)}px;top:{round(petite.height / 2 - sur_h / 2 - K_SURNOM)}px"></div>')
 
+    # Le voile sombre du bas : sous les cartouches flottants, il ne descend que sous le nom pour laisser voir le buste.
+    voile = (ny - 60, 320, 560) if flottant else (bande_y - 260, 260, 420)
     logo = (ROOT / "tools" / "logo" / "crossfight_uhc.svg").read_text(encoding="utf-8")
     (out / "logo.svg").write_text(logo, encoding="utf-8")
     pc = lambda t: f"{t / D * 100:.2f}%"
@@ -222,8 +224,8 @@ html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; backgrou
   {pc(1.55)}, 100% {{ transform: none; filter: none; }} }}
 .perso {{ width: 100%; height: 100%; display: block; transform-origin: {round(vx * s)}px {round(vy * s)}px; animation: respire {D}s ease-in-out both; }}
 @keyframes respire {{ 0%, {pc(1.5)} {{ transform: none; }} 100% {{ transform: scale(1.04); }} }}
-.voile {{ position: absolute; left: 0; right: 0; top: {round(bande_y - 260)}px; height: {PH}px;
-  background: linear-gradient(to bottom, transparent, #0b0d18aa 260px, #0b0d18 420px); }}
+.voile {{ position: absolute; left: 0; right: 0; top: {round(voile[0])}px; height: {PH}px;
+  background: linear-gradient(to bottom, transparent, #0b0d18aa {voile[1]}px, #0b0d18 {voile[2]}px); }}
 .bande {{ position: absolute; left: 0; width: {PW}px; top: {round(bande_y)}px; height: {bande_h}px; transform-origin: 0 50%;
   background: linear-gradient(to bottom, {color} 0 {2 * K_NOM}px, {sombre} {2 * K_NOM}px {3 * K_NOM}px, {navy} {3 * K_NOM}px 64%,
     rgb(84,90,140) 64% calc(64% + {K_NOM}px), {sombre} calc(64% + {K_NOM}px));
