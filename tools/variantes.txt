@@ -1,0 +1,4 @@
+# Les variantes de capacites, pour les overlays (tools/overlay_capacite.py, tools/overlay_anime.py) : une capacite
+# derivee d'une autre (meme type, meme icone, meme arme), avec son nom a elle. Sa description va dans tools/descriptions.txt.
+# Une ligne par variante : son identifiant, une tabulation, la capacite de base, une tabulation, son nom.
+marth_sainte_falchion	marth_falchion	Sainte-Falchion

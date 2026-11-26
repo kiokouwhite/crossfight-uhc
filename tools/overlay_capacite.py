@@ -45,9 +45,19 @@ def option(argv, name, default):
 
 
 def capacites(cid):
+    """Le personnage du guide et ses capacites, plus ses variantes (tools/variantes.txt : "<id>\t<capacite de base>\t<nom>"
+    par ligne ; une variante reprend le type, l'icone et l'arme de sa capacite de base, avec son nom a elle)."""
     for lic in json.loads((ROOT / "tools" / "guide_capacites.json").read_text(encoding="utf-8")):
         for ch in lic.get("characters", []):
             if ch["id"] == cid:
+                ch = dict(ch, abilities=list(ch["abilities"]))
+                f = ROOT / "tools" / "variantes.txt"
+                for line in (f.read_text(encoding="utf-8").splitlines() if f.exists() else []):
+                    t = line.split("\t")
+                    if len(t) == 3 and not line.startswith("#") and t[0].startswith(cid + "_"):
+                        base = next((a for a in ch["abilities"] if a["id"] == t[1]), None)
+                        if base:
+                            ch["abilities"].append(dict(base, id=t[0], name=t[2], description=""))
                 return ch
     sys.exit("Personnage inconnu du guide : " + cid)
 
