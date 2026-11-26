@@ -267,7 +267,6 @@ public final class ScoreboardManager {
             case RUNNING -> {
                 lines.add("<white>Temps : <yellow>" + Msg.time(game.elapsedSeconds()));
                 lines.add("<white>PvP : " + (game.isPvpEnabled() ? "<red>actif" : "<green>desactive"));
-                lines.add("<white>Equipes en vie : <yellow>" + plugin.teams().alive().size());
                 lines.add("");
                 Team t = cf.team();
                 if (t != null) {
