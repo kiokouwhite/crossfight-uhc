@@ -103,10 +103,12 @@ public final class TestMode implements Listener {
     /**
      * Remet le terrain de test a neuf : sol d'herbe, couches de terre, murs, lumieres,
      * tout ce qui depasse est efface et toutes les entites (mannequins, items, fleches,
-     * affichages) sont retirees. Les joueurs sont reposes au centre.
+     * affichages) et les lootbox sont retirees. Les joueurs sont reposes au centre.
      */
     public int clearTerrain() {
         com.kiokouwhite.crossfight.util.TempBlocks.restoreAll();
+        // Les lootbox posees (/cf lootbox) disparaissent avec le reste.
+        if (plugin.lootbox() != null) plugin.lootbox().clear();
         int changed = resetGround(world());
         World duo = Bukkit.getWorld(DUO_WORLD);
         if (duo != null) changed += resetPlatform(duo);

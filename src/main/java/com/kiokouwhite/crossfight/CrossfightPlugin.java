@@ -169,6 +169,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
         com.kiokouwhite.crossfight.util.ClientSlots.unrelayAll();
         com.kiokouwhite.crossfight.game.DemoAdversaire.removeAll();
+        // Les lootbox : leurs barrieres invisibles ne doivent pas survivre a leur coffre.
+        if (lootbox != null) lootbox.clear();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (selectionStage != null) selectionStage.closeAll(true);
         if (gameManager != null) gameManager.shutdown();

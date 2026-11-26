@@ -167,9 +167,12 @@ def heads(base: Path):
 
 
 def models(base: Path):
-    """Les modeles 3D d'armes (tools/build_falchion.py, tools/build_armes.py) : "model.<nom>"."""
+    """Les modeles 3D d'armes (tools/build_falchion.py, tools/build_armes.py) et de la lootbox : "model.<nom>"."""
     folder = base / "assets" / NS / "models" / "item"
     out = {"model." + name for name in ("falchion",) if (folder / f"{name}.json").exists()}
+    # La lootbox en 3D (tools/build_lootbox.py) : "model.lootbox".
+    if (folder / "lootbox_parachute.json").exists():
+        out.add("model.lootbox")
     # Les armes retouchees : un modele par arme, plus ses etats (un arc bande : "<nom>_tire_<n>"), qui ne comptent pas.
     if (folder / "arme").is_dir():
         out |= {"model." + f.stem for f in (folder / "arme").glob("*.json") if "_tire_" not in f.stem}

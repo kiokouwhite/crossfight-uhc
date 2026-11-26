@@ -1159,6 +1159,7 @@ influence.yuki_souffrante.e
 influence.yuki_ult.e
 influence.yuki_ult.e.s
 model.falchion
+model.lootbox
 model.yumi_fujin
 music.forge_aegleseeker
 music.forge_anemone

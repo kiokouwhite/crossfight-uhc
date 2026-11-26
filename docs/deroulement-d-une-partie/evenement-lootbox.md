@@ -2,6 +2,11 @@
 
 À la minute `lootbox` (20 par défaut), `lootbox-nombre` coffres apparaissent au hasard dans la bordure. Leurs coordonnées sont annoncées à tous, à la couleur de leur tier, et une colonne de lumière de cette couleur les signale. Chaque Lootbox contient 2 à 8 diamants, 6 à 12 lingots d'or et un objet de son tier ; sa première ouverture est annoncée, elle disparaît une fois vidée, ou au bout de 10 minutes.
 
+Une Lootbox est un coffre sous un parachute rond, à bandes de la couleur de son tier (blanc, cyan, violet, or) et blanches, dont huit suspentes descendent vers le coffre. On l'ouvre d'un clic dessus ; on ne la traverse pas. Le coffre est le coffre violet et blanc du modèle fourni (pack complet) ou le coffre de Minecraft (pack public), sa serrure tournée vers le joueur qui pose la Lootbox avec `/cf lootbox`.
+
+- Fabrication : `python3 tools/build_lootbox.py [--apercu image.png]`. Le parachute (58 pavés, dessin original, teint en jeu) va dans le pack public. Le coffre est converti du modèle Blockbench déposé dans `resourcepack-prive/modeles/lootbox_coffre.gltf` (jamais versionné ; il contient trois coffres, seul le violet et blanc sert) vers le pack complet. L'aperçu met côte à côte le glTF rendu tel quel et le coffre converti, qui doivent être identiques.
+- En jeu (`game/Lootbox.java`) : une barrière invisible occupe le bloc, deux affichages d'objet montrent le coffre (`crossfight:lootbox`) et, un bloc plus haut, le parachute (`crossfight:lootbox_parachute`, teint de la couleur du tier), et une zone d'interaction un peu plus grande que le bloc ouvre l'inventaire de la Lootbox. Les affichages ne sont pas sauvegardés : le tronçon de la Lootbox reste chargé tant qu'elle est là, et les Lootbox sont retirées à l'arrêt du serveur et par `/cf clear` du mode test. Sans le modèle dans le pack (`model.lootbox`), c'est un coffre de Minecraft sans parachute.
+
 Le tier est tiré au sort : tier 1 (45 %), tier 2 (35 %), tier 3 (19 %), tier 4 (1 %). Les objets ont un nombre d'utilisations compté (leur « durabilité », affichée sur l'objet) et, pour certains, un temps de recharge ; ils s'utilisent au clic droit, les armes en frappant.
 
 | Tier | Objets |

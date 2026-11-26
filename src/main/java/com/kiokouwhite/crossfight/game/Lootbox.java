@@ -21,8 +21,8 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Chest;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
@@ -37,9 +37,12 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -60,7 +63,8 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * L'evenement Lootbox : a sa minute (20 par defaut), des coffres apparaissent au hasard sur la map. Chacun a un
+ * L'evenement Lootbox : a sa minute (20 par defaut), des coffres sous un petit parachute apparaissent au hasard
+ * sur la map (le parachute a la couleur du tier, le coffre en bois, en fer ou en or selon le pack). Chacun a un
  * tier tire au sort (45 %, 35 %, 19 %, 1 %) et contient 2 a 8 diamants, 6 a 12 lingots d'or et un objet de son
  * tier : tomes, armes, lances et batons a nombre d'utilisations compte ("durabilite"), certains avec un temps de
  * recharge. Les objets, leurs effets et leurs chiffres sont ceux du document de conception.
@@ -129,10 +133,31 @@ public final class Lootbox implements Listener {
 
     private final CrossfightPlugin plugin;
     private final NamespacedKey itemKey, usesKey;
-    /** Les lootbox posees : leur bloc, leur tier. */
-    private final Map<Block, Integer> boxes = new HashMap<>();
+    /**
+     * Une lootbox posee : son bloc (une barriere invisible, pour qu'on ne la traverse pas), son tier, son coffre en 3D
+     * et, un bloc plus haut, son parachute a la couleur du tier (deux affichages d'objet), la zone qu'on clique pour
+     * l'ouvrir (une interaction) et son contenu.
+     */
+    private static final class Box implements InventoryHolder {
+        final Block block;
+        final int tier;
+        final Inventory inv;
+        ItemDisplay look, chute;
+        Interaction hit;
+        boolean opened;
+
+        Box(Block block, int tier) {
+            this.block = block;
+            this.tier = tier;
+            this.inv = Bukkit.createInventory(this, 27, Msg.mm("<" + TIER_COLOR[tier - 1] + ">Lootbox tier " + tier));
+        }
+
+        @Override public Inventory getInventory() { return inv; }
+    }
+
+    /** Les lootbox posees, par bloc. */
+    private final Map<Block, Box> boxes = new HashMap<>();
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
-    private final java.util.Set<Block> opened = new java.util.HashSet<>();
 
     public Lootbox(CrossfightPlugin plugin) {
         this.plugin = plugin;
@@ -684,30 +709,86 @@ public final class Lootbox implements Listener {
         for (Player p : Bukkit.getOnlinePlayers()) p.playSound(p.getLocation(), Sound.BLOCK_ENDER_CHEST_OPEN, 1f, 0.8f);
     }
 
-    /** Pose une lootbox de ce tier (au hasard si 0) a cet endroit, avec son contenu et sa colonne de lumiere. */
+    /**
+     * Pose une lootbox de ce tier (au hasard si 0) a cet endroit, avec son contenu et sa colonne de lumiere. Son coffre
+     * fait face a la direction opposee au regard de {@code at} (devant un joueur : tourne vers lui).
+     */
     public boolean place(Location at, int tier) {
         if (tier < 1 || tier > 4) tier = rollTier();
         Block b = at.getBlock();
         if (!b.getType().isAir() && !b.isReplaceable()) b = b.getRelative(BlockFace.UP);
-        b.setType(Material.CHEST);
-        if (!(b.getState() instanceof Chest chest)) return false;
-        chest.customName(Msg.mm("<" + TIER_COLOR[tier - 1] + ">Lootbox tier " + tier));
-        chest.update();
-        var inv = ((Chest) b.getState()).getBlockInventory();
+        if (boxes.containsKey(b) || (!b.getType().isAir() && !b.isReplaceable())) return false;
+        b.setType(Material.BARRIER);
+        Box box = new Box(b, tier);
         ThreadLocalRandom r = ThreadLocalRandom.current();
         List<Loot> pool = new ArrayList<>();
         for (Loot l : LOOTS.values()) if (l.tier() == tier) pool.add(l);
         Loot loot = pool.get(r.nextInt(pool.size()));
-        inv.setItem(11, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
-        inv.setItem(13, item(loot.id()));
-        inv.setItem(15, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
+        box.inv.setItem(11, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
+        box.inv.setItem(13, item(loot.id()));
+        box.inv.setItem(15, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
         // Un arc a Infinite a besoin d'une fleche dans l'inventaire.
-        if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) inv.setItem(22, new ItemStack(Material.ARROW));
-        boxes.put(b, tier);
-        beam(b, tier);
-        final Block box = b;
+        if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) box.inv.setItem(22, new ItemStack(Material.ARROW));
+        // Le coffre au centre du bloc (le modele, de 0 a 16 pixels, est centre sur l'affichage), tourne d'un quart de
+        // tour exact. Le devant du coffre (le sud du modele, comme le coffre de Minecraft) se retrouve a l'oppose de la
+        // direction ou regarde l'affichage : regarder comme le joueur le tourne vers lui.
+        Location c = b.getLocation().add(0.5, 0.5, 0.5);
+        c.setYaw(Math.round(at.getYaw() / 90f) * 90f);
+        c.setPitch(0f);
+        box.look = c.getWorld().spawn(c, ItemDisplay.class, d -> {
+            d.setPersistent(false);
+            d.setItemStack(look());
+            d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            d.setViewRange(2f);
+            d.setShadowRadius(0.6f);
+            d.setShadowStrength(0.8f);
+        });
+        // Le parachute, un bloc au-dessus (son modele descend jusqu'au dessus du coffre).
+        ItemStack voile = parachute(tier);
+        if (voile != null) {
+            box.chute = c.getWorld().spawn(c.clone().add(0, 1, 0), ItemDisplay.class, d -> {
+                d.setPersistent(false);
+                d.setItemStack(voile);
+                d.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+                d.setViewRange(2f);
+            });
+        }
+        // La zone a cliquer depasse un peu du bloc : le viseur la touche avant la barriere.
+        box.hit = c.getWorld().spawn(b.getLocation().add(0.5, -0.025, 0.5), Interaction.class, i -> {
+            i.setPersistent(false);
+            i.setInteractionWidth(1.05f);
+            i.setInteractionHeight(1.05f);
+            i.setResponsive(true);
+        });
+        // Les affichages ne sont pas sauvegardes : le tronçon reste charge tant que la lootbox est la.
+        b.getChunk().addPluginChunkTicket(plugin);
+        boxes.put(b, box);
+        beam(box);
         Bukkit.getScheduler().runTaskLater(plugin, () -> remove(box), BOX_LIFE);
         return true;
+    }
+
+    /** Le coffre en 3D (le coffre de Minecraft si le pack ne l'a pas). */
+    private static ItemStack look() {
+        ItemStack it = new ItemStack(Material.CHEST);
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("model.lootbox")) return it;
+        ItemMeta meta = it.getItemMeta();
+        meta.setItemModel(new NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "lootbox"));
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    /** Le parachute teint de la couleur du tier, ou null si le pack ne l'a pas. */
+    private static ItemStack parachute(int tier) {
+        if (!com.kiokouwhite.crossfight.util.Sounds.has("model.lootbox")) return null;
+        ItemStack it = new ItemStack(Material.PAPER);
+        ItemMeta meta = it.getItemMeta();
+        meta.setItemModel(new NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "lootbox_parachute"));
+        var cmd = meta.getCustomModelDataComponent();
+        cmd.setColors(List.of(TIER_BEAM[tier - 1]));
+        meta.setCustomModelDataComponent(cmd);
+        it.setItemMeta(meta);
+        return it;
     }
 
     /** Le contenu d'une lootbox de ce tier, donne directement a un joueur (recompense de Regna Ferox). */
@@ -720,50 +801,90 @@ public final class Lootbox implements Listener {
     }
 
     /** La colonne de lumiere qui signale une lootbox de loin, a la couleur de son tier. */
-    private void beam(Block b, int tier) {
-        Particle.DustOptions dust = new Particle.DustOptions(TIER_BEAM[tier - 1], 2.2f);
+    private void beam(Box box) {
+        Particle.DustOptions dust = new Particle.DustOptions(TIER_BEAM[box.tier - 1], 2.2f);
         new BukkitRunnable() {
             @Override public void run() {
-                if (!boxes.containsKey(b) || b.getType() != Material.CHEST) { boxes.remove(b); cancel(); return; }
-                Location base = b.getLocation().add(0.5, 1, 0.5);
-                for (int y = 0; y < 40; y += 2) b.getWorld().spawnParticle(Particle.DUST, base.clone().add(0, y, 0), 1, 0.05, 0.3, 0.05, 0, dust, true);
+                if (boxes.get(box.block) != box) { cancel(); return; }
+                // Son coffre ou sa barriere effaces par autre chose (le nettoyage du terrain de test) : elle disparait.
+                if (box.block.getType() != Material.BARRIER || box.look == null || !box.look.isValid() || box.hit == null || !box.hit.isValid()
+                        || (box.chute != null && !box.chute.isValid())) {
+                    remove(box);
+                    cancel();
+                    return;
+                }
+                // Au-dessus du parachute.
+                Location base = box.block.getLocation().add(0.5, 3.0, 0.5);
+                for (int y = 0; y < 40; y += 2) base.getWorld().spawnParticle(Particle.DUST, base.clone().add(0, y, 0), 1, 0.05, 0.3, 0.05, 0, dust, true);
             }
         }.runTaskTimer(plugin, 0L, 8L);
     }
 
-    private void remove(Block b) {
-        opened.remove(b);
-        if (boxes.remove(b) == null || b.getType() != Material.CHEST) return;
-        if (b.getState() instanceof Chest chest) chest.getBlockInventory().clear();
-        b.setType(Material.AIR);
+    private void remove(Box box) {
+        if (!boxes.remove(box.block, box)) return;
+        for (var viewer : new ArrayList<>(box.inv.getViewers())) viewer.closeInventory();
+        box.inv.clear();
+        if (box.look != null) box.look.remove();
+        if (box.chute != null) box.chute.remove();
+        if (box.hit != null) box.hit.remove();
+        if (box.block.getType() == Material.BARRIER) box.block.setType(Material.AIR);
+        // Le tronçon peut se decharger s'il n'a plus d'autre lootbox.
+        if (boxes.keySet().stream().noneMatch(o -> o.getWorld() == box.block.getWorld() && (o.getX() >> 4) == (box.block.getX() >> 4) && (o.getZ() >> 4) == (box.block.getZ() >> 4)))
+            box.block.getChunk().removePluginChunkTicket(plugin);
     }
 
-    /** Fin de partie : plus de lootbox ni de temps de recharge. */
+    /** Fin de partie (ou arret du serveur) : plus de lootbox ni de temps de recharge. */
     public void clear() {
-        for (Block b : new ArrayList<>(boxes.keySet())) remove(b);
+        for (Box box : new ArrayList<>(boxes.values())) remove(box);
         cooldowns.clear();
+    }
+
+    /** Un clic sur le coffre l'ouvre (la zone a cliquer, ou la barriere si le viseur la touche). */
+    @EventHandler(ignoreCancelled = true)
+    public void onClickBox(PlayerInteractEntityEvent e) {
+        if (e.getHand() != EquipmentSlot.HAND || !(e.getRightClicked() instanceof Interaction i)) return;
+        for (Box box : boxes.values()) {
+            if (box.hit != null && box.hit.getUniqueId().equals(i.getUniqueId())) {
+                e.setCancelled(true);
+                e.getPlayer().openInventory(box.inv);
+                return;
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onClickBarrier(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getHand() != EquipmentSlot.HAND || e.getClickedBlock() == null) return;
+        Box box = boxes.get(e.getClickedBlock());
+        if (box == null) return;
+        e.setCancelled(true);
+        e.getPlayer().openInventory(box.inv);
     }
 
     @EventHandler
     public void onOpen(InventoryOpenEvent e) {
-        if (!(e.getInventory().getHolder() instanceof Chest chest) || !(e.getPlayer() instanceof Player p)) return;
-        Integer tier = boxes.get(chest.getBlock());
-        if (tier == null) return;
+        if (!(e.getInventory().getHolder() instanceof Box box) || !(e.getPlayer() instanceof Player p)) return;
+        Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
+        p.getWorld().playSound(at, Sound.BLOCK_CHEST_OPEN, 0.6f, 1f);
         // La premiere ouverture est annoncee.
-        if (!opened.add(chest.getBlock())) return;
-        Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[tier - 1] + ">Lootbox tier " + tier + "</" + TIER_COLOR[tier - 1] + "> !");
-        p.getWorld().playSound(chest.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+        if (box.opened) return;
+        box.opened = true;
+        Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[box.tier - 1] + ">Lootbox tier " + box.tier + "</" + TIER_COLOR[box.tier - 1] + "> !");
+        p.getWorld().playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
     }
 
     /** Videe, la lootbox disparait. */
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
-        if (!(e.getInventory().getHolder() instanceof Chest chest) || !boxes.containsKey(chest.getBlock())) return;
-        if (e.getInventory().isEmpty()) Bukkit.getScheduler().runTask(plugin, () -> remove(chest.getBlock()));
+        if (!(e.getInventory().getHolder() instanceof Box box) || boxes.get(box.block) != box) return;
+        if (e.getInventory().isEmpty()) Bukkit.getScheduler().runTask(plugin, () -> remove(box));
+        else box.block.getWorld().playSound(box.block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_CHEST_CLOSE, 0.6f, 1f);
     }
 
+    /** La barriere cassee (en creatif) : la lootbox disparait avec. */
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent e) {
-        boxes.remove(e.getBlock());
+        Box box = boxes.get(e.getBlock());
+        if (box != null) Bukkit.getScheduler().runTask(plugin, () -> remove(box));
     }
 }
