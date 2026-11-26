@@ -15,8 +15,9 @@ Toute la scene est penchee (PENTE degres) : un plateau plus grand que l'ecran, t
     tools/fond_concorde.md) : des milliers de particules montent en colonne avec le personnage, une onde de choc part a
     son arrivee et remet leurs phases a zero, puis elles s'accordent (modele de Kuramoto) en une pulsation commune et se
     rangent sur trois orbites d'un halo, ponctue du signe de sa voie qui tourne sur lui-meme.
-  - Le personnage, cadre sur son visage (plus grand que sur sa carte : CARTE), surgit du bas de l'ecran, s'arrete net
-    (eclair, secousse) puis respire doucement.
+  - Le personnage, cadre sur son visage (plus grand que sur sa carte : CARTE), surgit du bas de l'ecran en silhouette
+    blanche et s'arrete net ; la colonne de particules monte encore un instant, puis l'explosion (EXPLOSION secondes :
+    eclair, secousse, onde de choc) lui rend ses couleurs, et il respire doucement.
   - En bas, le cartouche du HUD se deplie et le nom y tombe lettre par lettre (police de titre du HUD), puis le surnom
     apparait dans un cartouche plus petit dessous (meme police) ; les deux flottent (ombre, lueur, leger balancement).
     --bande : la bande de nom des cartes traverse l'ecran sous les cartouches ; la scene et la video s'appellent alors
@@ -47,9 +48,10 @@ PENTE = -6                 # la scene penchee, en degres (negatif : elle monte v
 PW, PH = 2200, 1400        # le plateau tourne, plus grand que l'ecran pour en couvrir les coins
 OX, OY = (W - PW) // 2, (H - PH) // 2
 PIXEL = 8                  # un pixel de dessin du portail = 8 pixels du plateau
-VISAGE = (0.5, 0.34)       # ou se place le visage du personnage, en fraction de l'ecran
+VISAGE = (0.5, 0.28)       # ou se place le visage du personnage, en fraction de l'ecran
 CARTE = 1.5                # l'illustration, 1,5 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
 NOM_Y = 0.79               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
+EXPLOSION = 1.7            # l'explosion qui rend ses couleurs au personnage (il s'est pose a 1,2 s)
 K_NOM, K_SURNOM = 8, 4     # un pixel du HUD = 8 (nom) ou 4 (surnom) pixels a l'ecran
 
 
@@ -160,6 +162,10 @@ def main():
     perso = art.crop(box)
     perso = perso.resize((round(perso.width * s), round(perso.height * s)), Image.LANCZOS)
     perso.save(out / f"{cid}.png")
+    # Sa silhouette blanche, avant l'explosion.
+    blanc = Image.new("RGBA", perso.size, (255, 255, 255, 255))
+    blanc.putalpha(perso.getchannel("A"))
+    blanc.save(out / f"{cid}_blanc.png")
     cx, cy = plateau(*VISAGE)
     p_left, p_top = round(cx - vx * s), round(cy - vy * s)
 
@@ -189,7 +195,7 @@ def main():
                    f'top:{round(ny - plaque.height / 2)}px">')
     x0, y0 = PW / 2 - nom_w / 2, ny - nom_h / 2 - K_NOM
     plaque_html += "".join(
-        f'<img class="lettre" src="nom_{n}.png" style="left:{round(x0 + x)}px;top:{round(y0)}px;animation-delay:{1.5 + n * 0.08:.2f}s">'
+        f'<img class="lettre" src="nom_{n}.png" style="left:{round(x0 + x)}px;top:{round(y0)}px;animation-delay:{EXPLOSION + 0.3 + n * 0.08:.2f}s">'
         for n, (x, im) in enumerate(nom_lettres))
     bande_y, bande_h = ny - 0.42 * plaque.height, round(0.84 * plaque.height)
     if surnom:
@@ -218,38 +224,45 @@ html, body {{ margin: 0; width: {W}px; height: {H}px; overflow: hidden; backgrou
 #fond, #fond canvas {{ position: absolute; inset: 0; }}
 .monte {{ position: absolute; left: {p_left}px; top: {p_top}px; width: {perso.width}px; height: {perso.height}px; animation: monte {D}s linear both; }}
 @keyframes monte {{
-  0%, {pc(0.3)} {{ transform: translateY({PH}px); filter: blur(10px) brightness(1.6); animation-timing-function: cubic-bezier(.15,.85,.25,1); }}
-  {pc(1.2)} {{ transform: translateY(-34px); filter: blur(0) brightness(1.6); }}
-  {pc(1.38)} {{ transform: translateY(8px); filter: brightness(1.3); }}
+  0%, {pc(0.3)} {{ transform: translateY({PH}px); filter: blur(10px); animation-timing-function: cubic-bezier(.15,.85,.25,1); }}
+  {pc(1.2)} {{ transform: translateY(-34px); filter: blur(0); }}
+  {pc(1.38)} {{ transform: translateY(8px); filter: none; }}
   {pc(1.55)}, 100% {{ transform: none; filter: none; }} }}
-.perso {{ width: 100%; height: 100%; display: block; transform-origin: {round(vx * s)}px {round(vy * s)}px; animation: respire {D}s ease-in-out both; }}
-@keyframes respire {{ 0%, {pc(1.5)} {{ transform: none; }} 100% {{ transform: scale(1.04); }} }}
+.respire {{ position: absolute; inset: 0; transform-origin: {round(vx * s)}px {round(vy * s)}px; animation: respire {D}s ease-in-out both; }}
+@keyframes respire {{ 0%, {pc(1.2)} {{ transform: none; }} {pc(EXPLOSION - 0.02)} {{ transform: scale(1.012); }}
+  {pc(EXPLOSION + 0.08)} {{ transform: scale(1.03); }} {pc(EXPLOSION + 0.35)} {{ transform: none; animation-timing-function: ease-in-out; }} 100% {{ transform: scale(1.04); }} }}
+.perso, .blanc {{ position: absolute; inset: 0; width: 100%; height: 100%; display: block; }}
+.perso {{ animation: couleurs {D}s linear both; }}
+@keyframes couleurs {{ 0%, {pc(EXPLOSION)} {{ filter: brightness(2.2); }} {pc(EXPLOSION + 0.45)}, 100% {{ filter: brightness(1); }} }}
+.blanc {{ filter: drop-shadow(0 0 14px #fff) drop-shadow(0 0 40px {color}); animation: blanc {D}s linear both; }}
+@keyframes blanc {{ 0%, {pc(EXPLOSION)} {{ opacity: 1; }} {pc(EXPLOSION + 0.28)}, 100% {{ opacity: 0; }} }}
 .voile {{ position: absolute; left: 0; right: 0; top: {round(voile[0])}px; height: {PH}px;
   background: linear-gradient(to bottom, transparent, #0b0d18aa {voile[1]}px, #0b0d18 {voile[2]}px); }}
 .bande {{ position: absolute; left: 0; width: {PW}px; top: {round(bande_y)}px; height: {bande_h}px; transform-origin: 0 50%;
   background: linear-gradient(to bottom, {color} 0 {2 * K_NOM}px, {sombre} {2 * K_NOM}px {3 * K_NOM}px, {navy} {3 * K_NOM}px 64%,
     rgb(84,90,140) 64% calc(64% + {K_NOM}px), {sombre} calc(64% + {K_NOM}px));
   box-shadow: 0 0 40px {color}66; animation: bande {D}s linear both; }}
-@keyframes bande {{ 0%, {pc(1.22)} {{ transform: scaleX(0); animation-timing-function: cubic-bezier(.6,0,1,1); }} {pc(1.45)}, 100% {{ transform: none; }} }}
+@keyframes bande {{ 0%, {pc(EXPLOSION + 0.02)} {{ transform: scaleX(0); animation-timing-function: cubic-bezier(.6,0,1,1); }} {pc(EXPLOSION + 0.25)}, 100% {{ transform: none; }} }}
 .plaque {{ position: absolute; animation: plaque {D}s linear both; }}
-@keyframes plaque {{ 0%, {pc(1.3)} {{ transform: scaleX(0); opacity: 0; }} {pc(1.42)} {{ transform: scaleX(1.12); opacity: 1; }} {pc(1.52)}, 100% {{ transform: none; opacity: 1; }} }}
+@keyframes plaque {{ 0%, {pc(EXPLOSION + 0.1)} {{ transform: scaleX(0); opacity: 0; }} {pc(EXPLOSION + 0.22)} {{ transform: scaleX(1.12); opacity: 1; }} {pc(EXPLOSION + 0.32)}, 100% {{ transform: none; opacity: 1; }} }}
 .lettre {{ position: absolute; opacity: 0; animation: lettre 0.42s cubic-bezier(.2,.9,.3,1.3) both; }}
 @keyframes lettre {{ from {{ opacity: 0; transform: translateY(-110px) scale(1.5); filter: blur(8px); }} to {{ opacity: 1; transform: none; filter: none; }} }}
 .surnom {{ position: absolute; animation: surnom {D}s ease-out both; }}
 .surnom img {{ position: absolute; left: 0; top: 0; }}
-@keyframes surnom {{ 0%, {pc(2.05)} {{ opacity: 0; transform: translateY(-30px) scaleX(.4); }} {pc(2.4)} {{ opacity: 1; transform: scaleX(1.06); }} {pc(2.5)}, 100% {{ opacity: 1; transform: none; }} }}
+@keyframes surnom {{ 0%, {pc(EXPLOSION + 0.85)} {{ opacity: 0; transform: translateY(-30px) scaleX(.4); }} {pc(EXPLOSION + 1.2)} {{ opacity: 1; transform: scaleX(1.06); }} {pc(EXPLOSION + 1.3)}, 100% {{ opacity: 1; transform: none; }} }}
 .flotte {{ position: absolute; inset: 0; animation: flotte 1.7s ease-in-out infinite alternate; }}
 @keyframes flotte {{ from {{ transform: translateY(-6px); }} to {{ transform: translateY(6px); }} }}
 .flotte .plaque, .flotte .surnom img:first-child {{ filter: drop-shadow(0 {2 * K_NOM}px 0 rgba(8,9,18,.45)) drop-shadow(0 0 26px {color}aa); }}
 .logo {{ position: absolute; left: 56px; top: 44px; width: 250px; animation: logo {D}s ease-out both; }}
 @keyframes logo {{ 0%, {pc(0.5)} {{ opacity: 0; transform: translateX(-30px); }} {pc(1.1)}, 100% {{ opacity: .95; transform: none; }} }}
 .flash {{ position: absolute; inset: 0; background: radial-gradient(ellipse 55% 65% at 50% 55%, #fff 0%, {color}aa 40%, transparent 75%); mix-blend-mode: screen; opacity: 0; animation: flash {D}s linear both; }}
-@keyframes flash {{ 0%, {pc(1.19)} {{ opacity: 0; }} {pc(1.2)} {{ opacity: .5; }} {pc(1.45)}, 100% {{ opacity: 0; }} }}
-@keyframes secousse {{ 0%, {pc(1.19)} {{ transform: none; }} {pc(1.21)} {{ transform: translate(0, 14px); }} {pc(1.25)} {{ transform: translate(-8px, -9px); }}
-  {pc(1.3)} {{ transform: translate(5px, 5px); }} {pc(1.36)} {{ transform: translate(-2px, -2px); }} {pc(1.42)}, 100% {{ transform: none; }} }}
+@keyframes flash {{ 0%, {pc(EXPLOSION - 0.01)} {{ opacity: 0; }} {pc(EXPLOSION)} {{ opacity: .6; }} {pc(EXPLOSION + 0.3)}, 100% {{ opacity: 0; }} }}
+@keyframes secousse {{ 0%, {pc(1.19)} {{ transform: none; }} {pc(1.21)} {{ transform: translate(0, 7px); }} {pc(1.26)} {{ transform: none; }}
+  {pc(EXPLOSION - 0.01)} {{ transform: none; }} {pc(EXPLOSION + 0.01)} {{ transform: translate(0, 16px); }} {pc(EXPLOSION + 0.05)} {{ transform: translate(-10px, -10px); }}
+  {pc(EXPLOSION + 0.1)} {{ transform: translate(6px, 6px); }} {pc(EXPLOSION + 0.16)} {{ transform: translate(-3px, -2px); }} {pc(EXPLOSION + 0.22)}, 100% {{ transform: none; }} }}
 </style></head><body><div id="scene"><div id="plateau">
 <div id="fond"></div>
-<div class="monte"><img class="perso" src="{cid}.png"></div>
+<div class="monte"><div class="respire"><img class="perso" src="{cid}.png"><img class="blanc" src="{cid}_blanc.png"></div></div>
 <div class="voile"></div>
 {'<div class="flotte">' + plaque_html + '</div>' if flottant else '<div class="bande"></div>' + plaque_html}
 </div>
@@ -267,7 +280,7 @@ Promise.all([charge('portail.png'), {f"charge('{signe}')" if signe else "null"}]
     p.createCanvas({PW}, {PH}).parent('fond');
     p.noLoop();
     const c = new Concorde(p, {{
-      graine: {graine}, couleur: '{color}', particules: 3400, eclats: 8, lueur: 0.5,
+      graine: {graine}, couleur: '{color}', particules: 3400, eclats: 8, lueur: 0.5, impact: {EXPLOSION},
       centre: [0.5, {(cy + 0.08 * H) / PH:.3f}], demiAxes: [0.37, 0.33], choc: [0.5, {(cy + 0.12 * H) / PH:.3f}],
       portail: {{ image: portail, images: {images}, pas: 0.1, opacite: 0.9 }}, signe, tailleSigne: 130 }});
     window.avancer = t => {{ c.avancer(t); c.dessiner(); }};
