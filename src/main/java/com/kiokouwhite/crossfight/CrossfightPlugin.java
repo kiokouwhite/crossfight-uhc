@@ -69,6 +69,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         var pm = getServer().getPluginManager();
         pm.registerEvents(abilityEngine, this);
         pm.registerEvents(new ConnectionListener(this), this);
+        pm.registerEvents(new com.kiokouwhite.crossfight.game.DemoAdversaire(), this);
         backpack = new com.kiokouwhite.crossfight.listener.Backpack(this);
         pm.registerEvents(backpack, this);
         pm.registerEvents(new com.kiokouwhite.crossfight.listener.ArmorHider(this), this);
@@ -167,6 +168,7 @@ public final class CrossfightPlugin extends JavaPlugin {
         if (rhythm != null) rhythm.reset();
         com.kiokouwhite.crossfight.util.Puppet.removeAll();
         com.kiokouwhite.crossfight.util.ClientSlots.unrelayAll();
+        com.kiokouwhite.crossfight.game.DemoAdversaire.removeAll();
         if (testMode != null) { testMode.save(); testMode.thirdPerson().stop(); }
         if (selectionStage != null) selectionStage.closeAll(true);
         if (gameManager != null) gameManager.shutdown();

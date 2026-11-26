@@ -158,6 +158,8 @@ public final class Marth extends Character {
                     if (t % 5 == 0) p.getWorld().spawnParticle(Particle.FIREWORK, c.clone().add(0, 0.6, 0), 3, 0.2, 0.2, 0.2, 0.02);
                 }
             }.runTaskTimer(plugin(), 0L, 1L);
+            // /cf demo contre : l'adversaire de demonstration frappe aussitot, pour filmer la riposte.
+            com.kiokouwhite.crossfight.game.DemoAdversaire.contre(p);
             return true;
         }
 

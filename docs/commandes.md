@@ -37,6 +37,7 @@
 | `/cf clear` | Remettre le terrain de test à neuf (blocs, entités, mannequins) |
 | `/cf mannequin adversaire <perso>` | Un mannequin qui incarne le personnage : ses capacités offensives sont données en items, et les activer les lance depuis le mannequin contre toi |
 | `/cf mannequin [nb] [attaque\|allie]` | Mannequins d'entraînement (ennemis, agressifs ou alliés), `/cf mannequin clear` pour les retirer |
+| `/cf demo contre\|falchion` | Un adversaire de démonstration pour filmer une capacité (admin ; la même commande le retire) : un mannequin à l'allure de joueur, skin de personnage au hasard, épée en fer, devant soi. `contre` (en Marth) : il frappe dès que le Contre est lancé, dans sa seconde, prend la riposte, puis revient se placer devant soi. `falchion` : immobile tant qu'on ne le frappe pas ; frappé, il poursuit et frappe (un cœur par coup, quelle que soit l'armure) jusqu'à 5 cœurs pile, puis s'arrête ; le frapper de nouveau le relance (`game/DemoAdversaire.java`) |
 | `/cf ult [joueur] <pourcent>` | Régler la jauge d'Ultime (test) |
 | `/cf heal` | Se soigner (test) |
 | `/cf ally <testeur>` | Rejoindre l'équipe d'un autre testeur en mode test |

@@ -58,6 +58,25 @@ public final class CfCommand implements TabExecutor {
                 } else if (what.equals("oui") || what.equals("non")) plugin.ferox().answer(sp, what.equals("oui"));
                 else Msg.send(sp, "<yellow>/cf ferox oui|non");
             }
+            case "demo" -> {
+                // /cf demo contre|falchion (admin) : un adversaire au skin aleatoire, pour filmer une capacite (game/DemoAdversaire) :
+                // contre, il frappe des que Marth lance son Contre ; falchion, il attaque des qu'on le frappe et s'arrete a 5 coeurs.
+                // La meme commande le retire.
+                if (!(sender instanceof Player sp)) return true;
+                if (!sender.hasPermission("crossfight.admin")) { Msg.send(sender, "<red>Tu n'as pas la permission."); return true; }
+                String what = args.length > 1 ? args[1].toLowerCase() : "";
+                if (!com.kiokouwhite.crossfight.game.DemoAdversaire.MODES.contains(what)) { Msg.send(sp, "<yellow>/cf demo contre|falchion"); return true; }
+                var cfp = plugin.players().get(sp);
+                if (what.equals("contre") && (cfp == null || cfp.character() == null || !cfp.character().id().equals("marth"))) {
+                    Msg.send(sp, "<red>Incarne Marth d'abord (en mode test : /cf change marth).");
+                    return true;
+                }
+                if (com.kiokouwhite.crossfight.game.DemoAdversaire.toggle(sp, what))
+                    Msg.send(sp, what.equals("contre")
+                            ? "<green>Un adversaire t'attend : lance le Contre, il frappera aussitot. <gray>/cf demo contre pour le retirer."
+                            : "<green>Un adversaire t'attend : frappe-le et il t'attaquera jusqu'a ce que tu n'aies plus que 5 coeurs. <gray>/cf demo falchion pour le retirer.");
+                else Msg.send(sp, "<gray>Adversaire de demonstration retire.");
+            }
             case "hud" -> {
                 // /cf hud : le menu des reglages d'affichage (passifs, actif, effets des autres, leurs textes).
                 // /cf hud demo (admin) : montre les cartes de droite (allie, adversaire) et l'actif de gauche, pour essai.
@@ -989,7 +1008,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox", "passif", "scoreboard", "hud"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "rythme", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "annonce", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "rythme", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "annonce", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue", "demo"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {
@@ -1030,6 +1049,7 @@ public final class CfCommand implements TabExecutor {
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre", "omori"));
                 case "passif", "passifs", "scoreboard", "tableau" -> out.addAll(List.of("show", "hide"));
                 case "hud" -> { if (sender.hasPermission("crossfight.admin")) out.add("demo"); }
+                case "demo" -> { if (sender.hasPermission("crossfight.admin")) out.addAll(com.kiokouwhite.crossfight.game.DemoAdversaire.MODES); }
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
