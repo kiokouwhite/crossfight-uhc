@@ -49,6 +49,7 @@ PW, PH = 2200, 1400        # le plateau tourne, plus grand que l'ecran pour en c
 OX, OY = (W - PW) // 2, (H - PH) // 2
 PIXEL = 8                  # un pixel de dessin du portail = 8 pixels du plateau
 VISAGE = (0.5, 0.23)       # ou se place le visage du personnage, en fraction de l'ecran
+HALO = 0.50                # le centre du halo (ses orbites et les signes de la voie), en fraction de la hauteur de l'ecran
 CARTE = 1.5                # l'illustration, 1,5 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
 NOM_Y = 0.79               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
 EXPLOSION = 1.7            # l'explosion qui rend ses couleurs au personnage (il s'est pose a 1,2 s)
@@ -281,7 +282,7 @@ Promise.all([charge('portail.png'), {f"charge('{signe}')" if signe else "null"}]
     p.noLoop();
     const c = new Concorde(p, {{
       graine: {graine}, couleur: '{color}', particules: 3400, eclats: 8, lueur: 0.5, impact: {EXPLOSION},
-      centre: [0.5, {(cy + 0.08 * H) / PH:.3f}], demiAxes: [0.37, 0.33], choc: [0.5, {(cy + 0.12 * H) / PH:.3f}],
+      centre: [0.5, {plateau(0.5, HALO)[1] / PH:.3f}], demiAxes: [0.37, 0.29], choc: [0.5, {(cy + 0.12 * H) / PH:.3f}],
       portail: {{ image: portail, images: {images}, pas: 0.1, opacite: 0.9 }}, signe, tailleSigne: 130 }});
     window.avancer = t => {{ c.avancer(t); c.dessiner(); }};
     window.avancer(0);
