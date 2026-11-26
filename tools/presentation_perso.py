@@ -90,7 +90,8 @@ def plateau(fx, fy):
 
 def lettres(text, police, taille, k, bs):
     """Le texte dans une police en pixels du HUD, une image par lettre (creme, son ombre un pixel plus bas, comme sur
-    les cartes), agrandie k fois en gros pixels nets. Rend [(x, image)], la largeur et la hauteur du tout."""
+    les cartes), agrandie k fois en gros pixels nets. Rend [(x, image)], la largeur et la hauteur du tout, et le milieu
+    du corps des capitales (sans accent ni ombre) depuis le haut des images : c'est lui qu'on centre dans un cartouche."""
     font = ImageFont.truetype(str(police), taille)
 
     def dessine(s):
@@ -111,7 +112,24 @@ def lettres(text, police, taille, k, bs):
         piece = im.crop((b[0], box[1], b[2], box[3]))
         x = round(font.getlength(text[:i])) + b[0] - box[0]
         out.append((x * k, piece.resize((piece.width * k, piece.height * k), Image.NEAREST)))
-    return out, (box[2] - box[0]) * k, (box[3] - box[1]) * k
+    corps = Image.new("RGBA", (40, taille * 2), (0, 0, 0, 0))
+    d = ImageDraw.Draw(corps)
+    d.fontmode = "1"
+    d.text((2, 2), "M", font=font, fill=(255, 255, 255, 255))
+    cb = corps.getbbox()
+    return out, (box[2] - box[0]) * k, (box[3] - box[1]) * k, ((cb[1] + cb[3]) / 2 - box[1]) * k
+
+
+def interieur(bs, nom, k):
+    """Le milieu du fond d'un cartouche du HUD (ses rangees de la couleur de son centre, sans le cadre), depuis son haut."""
+    banner = bs.ui_sprite("Title banners", nom)
+    px, x, y = banner.load(), banner.width // 2, banner.height // 2
+    fond, haut, bas = px[x, y], y, y
+    while haut > 0 and px[x, haut - 1] == fond:
+        haut -= 1
+    while bas < banner.height - 1 and px[x, bas + 1] == fond:
+        bas += 1
+    return (haut + bas + 1) / 2 * k
 
 
 def cartouche(bs, nom, largeur, marge, k):
@@ -186,7 +204,7 @@ def main():
             signe = "signe.png"
 
     # Le nom et le surnom, dans les cartouches et les polices du HUD.
-    nom_lettres, nom_w, nom_h = lettres(name.upper(), bs.UI_TITLE, 17, K_NOM, bs)
+    nom_lettres, nom_w, nom_h, nom_m = lettres(name.upper(), bs.UI_TITLE, 17, K_NOM, bs)
     plaque = cartouche(bs, "BannerMedium_01B", nom_w, 20, K_NOM)
     plaque.save(out / "plaque_nom.png")
     for n, (x, im) in enumerate(nom_lettres):
@@ -194,13 +212,13 @@ def main():
     ny = plateau(0.5, NOM_Y)[1]
     plaque_html = (f'<img class="plaque" src="plaque_nom.png" style="left:{round(PW / 2 - plaque.width / 2)}px;'
                    f'top:{round(ny - plaque.height / 2)}px">')
-    x0, y0 = PW / 2 - nom_w / 2, ny - nom_h / 2 - K_NOM
+    x0, y0 = PW / 2 - nom_w / 2, ny - plaque.height / 2 + interieur(bs, "BannerMedium_01B", K_NOM) - nom_m
     plaque_html += "".join(
         f'<img class="lettre" src="nom_{n}.png" style="left:{round(x0 + x)}px;top:{round(y0)}px;animation-delay:{EXPLOSION + 0.3 + n * 0.08:.2f}s">'
         for n, (x, im) in enumerate(nom_lettres))
     bande_y, bande_h = ny - 0.42 * plaque.height, round(0.84 * plaque.height)
     if surnom:
-        sur_lettres, sur_w, sur_h = lettres(surnom, bs.UI_TITLE, 17, K_SURNOM, bs)
+        sur_lettres, sur_w, sur_h, sur_m = lettres(surnom, bs.UI_TITLE, 17, K_SURNOM, bs)
         petite = cartouche(bs, "BannerMedium_01B", sur_w, 16, K_SURNOM)
         petite.save(out / "plaque_surnom.png")
         sy = ny + plaque.height / 2 + petite.height * 0.12
@@ -210,7 +228,7 @@ def main():
         mot.save(out / "surnom.png")
         plaque_html += (f'<div class="surnom" style="left:{round(PW / 2 - petite.width / 2)}px;top:{round(sy - petite.height / 2)}px;'
                         f'width:{petite.width}px;height:{petite.height}px"><img src="plaque_surnom.png">'
-                        f'<img src="surnom.png" style="left:{round(petite.width / 2 - sur_w / 2)}px;top:{round(petite.height / 2 - sur_h / 2 - K_SURNOM)}px"></div>')
+                        f'<img src="surnom.png" style="left:{round(petite.width / 2 - sur_w / 2)}px;top:{round(interieur(bs, "BannerMedium_01B", K_SURNOM) - sur_m)}px"></div>')
 
     # Le voile sombre du bas : sous les cartouches flottants, il ne descend que sous le nom pour laisser voir le buste.
     voile = (ny - 60, 320, 560) if flottant else (bande_y - 260, 260, 420)
