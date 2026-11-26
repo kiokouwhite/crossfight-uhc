@@ -1146,6 +1146,11 @@ voice.neon_ult 1950
 voice.neon_vitesse 750
 voice.neon_vitesse_vide 930
 voice.neon_voie 980
+voice.remi_dash 610
+voice.remi_electricite 1170
+voice.remi_electrocution 2460
+voice.remi_selection 1570
+voice.remi_ult 3080
 voice.ruby_crescent 937
 voice.ruby_duo_blake 927
 voice.ruby_duo_weiss 1019

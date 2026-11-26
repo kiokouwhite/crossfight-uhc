@@ -1428,6 +1428,11 @@ voice.neon_ult
 voice.neon_vitesse
 voice.neon_vitesse_vide
 voice.neon_voie
+voice.remi_dash
+voice.remi_electricite
+voice.remi_electrocution
+voice.remi_selection
+voice.remi_ult
 voice.ruby_crescent
 voice.ruby_duo_blake
 voice.ruby_duo_weiss
