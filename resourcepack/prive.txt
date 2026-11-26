@@ -221,6 +221,7 @@ font.espace_blanc
 font.hud_texte
 font.hud_titre
 font.icones
+font.lootbox
 font.menu
 font.panneau_omori
 font.quete

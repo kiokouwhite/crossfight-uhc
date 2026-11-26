@@ -8,6 +8,7 @@ import com.kiokouwhite.crossfight.util.Items;
 import com.kiokouwhite.crossfight.util.Msg;
 import com.kiokouwhite.crossfight.util.TempBlocks;
 import com.kiokouwhite.crossfight.util.Weapons;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -35,7 +36,9 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -144,16 +147,36 @@ public final class Lootbox implements Listener {
         final Inventory inv;
         ItemDisplay look, chute;
         Interaction hit;
-        boolean opened;
+        /** FERMEE jusqu'a la premiere ouverture, ROULETTE pendant la roulette, OUVERTE ensuite (on peut se servir). */
+        int etat = FERMEE;
+        /** Le contenu (case, objet), devoile a la fin de la roulette. */
+        final Map<Integer, ItemStack> prix = new LinkedHashMap<>();
+        /** Les objets du tier, qui defilent dans la roulette. */
+        final List<String> pool = new ArrayList<>();
+        /** Le tier dont la fenetre a la couleur (pendant la roulette, elle passe par les quatre). */
+        int couleur;
 
         Box(Block block, int tier) {
             this.block = block;
             this.tier = tier;
+            this.couleur = tier;
             this.inv = Bukkit.createInventory(this, 27, Msg.mm("<" + TIER_COLOR[tier - 1] + ">Lootbox tier " + tier));
         }
 
         @Override public Inventory getInventory() { return inv; }
     }
+
+    private static final int FERMEE = 0, ROULETTE = 1, OUVERTE = 2;
+    /** La roulette : la rangee du milieu du coffre (cases 9 a 17), l'objet gagne s'arrete dans celle du centre. */
+    private static final int BANDE = 9, CENTRE = 13;
+    /** Le nombre de crans de la roulette ; l'attente entre deux crans monte de 0 a ATTENTE ticks (en tout, 4 s). */
+    private static final int CRANS = 26, ATTENTE = 7;
+    /** La fenetre change de couleur au plus toutes les 6 ticks (pas plus de trois a quatre eclats par seconde). */
+    private static final int ECLAT = 6;
+    /** La fenetre de chaque tier dans le pack (tools/build_menu_lootbox.py) : un espace qui recule, puis son image. */
+    private static final char RECUL = '\uE2AF', FENETRE = '\uE2A0';
+    /** Les couleurs des tiers en codes de texte, pour le titre sans le pack. */
+    private static final char[] LEGACY = {'f', 'b', 'd', '6'};
 
     /** Les lootbox posees, par bloc. */
     private final Map<Block, Box> boxes = new HashMap<>();
@@ -724,11 +747,12 @@ public final class Lootbox implements Listener {
         List<Loot> pool = new ArrayList<>();
         for (Loot l : LOOTS.values()) if (l.tier() == tier) pool.add(l);
         Loot loot = pool.get(r.nextInt(pool.size()));
-        box.inv.setItem(11, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
-        box.inv.setItem(13, item(loot.id()));
-        box.inv.setItem(15, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
-        // Un arc a Infinite a besoin d'une fleche dans l'inventaire.
-        if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) box.inv.setItem(22, new ItemStack(Material.ARROW));
+        for (Loot l : pool) box.pool.add(l.id());
+        box.prix.put(11, new ItemStack(Material.DIAMOND, r.nextInt(2, 9)));
+        box.prix.put(CENTRE, item(loot.id()));
+        box.prix.put(15, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
+        // Un arc a Infinite a besoin d'une fleche dans l'inventaire : a cote de lui.
+        if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) box.prix.put(14, new ItemStack(Material.ARROW));
         // Le coffre au centre du bloc (le modele, de 0 a 16 pixels, est centre sur l'affichage), tourne d'un quart de
         // tour exact. Le devant du coffre (le sud du modele, comme le coffre de Minecraft) se retrouve a l'oppose de la
         // direction ou regarde l'affichage : regarder comme le joueur le tourne vers lui.
@@ -864,20 +888,102 @@ public final class Lootbox implements Listener {
     @EventHandler
     public void onOpen(InventoryOpenEvent e) {
         if (!(e.getInventory().getHolder() instanceof Box box) || !(e.getPlayer() instanceof Player p)) return;
+        e.titleOverride(titre(p, box, box.couleur));
         Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
         p.getWorld().playSound(at, Sound.BLOCK_CHEST_OPEN, 0.6f, 1f);
-        // La premiere ouverture est annoncee.
-        if (box.opened) return;
-        box.opened = true;
+        // La premiere ouverture est annoncee, et lance la roulette.
+        if (box.etat != FERMEE) return;
+        box.etat = ROULETTE;
         Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[box.tier - 1] + ">Lootbox tier " + box.tier + "</" + TIER_COLOR[box.tier - 1] + "> !");
-        p.getWorld().playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+        Bukkit.getScheduler().runTask(plugin, () -> roulette(box));
+    }
+
+    /** Le titre du coffre : la fenetre du pack a la couleur de ce tier, ou du texte de cette couleur sans le pack. */
+    private static boolean fenetres(Player p) {
+        return com.kiokouwhite.crossfight.util.Sounds.has("font.lootbox") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+    }
+
+    private static Component titre(Player p, Box box, int couleur) {
+        return fenetres(p) ? Component.text("" + RECUL + (char) (FENETRE + couleur - 1)).color(net.kyori.adventure.text.format.NamedTextColor.WHITE)
+                : Msg.mm("<" + TIER_COLOR[couleur - 1] + ">Lootbox tier " + box.tier);
+    }
+
+    /** Le meme titre en texte simple, pour InventoryView.setTitle (la fenetre est dans la police par defaut). */
+    @SuppressWarnings("deprecation")
+    private static void retitrer(Player p, Box box, int couleur) {
+        p.getOpenInventory().setTitle(fenetres(p) ? "\u00a7f" + RECUL + (char) (FENETRE + couleur - 1)
+                : "\u00a7" + LEGACY[couleur - 1] + "Lootbox tier " + box.tier);
+    }
+
+    /**
+     * La roulette : les objets du tier defilent de droite a gauche dans la rangee du milieu, de plus en plus lentement,
+     * et s'arretent sur l'objet gagne dans la case du centre. Pendant ce temps, la fenetre passe par les couleurs des
+     * quatre tiers et finit sur celle de la Lootbox. Puis le contenu apparait : les diamants et l'or de part et d'autre.
+     * Ceux qui ont la Lootbox ouverte la voient tous ; on ne peut rien prendre avant la fin.
+     */
+    private void roulette(Box box) {
+        ThreadLocalRandom r = ThreadLocalRandom.current();
+        // La bande : CRANS + 9 objets ; au dernier cran, la case du centre montre l'objet gagne.
+        List<ItemStack> bande = new ArrayList<>();
+        int gagnant = CRANS + (CENTRE - BANDE);
+        for (int i = 0; i < CRANS + 9; i++) {
+            bande.add(i == gagnant ? box.prix.get(CENTRE).clone() : item(box.pool.get(r.nextInt(box.pool.size()))));
+        }
+        new BukkitRunnable() {
+            int cran = 0, attente = 0, depuis = ECLAT;
+
+            @Override public void run() {
+                if (boxes.get(box.block) != box) { cancel(); return; }
+                depuis++;
+                if (attente-- > 0) return;
+                for (int i = 0; i < 9; i++) box.inv.setItem(BANDE + i, bande.get(cran + i));
+                boolean fin = cran == CRANS;
+                // La couleur suivante (au plus tous les ECLAT ticks), celle du tier au dernier cran.
+                if (fin || depuis >= ECLAT) {
+                    box.couleur = fin ? box.tier : box.couleur % 4 + 1;
+                    depuis = 0;
+                    for (var v : new ArrayList<>(box.inv.getViewers())) if (v instanceof Player pl) retitrer(pl, box, box.couleur);
+                }
+                for (var v : box.inv.getViewers()) {
+                    if (v instanceof Player pl) pl.playSound(pl, Sound.UI_BUTTON_CLICK, 0.25f, 1.4f + 0.6f * cran / CRANS);
+                }
+                if (fin) { cancel(); devoiler(box); return; }
+                cran++;
+                attente = (int) Math.round(ATTENTE * Math.pow(cran / (double) CRANS, 2.4));
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    /** La fin de la roulette : la rangee se vide, l'objet gagne reste au centre, le reste du contenu apparait. */
+    private void devoiler(Box box) {
+        for (int i = 0; i < 9; i++) box.inv.setItem(BANDE + i, null);
+        for (var e : box.prix.entrySet()) box.inv.setItem(e.getKey(), e.getValue());
+        box.etat = OUVERTE;
+        Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
+        at.getWorld().playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+        for (var v : box.inv.getViewers()) {
+            if (!(v instanceof Player pl)) continue;
+            if (box.tier >= 3) pl.playSound(pl, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1f);
+            if (box.tier == 4) pl.playSound(pl, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
+        }
+    }
+
+    /** Pendant la roulette, on ne prend ni ne pose rien. */
+    @EventHandler(ignoreCancelled = true)
+    public void onClick(InventoryClickEvent e) {
+        if (e.getView().getTopInventory().getHolder() instanceof Box box && box.etat != OUVERTE) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDrag(InventoryDragEvent e) {
+        if (e.getView().getTopInventory().getHolder() instanceof Box box && box.etat != OUVERTE) e.setCancelled(true);
     }
 
     /** Videe, la lootbox disparait. */
     @EventHandler
     public void onClose(InventoryCloseEvent e) {
         if (!(e.getInventory().getHolder() instanceof Box box) || boxes.get(box.block) != box) return;
-        if (e.getInventory().isEmpty()) Bukkit.getScheduler().runTask(plugin, () -> remove(box));
+        if (box.etat == OUVERTE && e.getInventory().isEmpty()) Bukkit.getScheduler().runTask(plugin, () -> remove(box));
         else box.block.getWorld().playSound(box.block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_CHEST_CLOSE, 0.6f, 1f);
     }
 

@@ -1,0 +1,46 @@
+{
+ "providers": [
+  {
+   "type": "space",
+   "advances": {
+    "\ue2af": -18
+   }
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/lootbox_1.png",
+   "height": 186,
+   "ascent": 23,
+   "chars": [
+    "\ue2a0"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/lootbox_2.png",
+   "height": 186,
+   "ascent": 23,
+   "chars": [
+    "\ue2a1"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/lootbox_3.png",
+   "height": 186,
+   "ascent": 23,
+   "chars": [
+    "\ue2a2"
+   ]
+  },
+  {
+   "type": "bitmap",
+   "file": "crossfight:font/lootbox_4.png",
+   "height": 186,
+   "ascent": 23,
+   "chars": [
+    "\ue2a3"
+   ]
+  }
+ ]
+}

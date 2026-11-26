@@ -462,6 +462,7 @@ font.hud_texte
 font.hud_titre
 font.icones
 font.logo
+font.lootbox
 font.menu
 font.panneau_omori
 font.peche

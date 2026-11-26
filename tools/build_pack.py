@@ -180,9 +180,13 @@ def models(base: Path):
 
 
 def fonts(base: Path):
-    """Les images de police (tools/build_logo.js : le logo du tableau de droite) : "font.<nom>"."""
+    """Les images de police (tools/build_logo.js : le logo du tableau de droite) : "font.<nom>", et "font.lootbox"."""
     folder = base / "assets" / NS / "font"
-    return {"font." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
+    names = {"font." + f.stem for f in folder.glob("*.json")} if folder.is_dir() else set()
+    # Les fenetres des Lootbox (tools/build_menu_lootbox.py), dans la police par defaut : "font.lootbox".
+    if (base / "assets" / NS / "textures" / "font" / "lootbox_1.png").is_file():
+        names.add("font.lootbox")
+    return names
 
 
 def overlays(base: Path):
