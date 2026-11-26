@@ -36,6 +36,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 W, H = 1920, 1080
 FENETRE = (252, 120, 1344, 756)    # la video : x, y, largeur, hauteur (16:9)
 K_CADRE, K_UI, K_BOITE, K_NOM = 4, 4, 3, 8   # un pixel du pack = 4 (cadre, cartouches), 3 (boites du bas) ou 8 (nom)
+ESTOMPE = 220                       # la largeur (pixels) sur laquelle l'illustration s'efface vers la gauche
 FOND_BOITE, FOND_CARTOUCHE = (163, 167, 194), (76, 104, 133)   # le fond clair des boites et des cartouches du pack
 
 
@@ -164,6 +165,13 @@ def main():
         a_img = art.resize((round(art.width * s), round(art.height * s)), Image.LANCZOS)
         art_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         art_layer.alpha_composite(a_img, (round(1795 - vx * a_img.width), round(205 - vy * a_img.height)))
+        # Ce qui depasse vers la gauche (le flanc, sous le cadre et sous les boites) s'efface petit a petit.
+        bord_droit = fx0 + fw
+        degrade = Image.linear_gradient("L").rotate(90).resize((ESTOMPE, H))      # 0 a gauche, 255 a droite
+        masque = Image.new("L", (W, H), 255)
+        masque.paste(Image.new("L", (bord_droit - 40, H), 0), (0, 0))
+        masque.paste(degrade, (bord_droit - 40, 0))
+        art_layer.putalpha(ImageChops.multiply(art_layer.getchannel("A"), masque))
 
     # Le cadre du pack autour de la fenetre (son interieur, a l'echelle, tombe pile sur la fenetre).
     lw, lh = fw // K_CADRE, fh // K_CADRE
