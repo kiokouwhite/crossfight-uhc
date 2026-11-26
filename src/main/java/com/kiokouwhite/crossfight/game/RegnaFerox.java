@@ -171,6 +171,8 @@ public final class RegnaFerox implements Listener {
             plugin.saveConfig();
         }
         boolean there = y != Integer.MIN_VALUE && plugin.getConfig().getInt(key + "-x", cx) == cx && w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER;
+        // Une arene d'avant l'eclairage actuel (salle sombre) : rebatie sur place, a la meme hauteur.
+        if (there && !lit(w, cx, y, cz)) raise(plugin, w, cx, y, cz);
         if (!there) {
             // Le sol de la fosse a la hauteur mediane du terrain sous le colisee : ni perche sur une butte, ni enterre.
             List<Integer> heights = new ArrayList<>();
@@ -230,8 +232,8 @@ public final class RegnaFerox implements Listener {
      * 81 blocs au centre, quatre grilles aux coins, douze grands braseros le long du mur ; un mur sombre a
      * tentures rouges et a herses ; des gradins de brique de terre en dix-neuf marches ; une enceinte noire
      * rythmee par seize piliers qui percent le toit, coiffes de feux ; quatre galeries la traversent du dehors
-     * jusqu'aux herses de la fosse, fermees sauf pour l'evenement Omori. La salle est sombre, eclairee par les
-     * braseros (une lumiere invisible et faible empeche seulement les monstres d'y apparaitre). Une paroi
+     * jusqu'aux herses de la fosse, fermees sauf pour l'evenement Omori. La salle est eclairee par les braseros, des
+     * lanternes en haut du mur de la fosse et des lumieres invisibles au plus fort, sur la fosse et les gradins. Une paroi
      * invisible ferme la fosse : on n'y entre et on n'en sort que par l'evenement. La construction se fait par
      * tranches, quelques-unes par tick, pour ne pas figer le serveur. Construction originale, en blocs de
      * Minecraft, d'apres l'allure du lieu.
@@ -259,9 +261,17 @@ public final class RegnaFerox implements Listener {
         raise(plugin, w, cx, y, cz);
     }
 
-    /** Vrai si l'arene est deja batie a cet endroit (le centre de la mosaique et la paroi invisible au-dessus). */
+    /**
+     * Vrai si l'arene est deja batie a cet endroit, avec l'eclairage actuel (le centre de la mosaique, la paroi invisible
+     * au-dessus, une lumiere de la fosse) : une arene d'avant est rebatie.
+     */
     public static boolean arenaAt(World w, int cx, int y, int cz) {
-        return w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER;
+        return w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER && lit(w, cx, y, cz);
+    }
+
+    /** Vrai si l'arene a l'eclairage actuel : la lumiere de la fosse en (5, 4, 5) est au niveau LIGHT. */
+    private static boolean lit(World w, int cx, int y, int cz) {
+        return w.getBlockAt(cx + 5, y + 4, cz + 5).getBlockData() instanceof org.bukkit.block.data.type.Light l && l.getLevel() == LIGHT;
     }
 
     private static void column(World w, int cx, int y, int cz, int x, int z) {
@@ -310,7 +320,7 @@ public final class RegnaFerox implements Listener {
             if (toFire < 1.9) {
                 for (int h = 1; h <= 5; h++) set.accept(h, h == 5 ? Material.NETHERRACK : toFire < 1.0 || h == 1 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.POLISHED_BLACKSTONE_BRICK_WALL);
                 set.accept(6, Material.FIRE);
-            } else if (lamp) light(w, bx, y + 4, bz);
+            } else if (Math.floorMod(x, 5) == 0 && Math.floorMod(z, 5) == 0) light(w, bx, y + 4, bz);   // une lumiere tous les 5 blocs : la fosse est eclairee partout
             set.accept(DOME, Material.BARRIER);
         } else if (o <= PIT + 3.5) {
             // Le mur de la fosse : brique sombre, tentures rouges et or, herses aux quatre points cardinaux.
@@ -321,6 +331,8 @@ public final class RegnaFerox implements Listener {
                 set.accept(h, m);
             }
             if (inner) for (int h = RING + 1; h <= DOME; h++) set.accept(h, Material.BARRIER);
+            // Des lanternes sur le haut du mur, dans l'axe des seize piliers : la fosse se voit de loin.
+            else if (toPillar < 0.8 && o > PIT + 2.5) set.accept(RING + 1, Material.LANTERN);
         } else if (d <= OUT - 3.5) {
             // Les gradins : une marche tous les 1,5 bloc, bancs de brique de terre, escaliers noirs dans l'axe des piliers.
             int row = Math.max(0, (int) ((d - PIT - 3.5) / 1.5)), step = Math.min(top - 4, RING + 1 + row);
@@ -340,11 +352,14 @@ public final class RegnaFerox implements Listener {
         }
     }
 
-    /** Une lumiere invisible et faible : assez pour qu'aucun monstre n'apparaisse dans la salle, sans l'eclairer. */
+    /** Le niveau des lumieres invisibles de la salle (15 : le plus fort ; la salle etait trop sombre pour filmer). */
+    private static final int LIGHT = 15;
+
+    /** Une lumiere invisible : elle eclaire la fosse et les gradins (et aucun monstre n'y apparait). */
     private static void light(World w, int x, int y, int z) {
         var b = w.getBlockAt(x, y, z);
         b.setType(Material.LIGHT, false);
-        if (b.getBlockData() instanceof org.bukkit.block.data.type.Light l) { l.setLevel(8); b.setBlockData(l, false); }
+        if (b.getBlockData() instanceof org.bukkit.block.data.type.Light l) { l.setLevel(LIGHT); b.setBlockData(l, false); }
     }
 
     /** Leve (ou rabaisse) les quatre herses de la fosse : l'arene s'ouvre pour l'evenement Omori. */
