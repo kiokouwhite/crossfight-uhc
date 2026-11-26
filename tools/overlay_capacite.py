@@ -163,7 +163,7 @@ def main():
         s = zoom * 1.5 * H / art.height
         a_img = art.resize((round(art.width * s), round(art.height * s)), Image.LANCZOS)
         art_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        art_layer.alpha_composite(a_img, (round(1795 - vx * a_img.width), round(330 - vy * a_img.height)))
+        art_layer.alpha_composite(a_img, (round(1795 - vx * a_img.width), round(205 - vy * a_img.height)))
 
     # Le cadre du pack autour de la fenetre (son interieur, a l'echelle, tombe pile sur la fenetre).
     lw, lh = fw // K_CADRE, fh // K_CADRE
