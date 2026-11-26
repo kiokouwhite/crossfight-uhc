@@ -6,6 +6,10 @@
  *   c.dessiner()    dessine l'etat courant sur le canevas
  *   c.regler(opts)  change des options et recommence au debut
  *
+ * Options d'images (facultatives) : `portail` {image, images, pas, opacite}, une planche d'images empilees de haut en
+ * bas (le fond anime des cartes de selection, en gros pixels) dessinee sous tout le reste ; `signe`, une image claire
+ * sur fond transparent (le signe de la voie du personnage) qui remplace les etoiles des noeuds du halo.
+ *
  * Calendrier (cale sur tools/presentation_perso.py) : le choeur monte du bas de l'ecran de `montee` a `impact`, une onde
  * de choc part du centre a `impact` et remet les phases a zero, puis le couplage de Kuramoto accorde les pulsations et
  * le choeur se range sur les trois orbites du halo.
@@ -28,6 +32,10 @@
     montee: 0.3, impact: 1.2,
     centre: [0.5, 0.43],     // centre du halo, en fraction de la largeur et de la hauteur
     demiAxes: [0.27, 0.34],
+    choc: [0.5, 0.56],       // d'ou part l'onde de choc
+    lueur: 1,                // force de la lueur du fond
+    portail: null,
+    signe: null, tailleSigne: 76,
   };
   // Les trois orbites, en rapports d'intervalles purs : quinte, quarte, unisson.
   const ORBITES = [2 / 3, 3 / 4, 1], POIDS = [0.22, 0.3, 0.48], SENS = [1, -1, 1];
@@ -62,6 +70,8 @@
       this.cx = o.centre[0] * W; this.cy = o.centre[1] * H; this.rx = o.demiAxes[0] * W; this.ry = o.demiAxes[1] * H;
       this.c0 = rgb(o.couleur); this.cf = rgb(o.fond); this.ca = rgb(o.accent);
       this.c1 = melange(this.c0, [255, 255, 255], 0.35);
+      this.kx = o.choc[0] * W; this.ky = o.choc[1] * H;
+      this.signe = o.signe ? this.preparerSigne(o.signe) : null;
       for (let i = 0; i < n; i++) {
         const choeur = p.random() < o.choeur;
         this.ch[i] = choeur ? 1 : 0;
@@ -87,6 +97,24 @@
       this.R = 0; this.psi = 0; this.pouls = 0;
       this.traces.clear();
       this.traces.background(0);
+    }
+
+    // Le signe en blanc, et sa lueur floutee a la couleur des eclats : prepares une fois.
+    preparerSigne(img) {
+      const src = img.canvas || img.elt || img, n = 192, m = 64;
+      const blanc = document.createElement('canvas');
+      blanc.width = blanc.height = n;
+      blanc.getContext('2d').drawImage(src, 0, 0, n, n);
+      const lueur = document.createElement('canvas');
+      lueur.width = lueur.height = n + 2 * m;
+      const g = lueur.getContext('2d');
+      g.filter = 'blur(16px)';
+      g.drawImage(blanc, m, m);
+      g.filter = 'none';
+      g.globalCompositeOperation = 'source-in';
+      g.fillStyle = css(this.ca, 1);
+      g.fillRect(0, 0, n + 2 * m, n + 2 * m);
+      return { blanc, lueur, k: (n + 2 * m) / n };
     }
 
     avancer(t) { while (this.t < t - PAS / 2) this.pas(); }
@@ -137,7 +165,7 @@
         }
         VX += ax * dt; VY += ay * dt;
         // L'onde de choc : elle projette la particule et remet sa phase a zero quand son front la traverse.
-        const dx = X - cx, dy = Y - H * 0.56, dist = Math.hypot(dx, dy) || 1;
+        const dx = X - this.kx, dy = Y - this.ky, dist = Math.hypot(dx, dy) || 1;
         if (front1 > 0 && dist > front0 && dist <= front1) {
           const k = (0.4 + 0.6 * Math.exp(-dist / 900)) * 900 * Z;
           VX += dx / dist * k; VY += dy / dist * k;
@@ -190,9 +218,19 @@
       ctx.globalCompositeOperation = 'source-over';
       ctx.fillStyle = css(this.cf, 1);
       ctx.fillRect(0, 0, W, H);
+      // Le portail des cartes, en gros pixels nets.
+      if (o.portail) {
+        const P = o.portail, img = P.image.canvas || P.image, fh = img.height / P.images;
+        const k = Math.floor(t / P.pas) % P.images;
+        ctx.imageSmoothingEnabled = false;
+        ctx.globalAlpha = allume * (P.opacite ?? 1);
+        ctx.drawImage(img, 0, k * fh, img.width, fh, 0, 0, W, H);
+        ctx.globalAlpha = 1;
+        ctx.imageSmoothingEnabled = true;
+      }
       // La lueur du fond, qui respire avec la pulsation commune du choeur.
-      const I = allume * (0.7 + 0.45 * this.pouls * attire) + 0.7 * eclair;
-      const lueur = ctx.createRadialGradient(this.cx, H * 0.56, 0, this.cx, H * 0.56, W * 0.6);
+      const I = o.lueur * (allume * (0.7 + 0.45 * this.pouls * attire) + 0.7 * eclair);
+      const lueur = ctx.createRadialGradient(this.kx, this.ky, 0, this.kx, this.ky, W * 0.6);
       lueur.addColorStop(0, css(this.c0, 0.62 * I));
       lueur.addColorStop(0.42, css(this.c0, 0.2 * I));
       lueur.addColorStop(1, css(this.c0, 0));
@@ -222,7 +260,7 @@
         for (const [w, al] of [[34, 0.08], [12, 0.22], [3, 0.8]]) {
           ctx.strokeStyle = css(melange(this.c1, [255, 255, 255], 0.6), al * a);
           ctx.lineWidth = w;
-          ctx.beginPath(); ctx.arc(this.cx, H * 0.56, r, 0, TAU); ctx.stroke();
+          ctx.beginPath(); ctx.arc(this.kx, this.ky, r, 0, TAU); ctx.stroke();
         }
       }
       // Les eclats : ils s'allument quand l'onde les atteint, puis battent avec le choeur.
@@ -230,9 +268,22 @@
       for (let k = 0; k < o.eclats; k++) {
         const phi = phi0 + k * TAU / o.eclats;
         const ex = this.cx + this.rx * Math.cos(phi), ey = this.cy + this.ry * Math.sin(phi);
-        const t0 = o.impact + Math.hypot(ex - this.cx, ey - H * 0.56) / CHOC;
+        const t0 = o.impact + Math.hypot(ex - this.kx, ey - this.ky) / CHOC;
         const e = lisse(t0, t0 + 0.3, t) * (0.55 + 0.6 * this.pouls) + 1.2 * Math.exp(-Math.max(0, t - t0) * 6) * (t > t0 ? 1 : 0);
         if (e < 0.01) continue;
+        if (this.signe) {
+          // Le signe de la voie, qui tourne lentement sur lui-meme dans sa lueur.
+          const S = this.signe, taille = o.tailleSigne * (0.8 + 0.25 * Math.min(e, 1.6));
+          ctx.save();
+          ctx.translate(ex, ey);
+          ctx.globalAlpha = Math.min(1, 0.85 * e);
+          ctx.drawImage(S.lueur, -taille * S.k / 2, -taille * S.k / 2, taille * S.k, taille * S.k);
+          ctx.rotate(0.35 * t + k * 0.7);
+          ctx.globalAlpha = Math.min(1, e);
+          ctx.drawImage(S.blanc, -taille / 2, -taille / 2, taille, taille);
+          ctx.restore();
+          continue;
+        }
         const halo = ctx.createRadialGradient(ex, ey, 0, ex, ey, 34 * e);
         halo.addColorStop(0, css(this.ca, 0.75));
         halo.addColorStop(0.3, css(this.ca, 0.25));

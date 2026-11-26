@@ -340,20 +340,25 @@ CARD_FRAMES, CARD_FRAMETIME = 12, 7
 ZOOM_AMOUNT = 0.035
 
 
-def portal():
+def portal(lw=None, lh=None, center=None, card=True):
     """Le fond anime des cartes, comme un portail : des rayons de lumiere qui tournent lentement autour d'un coeur
     brillant, une nebuleuse qui ondule, des etincelles qui scintillent. Un dessin d'ici, en gros pixels (un pixel de
     dessin par pixel d'image), en gris clair sur sombre : le jeu le teinte a la couleur du personnage. Les images,
-    empilees de haut en bas, bouclent sans a-coup (portal.png.mcmeta)."""
+    empilees de haut en bas, bouclent sans a-coup (portal.png.mcmeta).
+    Par defaut, celui des cartes ; lw x lh pixels de dessin et center (le coeur) en donnent un autre cadrage (le fond des
+    videos de presentation, tools/presentation_perso.py), sans le cadre de la carte (card=False)."""
     import numpy as np
-    lw, lh = CARD_PX[0] // Z, CARD_PX[1] // Z
+    lw, lh = lw or CARD_PX[0] // Z, lh or CARD_PX[1] // Z
     ys, xs = np.mgrid[0:lh, 0:lw].astype(float)
-    cx, cy = lw / 2, FACE_Y * lh + 0.16 * lh           # le coeur du portail, derriere le buste du personnage
+    # le coeur du portail, derriere le buste du personnage
+    cx, cy = center or (lw / 2, FACE_Y * lh + 0.16 * lh)
     dx, dy = xs - cx, (ys - cy) * 0.85
     r = np.hypot(dx, dy) / (0.5 * lh)
     ang = np.arctan2(dy, dx)
     rnd = np.random.RandomState(7)
-    stars = [(rnd.randint(8, lw - 8), rnd.randint(8, int(BAND_TOP * lh)), rnd.randint(0, PORTAL_FRAMES), rnd.randint(1, 3)) for _ in range(46)]
+    # 46 etincelles sur une carte (au-dessus de la bande du nom), autant par surface ailleurs.
+    nstars, top = (46, int(BAND_TOP * lh)) if card else (round(46 * lw * lh / (112 * 200 * BAND_TOP)), lh - 8)
+    stars = [(rnd.randint(8, lw - 8), rnd.randint(8, top), rnd.randint(0, PORTAL_FRAMES), rnd.randint(1, 3)) for _ in range(nstars)]
     sheet = Image.new("RGBA", (lw, lh * PORTAL_FRAMES), (0, 0, 0, 0))
     for n in range(PORTAL_FRAMES):
         t = 2 * math.pi * n / PORTAL_FRAMES
@@ -379,9 +384,10 @@ def portal():
         g = (v * 255).astype("uint8")
         frame = Image.merge("RGBA", [Image.fromarray(g)] * 3 + [Image.new("L", (lw, lh), 255)])
         # Rien hors du cadre de la carte (ses marges, ses coins coupes).
-        keep = Image.new("L", (lw, lh), 0)
-        ImageDraw.Draw(keep).rectangle((7, 7, lw - 8, lh - 8), fill=255)
-        frame.putalpha(keep)
+        if card:
+            keep = Image.new("L", (lw, lh), 0)
+            ImageDraw.Draw(keep).rectangle((7, 7, lw - 8, lh - 8), fill=255)
+            frame.putalpha(keep)
         sheet.paste(frame, (0, lh * n))
     return sheet, {"animation": {"frametime": 2, "width": lw, "height": lh}}
 

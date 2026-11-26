@@ -1,0 +1,3 @@
+# Le surnom de chaque personnage, ecrit sous son nom dans sa video de presentation (tools/presentation_perso.py).
+# Une ligne par personnage : son identifiant (celui de resourcepack/selection.txt), puis son surnom.
+marth        Le Roi-Héros

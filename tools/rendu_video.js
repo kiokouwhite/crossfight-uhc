@@ -18,6 +18,7 @@ const FPS = Number(ips || 60), DUREE = Number(secondes);
 (async () => {
   const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
   const p = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+  p.on('pageerror', e => console.error('page :', e.message));
   await p.goto('file://' + path.resolve(page));
   await p.waitForFunction(() => window.pret !== false, null, { timeout: 60000 });
   await p.waitForTimeout(300);
