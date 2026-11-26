@@ -424,6 +424,8 @@ Le titre du tableau de droite est le logo Crossfight UHC, dessiné dans le gris 
 
 Le logo est une image de police du pack (`assets/crossfight/font/logo.json`, police `crossfight:logo`). Pour le changer : remplacer `tools/logo/crossfight_uhc.svg`, puis `node tools/build_logo.js` (Playwright et son Chromium), `python3 tools/build_pack.py`, et recompiler. La taille à l'écran est la constante `HAUTEUR` du script ; les lignes réservées dans le tableau sont `LOGO_LINES` dans `ScoreboardManager`.
 
+Le logo animé : `python3 tools/logo_anime.py <dossier>` écrit un SVG animé du logo (fond transparent) : CROSSFIGHT s'écrit seul, lettre par lettre, puis la barre verticale le transperce, puis la barre horizontale (un éclair et une secousse à chaque impact), et UHC sort de dessous la barre horizontale ; un reflet passe enfin sur les lettres. Le dessin est celui de `tools/logo/crossfight_uhc.svg`, dont les pièces sont seulement repérées et animées. `node tools/logo_video.js <dossier>` en tire la vidéo : MP4 1920×1080 sur fond sombre, GIF en boucle et WebM à fond transparent (Playwright, Chromium et ffmpeg).
+
 ### Skins des personnages
 
 Le joueur porte le skin Minecraft du personnage qu'il incarne, dès qu'il le choisit (menu de sélection, `/cf change`), et retrouve le sien en quittant le mode test ou au retour au lobby. Les personnages sans skin (les originaux, pour l'instant) laissent au joueur son propre skin. Dans les menus de choix de personnage (mode test, sélection classique), chaque personnage est montré par la tête de son skin ; ceux qui n'ont pas de skin gardent leur objet. Une forme peut avoir son propre skin dans la table (`eren_titan`, porté pendant la forme de Titan d'Eren). `skins.enabled: false` dans `config.yml` coupe tout.
