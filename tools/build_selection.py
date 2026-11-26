@@ -302,10 +302,10 @@ def card_glow():
     return img
 
 
-def backdrop():
+def backdrop(size=None):
     """Le mur derriere les cartes, au ton du HUD : bleu nuit, un semis de losanges en gros pixels, plus fonce
-    sur les bords."""
-    w, h = BACKDROP_PX
+    sur les bords. size (en pixels d'image) en donne une autre taille (le fond des overlays de capacites)."""
+    w, h = size or BACKDROP_PX
     lw, lh = w // Z, h // Z
     low = Image.new("RGBA", (lw, lh), NAVY_DARK + (255,))
     px = low.load()

@@ -1,0 +1,8 @@
+# Les descriptions des capacites, accentuees, pour les overlays de capacites (tools/overlay_capacite.py).
+# Le guide (tools/guide_capacites.json) est ecrit sans accents ; une ligne ici le remplace pour l'affichage.
+# Une ligne par capacite : son identifiant (celui du guide), une tabulation, puis le texte.
+marth_falchion	Clic droit : Marth régénère 5 cœurs (10 avec la Sainte-Falchion) en 3 secondes, sans pouvoir bouger.
+marth_contre	Marth prend la pose, immobile : s'il reçoit un coup dans la seconde, il ne subit rien, renvoie les dégâts d'un grand coup d'épée qui projette l'adversaire au loin, puis l'immobilise 1 seconde.
+marth_charisme	Marth a Vitesse. Ses alliés à moins de 10 blocs aussi.
+marth_leader	Tant que Marth a plus de 5 cœurs, ses alliés ont Force.
+marth_ult	Marth lève son épée un instant, puis fonce de 10 blocs dans la direction où il regarde ; invulnérable du début à la fin. Les ennemis touchés perdent 5 cœurs et tous les alliés gagnent Force (1 niveau par ennemi touché) pendant 1 minute.
