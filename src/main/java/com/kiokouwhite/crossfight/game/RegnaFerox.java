@@ -165,7 +165,7 @@ public final class RegnaFerox implements Listener {
         int before = plugin.getConfig().getInt("ferox.arene-fermee." + w.getName(), Integer.MIN_VALUE);
         if (y == Integer.MIN_VALUE && before != Integer.MIN_VALUE && plugin.getConfig().getInt("ferox.arene-fermee." + w.getName() + "-x", cx) == cx) {
             y = before;
-            raise(w, cx, y, cz);
+            raise(plugin, w, cx, y, cz);
             plugin.getConfig().set(key, y);
             plugin.getConfig().set(key + "-x", cx);
             plugin.saveConfig();
@@ -177,7 +177,7 @@ public final class RegnaFerox implements Listener {
             for (int dx = -24; dx <= 24; dx += 24) for (int dz = -24; dz <= 24; dz += 24) heights.add(w.getHighestBlockYAt(cx + dx * 3, cz + dz * 3, org.bukkit.HeightMap.MOTION_BLOCKING_NO_LEAVES));
             heights.sort(null);
             y = Math.max(w.getMinHeight() + 6, Math.min(w.getMaxHeight() - TOWER - 8, heights.get(heights.size() / 2)));
-            raise(w, cx, y, cz);
+            raise(plugin, w, cx, y, cz);
             plugin.getConfig().set(key, y);
             plugin.getConfig().set(key + "-x", cx);
             plugin.getConfig().set(key + "-z", cz);
@@ -236,7 +236,7 @@ public final class RegnaFerox implements Listener {
      * tranches, quelques-unes par tick, pour ne pas figer le serveur. Construction originale, en blocs de
      * Minecraft, d'apres l'allure du lieu.
      */
-    private void raise(World w, int cx, int y, int cz) {
+    private static void raise(org.bukkit.plugin.Plugin plugin, World w, int cx, int y, int cz) {
         new org.bukkit.scheduler.BukkitRunnable() {
             int x = -OUT;
             @Override public void run() {
@@ -246,7 +246,25 @@ public final class RegnaFerox implements Listener {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    private void column(World w, int cx, int y, int cz, int x, int z) {
+    /** Demi-cote du coeur de l'arene bati tout de suite par {@link #raiseAt} (le reste suit par tranches). */
+    private static final int CORE = 24;
+
+    /**
+     * L'arene de Ferox ailleurs que sur la map (le mode test, pour filmer) : sa fosse en (cx, y, cz). Le coeur de la
+     * fosse est bati tout de suite, pour qu'un joueur qui arrive ait un sol sous les pieds ; le reste suit par
+     * tranches. Rebatir une arene deja la la remet a neuf (chaque colonne est reecrite de bas en haut).
+     */
+    public static void raiseAt(org.bukkit.plugin.Plugin plugin, World w, int cx, int y, int cz) {
+        for (int x = -CORE; x <= CORE; x++) for (int z = -CORE; z <= CORE; z++) column(w, cx, y, cz, x, z);
+        raise(plugin, w, cx, y, cz);
+    }
+
+    /** Vrai si l'arene est deja batie a cet endroit (le centre de la mosaique et la paroi invisible au-dessus). */
+    public static boolean arenaAt(World w, int cx, int y, int cz) {
+        return w.getBlockAt(cx, y, cz).getType() == Material.YELLOW_TERRACOTTA && w.getBlockAt(cx, y + DOME, cz).getType() == Material.BARRIER;
+    }
+
+    private static void column(World w, int cx, int y, int cz, int x, int z) {
         double d = Math.hypot(x, z);
         if (d > OUT + 0.5) return;
         // La fosse est un octogone : sa "distance" au centre est la plus grande des distances a ses huit cotes.

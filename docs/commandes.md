@@ -28,7 +28,7 @@
 | `/cf licences` | Lister les licences et personnages |
 | `/cf scoreboard hide\|show` | Cacher ou remettre le tableau de droite, pour soi (`/cf tableau` marche aussi ; sans argument, bascule). Le choix est gardé d'une partie à l'autre (`HudPrefs`, ligne « Tableau de droite » du menu `/cf hud`) |
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
-| `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
+| `/cf test` | Entrer ou sortir du mode test (dans l'arène de Regna Ferox, équipement fourni) |
 | `/cf annonce` | Affiche tout de suite le bilan des vies dans le ciel (en mode test, avec des exemples s'il n'y a pas eu de mort) |
 | `/cf test duo [perso]` | Zone duo : essayer les ultimes en duo seul, avec un mannequin duo (une seconde fois sans personnage pour revenir) |
 | `/cf test selection [licence]` | Essayer l'écran de sélection en 3D d'une licence (une seconde fois sans licence pour revenir) ; choisir un personnage le fait incarner |

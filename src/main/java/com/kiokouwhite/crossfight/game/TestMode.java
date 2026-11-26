@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Mode test : un monde plat ou l'on peut changer de personnage a volonte,
+ * Mode test : l'arene de Regna Ferox (ou un monde plat, test.decor: plat) ou l'on peut changer de personnage a volonte,
  * avec 10 pommes dorees toujours reapprovisionnees, 2 pieces de diamant
  * Protection 2 et 2 pieces de fer Protection 3.
  */
@@ -63,7 +63,22 @@ public final class TestMode implements Listener {
     public ThirdPerson thirdPerson() { return thirdPerson; }
 
     public static World world() {
-        return built(ArenaWorlds.get(WORLD));
+        return builtArena(ArenaWorlds.get(WORLD));
+    }
+
+    /** Vrai si le terrain de test est l'arene de Regna Ferox (test.decor: ferox, par defaut), faux pour l'herbe (plat). */
+    static boolean ferox() {
+        return !"plat".equalsIgnoreCase(CrossfightPlugin.get().getConfig().getString("test.decor", "ferox"));
+    }
+
+    /**
+     * Le terrain du mode test et de la troisieme personne : l'arene de Regna Ferox, la meme que sur la map (pour filmer
+     * dans un vrai decor), sa fosse au centre du monde ; ou, avec test.decor: plat, la plateforme d'herbe.
+     */
+    static World builtArena(World w) {
+        if (!ferox()) return built(w);
+        if (!RegnaFerox.arenaAt(w, 0, ArenaWorlds.FLOOR_Y, 0)) RegnaFerox.raiseAt(CrossfightPlugin.get(), w, 0, ArenaWorlds.FLOOR_Y, 0);
+        return w;
     }
 
     /** Construit la plateforme de test dans un monde vide, si ce n'est pas deja fait. */
@@ -92,11 +107,11 @@ public final class TestMode implements Listener {
      */
     public int clearTerrain() {
         com.kiokouwhite.crossfight.util.TempBlocks.restoreAll();
-        int changed = resetPlatform(world());
+        int changed = resetGround(world());
         World duo = Bukkit.getWorld(DUO_WORLD);
         if (duo != null) changed += resetPlatform(duo);
         World third = Bukkit.getWorld(ThirdPerson.WORLD);
-        if (third != null) changed += resetPlatform(third);
+        if (third != null) changed += resetGround(third);
         World forest = Bukkit.getWorld(TREE_WORLD);
         if (forest != null) {
             changed += resetPlatform(forest);
@@ -134,6 +149,17 @@ public final class TestMode implements Listener {
             thirdPerson.afterClear();
         }
         return changed;
+    }
+
+    /**
+     * Le terrain du mode test ou de la troisieme personne remis a neuf : l'arene de Ferox rebatie (son coeur tout de
+     * suite, le reste par tranches ; tout ce qui y a ete pose ou casse disparait), ou la plateforme d'herbe.
+     */
+    private int resetGround(World w) {
+        if (!ferox()) return resetPlatform(w);
+        RegnaFerox.raiseAt(plugin, w, 0, ArenaWorlds.FLOOR_Y, 0);
+        for (var e : w.getEntities()) if (!(e instanceof Player) && !Mannequins.isPilot(e)) e.remove();
+        return 0;
     }
 
     /** Remet une plateforme de test a neuf (sol, murs, lumieres) et retire tout ce qui n'est pas un joueur. */

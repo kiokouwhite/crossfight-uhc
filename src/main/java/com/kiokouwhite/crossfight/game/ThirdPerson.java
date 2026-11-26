@@ -108,7 +108,7 @@ public final class ThirdPerson implements Listener {
     }
 
     public static World world() {
-        return TestMode.built(ArenaWorlds.get(WORLD));
+        return TestMode.builtArena(ArenaWorlds.get(WORLD));
     }
 
     /** La place du mannequin : le centre, tourne vers le sud (d'ou arrive le testeur). */

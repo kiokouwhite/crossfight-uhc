@@ -260,3 +260,8 @@ downs:
   revive-seconds: 5
   # Points de vie a la releve (6 = 3 coeurs)
   revive-health: 6
+
+# Mode test et troisieme personne : le terrain. ferox : l arene de Regna Ferox (pour filmer dans un vrai decor) ;
+# plat : la plateforme d herbe. /cf clear remet le terrain a neuf dans les deux cas.
+test:
+  decor: ferox
