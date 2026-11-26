@@ -1,0 +1,34 @@
+// /cf demo falchion : ce que le client recoit de l'adversaire quand il frappe (geste du bras, epee en main, particules).
+const mineflayer = require('mineflayer');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'Tester', version: '1.21.10' });
+bot._client.on('add_resource_pack', async d => { bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 3 }); await sleep(100); bot._client.write('resource_pack_receive', { uuid: d.uuid, result: 0 }); });
+const equipes = []; bot._client.on('teams', d => equipes.push(d));
+const texte = c => { const j = JSON.stringify(c || ''); return (j.match(/"(?:text|value)":"([^"]*)"/g) || []).map(x => x.split(':"')[1].slice(0, -1)).join(''); };
+let id = null; const recu = [];
+bot._client.on('animation', d => { if (d.entityId === id) recu.push('geste ' + d.animation); });
+bot._client.on('entity_equipment', d => { if (d.entityId === id) recu.push('equipement ' + JSON.stringify(d.equipments.map(e => [e.slot, e.item && e.item.itemId]))); });
+bot._client.on('world_particles', d => recu.push('particule ' + (d.particle && (d.particle.type ?? d.particleId))));
+bot._client.on('sound_effect', d => recu.push('son ' + JSON.stringify(d.sound || d.soundId).slice(0, 60)));
+bot.once('spawn', async () => {
+  await sleep(4000);
+  bot.chat('/cf test'); await sleep(3000);
+  bot.chat('/cf change marth'); await sleep(3000);
+  bot.chat('/cf demo falchion'); await sleep(1500);
+  const m = Object.values(bot.entities).find(e => e.name === 'mannequin');
+  id = m && m.id;
+  console.log('adversaire', id, m && m.equipment ? m.equipment.map(e => e && e.name) : '');
+  bot.chat('/cf heal'); await sleep(500);
+  recu.length = 0;
+  await bot.lookAt(m.position.offset(0, 1.5, 0), true); bot.attack(m); await sleep(700); bot.attack(m);
+  await sleep(2500);
+  const md = Object.values(bot.entities).find(e => e.id === id).metadata;
+  console.log('nom :', texte(md[2]), '| vie :', texte(md[19] ?? md[18] ?? md[20]), '| meta', JSON.stringify(md).slice(0, 0));
+  const eq = equipes.filter(x => (x.players || []).includes(m.uuid)).map(x => x.team);
+  console.log('equipe (tete) :', eq.join(',') || 'aucune', '| vie bot', bot.health);
+  const compte = {}; for (const r of recu) compte[r] = (compte[r] || 0) + 1;
+  console.log(JSON.stringify(compte, null, 1).slice(0, 1500));
+  bot.chat('/cf demo falchion'); await sleep(500); bot.chat('/cf test'); await sleep(800);
+  bot.quit(); process.exit(0);
+});
+bot.on('error', e => { console.log('erreur', e.message); process.exit(1); });

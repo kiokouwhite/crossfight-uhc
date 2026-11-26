@@ -218,6 +218,8 @@ public final class ScoreboardManager {
             var body = com.kiokouwhite.crossfight.util.MannequinPlayer.body(q);
             if (body != null) face(viewer, board, body.getUniqueId().toString(), characterId(q));
         }
+        // L'adversaire de demonstration (/cf demo) : la tete du personnage dont il porte le skin, devant son faux pseudo.
+        for (var e : com.kiokouwhite.crossfight.game.DemoAdversaire.tetes().entrySet()) face(viewer, board, e.getKey(), e.getValue());
     }
 
     private String characterId(Player q) {
