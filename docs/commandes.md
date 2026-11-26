@@ -28,6 +28,7 @@
 | `/cf licences` | Lister les licences et personnages |
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
+| `/cf annonce` | Affiche tout de suite le bilan des vies dans le ciel (en mode test, avec des exemples s'il n'y a pas eu de mort) |
 | `/cf test duo [perso]` | Zone duo : essayer les ultimes en duo seul, avec un mannequin duo (une seconde fois sans personnage pour revenir) |
 | `/cf test selection [licence]` | Essayer l'écran de sélection en 3D d'une licence (une seconde fois sans licence pour revenir) ; choisir un personnage le fait incarner |
 | `/cf test third-person [perso]` | Troisième personne : un mannequin incarne le personnage et lance ses capacités sur toi, avec tes objets (une seconde fois sans personnage pour revenir) |

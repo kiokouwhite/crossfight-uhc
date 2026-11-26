@@ -169,7 +169,6 @@ public final class Downs implements Listener {
 
         p.showTitle(Title.title(Msg.mm("<red><bold>A TERRE"), Msg.mm("<gray>Un allie peut te relever"),
                 Title.Times.times(Duration.ofMillis(150), Duration.ofMillis(1800), Duration.ofMillis(500))));
-        Msg.broadcast("<red>" + p.getName() + " <gray>est a terre" + (attacker == null ? "." : " (<red>" + attacker.getName() + "</red>)."));
         if (attacker != null) Msg.actionBar(attacker, "<gold>" + p.getName() + " est a terre : acheve-le !");
         Team team = plugin.teams().teamOf(p);
         if (team != null) for (Player m : team.onlineMembers()) {
@@ -308,7 +307,10 @@ public final class Downs implements Listener {
         p.showTitle(Title.title(Msg.mm("<green><bold>RELEVE"), Msg.mm("<gray>par " + reviver.getName()),
                 Title.Times.times(Duration.ofMillis(100), Duration.ofMillis(1200), Duration.ofMillis(400))));
         Msg.actionBar(reviver, "<green>Tu as releve " + p.getName() + " !");
-        Msg.broadcast("<green>" + p.getName() + " <gray>a ete releve par <green>" + reviver.getName() + "<gray>.");
+        // Seule son equipe le sait (rien dans le chat des autres).
+        Team team = plugin.teams().teamOf(p);
+        if (team != null) for (Player m : team.onlineMembers())
+            if (!m.equals(p) && !m.equals(reviver)) Msg.send(m, "<green>" + p.getName() + " <gray>a ete releve par <green>" + reviver.getName() + "<gray>.");
     }
 
     /** Il meurt pour de bon : le kill va a celui qui l'a mis a terre. */

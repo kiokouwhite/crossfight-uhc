@@ -642,6 +642,11 @@ public final class CfCommand implements TabExecutor {
                         com.kiokouwhite.crossfight.util.Sounds.duoDialogue(sp, args[1].toLowerCase(), other != null ? other : sp, args[2].toLowerCase());
                         Msg.send(sp, "<green>Dialogue " + args[1] + " / " + args[2] + " (rien ne se passe si la paire n'en a pas).");
                     }
+                    case "annonce", "bilan" -> {
+                        // Le bilan des vies dans le ciel, tout de suite (en mode test, avec des exemples s'il n'y a pas eu de mort).
+                        plugin.lifeReport().announce();
+                        Msg.send(sender, "<green>Bilan des vies affiche dans le ciel.");
+                    }
                     case "pose" -> {
                         // Test : prend une pose du modele articule (/cf pose marth_contre 5), a regarder en vue exterieure (F5).
                         if (!(sender instanceof Player sp)) return true;
@@ -973,7 +978,7 @@ public final class CfCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox", "passif"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
-            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "rythme", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
+            if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "rythme", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "annonce", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
         } else if (args.length == 2) {
             switch (args[0].toLowerCase()) {

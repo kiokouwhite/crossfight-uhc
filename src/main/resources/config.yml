@@ -27,6 +27,8 @@ game:
   unbreakable-armor: true
   # Armure en fer complete, Protection I, portee des le depart
   starting-armor: true
+  # Les morts ne sont plus dites dans le chat : toutes les N minutes, le bilan des vies perdues s'ecrit dans le ciel
+  life-report-minutes: 20
   # En equipe, un coup mortel met a terre au lieu de tuer (regle a-terre ; reglages dans downs:)
   downs: true
   # Les seaux de lave peuvent etre vides

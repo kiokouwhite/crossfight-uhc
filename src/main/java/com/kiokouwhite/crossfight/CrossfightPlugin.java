@@ -36,6 +36,7 @@ public final class CrossfightPlugin extends JavaPlugin {
     private com.kiokouwhite.crossfight.game.TestMode testMode;
     private com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat;
     private com.kiokouwhite.crossfight.game.Downs downs;
+    private com.kiokouwhite.crossfight.game.LifeReport lifeReport;
 
     public static CrossfightPlugin get() {
         return instance;
@@ -127,6 +128,8 @@ public final class CrossfightPlugin extends JavaPlugin {
         downs = new com.kiokouwhite.crossfight.game.Downs(this);
         pm.registerEvents(downs, this);
         downs.start();
+        lifeReport = new com.kiokouwhite.crossfight.game.LifeReport(this);
+        lifeReport.start();
         hostTools.refreshAll();
         for (var licence : characterRegistry.licences()) {
             for (var l : licence.listeners()) pm.registerEvents(l, this);
@@ -218,4 +221,5 @@ public final class CrossfightPlugin extends JavaPlugin {
     public com.kiokouwhite.crossfight.game.SelectionStage selection() { return selectionStage; }
     public com.kiokouwhite.crossfight.listener.LegacyCombatListener legacyCombat() { return legacyCombat; }
     public com.kiokouwhite.crossfight.game.Downs downs() { return downs; }
+    public com.kiokouwhite.crossfight.game.LifeReport lifeReport() { return lifeReport; }
 }

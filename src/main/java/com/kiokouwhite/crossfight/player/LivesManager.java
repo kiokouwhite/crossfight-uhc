@@ -31,6 +31,8 @@ public final class LivesManager {
      */
     public void onDeath(Player p, boolean handled) {
         if (plugin.game().isTest()) {
+            // En mode test, la mort est relevee pour le bilan (/cf annonce) sans couter de vie.
+            if (!handled) plugin.lifeReport().lifeLost(p);
             plugin.testMode().onDeath(p, handled);
             return;
         }
@@ -41,21 +43,23 @@ public final class LivesManager {
             return;
         }
         cf.addLife(-1);
+        plugin.lifeReport().lifeLost(p);
         plugin.abilities().unequip(p);
 
+        // Rien dans le chat pour les autres : le bilan des vies le dira dans le ciel (game.LifeReport).
         if (cf.lives() <= 0) {
-            Msg.broadcast("<red>" + p.getName() + " <gray>a perdu sa derniere vie !");
+            Msg.send(p, "<red>Tu as perdu ta derniere vie.");
             p.setGameMode(GameMode.SPECTATOR);
             cf.setWaitingRespawn(false);
             if (team != null && plugin.teams().checkElimination(team)) {
-                Msg.broadcast(team.coloredName() + " <gray>est eliminee !");
+                plugin.lifeReport().teamEliminated(team);
                 for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().onTeamEliminated(team);
             }
             plugin.game().checkWin();
             return;
         }
 
-        Msg.broadcast("<red>" + p.getName() + " <gray>est mort. Il lui reste <red>" + cf.lives() + "</red> vie(s).");
+        Msg.send(p, "<red>Tu es mort. <gray>Il te reste <red>" + cf.lives() + "</red> vie(s).");
         p.setGameMode(GameMode.SPECTATOR);
         cf.setWaitingRespawn(true);
 
@@ -84,16 +88,17 @@ public final class LivesManager {
         Team team = cf.team();
         if (!cf.isAlive()) return;
         cf.addLife(-1);
+        plugin.lifeReport().lifeLost(p);
         if (cf.lives() > 0) {
-            Msg.broadcast("<red>" + p.getName() + " <gray>perd une vie (" + why + "). Il lui en reste <red>" + cf.lives() + "</red>.");
+            Msg.send(p, "<red>Tu perds une vie (" + why + "). <gray>Il t'en reste <red>" + cf.lives() + "</red>.");
             return;
         }
-        Msg.broadcast("<red>" + p.getName() + " <gray>a perdu sa derniere vie (" + why + ") !");
+        Msg.send(p, "<red>Tu as perdu ta derniere vie (" + why + ").");
         plugin.abilities().unequip(p);
         p.setGameMode(GameMode.SPECTATOR);
         cf.setWaitingRespawn(false);
         if (team != null && plugin.teams().checkElimination(team)) {
-            Msg.broadcast(team.coloredName() + " <gray>est eliminee !");
+            plugin.lifeReport().teamEliminated(team);
             for (var l : plugin.characters().licences()) if (l.mechanic() != null) l.mechanic().onTeamEliminated(team);
         }
         plugin.game().checkWin();

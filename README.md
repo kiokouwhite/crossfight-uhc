@@ -50,6 +50,7 @@ Le jar à déposer dans `plugins/` est `build/libs/CrossfightUHC-<version>.jar`.
 | `/cf licences` | Lister les licences et personnages |
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
+| `/cf annonce` | Affiche tout de suite le bilan des vies dans le ciel (en mode test, avec des exemples s'il n'y a pas eu de mort) |
 | `/cf test duo [perso]` | Zone duo : essayer les ultimes en duo seul, avec un mannequin duo (une seconde fois sans personnage pour revenir) |
 | `/cf test selection [licence]` | Essayer l'écran de sélection en 3D d'une licence (une seconde fois sans licence pour revenir) ; choisir un personnage le fait incarner |
 | `/cf test third-person [perso]` | Troisième personne : un mannequin incarne le personnage et lance ses capacités sur toi, avec tes objets (une seconde fois sans personnage pour revenir) |
@@ -148,6 +149,7 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `blocs-poses` | 15 s | Les blocs posés par les joueurs se cassent d'eux-mêmes après ce délai, en se fissurant, et lâchent leur objet (0 : jamais). Restent en place les blocs qu'on ouvre ou qu'on utilise (établi, four, coffre, enclume, lit…) et les sources de lumière (torches, lanternes) |
 | `armures-incassables` | oui | Les pièces d'armure (casque, plastron, jambières, bottes, élytres) ne s'usent pas, d'où qu'elles viennent |
 | `armure-depart` | oui | Les joueurs commencent avec une armure en fer complète, Protection I, déjà portée |
+| `annonce-vies` | 20 min | Les morts et les vies perdues ne sont plus dites dans le chat (seuls la victime et le tueur le savent, la victime par un message, le tueur dans sa barre d'action). Toutes les N minutes, le bilan s'écrit en grand dans le ciel, devant chaque joueur, pendant 15 s : qui a perdu une vie depuis le dernier bilan, combien il lui en reste, les équipes éliminées. Il se voit à travers les blocs (sous terre aussi) et suit le regard. `/cf annonce` (admins) l'affiche tout de suite ; en mode test, avec des exemples s'il n'y a pas eu de mort |
 | `a-terre` | oui | En équipe, un coup mortel met à terre au lieu de tuer (détail plus bas, « À terre ») |
 | `seau-de-lave` | non | Sur « non », un seau de lave ne se pose pas (on peut toujours en remplir un). Sur « oui », les seaux de lave peuvent être vidés |
 | `briquet` | non | Sur « non », les briquets et les boules de feu n'allument rien (bloc, TNT, creeper). Sur « oui », ils allument un feu |
@@ -784,7 +786,7 @@ Presque tout a été essayé avec des bots ou seul dans le client, jamais dans u
 
 Règle `a-terre` (oui par défaut ; `game.downs`), dans `game/Downs.java`, comme dans les battle royale :
 
-- **Tomber** : un joueur en équipe qui prend un coup mortel ne meurt pas, il tombe au sol, la barre de vie de nouveau pleine (« À TERRE » à l'écran, son équipe est prévenue avec la distance). Seulement si un allié est encore debout dans le même monde : le dernier debout d'une équipe meurt directement. La chute dans le vide et `/kill` tuent toujours.
+- **Tomber** : un joueur en équipe qui prend un coup mortel ne meurt pas, il tombe au sol, la barre de vie de nouveau pleine (« À TERRE » à l'écran, son équipe est prévenue avec la distance). Rien dans le chat des autres : seule son équipe le sait (l'attaquant le voit dans sa barre d'action). Seulement si un allié est encore debout dans le même monde : le dernier debout d'une équipe meurt directement. La chute dans le vide et `/kill` tuent toujours.
 - **À terre** : il rampe (les autres le voient allongé, il avance lentement, ne saute pas, ne court pas). Il ne peut ni frapper, ni lancer de capacité, ni manger, ni poser ou casser de bloc, et rien ne le soigne.
 - **Se vider** : il perd un cœur toutes les deux secondes (`downs.bleed-seconds`) ; la barre d'action lui dit le temps qu'il lui reste. Arrivé au bout, il meurt.
 - **Être relevé** : un allié debout reste accroupi à moins de 2,5 blocs pendant cinq secondes (`downs.revive-seconds`), avec une barre de progression pour les deux. S'accroupir ailleurs ou s'éloigner remet le compte à zéro. Relevé, il a trois cœurs (`downs.revive-health`).

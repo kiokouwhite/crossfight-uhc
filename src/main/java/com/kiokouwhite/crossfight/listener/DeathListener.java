@@ -35,16 +35,17 @@ public final class DeathListener implements Listener {
 
         CfPlayer cf = plugin.players().get(p);
         Player killer = p.getKiller();
-        String msg = "<red>" + p.getName() + "</red> <gray>est tombe";
+        // Ni la mort ni le tueur ne sont dits dans le chat : le bilan des vies (game.LifeReport) le dira dans le ciel.
         if (cf.character() != null) com.kiokouwhite.crossfight.util.Sounds.voice(p, cf.character().voiceKey(p, "mort"));
         if (killer != null && killer != p) {
             var kc = plugin.players().get(killer).character();
             if (kc != null) com.kiokouwhite.crossfight.util.Sounds.voiceLater(killer, kc.voiceKey(killer, "kill"), 20L);
             plugin.players().get(killer).addKill();
             plugin.abilities().dispatchKill(killer, p);
-            msg += " face a <red>" + killer.getName();
+            Msg.actionBar(killer, "<red>Tu as tue " + p.getName());
+            Msg.send(p, "<gray>Tue par <red>" + killer.getName() + "<gray>.");
         }
-        e.deathMessage(Msg.prefixed(msg + "."));
+        e.deathMessage(null);
         if (cf.team() == null) return;
 
         // Les capacites qui gerent leur propre mort (dimension de Byleth) doivent voir le joueur

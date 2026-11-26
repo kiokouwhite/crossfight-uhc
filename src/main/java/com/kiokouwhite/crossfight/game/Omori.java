@@ -1417,12 +1417,12 @@ public final class Omori implements Listener {
         ChoiceMenu.open(p, "<dark_gray>Te pardonnes-tu ?", List.of(
                 new ChoiceMenu.Option(Material.WHITE_TULIP, "Me pardonner", List.of("Tu gagnes une vie supplementaire."), () -> {
                     cf.addLife(1);
-                    Msg.broadcast("<white>" + p.getName() + " se pardonne <gray>et gagne une vie (" + cf.lives() + ").");
+                    Msg.send(p, "<white>Tu te pardonnes <gray>et gagnes une vie (" + cf.lives() + ").");
                     sfx(p.getLocation(), "pardon", Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
                 }),
                 new ChoiceMenu.Option(Material.IRON_SWORD, "Ne pas me pardonner", List.of("Tu perds une vie, mais tu gagnes Force III", "pour le reste de la partie.", cf.lives() <= 1 ? "<red>C'est ta derniere vie : tu serais elimine." : ""), () -> {
                     Boosts.set(p, "omori", new Boosts.Boost(3, 0, 0, 0));
-                    Msg.broadcast("<dark_gray>" + p.getName() + " ne se pardonne pas : <red>Force III<dark_gray>, une vie de moins.");
+                    Msg.send(p, "<dark_gray>Tu ne te pardonnes pas : <red>Force III<dark_gray>, une vie de moins.");
                     plugin.lives().loseLife(p, "Omori");
                     p.playSound(p.getLocation(), Sound.ENTITY_WITHER_AMBIENT, 0.6f, 0.7f);
                 })),
