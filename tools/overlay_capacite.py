@@ -2,8 +2,7 @@
 """L'overlay d'une capacite, pour presenter une video de jeu : une fenetre 16:9 transparente ou poser la video, dans le
 style du HUD de Crossfight.
 
-Usage : python3 tools/overlay_capacite.py <personnage> <capacite> <dossier> [--description "..."] [--etiquette EXEMPLE]
-                                          [--apercu image]
+Usage : python3 tools/overlay_capacite.py <personnage> <capacite> <dossier> [--description "..."] [--apercu image]
         python3 tools/overlay_capacite.py <personnage>          (la liste de ses capacites)
 
 <capacite> : l'identifiant du guide (marth_contre), sans le prefixe du personnage (contre), ou son numero dans la liste.
@@ -14,9 +13,10 @@ cette place) et <dossier>/<personnage>_<capacite>_apercu.png (la meme, une image
   - Le fond : le mur a losanges de l'ecran de selection, le portail des cartes a la couleur du personnage par-dessus.
   - Le cadre du pack d'interface (celui des cartes) autour de la fenetre.
   - En haut, deux cartouches du HUD : le type de la capacite (Actif, Passif, Ultime) a la couleur du personnage, puis
-    son icone et son nom.
-  - A gauche, le logo, le signe de la voie du personnage et son nom a la verticale ; a droite, son illustration.
-  - En bas, une etiquette (EXEMPLE par defaut) et la description de la capacite, dans la police de texte du HUD. Le
+    son nom.
+  - A gauche, le logo, puis le signe de la voie du personnage et son nom a la verticale, centres en hauteur ; a droite,
+    son illustration, cadree de pres sur son visage.
+  - En bas, l'icone de la capacite et sa description, dans des boites du pack (police de texte du HUD). Le
     guide (tools/guide_capacites.json) est ecrit sans accents : la description vient de tools/descriptions.txt quand la
     capacite y est (accentuee), sinon du guide ; --description donne un autre texte.
 
@@ -136,7 +136,6 @@ def main():
     if a is None:
         sys.exit(f"Capacite inconnue : {cle} (python3 tools/overlay_capacite.py {cid} pour la liste)")
     description = option(sys.argv, "--description", descriptions().get(a["id"], a["description"]))
-    etiquette = option(sys.argv, "--etiquette", "EXEMPLE")
     out.mkdir(parents=True, exist_ok=True)
 
     import build_selection as bs
@@ -161,10 +160,10 @@ def main():
     if art_src:
         art = bs.load(art_src)
         vx, vy, zoom = cadrage or bs.auto_framing(art)
-        s = zoom * 0.78 * H / art.height
+        s = zoom * 1.5 * H / art.height
         a_img = art.resize((round(art.width * s), round(art.height * s)), Image.LANCZOS)
         art_layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        art_layer.alpha_composite(a_img, (round(1790 - vx * a_img.width), round(300 - vy * a_img.height)))
+        art_layer.alpha_composite(a_img, (round(1795 - vx * a_img.width), round(330 - vy * a_img.height)))
 
     # Le cadre du pack autour de la fenetre (son interieur, a l'echelle, tombe pile sur la fenetre).
     lw, lh = fw // K_CADRE, fh // K_CADRE
@@ -180,63 +179,64 @@ def main():
         img.alpha_composite(art_layer)
     img.alpha_composite(cadre, (cx0, cy0))
 
-    # A gauche : le logo, le signe de la voie, le nom a la verticale.
+    # A gauche : le signe de la voie au-dessus du nom a la verticale, le tout centre en hauteur.
     signe = None
     if voie:
         src = next(iter(sorted((ROOT / "resourcepack-prive" / "selection" / "voie").glob(voie + ".*"))), None)
         if src:
             signe = pp.signe_voie(src).resize((132, 132), Image.LANCZOS)
-            img.alpha_composite(lueur(signe, rgb, 14), (60 - 28, 178 - 28))
-            img.alpha_composite(signe, (60, 178))
     nom = texte_pixel(name.upper(), bs.UI_TITLE, 17, bs.CREAM, rgb, K_NOM).rotate(90, expand=True)
-    nx, ny = 126 - nom.width // 2, 1046 - nom.height
-    img.alpha_composite(lueur(nom, bs.NAVY_DARK, 10), (nx - 20, ny - 20))
-    img.alpha_composite(nom, (nx, ny))
+    ecart = 44
+    haut_groupe = nom.height + ((signe.height + ecart) if signe else 0)
+    gy, colonne = round(H / 2 - haut_groupe / 2), 126
+    if signe:
+        img.alpha_composite(lueur(signe, rgb, 14), (colonne - signe.width // 2 - 28, gy - 28))
+        img.alpha_composite(signe, (colonne - signe.width // 2, gy))
+        gy += signe.height + ecart
+    img.alpha_composite(lueur(nom, bs.NAVY_DARK, 10), (colonne - nom.width // 2 - 20, gy - 20))
+    img.alpha_composite(nom, (colonne - nom.width // 2, gy))
 
-    # En haut, au-dessus du cadre : l'icone dans une case du pack, le type (a la couleur du personnage), le nom.
+    # En haut, au-dessus du cadre : le type (a la couleur du personnage), puis le nom.
     banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
     milieu = pp.interieur(bs, "BannerMedium_01B", K_UI)
     typ, typ_m = ligne_hud(a["type"].upper(), K_UI, bs, pp)
     cap, cap_m = ligne_hud(a["name"].upper(), K_UI, bs, pp)
     t1 = gros(recolore(wide(banniere, max(48, math.ceil((typ.width / K_UI + 36) / 16) * 16)), FOND_CARTOUCHE, rgb), K_UI)
     t2 = gros(wide(banniere, max(48, math.ceil((cap.width / K_UI + 36) / 16) * 16)), K_UI)
-    icone_src = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "item" / "icone" / (a["id"] + ".png")
-    case = None
-    if icone_src.exists():
-        case = gros(bs.ui_sprite("Item slots", "Slot_02_Empty"), 5)
-        ic = gros(Image.open(icone_src).convert("RGBA"), 2)
-        case.alpha_composite(ic, ((case.width - ic.width) // 2, (case.height - ic.height) // 2))
     chevauche = 6 * K_UI
-    total = t1.width + t2.width - chevauche + ((case.width + 10) if case else 0)
+    total = t1.width + t2.width - chevauche
     x = round(fx0 + fw / 2 - total / 2)
     # Le bas visible des cartouches (rangee 24 de la banniere) mord un peu sur le cadre, sans toucher la fenetre.
     ty = fy0 - bord + 14 - 24 * K_UI
     centre_y = ty + milieu
-    if case:
-        img.alpha_composite(lueur(case, bs.NAVY_DARK, 8), (x - 16, round(centre_y - case.height / 2) - 16))
-        img.alpha_composite(case, (x, round(centre_y - case.height / 2)))
-        x += case.width + 10
     for plaque, texte, tm, px in ((t1, typ, typ_m, x), (t2, cap, cap_m, x + t1.width - chevauche)):
         img.alpha_composite(lueur(plaque, bs.NAVY_DARK, 8), (px - 16, ty - 16))
         img.alpha_composite(plaque, (px, ty))
         img.alpha_composite(texte, (round(px + plaque.width / 2 - texte.width / 2), round(centre_y - tm)))
 
-    # En bas, sous le cadre : l'etiquette, puis la description, dans des boites du pack au fond bleu nuit.
+    # En bas, sous le cadre : l'icone de la capacite, puis sa description, dans des boites du pack au fond bleu nuit.
     boite_px = bs.ui_sprite("Background boxes", "BGbox_01B")
     bm = next(y for y in range(boite_px.height) if boite_px.getpixel((24, y))[3])   # la marge transparente des boites
     haut_vis = fy0 + fh + bord + 14                                               # le haut visible des boites
     bh = (H - 10 - haut_vis) // K_BOITE + 2 * bm
     by = haut_vis - bm * K_BOITE
-    eti, eti_m = ligne_hud(etiquette.upper(), K_BOITE, bs, pp)
-    ew = max(48, math.ceil((eti.width / K_BOITE + 2 * bm + 16) / 16) * 16)
-    boite_e = gros(recolore(nine(boite_px, ew, bh), FOND_BOITE, bs.NAVY), K_BOITE)
-    dx = fx0 + boite_e.width - 2 * bm * K_BOITE + 16
+    cy_b = by + bh * K_BOITE / 2
+    icone_src = ROOT / "resourcepack-prive" / "assets" / "crossfight" / "textures" / "item" / "icone" / (a["id"] + ".png")
+    dx = fx0
+    if icone_src.exists():
+        # Une boite carree, l'icone en gros pixels au milieu (la plus grande taille entiere qui y tient).
+        boite_i = gros(recolore(nine(boite_px, bh, bh), FOND_BOITE, bs.NAVY), K_BOITE)
+        ic = Image.open(icone_src).convert("RGBA")
+        k = max(1, (bh - 2 * bm - 10) * K_BOITE // ic.height)
+        ic = gros(ic, k)
+        img.alpha_composite(lueur(boite_i, bs.NAVY_DARK, 8), (fx0 - bm * K_BOITE - 16, by - 16))
+        img.alpha_composite(boite_i, (fx0 - bm * K_BOITE, by))
+        img.alpha_composite(lueur(ic, rgb, 10), (round(fx0 - bm * K_BOITE + boite_i.width / 2 - ic.width / 2) - 20, round(cy_b - ic.height / 2) - 20))
+        img.alpha_composite(ic, (round(fx0 - bm * K_BOITE + boite_i.width / 2 - ic.width / 2), round(cy_b - ic.height / 2)))
+        dx = fx0 + boite_i.width - 2 * bm * K_BOITE + 16
     boite_d = gros(recolore(nine(boite_px, (fx0 + fw - dx) // K_BOITE + 2 * bm, bh), FOND_BOITE, bs.NAVY), K_BOITE)
-    for boite, bx in ((boite_e, fx0 - bm * K_BOITE), (boite_d, dx - bm * K_BOITE)):
-        img.alpha_composite(lueur(boite, bs.NAVY_DARK, 8), (bx - 16, by - 16))
-        img.alpha_composite(boite, (bx, by))
-    cy_b = by + boite_e.height / 2
-    img.alpha_composite(eti, (round(fx0 - bm * K_BOITE + boite_e.width / 2 - eti.width / 2), round(cy_b - eti_m)))
+    img.alpha_composite(lueur(boite_d, bs.NAVY_DARK, 8), (dx - bm * K_BOITE - 16, by - 16))
+    img.alpha_composite(boite_d, (dx - bm * K_BOITE, by))
     # La description : en gros pixels x3 si elle tient, sinon x2.
     interieur_l = boite_d.width - 2 * (bm + 8) * K_BOITE
     interieur_h = boite_d.height - 2 * (bm + 6) * K_BOITE
