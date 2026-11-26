@@ -49,17 +49,21 @@ SOURCES = [
 ]
 
 
-def telecharger():
-    """Les packs, une fois : chacun dans son dossier de build/vendor/sons_logo/ (les archives y sont decompressees)."""
-    for dossier, fichier, _, _ in SOURCES:
-        d = VENDOR / dossier
+def telecharger(sources=None, vendor=None):
+    """Les packs, une fois : chacun dans son dossier de vendor (build/vendor/sons_logo/ par defaut), les archives
+    (zip, 7z) y sont decompressees."""
+    from urllib.parse import quote
+    for dossier, fichier, *_ in (sources or SOURCES):
+        d = (vendor or VENDOR) / dossier
         cible = d / fichier
         if cible.exists():
             continue
         d.mkdir(parents=True, exist_ok=True)
-        subprocess.run(["curl", "-sSfL", "--max-time", "120", "-o", str(cible), OGA + fichier], check=True)
+        subprocess.run(["curl", "-sSfL", "--max-time", "120", "-o", str(cible), OGA + quote(fichier)], check=True)
         if fichier.endswith(".zip"):
             subprocess.run(["unzip", "-q", "-o", str(cible), "-d", str(d)], check=True)
+        elif fichier.endswith(".7z"):
+            subprocess.run(["7z", "x", "-y", f"-o{d}", str(cible)], check=True, stdout=subprocess.DEVNULL)
 
 
 def charger(chemin, vitesse=1.0):
@@ -72,9 +76,9 @@ def charger(chemin, vitesse=1.0):
     return x / (np.abs(x).max() + 1e-9)
 
 
-def trouve(dossier, nom):
+def trouve(dossier, nom, vendor=None):
     """Le fichier nom dans le dossier d'un pack (les archives ont parfois un sous-dossier)."""
-    return next(p for p in (VENDOR / dossier).rglob(nom) if "__MACOSX" not in str(p))
+    return next(p for p in ((vendor or VENDOR) / dossier).rglob(nom) if "__MACOSX" not in str(p))
 
 
 def pic(x):
