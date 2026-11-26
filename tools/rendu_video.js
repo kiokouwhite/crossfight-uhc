@@ -8,13 +8,15 @@
 // simulation est avancee jusqu'a chaque instant, dans l'ordre, avant que l'image soit prise.
 //
 // IMAGES=0.5,1.2,3 : ne prend que ces instants (en secondes), en PNG a cote de la sortie, pour verifier vite.
+// ALPHA=1 : le fond de la page reste transparent (les images gardent leur transparence).
+// IMAGES_DANS=<dossier> : garde toutes les images en PNG dans ce dossier, sans faire la video (l'appelant l'encode).
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
 const [page, sortie, secondes, ips] = process.argv.slice(2);
-const FPS = Number(ips || 60), DUREE = Number(secondes);
+const FPS = Number(ips || 60), DUREE = Number(secondes), ALPHA = process.env.ALPHA === '1';
 (async () => {
   const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
   const p = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
@@ -29,20 +31,21 @@ const FPS = Number(ips || 60), DUREE = Number(secondes);
   if (process.env.IMAGES) {
     for (const s of process.env.IMAGES.split(',').map(Number).sort((a, b) => a - b)) {
       await instant(s * 1000);
-      await p.screenshot({ path: path.resolve(sortie) + '.' + s.toFixed(2) + '.png' });
+      await p.screenshot({ path: path.resolve(sortie) + '.' + s.toFixed(2) + '.png', omitBackground: ALPHA });
     }
     await browser.close();
     return;
   }
-  const frames = path.resolve(sortie) + '.images';
+  const frames = process.env.IMAGES_DANS ? path.resolve(process.env.IMAGES_DANS) : path.resolve(sortie) + '.images';
   fs.rmSync(frames, { recursive: true, force: true });
   fs.mkdirSync(frames, { recursive: true });
   const n = Math.round(DUREE * FPS);
   for (let i = 0; i < n; i++) {
     await instant(i / FPS * 1000);
-    await p.screenshot({ path: path.join(frames, String(i).padStart(4, '0') + '.png') });
+    await p.screenshot({ path: path.join(frames, String(i).padStart(4, '0') + '.png'), omitBackground: ALPHA });
   }
   await browser.close();
+  if (process.env.IMAGES_DANS) return;
   execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-framerate', String(FPS), '-i', path.join(frames, '%04d.png'),
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '17', path.resolve(sortie)]);
   fs.rmSync(frames, { recursive: true, force: true });
