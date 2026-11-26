@@ -268,17 +268,24 @@ def composer(cid, a, description):
 
     # En haut, au-dessus du cadre : le type (a la couleur du personnage), puis le nom.
     banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
-    milieu = pp.interieur(bs, "BannerMedium_01B", K_UI)
-    # Le type : ARME pour la capacite de l'arme, sinon celui du guide (Actif, Passif, Ultime).
-    typ, typ_m = ligne_hud("ARME" if a.get("weapon") else a["type"].upper(), K_UI, bs, pp)
-    cap, cap_m = ligne_hud(a["name"].upper(), K_UI, bs, pp)
-    t1 = gros(recolore(wide(banniere, max(48, math.ceil((typ.width / K_UI + 36) / 16) * 16)), FOND_CARTOUCHE, rgb), K_UI)
-    t2 = gros(wide(banniere, max(48, math.ceil((cap.width / K_UI + 36) / 16) * 16)), K_UI)
-    chevauche = 6 * K_UI
-    total = t1.width + t2.width - chevauche
-    x = round(fx0 + fw / 2 - total / 2)
+    # Le nom : accentue s'il est dans tools/descriptions.txt (<id>.nom), sinon celui du guide (sans accents).
+    nom_cap = descriptions().get(a["id"] + ".nom", a["name"]).upper()
+    # Les deux cartouches, centres sur la fenetre, ne doivent pas atteindre le logo (a gauche) : un nom trop long les
+    # fait passer en plus petits pixels (x3, puis x2).
+    for k in (K_UI, 3, 2):
+        milieu = pp.interieur(bs, "BannerMedium_01B", k)
+        # Le type : ARME pour la capacite de l'arme, sinon celui du guide (Actif, Passif, Ultime).
+        typ, typ_m = ligne_hud("ARME" if a.get("weapon") else a["type"].upper(), k, bs, pp)
+        cap, cap_m = ligne_hud(nom_cap, k, bs, pp)
+        t1 = gros(recolore(wide(banniere, max(48, math.ceil((typ.width / k + 36) / 16) * 16)), FOND_CARTOUCHE, rgb), k)
+        t2 = gros(wide(banniere, max(48, math.ceil((cap.width / k + 36) / 16) * 16)), k)
+        chevauche = 6 * k
+        total = t1.width + t2.width - chevauche
+        x = round(fx0 + fw / 2 - total / 2)
+        if x >= 236:
+            break
     # Le bas visible des cartouches (rangee 24 de la banniere) mord un peu sur le cadre, sans toucher la fenetre.
-    ty = fy0 - bord + 14 - 24 * K_UI
+    ty = fy0 - bord + 14 - 24 * k
     centre_y = ty + milieu
     elements = []
     for cle, plaque, texte, tm, px in (("type", t1, typ, typ_m, x), ("nom", t2, cap, cap_m, x + t1.width - chevauche)):

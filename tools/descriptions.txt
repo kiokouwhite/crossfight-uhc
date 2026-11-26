@@ -2,6 +2,7 @@
 # Le guide (tools/guide_capacites.json) est ecrit sans accents ; une ligne ici le remplace pour l'affichage.
 # Une ligne par capacite : son identifiant (celui du guide), une tabulation, puis le texte (\n : un retour a la ligne).
 # <id>.2, <id>.3... : les pages suivantes d'une description (tools/overlay_anime.py anime le passage de l'une a l'autre).
+# <id>.nom : le nom accentue de la capacite, pour le cartouche du haut (sinon celui du guide, sans accents).
 marth_falchion	Marth régénère 5 cœurs en 3 secondes, il ne peut pas bouger à ce moment-là.\nTemps de chargement : 1 minute
 marth_falchion.2	À chaque lootbox, Marth a 10 % de chances d'obtenir l'« Emblème de Feu », qui transforme sa Falchion en Sainte-Falchion.
 marth_sainte_falchion	Marth régénère 10 cœurs. La régénération prend 3 secondes et Marth ne peut pas bouger durant ce moment-là.\nTemps de chargement : 1 minute
@@ -66,3 +67,28 @@ seraphina_retour	Seraphina revient là où elle était 5 secondes plus tôt, en 
 seraphina_choc	Tous les 6 coups infligés, l'adversaire touché est immobilisé pendant 2 secondes.
 seraphina_arret	Les ennemis à moins de 10 blocs sont immobilisés et aveuglés pendant 3 secondes. Seraphina a Vitesse III mais ne peut pas les frapper pendant ce temps.\nTemps de chargement : 15 secondes
 seraphina_ult	Une onde part de Seraphina sur 30 blocs et immobilise pendant 5 secondes chaque ennemi qu'elle atteint.
+corrin_ult.nom	Les Vagues Bleues de l'Océan Gris
+takumi_contre.nom	Contre Rapproché
+takumi_ult.nom	Rayon Démoniaque
+byleth_sword.nom	Épée du Créateur
+byleth_embleme.nom	Emblème de Feu
+byleth_epine.nom	Déchaînement d'Épine
+byleth_ult.nom	Les Ténèbres se consumeront elles-mêmes
+ruby_petales_rapide.nom	Explosion de Pétales (rapide)
+ruby_petales_lent.nom	Explosion de Pétales (lent)
+yang_brulure.nom	Brûlure
+yang_colere.nom	Colère Flamboyante
+yang_ult.nom	Courroux Impérissable
+blake_discretion.nom	Discrétion
+uno_aura.nom	Épée d'Aura
+arlo_barriere.nom	Barrière
+arlo_barriere_ultime.nom	Barrière Ultime
+arlo_etouffement.nom	Étouffement
+arlo_ult.nom	Bulle géante
+john_absorption.nom	Absorption d'aura
+remi_dash.nom	Dash électrique
+remi_electricite.nom	Électricité
+remi_electrocution.nom	Électrocution
+remi_ult.nom	Dôme électrique
+seraphina_arret.nom	Arrêt Temporel
+seraphina_ult.nom	Explosion temporelle
