@@ -48,7 +48,7 @@ PENTE = -6                 # la scene penchee, en degres (negatif : elle monte v
 PW, PH = 2200, 1400        # le plateau tourne, plus grand que l'ecran pour en couvrir les coins
 OX, OY = (W - PW) // 2, (H - PH) // 2
 PIXEL = 8                  # un pixel de dessin du portail = 8 pixels du plateau
-VISAGE = (0.5, 0.28)       # ou se place le visage du personnage, en fraction de l'ecran
+VISAGE = (0.5, 0.23)       # ou se place le visage du personnage, en fraction de l'ecran
 CARTE = 1.5                # l'illustration, 1,5 fois plus grande que sur sa carte (a hauteur de carte = hauteur d'ecran)
 NOM_Y = 0.79               # le milieu du cartouche du nom, en fraction de la hauteur de l'ecran
 EXPLOSION = 1.7            # l'explosion qui rend ses couleurs au personnage (il s'est pose a 1,2 s)
