@@ -189,11 +189,17 @@ public final class ScoreboardManager {
 
     /** Une ligne d'allie : son nom et sa vie en pourcentage de sa vie maximale, ou "mort". */
     private static String allyLine(String head, String name, double health, double max, boolean alive) {
+        return allyLine(head, name, health, max, alive, false);
+    }
+
+    /** La meme, pour un allie a terre (game.Downs) : en rouge, avec ce qu'il lui reste avant de mourir. */
+    private static String allyLine(String head, String name, double health, double max, boolean alive, boolean down) {
         // Avec sa tete, plus besoin de puce devant le nom.
         String lead = head.isEmpty() ? "<gray> \u2022 " : " " + head;
         if (!alive) return lead + "<gray>" + name + " <dark_gray>mort";
         // Arrondi vers le haut : un allie encore en vie n'est jamais a 0 %.
         int percent = max <= 0 ? 0 : (int) Math.min(100, Math.ceil(health * 100.0 / max));
+        if (down) return lead + "<red>" + name + " <dark_red>A TERRE <white>" + percent + "%";
         return lead + "<green>" + name + " <red>\u2764 <white>" + percent + "%";
     }
 
@@ -278,7 +284,7 @@ public final class ScoreboardManager {
                     for (Player ally : t.onlineMembers()) {
                         if (ally == p) continue;
                         CfPlayer acf = plugin.players().get(ally);
-                        allies.add(allyLine(com.kiokouwhite.crossfight.util.Heads.tag(p, ally), ally.getName(), ally.getHealth(), maxHealth(ally), acf.isAlive() && !ally.isDead()));
+                        allies.add(allyLine(com.kiokouwhite.crossfight.util.Heads.tag(p, ally), ally.getName(), ally.getHealth(), maxHealth(ally), acf.isAlive() && !ally.isDead(), plugin.downs().isDown(ally)));
                     }
                     if (!allies.isEmpty()) { lines.add("<white>Allies :"); lines.addAll(allies); }
                 } else {

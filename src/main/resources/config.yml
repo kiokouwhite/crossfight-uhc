@@ -27,6 +27,8 @@ game:
   unbreakable-armor: true
   # Armure en fer complete, Protection I, portee des le depart
   starting-armor: true
+  # En equipe, un coup mortel met a terre au lieu de tuer (regle a-terre ; reglages dans downs:)
+  downs: true
   # Les seaux de lave peuvent etre vides
   lava-bucket: false
   # Les briquets et les boules de feu peuvent allumer un feu
@@ -245,3 +247,14 @@ hud:
   # Les icones d'effet de Minecraft en haut a droite de l'ecran : false les cache (les effets restent listes
   # dans l'inventaire, touche E).
   icones-minecraft: false
+
+# A terre (regle a-terre, game.downs) : un joueur en equipe qui prend un coup mortel tombe au sol, la barre de vie
+# a nouveau pleine, tant qu'un allie est debout. Il perd un coeur a chaque intervalle ; un allie accroupi a cote de lui
+# le releve ; un ennemi peut l'achever.
+downs:
+  # Secondes entre deux coeurs perdus a terre
+  bleed-seconds: 2
+  # Secondes qu'un allie doit rester accroupi a cote pour relever
+  revive-seconds: 5
+  # Points de vie a la releve (6 = 3 coeurs)
+  revive-health: 6

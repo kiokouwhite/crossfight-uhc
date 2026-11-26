@@ -406,6 +406,11 @@ public final class AbilityEngine implements Listener {
 
     private void useNow(Player p, CfPlayer cf, Ability a) {
         AbilityState st = state(p, a);
+        // A terre (game.Downs) : aucune capacite.
+        if (plugin.downs() != null && plugin.downs().isDown(p) && a.type() != AbilityType.PASSIVE) {
+            Msg.actionBar(p, "<red>A terre : pas de capacite.");
+            return;
+        }
         if (cf.isSilenced() && a.type() != AbilityType.PASSIVE) {
             Msg.actionBar(p, "<red>Capacites annulees : encore " + cf.silencedLeftSeconds() + "s");
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);

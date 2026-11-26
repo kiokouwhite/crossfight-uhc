@@ -37,6 +37,7 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `blocs-poses` | 15 s | Les blocs posés par les joueurs se cassent d'eux-mêmes après ce délai, en se fissurant, et lâchent leur objet (0 : jamais). Restent en place les blocs qu'on ouvre ou qu'on utilise (établi, four, coffre, enclume, lit…) et les sources de lumière (torches, lanternes) |
 | `armures-incassables` | oui | Les pièces d'armure (casque, plastron, jambières, bottes, élytres) ne s'usent pas, d'où qu'elles viennent |
 | `armure-depart` | oui | Les joueurs commencent avec une armure en fer complète, Protection I, déjà portée |
+| `a-terre` | oui | En équipe, un coup mortel met à terre au lieu de tuer (détail plus bas, « À terre ») |
 | `seau-de-lave` | non | Sur « non », un seau de lave ne se pose pas (on peut toujours en remplir un). Sur « oui », les seaux de lave peuvent être vidés |
 | `briquet` | non | Sur « non », les briquets et les boules de feu n'allument rien (bloc, TNT, creeper). Sur « oui », ils allument un feu |
 | `aura-fire-aspect` | non | Sur « non », ni la table d'enchantement ni l'enclume ne donnent Aura de feu (Fire Aspect) aux épées d'Aura (unOrdinary). Sur « oui », elles peuvent la recevoir |
