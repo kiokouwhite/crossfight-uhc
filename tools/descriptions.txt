@@ -1,7 +1,9 @@
 # Les descriptions des capacites, accentuees, pour les overlays de capacites (tools/overlay_capacite.py).
 # Le guide (tools/guide_capacites.json) est ecrit sans accents ; une ligne ici le remplace pour l'affichage.
 # Une ligne par capacite : son identifiant (celui du guide), une tabulation, puis le texte (\n : un retour a la ligne).
+# <id>.2, <id>.3... : les pages suivantes d'une description (tools/overlay_anime.py anime le passage de l'une a l'autre).
 marth_falchion	Marth régénère 5 cœurs en 3 secondes, il ne peut pas bouger à ce moment-là.\nTemps de chargement : 1 minute
+marth_falchion.2	À chaque lootbox, Marth a 10 % de chances d'obtenir l'« Emblème de Feu », qui transforme sa Falchion en Sainte-Falchion.
 marth_contre	Marth prend la pose, immobile : s'il reçoit un coup dans la seconde, il ne subit rien, renvoie les dégâts d'un grand coup d'épée qui projette l'adversaire au loin, puis l'immobilise 1 seconde.
 marth_charisme	Marth a Vitesse. Ses alliés à moins de 10 blocs aussi.
 marth_leader	Tant que Marth a plus de 5 cœurs, ses alliés ont Force.

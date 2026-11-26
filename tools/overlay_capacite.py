@@ -86,8 +86,15 @@ def paragraphe(text, police, taille, largeur, interligne, couleur, ombre, k):
     font = ImageFont.truetype(str(police), taille)
     lignes = []
     for morceau in text.split("\n"):
-        ligne = ""
+        # Pas de coupure avant « : », « % », « », « ! », « ? », « ; », ni apres « : ces signes restent avec leur mot.
+        mots = []
         for mot in morceau.split():
+            if mots and (mot[0] in ":%»!?;" or mots[-1].endswith("«")):
+                mots[-1] += " " + mot
+            else:
+                mots.append(mot)
+        ligne = ""
+        for mot in mots:
             essai = (ligne + " " + mot).strip()
             if font.getlength(essai) * k <= largeur or not ligne:
                 ligne = essai

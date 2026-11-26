@@ -13,6 +13,9 @@ Ecrit dans <dossier> (WebM VP9 et MOV ProRes 4444, a transparence) :
   <personnage>_<capacite>_textes_entree.*    leur arrivee (ENTREE secondes) : chaque element se devoile de gauche a
                                              droite en trois tranches decalees, une trainee lumineuse sur le bord
   <personnage>_<capacite>_textes_sortie.*    leur depart (SORTIE secondes), dans le meme sens
+  <personnage>_<capacite>_<n>_textes.png     la page n d'une description (tools/descriptions.txt : <id>.2, <id>.3...)
+  <personnage>_<capacite>_<n-1>_vers_<n>.*   le passage d'une page a la suivante : seule la description change (l'ancienne
+                                             part, la nouvelle arrive) ; les cartouches du haut et l'icone restent fixes
   <personnage>_volet.*                       des traits a la couleur du personnage qui couvrent la fenetre seule
                                              (entierement de VOLET_COUVERT[0] a [1]) puis repartent
   <personnage>_changement_apercu.mp4         l'enchainement d'une capacite a l'autre, pour voir
@@ -33,7 +36,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 W, H, IPS = 1920, 1080, 60
-ENTREE, SORTIE, VOLET = 0.8, 0.6, 0.9
+ENTREE, SORTIE, VOLET, PAGE = 0.8, 0.6, 0.9, 0.9
 VOLET_COUVERT = (0.4, 0.5)
 RETARDS_ENTREE = {"type": 0.0, "nom": 0.07, "icone": 0.14, "description": 0.2}
 RETARDS_SORTIE = {"type": 0.0, "nom": 0.05, "icone": 0.1, "description": 0.14}
@@ -143,8 +146,8 @@ def main():
     textes = oc.descriptions()
     verifier = option(sys.argv, "--verifier", "")
 
-    # La base, et les elements de chaque capacite.
-    couches = {}
+    # La base, et les elements de chaque capacite ; les pages suivantes de sa description.
+    couches, pages = {}, {}
     for a in caps:
         cle = a["id"].removeprefix(cid + "_")
         base, elements = oc.composer(cid, a, textes.get(a["id"], a["description"]))
@@ -156,6 +159,18 @@ def main():
             seul.alpha_composite(img, (x, y))
         if not verifier:
             seul.save(out / f"{cid}_{cle}_textes.png", optimize=True)
+        suite = sorted((k for k in textes if k.startswith(a["id"] + ".") and k.split(".")[-1].isdigit()), key=lambda k: int(k.split(".")[-1]))
+        for k in suite:
+            n = int(k.split(".")[-1])
+            _, el_n = oc.composer(cid, a, textes[k])
+            desc = next(e for e in el_n if e[0] == "description")
+            desc[1].save(travail / f"{cle}_p{n}_description.png")
+            seul = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            for nom, img, x, y in el_n:
+                seul.alpha_composite(img, (x, y))
+            if not verifier:
+                seul.save(out / f"{cid}_{cle}_{n}_textes.png", optimize=True)
+            pages.setdefault(cle, []).append((n, desc))
     base.save(travail / "base.png")
     if not verifier:
         base.save(out / f"{cid}_overlay_base.png", optimize=True)
@@ -197,7 +212,20 @@ def main():
             f = travail / f"{cle}_{nom}.html"
             f.write_text(page(css, elements_html(elements, f"{cle}_", mode, 0)), encoding="utf-8")
             rendre(f, duree, travail, out / f"{cid}_{cle}_textes_{nom}")
-    for f in sorted(out.glob(f"{cid}_*textes*")) + sorted(out.glob(f"{cid}_volet.*")) + [out / f"{cid}_overlay_base.png", out / f"{cid}_changement_apercu.mp4"]:
+    # Le passage d'une page de description a la suivante : seule la description change.
+    for cle, suite in pages.items():
+        fixes = "".join(f'<img src="{cle}_{nom}.png" style="position:absolute;left:{x}px;top:{y}px">'
+                        for nom, img, x, y in couches[cle] if nom != "description")
+        avant = next(e for e in couches[cle] if e[0] == "description")
+        prefixe_avant = f"{cle}_"
+        for n, desc in suite:
+            corps = (fixes + elements_html([avant], prefixe_avant, "sort", -RETARDS_SORTIE["description"])
+                     + elements_html([desc], f"{cle}_p{n}_", "entre", 0.38 - RETARDS_ENTREE["description"]))
+            f = travail / f"{cle}_{n - 1}_vers_{n}.html"
+            f.write_text(page(css, corps), encoding="utf-8")
+            rendre(f, PAGE, travail, out / f"{cid}_{cle}_{n - 1}_vers_{n}")
+            avant, prefixe_avant = desc, f"{cle}_p{n}_"
+    for f in sorted(out.glob(f"{cid}_*textes*")) + sorted(out.glob(f"{cid}_*_vers_*")) + sorted(out.glob(f"{cid}_volet.*")) + [out / f"{cid}_overlay_base.png", out / f"{cid}_changement_apercu.mp4"]:
         if not f.exists():
             continue
         print(f.name, f"{f.stat().st_size / 1e6:.1f} Mo")
