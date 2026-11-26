@@ -26,6 +26,7 @@
 | `/cf perso [id]` | Ouvrir le menu de choix ou choisir un personnage |
 | `/cf give <joueur> <perso>` | Forcer un personnage (admin, pour tester) |
 | `/cf licences` | Lister les licences et personnages |
+| `/cf scoreboard hide\|show` | Cacher ou remettre le tableau de droite, pour soi (`/cf tableau` marche aussi ; sans argument, bascule). Le choix est gardé d'une partie à l'autre (`HudPrefs`, ligne « Tableau de droite » du menu `/cf hud`) |
 | `/vivre` | Réapparaître quand on attend la mort de son équipe |
 | `/cf test` | Entrer ou sortir du mode test (monde plat, équipement fourni) |
 | `/cf annonce` | Affiche tout de suite le bilan des vies dans le ciel (en mode test, avec des exemples s'il n'y a pas eu de mort) |

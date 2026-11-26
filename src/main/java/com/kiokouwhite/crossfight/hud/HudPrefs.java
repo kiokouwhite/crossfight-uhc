@@ -28,7 +28,8 @@ public final class HudPrefs {
         ACTIFS_TEXTE("actifs_texte", "Texte de l'actif", Material.WRITABLE_BOOK, false),
         AUTRES("autres", "Effets des autres (en haut à droite)", Material.SHIELD, true),
         AUTRES_TEXTE("autres_texte", "Texte des effets des autres", Material.WRITABLE_BOOK, false),
-        TEXTE_COURT("texte_court", "Textes courts (ex. : Regen. 5 PV, immobilisat. 3 s)", Material.PAPER, false);
+        TEXTE_COURT("texte_court", "Textes courts (ex. : Regen. 5 PV, immobilisat. 3 s)", Material.PAPER, false),
+        TABLEAU("tableau", "Tableau de droite (scoreboard)", Material.OAK_SIGN, true);
 
         final String key, label;
         final Material icon;

@@ -59,8 +59,10 @@ public final class ScoreboardManager {
         Objective old = board.getObjective("cf");
         if (old != null) old.unregister();
         Objective obj = board.registerNewObjective("cf", Criteria.DUMMY, title(p));
-        // Pendant le choix du personnage, le tableau laisse l'ecran aux cartes (la barre du haut donne le temps).
-        if (plugin.selection() == null || !plugin.selection().isViewing(p)) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
+        // Pendant le choix du personnage, le tableau laisse l'ecran aux cartes (la barre du haut donne le temps). Un joueur
+        // peut aussi le cacher (/cf scoreboard hide, ou /cf hud) : le tableau reste a jour (les pseudos colores), sans s'afficher.
+        boolean visible = com.kiokouwhite.crossfight.hud.HudPrefs.Pref.TABLEAU.of(p);
+        if (visible && (plugin.selection() == null || !plugin.selection().isViewing(p))) obj.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         nameTags(p, board);
         List<String> lines = buildLines(p);

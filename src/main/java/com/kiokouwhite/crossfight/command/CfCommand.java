@@ -79,6 +79,17 @@ public final class CfCommand implements TabExecutor {
                 Msg.send(sp, on ? "<green>Passifs : texte affiche a cote des icones. <gray>/cf passif hide pour le masquer."
                                 : "<gray>Passifs : texte masque. /cf passif show pour l'afficher.");
             }
+            case "scoreboard", "tableau" -> {
+                // /cf scoreboard show|hide : afficher ou cacher le tableau de droite (pour soi ; garde d'une partie a l'autre).
+                if (!(sender instanceof Player sp)) return true;
+                String what = args.length > 1 ? args[1].toLowerCase() : "";
+                var pref = com.kiokouwhite.crossfight.hud.HudPrefs.Pref.TABLEAU;
+                boolean on = what.equals("show") ? true : what.equals("hide") ? false : !pref.of(sp);
+                pref.set(sp, on);
+                plugin.scoreboard().refresh(sp);
+                Msg.send(sp, on ? "<green>Tableau affiche. <gray>/cf scoreboard hide pour le cacher."
+                                : "<gray>Tableau cache. /cf scoreboard show pour le remettre.");
+            }
             case "choose" -> {
                 // John : choisir ses pouvoirs absorbes.
                 if (!(sender instanceof Player sp)) return true;
@@ -976,7 +987,7 @@ public final class CfCommand implements TabExecutor {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox", "passif"));
+            List<String> subs = new ArrayList<>(List.of("status", "licences", "perso", "team", "map", "choose", "pack", "scenario", "ferox", "passif", "scoreboard", "hud"));
             if (!sender.hasPermission("crossfight.admin") && isHost(sender)) subs.addAll(List.of("start", "stop", "lobby", "regenere", "setsize", "regle", "outils", "desactiver", "activer"));
             if (sender.hasPermission("crossfight.admin")) subs.addAll(List.of("admin", "structure", "quete", "tp", "rythme", "pearl", "omori", "lootbox", "loot", "outils", "desactiver", "activer", "regle", "start", "stop", "lobby", "regenere", "setsize", "setborder", "setpvp", "give", "ult", "heal", "mannequin", "test", "annonce", "change", "clear", "ally", "duo", "credits", "titan", "aura", "delta", "kills", "tome", "burst", "sante", "shoja", "son", "musique", "pose", "effet", "dialogue"));
             for (String sub : subs) if (sub.startsWith(args[0].toLowerCase())) out.add(sub);
@@ -1017,7 +1028,7 @@ public final class CfCommand implements TabExecutor {
                 }
                 case "dialogue" -> { for (Licence l : plugin.characters().licences()) for (Character c : l.characters()) out.add(c.id()); }
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre", "omori"));
-                case "passif", "passifs" -> out.addAll(List.of("show", "hide"));
+                case "passif", "passifs", "scoreboard", "tableau" -> out.addAll(List.of("show", "hide"));
                 case "hud" -> { if (sender.hasPermission("crossfight.admin")) out.add("demo"); }
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
