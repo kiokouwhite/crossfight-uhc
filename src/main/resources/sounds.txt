@@ -1377,8 +1377,11 @@ voice.corrin_selection
 voice.corrin_ult
 voice.duo_blake_yang_blake
 voice.duo_blake_yang_yang
+voice.duo_hannah_eirika_eirika
 voice.duo_hannah_eirika_hannah
+voice.duo_kaze_eirika_eirika
 voice.duo_kaze_hannah_hannah
+voice.duo_netsu_eirika_eirika
 voice.duo_netsu_hannah_hannah
 voice.duo_ruby_blake_blake
 voice.duo_ruby_blake_ruby
@@ -1390,6 +1393,13 @@ voice.duo_weiss_blake_blake
 voice.duo_weiss_blake_weiss
 voice.duo_weiss_yang_weiss
 voice.duo_weiss_yang_yang
+voice.eirika_absorption
+voice.eirika_effroi
+voice.eirika_marque
+voice.eirika_mort
+voice.eirika_rain
+voice.eirika_selection
+voice.eirika_ult
 voice.eren_charge
 voice.eren_kill
 voice.eren_mort
@@ -1468,8 +1478,11 @@ voice.sova_mort
 voice.sova_reco
 voice.sova_selection
 voice.sova_ult
+voice.syn_hannah_eirika_eirika
 voice.syn_hannah_eirika_hannah
+voice.syn_kaze_eirika_eirika
 voice.syn_kaze_hannah_hannah
+voice.syn_netsu_eirika_eirika
 voice.syn_netsu_hannah_hannah
 voice.takumi_contre
 voice.takumi_furie

@@ -40,8 +40,11 @@ voice.corrin_selection 1105
 voice.corrin_ult 785
 voice.duo_blake_yang_blake 2578
 voice.duo_blake_yang_yang 3041
+voice.duo_hannah_eirika_eirika 2710
 voice.duo_hannah_eirika_hannah 2050
+voice.duo_kaze_eirika_eirika 1950
 voice.duo_kaze_hannah_hannah 2910
+voice.duo_netsu_eirika_eirika 1210
 voice.duo_netsu_hannah_hannah 2460
 voice.duo_ruby_blake_blake 3608
 voice.duo_ruby_blake_ruby 2420
@@ -53,6 +56,13 @@ voice.duo_weiss_blake_blake 3371
 voice.duo_weiss_blake_weiss 1339
 voice.duo_weiss_yang_weiss 2038
 voice.duo_weiss_yang_yang 2368
+voice.eirika_absorption 2250
+voice.eirika_effroi 1840
+voice.eirika_marque 1710
+voice.eirika_mort 3820
+voice.eirika_rain 830
+voice.eirika_selection 1200
+voice.eirika_ult 3490
 voice.eren_charge 1130
 voice.eren_kill 3170
 voice.eren_mort 4820
@@ -131,8 +141,11 @@ voice.sova_mort 980
 voice.sova_reco 830
 voice.sova_selection 1160
 voice.sova_ult 1850
+voice.syn_hannah_eirika_eirika 2290
 voice.syn_hannah_eirika_hannah 2890
+voice.syn_kaze_eirika_eirika 1040
 voice.syn_kaze_hannah_hannah 2550
+voice.syn_netsu_eirika_eirika 2980
 voice.syn_netsu_hannah_hannah 2130
 voice.takumi_contre 630
 voice.takumi_furie 510
