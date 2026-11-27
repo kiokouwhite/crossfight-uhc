@@ -240,7 +240,7 @@ Les minutes sont celles des réglages par défaut.
 
 ## Lootbox (20 min)
 
-Des caisses apparaissent au hasard sur la map, chacune sous un parachute à la couleur de son rang. Leurs coordonnées sont annoncées à tous, et une colonne de lumière les signale. On ouvre une caisse d'un clic dessus : à la première ouverture, trois roulettes tournent comme une machine à sous (les diamants, l'objet, l'or) et s'arrêtent l'une après l'autre sur ce que la caisse contient. Chaque caisse contient 2 à 8 diamants, 6 à 12 lingots d'or et un objet de son rang. Elle disparaît une fois vidée, ou au bout de 10 minutes.
+Des caisses apparaissent au hasard sur la map, chacune sous un parachute à la couleur de son rang. Leurs coordonnées sont annoncées à tous, et un faisceau de balise de la même couleur part de sous chaque caisse jusqu'au ciel. On ouvre une caisse d'un clic dessus : à la première ouverture, trois roulettes tournent comme une machine à sous (les diamants, l'objet, l'or) et s'arrêtent l'une après l'autre sur ce que la caisse contient. Chaque caisse contient 2 à 8 diamants, 6 à 12 lingots d'or et un objet de son rang. Elle disparaît une fois vidée, ou au bout de 10 minutes.
 
 Le rang est tiré au sort : rang 1 (45 %), rang 2 (35 %), rang 3 (19 %), rang 4 (1 %). Les objets ont un nombre d'utilisations compté, affiché sur l'objet.
 

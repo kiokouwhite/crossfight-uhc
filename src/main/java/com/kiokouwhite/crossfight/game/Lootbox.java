@@ -153,6 +153,8 @@ public final class Lootbox implements Listener {
         final Map<Integer, ItemStack> prix = new LinkedHashMap<>();
         /** Le tier dont la fenetre a la couleur (pendant la roulette, elle passe par les quatre). */
         int couleur;
+        /** Les blocs de son faisceau (le socle de fer, la balise, le verre teinte), vides si elle n'en a pas. */
+        final List<Block> faisceau = new ArrayList<>();
 
         Box(Block block, int tier) {
             this.block = block;
@@ -182,6 +184,12 @@ public final class Lootbox implements Listener {
     private static final char RECUL = '\uE2AF', FENETRE = '\uE2A0';
     /** Les couleurs des tiers en codes de texte, pour le titre sans le pack. */
     private static final char[] LEGACY = {'f', 'b', 'd', '6'};
+
+    /** Le verre teinte au-dessus de la balise de chaque tier : il donne au faisceau la couleur du tier. */
+    private static final Material[] VERRES = {Material.WHITE_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.PURPLE_STAINED_GLASS, Material.YELLOW_STAINED_GLASS};
+    /** Les blocs des faisceaux : ce qu'il y avait avant, et combien de lootbox s'en servent (deux socles voisins se touchent). */
+    private final Map<Block, org.bukkit.block.data.BlockData> avant = new HashMap<>();
+    private final Map<Block, Integer> usages = new HashMap<>();
 
     /** Les lootbox posees, par bloc. */
     private final Map<Block, Box> boxes = new HashMap<>();
@@ -738,7 +746,7 @@ public final class Lootbox implements Listener {
     }
 
     /**
-     * Pose une lootbox de ce tier (au hasard si 0) a cet endroit, avec son contenu et sa colonne de lumiere. Son coffre
+     * Pose une lootbox de ce tier (au hasard si 0) a cet endroit, avec son contenu et son faisceau de balise. Son coffre
      * fait face a la direction opposee au regard de {@code at} (devant un joueur : tourne vers lui).
      */
     public boolean place(Location at, int tier) {
@@ -790,6 +798,7 @@ public final class Lootbox implements Listener {
         });
         // Les affichages ne sont pas sauvegardes : le tronçon reste charge tant que la lootbox est la.
         b.getChunk().addPluginChunkTicket(plugin);
+        faisceau(box);
         boxes.put(b, box);
         beam(box);
         Bukkit.getScheduler().runTaskLater(plugin, () -> remove(box), BOX_LIFE);
@@ -828,7 +837,58 @@ public final class Lootbox implements Listener {
         for (ItemStack rest : p.getInventory().addItem(gifts.toArray(new ItemStack[0])).values()) p.getWorld().dropItemNaturally(p.getLocation(), rest);
     }
 
-    /** La colonne de lumiere qui signale une lootbox de loin, a la couleur de son tier. */
+    /**
+     * Le faisceau d'une lootbox, comme celui d'une balise : le bloc sous elle devient du verre teinte a la couleur de son
+     * tier, avec dessous une balise et son socle de neuf blocs de fer. Le faisceau monte de la, a travers la lootbox,
+     * jusqu'au ciel (s'il ne rencontre pas de bloc opaque). Ce qu'il y avait la est retenu et remis quand la lootbox
+     * disparait ; ces blocs ne se cassent pas, ne sautent pas et ne se poussent pas, et la balise ne s'ouvre pas.
+     * Rien n'est pose (faux, et la colonne de particules le remplace) si la place manque : le bas du monde, un coffre ou
+     * un bloc incassable, ou le faisceau d'une autre lootbox qui voudrait un autre bloc au meme endroit.
+     */
+    private boolean faisceau(Box box) {
+        Block sous = box.block.getRelative(BlockFace.DOWN);
+        if (sous.getY() - 2 < sous.getWorld().getMinHeight()) return false;
+        Map<Block, Material> plan = new LinkedHashMap<>();
+        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) plan.put(sous.getRelative(dx, -2, dz), Material.IRON_BLOCK);
+        plan.put(sous.getRelative(BlockFace.DOWN), Material.BEACON);
+        plan.put(sous, VERRES[box.tier - 1]);
+        for (var e : plan.entrySet()) {
+            Block k = e.getKey();
+            if (usages.containsKey(k)) {
+                if (k.getType() != e.getValue()) return false;
+                continue;
+            }
+            if (boxes.containsKey(k) || k.getState() instanceof org.bukkit.block.TileState || k.getType().getHardness() < 0) return false;
+        }
+        for (var e : plan.entrySet()) {
+            Block k = e.getKey();
+            if (!usages.containsKey(k)) {
+                avant.put(k, k.getBlockData());
+                k.setType(e.getValue(), false);
+            }
+            usages.merge(k, 1, Integer::sum);
+            box.faisceau.add(k);
+        }
+        return true;
+    }
+
+    /** Les blocs du faisceau remis comme avant (le verre d'abord, le socle ensuite), sauf ceux d'une autre lootbox. */
+    private void eteindre(Box box) {
+        for (int i = box.faisceau.size() - 1; i >= 0; i--) {
+            Block k = box.faisceau.get(i);
+            int n = usages.merge(k, -1, Integer::sum);
+            if (n > 0) continue;
+            usages.remove(k);
+            var d = avant.remove(k);
+            if (d != null) k.setBlockData(d, false);
+        }
+        box.faisceau.clear();
+    }
+
+    /**
+     * La surveillance d'une lootbox ; et, si elle n'a pas de faisceau de balise, une colonne de particules a la couleur
+     * de son tier, qui la signale de loin.
+     */
     private void beam(Box box) {
         Particle.DustOptions dust = new Particle.DustOptions(TIER_BEAM[box.tier - 1], 2.2f);
         new BukkitRunnable() {
@@ -841,6 +901,7 @@ public final class Lootbox implements Listener {
                     cancel();
                     return;
                 }
+                if (!box.faisceau.isEmpty()) return;
                 // Au-dessus du parachute.
                 Location base = box.block.getLocation().add(0.5, 3.0, 0.5);
                 for (int y = 0; y < 40; y += 2) base.getWorld().spawnParticle(Particle.DUST, base.clone().add(0, y, 0), 1, 0.05, 0.3, 0.05, 0, dust, true);
@@ -856,6 +917,7 @@ public final class Lootbox implements Listener {
         if (box.chute != null) box.chute.remove();
         if (box.hit != null) box.hit.remove();
         if (box.block.getType() == Material.BARRIER) box.block.setType(Material.AIR);
+        eteindre(box);
         // Le tronçon peut se decharger s'il n'a plus d'autre lootbox.
         if (boxes.keySet().stream().noneMatch(o -> o.getWorld() == box.block.getWorld() && (o.getX() >> 4) == (box.block.getX() >> 4) && (o.getZ() >> 4) == (box.block.getZ() >> 4)))
             box.block.getChunk().removePluginChunkTicket(plugin);
@@ -882,7 +944,10 @@ public final class Lootbox implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onClickBarrier(PlayerInteractEvent e) {
-        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getHand() != EquipmentSlot.HAND || e.getClickedBlock() == null) return;
+        if (e.getAction() != Action.RIGHT_CLICK_BLOCK || e.getClickedBlock() == null) return;
+        // La balise d'un faisceau ne s'ouvre pas.
+        if (usages.containsKey(e.getClickedBlock()) && e.getClickedBlock().getType() == Material.BEACON) { e.setCancelled(true); return; }
+        if (e.getHand() != EquipmentSlot.HAND) return;
         Box box = boxes.get(e.getClickedBlock());
         if (box == null) return;
         e.setCancelled(true);
@@ -1056,10 +1121,33 @@ public final class Lootbox implements Listener {
         else box.block.getWorld().playSound(box.block.getLocation().add(0.5, 0.5, 0.5), Sound.BLOCK_CHEST_CLOSE, 0.6f, 1f);
     }
 
-    /** La barriere cassee (en creatif) : la lootbox disparait avec. */
+    /** La barriere cassee (en creatif) : la lootbox disparait avec. Les blocs d'un faisceau ne se cassent pas. */
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent e) {
+        if (usages.containsKey(e.getBlock())) { e.setCancelled(true); return; }
         Box box = boxes.get(e.getBlock());
         if (box != null) Bukkit.getScheduler().runTask(plugin, () -> remove(box));
+    }
+
+    /** Les blocs d'un faisceau ne sautent pas... */
+    @EventHandler(ignoreCancelled = true)
+    public void onExplode(org.bukkit.event.entity.EntityExplodeEvent e) {
+        e.blockList().removeIf(usages::containsKey);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBlockExplode(org.bukkit.event.block.BlockExplodeEvent e) {
+        e.blockList().removeIf(usages::containsKey);
+    }
+
+    /** ... et ne se poussent ni ne se tirent. */
+    @EventHandler(ignoreCancelled = true)
+    public void onPistonPush(org.bukkit.event.block.BlockPistonExtendEvent e) {
+        if (e.getBlocks().stream().anyMatch(usages::containsKey)) e.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPistonPull(org.bukkit.event.block.BlockPistonRetractEvent e) {
+        if (e.getBlocks().stream().anyMatch(usages::containsKey)) e.setCancelled(true);
     }
 }
