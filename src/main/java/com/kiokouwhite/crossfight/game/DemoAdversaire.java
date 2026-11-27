@@ -37,12 +37,17 @@ import java.util.UUID;
  *   <li>charisme : un allie, cette fois. Marth (son skin, sa Falchion, un faux pseudo) marche a cote du joueur, a sa
  *   droite, a son allure ; tant que le joueur est a 10 blocs de lui au plus, il a Vitesse, et la carte du Charisme de
  *   Marth (allie) a droite de l'ecran, comme en partie (Marth.Charisme).</li>
+ *   <li>leader : Marth marche a cote du joueur comme pour charisme, ses coeurs sous son nom ; tant qu'il a plus de
+ *   5 coeurs, son Esprit du Leader donne Force au joueur (et sa carte a droite). Un adversaire attend devant : frappe-le
+ *   et il s'en prend a Marth, un coeur par coup, jusqu'a ce qu'il passe sous 5 coeurs ; la Force et la carte s'en vont
+ *   des que Marth n'a plus que 5 coeurs. Frappe l'adversaire de nouveau : Marth retrouve ses 10 coeurs, et ca
+ *   recommence.</li>
  * </ul>
  */
 public final class DemoAdversaire implements Listener {
 
     public static final String TAG = "cf_demo_adversaire";
-    public static final List<String> MODES = List.of("contre", "falchion", "charisme");
+    public static final List<String> MODES = List.of("contre", "falchion", "charisme", "leader");
 
     private static final Map<UUID, Demo> DEMOS = new HashMap<>();
     private static final Random RND = new Random();
@@ -61,10 +66,17 @@ public final class DemoAdversaire implements Listener {
      * par tick : le joueur qui court avec Vitesse va a 0,4 environ), et la portee du Charisme (blocs).
      */
     private static final double A_DROITE = 1.6, EN_AVANT = 0.4, ALLURE_MAX = 0.6, PORTEE_CHARISME = 10.0, AVANCE = 4.0;
+    /**
+     * Leader : la vie de Marth (10 coeurs), le seuil de l'Esprit du Leader (Force tant qu'il a PLUS de 5 coeurs), ou
+     * l'adversaire s'arrete (sous 5 coeurs : 4), et ce que lui retire chaque coup (un coeur), tous les CADENCE ticks.
+     */
+    private static final double VIE_MARTH = 20.0, SEUIL_LEADER = 10.0, PLANCHER_MARTH = 8.0, COUP_MARTH = 2.0;
 
     private static final class Demo {
         final Mannequin corps;
         final String mode, perso, pseudo;
+        /** Leader : Marth, l'allie que l'adversaire (le corps) vient frapper. */
+        Mannequin allie;
         boolean combat;
         int attente;
         /** Charisme : ou etait le joueur au tick d'avant (son pas, que Marth reprend pour rester a sa hauteur). */
@@ -74,13 +86,17 @@ public final class DemoAdversaire implements Listener {
         void retirer() {
             if (tache != null) tache.cancel();
             if (corps.isValid()) corps.remove();
+            if (allie != null && allie.isValid()) allie.remove();
         }
     }
 
     /** Les adversaires de demonstration : l'uuid de leur corps (leur entree d'equipe), et le personnage de leur skin. */
     public static Map<String, String> tetes() {
         Map<String, String> out = new HashMap<>();
-        for (Demo d : DEMOS.values()) if (d.corps.isValid() && d.perso != null) out.put(d.corps.getUniqueId().toString(), d.perso);
+        for (Demo d : DEMOS.values()) {
+            if (d.corps.isValid() && d.perso != null) out.put(d.corps.getUniqueId().toString(), d.perso);
+            if (d.allie != null && d.allie.isValid()) out.put(d.allie.getUniqueId().toString(), "marth");
+        }
         return out;
     }
 
@@ -107,11 +123,17 @@ public final class DemoAdversaire implements Listener {
         if (!avecModele.isEmpty()) ids = avecModele;
         String perso = mode.equals("charisme") ? "marth" : ids.isEmpty() ? null : ids.get(RND.nextInt(ids.size()));
         Demo d = new Demo(spawn(p, perso, mode.equals("charisme") ? cote(p) : place(p)), mode, perso, pseudo());
-        if (mode.equals("charisme")) {
-            // Marth tient sa Falchion (son modele 3D avec le pack prive).
-            var marth = CrossfightPlugin.get().characters().character("marth");
-            var eq = d.corps.getEquipment();
-            if (marth != null && eq != null) eq.setItemInMainHand(marth.createWeapon());
+        if (mode.equals("charisme")) falchion(d.corps);
+        if (mode.equals("leader")) {
+            // Marth, a cote du joueur : 10 coeurs, sa Falchion, un faux pseudo, ses coeurs sous son nom.
+            d.allie = spawn(p, "marth", cote(p));
+            falchion(d.allie);
+            var vie = d.allie.getAttribute(Attribute.MAX_HEALTH);
+            if (vie != null) vie.setBaseValue(VIE_MARTH);
+            d.allie.setHealth(VIE_MARTH);
+            d.allie.customName(net.kyori.adventure.text.Component.text(pseudo()));
+            d.allie.setCustomNameVisible(true);
+            coeurs(d.allie);
         }
         afficher(d);
         d.tache = Bukkit.getScheduler().runTaskTimer(CrossfightPlugin.get(), () -> tick(p, d), 1L, 1L);
@@ -153,7 +175,63 @@ public final class DemoAdversaire implements Listener {
         Mannequin m = d.corps;
         if (!p.isOnline() || !m.isValid()) { d.retirer(); DEMOS.remove(p.getUniqueId(), d); return; }
         if (d.mode.equals("falchion")) combat(p, d);
-        if (d.mode.equals("charisme")) escorte(p, d);
+        if (d.mode.equals("charisme")) {
+            escorte(p, d, m);
+            if (!p.isDead() && m.getLocation().distanceSquared(p.getLocation()) <= PORTEE_CHARISME * PORTEE_CHARISME) {
+                com.kiokouwhite.crossfight.util.Effects.refresh(p, org.bukkit.potion.PotionEffectType.SPEED, 0, 45);
+                com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, "marth_charisme", true, 45);
+            }
+        }
+        if (d.mode.equals("leader")) leader(p, d);
+    }
+
+    /** Marth tient sa Falchion (son modele 3D avec le pack prive). */
+    private static void falchion(Mannequin m) {
+        var marth = CrossfightPlugin.get().characters().character("marth");
+        var eq = m.getEquipment();
+        if (marth != null && eq != null) eq.setItemInMainHand(marth.createWeapon());
+    }
+
+    /** Les coeurs de Marth sous son nom : pleins en rouge, perdus en gris. */
+    private static void coeurs(Mannequin m) {
+        int pleins = (int) Math.ceil(m.getHealth() / 2.0);
+        m.setDescription(net.kyori.adventure.text.Component.text("❤".repeat(Math.max(0, pleins)), net.kyori.adventure.text.format.NamedTextColor.RED)
+                .append(net.kyori.adventure.text.Component.text("❤".repeat(Math.max(0, 10 - pleins)), net.kyori.adventure.text.format.NamedTextColor.DARK_GRAY)));
+    }
+
+    /**
+     * Leader, chaque tick : Marth marche a cote du joueur ; tant qu'il a plus de 5 coeurs, Force et la carte de
+     * l'Esprit du Leader pour le joueur (des qu'il n'en a plus que 5, elles s'en vont aussitot) ; en combat,
+     * l'adversaire va jusqu'a Marth et le frappe, un coeur par coup, jusqu'a 4 coeurs.
+     */
+    private static void leader(Player p, Demo d) {
+        Mannequin marth = d.allie, ennemi = d.corps;
+        if (marth == null || !marth.isValid()) { d.retirer(); DEMOS.remove(p.getUniqueId(), d); return; }
+        escorte(p, d, marth);
+        boolean force = marth.getHealth() > SEUIL_LEADER && !p.isDead();
+        if (force) {
+            com.kiokouwhite.crossfight.util.Effects.refresh(p, org.bukkit.potion.PotionEffectType.STRENGTH, 0, 45);
+            com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, "marth_leader", true, 45);
+        } else if (d.combat || marth.getHealth() <= SEUIL_LEADER) {
+            var fx = p.getPotionEffect(org.bukkit.potion.PotionEffectType.STRENGTH);
+            if (fx != null && fx.getAmplifier() == 0 && !fx.hasParticles()) p.removePotionEffect(org.bukkit.potion.PotionEffectType.STRENGTH);
+            com.kiokouwhite.crossfight.hud.InfluenceHud.threatEnd(p, "marth_leader");
+        }
+        if (!d.combat || !ennemi.getWorld().equals(marth.getWorld())) return;
+        if (marth.getHealth() <= PLANCHER_MARTH) { d.combat = false; return; }
+        face(ennemi, marth);
+        double dist = ennemi.getLocation().distance(marth.getLocation());
+        if (dist > 2.0) avance(ennemi, marth, 0.26);
+        if (d.attente == 4 && dist <= 3.6) armer(d, marth);
+        if (d.attente == 3 && dist <= 3.4) avance(ennemi, marth, 0.3);
+        if (d.attente > 0) { d.attente--; return; }
+        if (dist <= 3.0) {
+            frappe(d, marth, 0.01);
+            marth.setHealth(Math.max(PLANCHER_MARTH, Math.min(marth.getHealth(), VIE_MARTH) - COUP_MARTH));
+            coeurs(marth);
+            if (marth.getHealth() <= PLANCHER_MARTH) d.combat = false;
+            d.attente = CADENCE;
+        }
     }
 
     /**
@@ -161,8 +239,7 @@ public final class DemoAdversaire implements Listener {
      * coup s'il est trop loin ou dans un autre monde). Le joueur a moins de 10 blocs de lui a Vitesse et la carte du
      * Charisme, entretenues comme par le passif (elles tiennent un peu plus de 2 s quand il s'eloigne).
      */
-    private static void escorte(Player p, Demo d) {
-        Mannequin m = d.corps;
+    private static void escorte(Player p, Demo d, Mannequin m) {
         // Le pas du joueur (ce qu'il a parcouru depuis le tick d'avant) : Marth le reprend pour marcher a sa hauteur.
         Vector pas = d.dernier != null && d.dernier.getWorld() == p.getWorld()
                 ? p.getLocation().toVector().subtract(d.dernier.toVector()).setY(0) : new Vector();
@@ -188,10 +265,6 @@ public final class DemoAdversaire implements Listener {
         float yaw = p.getLocation().getYaw();
         if (dist > 0.4) { Location look = m.getLocation().clone(); look.setDirection(v.clone().setY(0)); yaw = look.getYaw(); }
         m.setRotation(yaw, 0f);
-        if (!p.isDead() && m.getLocation().distanceSquared(p.getLocation()) <= PORTEE_CHARISME * PORTEE_CHARISME) {
-            com.kiokouwhite.crossfight.util.Effects.refresh(p, org.bukkit.potion.PotionEffectType.SPEED, 0, 45);
-            com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, "marth_charisme", true, 45);
-        }
     }
 
     /** La place de Marth en escorte : a droite du joueur, un peu devant, a sa hauteur, tourne comme lui. */
@@ -232,12 +305,28 @@ public final class DemoAdversaire implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Mannequin m) || !m.getScoreboardTags().contains(TAG)) return;
+        // Marth (leader) : seuls les coups de l'adversaire le touchent, et ses coeurs sont comptes par leader().
+        for (Demo x : DEMOS.values()) {
+            if (x.allie == m) {
+                if (e.getDamager() != x.corps) e.setCancelled(true);
+                return;
+            }
+        }
         Bukkit.getScheduler().runTask(CrossfightPlugin.get(), () -> { if (m.isValid()) m.setHealth(VIE); });
         Demo d = null;
         for (Demo x : DEMOS.values()) if (x.corps == m) d = x;
         if (d == null) return;
         if (!(com.kiokouwhite.crossfight.listener.DamageListener.livingAttackerOf(e.getDamager()) instanceof Player p)) return;
-        if (DEMOS.get(p.getUniqueId()) != d || !d.mode.equals("falchion") || d.combat || p.getHealth() <= PLANCHER) return;
+        if (DEMOS.get(p.getUniqueId()) != d) return;
+        if (d.mode.equals("leader")) {
+            // Frappe : il s'en prend a Marth. Si Marth est deja sous 5 coeurs, il retrouve d'abord ses 10 coeurs.
+            if (d.combat || d.allie == null || !d.allie.isValid()) return;
+            if (d.allie.getHealth() <= SEUIL_LEADER) { d.allie.setHealth(VIE_MARTH); coeurs(d.allie); }
+            d.combat = true;
+            d.attente = 10;
+            return;
+        }
+        if (!d.mode.equals("falchion") || d.combat || p.getHealth() <= PLANCHER) return;
         d.combat = true;
         d.attente = 6;
     }
@@ -276,7 +365,7 @@ public final class DemoAdversaire implements Listener {
      * Il arme son coup : son modele articule (le meme que celui des animations de capacites) prend la place du
      * mannequin, l'epee levee au-dessus de l'epaule droite. Sans le modele dans le pack, rien (le bras balancera).
      */
-    private static void armer(Demo d, Player p) {
+    private static void armer(Demo d, org.bukkit.entity.LivingEntity p) {
         Mannequin m = d.corps;
         if (!m.isValid() || d.perso == null || !com.kiokouwhite.crossfight.util.Puppet.available(d.perso)) return;
         face(m, p);
@@ -289,7 +378,7 @@ public final class DemoAdversaire implements Listener {
      * Un coup d'epee qui se voit : le modele articule tranche en grande diagonale (sinon le bras du mannequin balance),
      * l'arc blanc du coup de taille entre les deux, le son d'un coup d'epee appuye, puis le coup lui-meme.
      */
-    private static void frappe(Demo d, Player p, double degats) {
+    private static void frappe(Demo d, org.bukkit.entity.LivingEntity p, double degats) {
         Mannequin m = d.corps;
         face(m, p);
         var pu = com.kiokouwhite.crossfight.util.Puppet.of(m);
@@ -307,7 +396,7 @@ public final class DemoAdversaire implements Listener {
         m.setHealth(VIE);
     }
 
-    private static void avance(Mannequin m, Player p, double vitesse) {
+    private static void avance(Mannequin m, org.bukkit.entity.LivingEntity p, double vitesse) {
         Vector vers = p.getLocation().toVector().subtract(m.getLocation().toVector()).setY(0);
         if (vers.lengthSquared() < 1e-4) return;
         Vector v = vers.normalize().multiply(vitesse);
@@ -340,7 +429,7 @@ public final class DemoAdversaire implements Listener {
         return at;
     }
 
-    private static void face(Mannequin m, Player p) {
+    private static void face(Mannequin m, org.bukkit.entity.LivingEntity p) {
         Vector d = p.getEyeLocation().toVector().subtract(m.getEyeLocation().toVector());
         if (d.lengthSquared() < 1e-4) return;
         Location look = m.getLocation().clone();

@@ -165,6 +165,14 @@ public final class InfluenceHud {
         inf.touched = now;
     }
 
+    /** La carte posee par {@link #threat} s'en va tout de suite (l'effet qu'elle annoncait vient de cesser). */
+    public static void threatEnd(Player target, String id) {
+        if (target == null || id == null) return;
+        var map = BY.get(target.getUniqueId());
+        Influence inf = map == null ? null : map.get(id);
+        if (inf != null) inf.keys.remove("avert");
+    }
+
     private static final ThreadLocal<Boolean> LOOPING = ThreadLocal.withInitial(() -> false);
 
     /** Le temps qui reste a une carte : la plus lointaine de ses fins connues ; 0 (pas de compte a rebours) si elle est tenue ou entretenue sans fin. */
