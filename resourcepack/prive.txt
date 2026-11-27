@@ -1053,6 +1053,7 @@ skin.weiss
 skin.weiss_gris
 skin.yang
 skin.yang_gris
+skin.yuki
 voice.arlo_barriere 730
 voice.arlo_barriere_ultime 2050
 voice.arlo_enfermement 900

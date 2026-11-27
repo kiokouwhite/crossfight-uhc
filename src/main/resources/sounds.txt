@@ -1336,6 +1336,7 @@ skin.weiss
 skin.weiss_gris
 skin.yang
 skin.yang_gris
+skin.yuki
 voice.arlo_barriere
 voice.arlo_barriere_ultime
 voice.arlo_enfermement
