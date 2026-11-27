@@ -100,6 +100,9 @@ def spark(im, x, y):
 # Les passifs a compteur : ni fleche ni croix. A leur place, en bas a droite de la case, une fenetre transparente
 # ou se voit un badge porte par l'image de l'orbe (tools/build_ultime_franuka.py : la Force d'Elimination Morale).
 COUNTERS = {"eren_morale"}
+# Les passifs qui ne font que se declencher (le vol de vie de l'Embleme de Feu de Byleth, a chaque coup) : pas de croix
+# au repos ni quand ils s'eteignent, la fleche seulement quand ils agissent (hud/PassiveHud.SANS_CROIX, sans son).
+SANS_CROIX = {"byleth_embleme"}
 COUNTER_W = 36      # la largeur de la fenetre du badge, en partant du bord droit de la case (+2)
 
 
@@ -317,7 +320,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon
             if sparkle:
                 spark(im, ax + BADGE - 1, ay + dy + 2)
                 spark(im, ax + 2, ay + dy + 6)
-        elif not lit and cross and i == only:
+        elif not lit and cross and i == only and a["id"] not in SANS_CROIX:
             size, dx, glow = CROSS[cross - 1]
             cx, cy = ax + BADGE // 2 + dx, ay + BADGE // 2
             if glow:      # un halo rouge qui claque derriere la croix
@@ -330,7 +333,7 @@ def render(character, mask, text, rec, font, frame=0, cross=0, only=None, weapon
             big = build_icones.icon_of("Objets 136", 32)
             big = big.crop(big.getbbox()).resize((n, n), Image.NEAREST)
             im.alpha_composite(big, (cx - n // 2, cy - n // 2))
-        else:
+        elif lit or a["id"] not in SANS_CROIX:
             im.alpha_composite(arrow, (ax, ay))
         if text:
             tx = MARGIN + CELL + 6
@@ -464,6 +467,8 @@ def main():
                 # allume (<perso>_<allumes>_<texte>_<i>_<etape>), sa croix s'il est eteint (..._x<i>_<etape>).
                 for i in range(len(passives(c))):
                     lit = mask & (1 << i)
+                    if not lit and passives(c)[i]["id"] in SANS_CROIX:
+                        continue          # pas de croix qui claque : rien a animer quand il s'eteint
                     for frame in range(1, len(FRAMES if lit else CROSS) + 1):
                         kw = dict(frame=frame, only=i, weapon=weapon, allies=allies, variant=v, tv=tv) if lit else dict(cross=frame, only=i, weapon=weapon, allies=allies, variant=v, tv=tv)
                         jobs.append((render, (c, mask, text, rec, font), kw, OUT / f"{c['id']}_{tag}_{code}{v}{tv}_{'' if lit else 'x'}{i}_{frame}.png", job_key(ing, mask, text, weapon, allies, v, tv, i, frame, bool(lit))))

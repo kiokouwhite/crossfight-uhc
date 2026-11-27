@@ -38,6 +38,11 @@ public final class PassiveHud {
     /** Les passifs qui agissent aussi sur des allies (seconde fleche) : ceux qui le peuvent sont dans tools/build_passifs.py (ALLY_PASSIVES). */
     private static final Map<UUID, Set<String>> ALLIES = new HashMap<>();
     public static final Set<String> ALLY_PASSIVES = Set.of("marth_charisme", "marth_leader", "byleth_embleme");
+    /**
+     * Les passifs qui ne font que se declencher (le vol de vie de l'Embleme de Feu de Byleth) : ni croix au repos ni
+     * quand ils s'eteignent, la fleche seulement quand ils agissent, et sans son (tools/build_passifs.py, SANS_CROIX).
+     */
+    public static final Set<String> SANS_CROIX = Set.of("byleth_embleme");
     /** Les passifs allumes au dernier passage, et le debut de l'animation de la fleche (un passif vient de s'allumer). */
     private static final Map<UUID, Set<String>> WAS_LIT = new HashMap<>();
     private static final Map<UUID, Long> ANIM = new HashMap<>();
@@ -155,6 +160,11 @@ public final class PassiveHud {
                 String id = list.get(i).id();
                 boolean on = now.contains(id), was = before.contains(id);
                 if (on == was) continue;
+                if (SANS_CROIX.contains(id)) {
+                    // La fleche monte, en silence ; rien quand il s'eteint.
+                    if (on) { ANIM.put(p.getUniqueId(), System.currentTimeMillis()); ANIM_INDEX.put(p.getUniqueId(), i); }
+                    continue;
+                }
                 ANIM.put(p.getUniqueId(), System.currentTimeMillis());
                 ANIM_INDEX.put(p.getUniqueId(), on ? i : -1 - i);
                 if (on) {
