@@ -30,7 +30,7 @@ TITLE_ALLY, TITLE_ENEMY = (160, 200, 255, 255), (255, 150, 130, 255)
 # Ce que la capacite d'un allie te fait, dit pour toi. A defaut, la description de la capacite.
 FOR_YOU = {
     "duo_ruby_weiss": "Vous êtes sur la patinoire d'Ice Flower : Vitesse III tant que vous y restez.",
-    "marth_charisme": "Vous donne l'effet Vitesse tant que vous êtes à moins de 10 blocs de Marth.",
+    "marth_charisme": "Tant que vous êtes à moins de 10 blocs de Marth, vous avez Vitesse.",
     "marth_leader": "Tant que Marth a plus de 5 cœurs, vous avez Force.",
     "marth_ult": "Marth a touché des ennemis avec Coup Critique : vous avez Force (un niveau par ennemi touché) pendant 1 minute.",
     "corrin_gardien": "Corrin est à moins de 10 blocs de vous : elle a Résistance.",
@@ -48,7 +48,7 @@ FOR_YOU = {
 # La version courte (reglage Textes courts) de ce qu'un allie te fait ; a defaut, le texte court de la capacite.
 FOR_YOU_SHORT = {
     "duo_ruby_weiss": "Ice Flower : Vitesse III",
-    "marth_charisme": "Vous donne l'effet Vitesse",
+    "marth_charisme": "Vitesse près de Marth (10 blocs)",
     "marth_leader": "Force tant que Marth a > 5 PV",
     "marth_ult": "Force 1 min (Coup Critique)",
     "corrin_gardien": "Corrin près de vous : elle a Résistance",
