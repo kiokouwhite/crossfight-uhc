@@ -87,15 +87,159 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
         BleedingSnow() { super("yuki_snow", "Bleeding Snow", "Clic droit : Yuki perd 2 coeurs mais gagne Force, Vitesse et Resistance pendant 10 secondes.", Material.IRON_SWORD, 15); }
         @Override public List<String> weaponLore() { return List.of("<white>Clic droit : <gray>-2 coeurs, Force, Vitesse, Resistance 10 s"); }
         @Override public boolean activate(Player p, CfPlayer cf, AbilityState st) {
-            p.setHealth(Math.max(1.0, p.getHealth() - 4.0));
-            p.damage(0.01);
             Boosts.set(p, "yuki_snow", new Boosts.Boost(1, 1, 1, 0));
             Bukkit.getScheduler().runTaskLater(Solo.plugin(), () -> Boosts.remove(p, "yuki_snow"), 200L);
-            p.getWorld().spawnParticle(Particle.DUST, p.getLocation().add(0, 1, 0), 30, 0.4, 0.6, 0.4, 0, new Particle.DustOptions(Color.fromRGB(200, 20, 40), 1.0f));
-            p.getWorld().spawnParticle(Particle.SNOWFLAKE, p.getLocation().add(0, 1, 0), 30, 0.5, 0.7, 0.5, 0.03);
-            p.getWorld().playSound(p.getLocation(), Sound.BLOCK_SNOW_BREAK, 1f, 0.6f);
+            aspirer(p);
             Msg.actionBar(p, "<white>Bleeding Snow : -2 coeurs, bonus 10 s");
             return true;
+        }
+
+        static final Color SANG = Color.fromRGB(140, 0, 16), SANG_VIF = Color.fromRGB(215, 18, 38), NEIGE = Color.fromRGB(235, 245, 255);
+        static final int POULS = 4, ECART = 5, FIN = 20, DUREE = 26;   // en ticks : un coeur arrache tous les 5 ticks
+
+        /**
+         * L'epee boit la vie de Yuki : quatre pulsations (un demi-coeur chacune, le corps secoue, un battement de coeur),
+         * a chacune du sang qui gicle de sa poitrine ; des filets de sang arraches de tout son corps tournoient jusqu'a la
+         * lame, de plus en plus vite, et y blanchissent en neige. A la fin, la lame eclate en neige rouge et blanche.
+         * Pendant ce temps, un voile rouge bat sur l'ecran de Yuki ; elle ne voit pas le sang qui gicle de sa poitrine
+         * (de si pres, il lui cacherait l'ecran), seulement celui qui arrive dans sa lame.
+         */
+        static void aspirer(Player p) {
+            java.util.Random rnd = java.util.concurrent.ThreadLocalRandom.current();
+            // Une goutte : son depart (droite, haut, avant, autour du corps), sa place sur la lame, sa progression, sa
+            // vitesse, l'angle de sa spirale.
+            List<double[]> gouttes = new java.util.ArrayList<>();
+            new BukkitRunnable() {
+                int t = 0;
+                double rouge = 0;
+                @Override public void run() {
+                    if (!p.isValid()) { vignette(p, 0); cancel(); return; }
+                    World w = p.getWorld();
+                    Location base = p.getLocation();
+                    Vector avant = base.getDirection().setY(0);
+                    if (avant.lengthSquared() < 1e-4) avant = new Vector(0, 0, 1);
+                    avant.normalize();
+                    Vector droite = new Vector(-avant.getZ(), 0, avant.getX());
+                    Location main = local(base, droite, avant, 0.37, 0.8, 0.25);
+                    Location poitrine = local(base, droite, avant, 0, 1.2, 0.12);
+
+                    // Les pulsations : un demi-coeur arrache, le corps secoue, le sang gicle.
+                    if (t % ECART == 0 && t / ECART < POULS) {
+                        int i = t / ECART;
+                        p.setHealth(Math.max(1.0, p.getHealth() - 1.0));
+                        if (i == 0) p.damage(0.01); else p.playHurtAnimation(0);
+                        autres(p, Particle.DUST, poitrine, 28, 0.25, 0.35, 0.25, 0, new Particle.DustOptions(SANG_VIF, 1.7f));
+                        autres(p, Particle.BLOCK, poitrine, 16, 0.2, 0.3, 0.2, 0.25, Material.REDSTONE_BLOCK.createBlockData());
+                        autres(p, Particle.DAMAGE_INDICATOR, poitrine, 3, 0.2, 0.2, 0.2, 0.15, null);
+                        // Yuki voit le sang gicler de son dos : derriere ses yeux en premiere personne, devant la camera
+                        // en troisieme.
+                        Location dos = local(base, droite, avant, 0, 1.2, -0.4);
+                        p.spawnParticle(Particle.DUST, dos, 18, 0.28, 0.32, 0.06, 0, new Particle.DustOptions(SANG_VIF, 1.5f));
+                        p.spawnParticle(Particle.BLOCK, dos.clone().add(avant.clone().multiply(-0.1)), 10, 0.25, 0.3, 0.05, 0.05, Material.REDSTONE_BLOCK.createBlockData());
+                        w.playSound(base, Sound.ENTITY_WARDEN_HEARTBEAT, 1.6f, 0.6f + 0.12f * i);
+                        w.playSound(base, Sound.ENTITY_PLAYER_HURT, 0.7f, 0.6f);
+                        rouge = 0.95;
+                    }
+                    if (t % ECART == 2 && t / ECART < POULS) w.playSound(base, Sound.ENTITY_GENERIC_DRINK, 1f, 0.5f);
+
+                    // Les filets de sang : arraches du corps, de plus en plus vite, en spirale jusqu'a la lame.
+                    if (t < FIN - 2) {
+                        for (int k = 0; k < 5; k++) {
+                            double a = rnd.nextDouble() * Math.PI * 2, r = 0.35 + rnd.nextDouble() * 0.3;
+                            gouttes.add(new double[]{Math.cos(a) * r, 0.3 + rnd.nextDouble() * 1.3, Math.sin(a) * r,
+                                    0.15 + rnd.nextDouble() * 1.05, 0, 0.06 + rnd.nextDouble() * 0.04, rnd.nextDouble() * Math.PI * 2});
+                        }
+                    }
+                    for (var it = gouttes.iterator(); it.hasNext(); ) {
+                        double[] g = it.next();
+                        g[5] *= 1.3;
+                        g[4] = Math.min(1, g[4] + g[5]);
+                        double e = g[4] * g[4];
+                        Location depart = local(base, droite, avant, g[0], g[1], g[2]);
+                        Location cible = lame(main, avant, g[3]);
+                        double s = Math.sin(e * Math.PI) * 0.35, ang = g[6] + e * 6;
+                        Location at = depart.clone().add(cible.toVector().subtract(depart.toVector()).multiply(e))
+                                .add(droite.clone().multiply(Math.cos(ang) * s)).add(0, Math.sin(ang) * s, 0);
+                        // Yuki ne voit que la fin de chaque filet, devant elle, pres de la lame.
+                        Particle.DustOptions goutte = new Particle.DustOptions(e > 0.5 ? SANG_VIF : SANG, 1.2f);
+                        if (e > 0.45) w.spawnParticle(Particle.DUST, at, 1, 0, 0, 0, 0, goutte);
+                        else autres(p, Particle.DUST, at, 1, 0, 0, 0, 0, goutte);
+                        if (g[4] >= 1) {
+                            w.spawnParticle(Particle.DUST_COLOR_TRANSITION, cible, 3, 0.05, 0.05, 0.05, 0, new Particle.DustTransition(SANG_VIF, NEIGE, 1.0f));
+                            it.remove();
+                        }
+                    }
+
+                    // La lame se gorge de sang, qui y blanchit en neige.
+                    if (t >= 2 && t <= FIN) {
+                        for (double d = 0.15; d <= 1.3; d += 0.2) {
+                            w.spawnParticle(Particle.DUST_COLOR_TRANSITION, lame(main, avant, d), 1, 0.04, 0.04, 0.04, 0,
+                                    new Particle.DustTransition(SANG_VIF, NEIGE, 0.6f + t / 30f));
+                        }
+                    }
+                    // La fin : la lame eclate en neige rouge et blanche, une onde de sang au sol.
+                    if (t == FIN) {
+                        Location milieu = lame(main, avant, 0.7);
+                        autres(p, Particle.DUST_COLOR_TRANSITION, milieu, 40, 0.35, 0.15, 0.35, 0, new Particle.DustTransition(SANG_VIF, NEIGE, 1.4f));
+                        autres(p, Particle.SNOWFLAKE, milieu, 45, 0.2, 0.2, 0.2, 0.18, null);
+                        p.spawnParticle(Particle.SNOWFLAKE, milieu, 15, 0.2, 0.1, 0.2, 0.08);
+                        w.playSound(base, Sound.BLOCK_SNOW_BREAK, 1f, 0.6f);
+                        w.playSound(base, Sound.ENTITY_EVOKER_CAST_SPELL, 0.9f, 0.6f);
+                        w.playSound(base, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 0.7f);
+                    }
+                    if (t > FIN && t <= FIN + 5) {
+                        double r = (t - FIN) * 0.4;
+                        for (int k = 0; k < 20; k++) {
+                            double a = k * Math.PI / 10;
+                            Location l = base.clone().add(Math.cos(a) * r, 0.1, Math.sin(a) * r);
+                            w.spawnParticle(Particle.DUST, l, 1, 0, 0, 0, 0, new Particle.DustOptions(k % 2 == 0 ? SANG : NEIGE, 1.1f));
+                        }
+                    }
+
+                    vignette(p, rouge);
+                    rouge *= 0.82;
+                    if (++t > DUREE) { vignette(p, 0); cancel(); }
+                }
+            }.runTaskTimer(Solo.plugin(), 0L, 1L);
+        }
+
+        /** Des particules vues par tous sauf le joueur : de si pres, elles lui cacheraient l'ecran. */
+        static <T> void autres(Player p, Particle type, Location at, int n, double dx, double dy, double dz, double v, T data) {
+            for (Player o : at.getWorld().getPlayers()) {
+                if (o.getUniqueId().equals(p.getUniqueId()) || o.getLocation().distanceSquared(at) > 64 * 64) continue;
+                o.spawnParticle(type, at, n, dx, dy, dz, v, data);
+            }
+        }
+
+        /** Un point pres du joueur : x vers sa droite, y vers le haut, z devant lui. */
+        static Location local(Location base, Vector droite, Vector avant, double x, double y, double z) {
+            return base.clone().add(droite.clone().multiply(x)).add(0, y, 0).add(avant.clone().multiply(z));
+        }
+
+        /** Un point de la lame, a d blocs de la main (tenue devant, la pointe un peu relevee). */
+        static Location lame(Location main, Vector avant, double d) {
+            return main.clone().add(avant.clone().multiply(d)).add(0, d * 0.15, 0);
+        }
+
+        /**
+         * Un voile rouge sur l'ecran du joueur seul, de force 0 a 1 : sa bordure du monde (la vraie, copiee) l'avertit
+         * comme s'il en etait tout pres. 0 lui rend la vraie bordure.
+         */
+        static void vignette(Player p, double force) {
+            if (force < 0.03) {
+                if (p.getWorldBorder() != null) p.setWorldBorder(null);
+                return;
+            }
+            org.bukkit.WorldBorder vraie = p.getWorld().getWorldBorder();
+            org.bukkit.WorldBorder b = Bukkit.createWorldBorder();
+            b.setCenter(vraie.getCenter());
+            b.setSize(vraie.getSize());
+            Location l = p.getLocation();
+            double demi = vraie.getSize() / 2;
+            double d = Math.max(1, Math.min(demi - Math.abs(l.getX() - vraie.getCenter().getX()), demi - Math.abs(l.getZ() - vraie.getCenter().getZ())));
+            b.setWarningDistance((int) Math.min(Integer.MAX_VALUE, d / (1 - Math.min(0.97, force))));
+            b.setWarningTime(0);
+            p.setWorldBorder(b);
         }
     }
 
