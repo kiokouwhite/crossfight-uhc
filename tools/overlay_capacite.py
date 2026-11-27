@@ -36,6 +36,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 W, H = 1920, 1080
 FENETRE = (252, 120, 1344, 756)    # la video : x, y, largeur, hauteur (16:9)
 K_CADRE, K_UI, K_BOITE, K_NOM = 4, 4, 3, 8   # un pixel du pack = 4 (cadre, cartouches), 3 (boites du bas) ou 8 (nom)
+TEXTE = 1.2                         # la description, 20 % plus grande que les pixels des boites (un pixel = 3,6)
 ESTOMPE = 260                       # la largeur (pixels) sur laquelle ce qui depasse du cadre s'efface
 FOND_BOITE, FOND_CARTOUCHE = (163, 167, 194), (76, 104, 133)   # le fond clair des boites et des cartouches du pack
 
@@ -83,7 +84,13 @@ def descriptions():
 
 
 def gros(img, k):
-    return img.resize((img.width * k, img.height * k), Image.NEAREST)
+    """L'image agrandie k fois en gros pixels. Pour un k fractionnaire (3,6), chaque pixel fait k pixels, ses bords
+    adoucis (agrandie dix fois plus, puis reduite)."""
+    if float(k).is_integer():
+        k = int(k)
+        return img.resize((img.width * k, img.height * k), Image.NEAREST)
+    fin = img.resize((round(img.width * k * 10), round(img.height * k * 10)), Image.NEAREST)
+    return fin.resize((round(img.width * k), round(img.height * k)), Image.BOX)
 
 
 def texte_pixel(text, police, taille, couleur, ombre, k):
@@ -328,10 +335,10 @@ def composer(cid, a, description):
     boite_d = gros(recolore(nine(boite_px, (fx0 + fw - dx) // K_BOITE + 2 * bm, bh), FOND_BOITE, bs.NAVY), K_BOITE)
     img.alpha_composite(lueur(boite_d, bs.NAVY_DARK, 8), (dx - bm * K_BOITE - 16, by - 16))
     img.alpha_composite(boite_d, (dx - bm * K_BOITE, by))
-    # La description : en gros pixels x3 si elle tient, sinon x2.
+    # La description : TEXTE fois plus grande que les pixels des boites (x3,6) si elle tient, sinon x3, puis plus petite.
     interieur_l = boite_d.width - 2 * (bm + 8) * K_BOITE
     interieur_h = boite_d.height - 2 * (bm + 6) * K_BOITE
-    for k in (K_BOITE, 2):
+    for k in (K_BOITE * TEXTE, K_BOITE, 2 * TEXTE, 2):
         desc = paragraphe(description, bs.UI_TEXT, 12, interieur_l, 11, bs.CREAM, bs.NAVY_DARK, k)
         if desc.height <= interieur_h:
             break
