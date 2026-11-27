@@ -26,6 +26,13 @@ Ce que le script fait de plus qu'une exportation de Blockbench :
     d'affichage qui le posent exactement comme l'image de l'arc de Minecraft, dans la main (à la première et à
     la troisième personne), au sol, dans l'inventaire. La poignée du modèle vient là où est celle de l'image.
 
+Une épée ("genre": "epee", l'Épée du Créateur) : le modèle reste droit dans le pack (pommeau en bas, pointe en haut) ;
+ses réglages d'affichage le penchent comme l'image d'une épée de Minecraft, la poignée dans la main, et le
+réduisent pour qu'il tienne dans la case de l'inventaire.
+
+Un objet de Minecraft que se partagent plusieurs outils (l'épée en diamant : la Sainte-Falchion de
+tools/build_falchion.py et l'Épée du Créateur) garde les cas de chacun.
+
 Ensuite : python3 tools/build_pack.py, puis recompiler le plugin.
 """
 import base64
@@ -45,9 +52,13 @@ NS = "crossfight"
 
 # nom -> objet de Minecraft remplacé, genre, taille en main (troisième personne, première personne),
 # dans l'inventaire, au sol ; pour un arc : le nom du pavé de la corde dans le projet.
+# Pour une épée ("genre": "epee") : le nom des pavés de sa poignée, et sa taille en main par rapport à une épée de
+# Minecraft (dans l'inventaire, au sol, dans un cadre, elle est réduite pour tenir dans la case).
 ARMES = {
     "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee", "epaisseur": 2.5,
                    "tailles": {"tiers": 1.11, "premiere": 0.57, "inventaire": 0.62, "sol": 0.36, "cadre": 0.62}},
+    # L'Épée du Créateur de Byleth (son épée en diamant) : 33 pixels de la pointe du pommeau à celle de la lame.
+    "epee_createur": {"objet": "diamond_sword", "genre": "epee", "poignee": ("poignee_bas", "poignee_haut"), "main": 1.1},
 }
 
 # Les modèles 3D faits par d'autres scripts (tools/build_falchion.py), que le pantin tient aussi : le modèle est
@@ -77,6 +88,14 @@ ARC_POIGNEE_IMAGE = (5.5, 10.5, 8)      # le milieu du bois, dans l'image de l'a
 K = math.sqrt(0.5)
 EN_IMAGE = np.array([[0, K, K], [0, K, -K], [-1, 0, 0]])
 CENTRE = np.array([8.0, 8.0, 8.0])
+
+# L'épée de Minecraft (item/handheld) : ses réglages en main ; sa poignée est à 7,78 pixels sous le milieu de son
+# image, le long de la diagonale (comme dans tools/build_falchion.py).
+EPEE_AFFICHAGE = {
+    "thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": 0.85},
+    "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 3.2, 1.13], "scale": 0.68},
+}
+EPEE_POIGNEE = 7.78
 
 CYAN, BLANC = (0, 241, 255), (255, 255, 255)
 TIRAGES = (2.5, 5.0, 7.5)               # la corde tirée, en pixels, pour les trois états de l'arc bandé
@@ -344,6 +363,35 @@ def affichage_arc(sizes, grip, middle):
     return d
 
 
+def affichage_epee(els, grip, main):
+    """Le modèle droit (pommeau en bas, pointe vers +Y), posé comme l'image d'une épée de Minecraft : un huitième de
+    tour de plus autour de z. En main : `main` fois la taille d'une épée de Minecraft, la poignée du modèle là où est
+    celle de l'image. Dans l'inventaire, au sol, dans un cadre, sur la tête : l'épée entière tient dans la case, son
+    milieu au milieu."""
+    d = {}
+    for ctx, v in EPEE_AFFICHAGE.items():
+        r = [v["rotation"][0], v["rotation"][1], v["rotation"][2] - 45]
+        m = minecraft(r)
+        size = v["scale"] * main
+        target = np.array(v["translation"]) + v["scale"] * (m @ np.array([0.0, -EPEE_POIGNEE, 0.0]))
+        t = target - size * (m @ (np.array(grip) - CENTRE))
+        right = {"rotation": r, "translation": [round(float(x), 3) for x in t], "scale": [round(size, 3)] * 3}
+        # La main gauche : le jeu inverse les rotations y et z, la translation reste la même.
+        left = {"rotation": [r[0], -r[1], -r[2]], "translation": right["translation"], "scale": right["scale"]}
+        d[ctx] = right
+        d[ctx.replace("right", "left")] = left
+    corners = np.vstack([coins(el) for el in els]) - CENTRE
+    middle = (corners.min(axis=0) + corners.max(axis=0)) / 2
+    flat = (rot_z(-45) @ corners.T).T
+    fit = min(1.0, 15.5 / max(np.ptp(flat[:, 0]), np.ptp(flat[:, 1])))
+    for ctx, r, base, k in (("gui", [0, 0, -45], (0, 0, 0), 1.0), ("ground", [0, 0, -45], (0, 2, 0), 0.5),
+                            ("fixed", [0, 180, -45], (0, 0, 0), 1.0), ("head", [0, 180, -45], (0, 13, 7), 1.0)):
+        size = fit * k
+        t = np.array(base) - size * (minecraft(r) @ middle)
+        d[ctx] = {"rotation": r, "translation": [round(float(x), 3) for x in t], "scale": [round(size, 3)] * 3}
+    return d
+
+
 # --------------------------------------------------------------------------- écriture
 
 def construire(name, cfg):
@@ -396,6 +444,18 @@ def construire(name, cfg):
         size = everything.max(axis=0) - everything.min(axis=0)
         print(f"{name} : arc de {size[1]:.1f} px de haut, poignee en ({grip[0]:.2f}, {grip[1]:.2f}, {grip[2]:.2f}), "
               f"corde a z = {(string['from'][2] + string['to'][2]) / 2:.2f}")
+    elif cfg["genre"] == "epee":
+        grips = [el for el in els if el["name"] in cfg["poignee"]]
+        grip = np.mean([coins(el).mean(axis=0) for el in grips], axis=0)
+        grip[0], grip[2] = CENTRE[0], CENTRE[2]          # sur l'axe de la lame
+        model["display"] = affichage_epee(els, grip, cfg["main"])
+        elements = els
+        # Le pantin : comme la Falchion (AUTRES), le modèle droit penche d'un huitième de tour, la poignée sur l'axe.
+        third = EPEE_AFFICHAGE["thirdperson_righthand"]["scale"] * cfg["main"]
+        puppet = (name, [0, round(float(grip[1] - CENTRE[1]), 2), 0], quaternion(minecraft((0, 0, 45))), round(third, 3))
+        everything = np.vstack([coins(el) for el in els])
+        size = everything.max(axis=0) - everything.min(axis=0)
+        print(f"{name} : epee de {size[1]:.1f} px de long, poignee a y = {grip[1]:.2f}, {third:.3f} fois sa taille en main")
     else:
         raise SystemExit(f"{name} : genre '{cfg['genre']}' pas encore pris en charge")
     for i in sorted(used):
@@ -430,6 +490,14 @@ def definition(objet, names):
         else:
             cases.append({"when": name, "model": ref(name)})
     fallback = ARC_VANILLA if objet == "bow" else {"type": "minecraft:model", "model": f"minecraft:item/{objet}"}
+    # Les cas qu'un autre outil a mis sur le même objet sont gardés (tools/build_falchion.py : la Sainte-Falchion
+    # sur l'épée en diamant, comme l'Épée du Créateur).
+    path = OUT / "minecraft" / "items" / f"{objet}.json"
+    if path.exists():
+        old = json.loads(path.read_text(encoding="utf-8")).get("model", {})
+        mine = {c["when"] for c in cases}
+        if old.get("type") == "minecraft:select":
+            cases = [c for c in old.get("cases", []) if c["when"] not in mine and not any(c["when"].startswith(n) for n in names)] + cases
     return {"model": {"type": "minecraft:select", "property": "minecraft:custom_model_data", "index": 0,
                       "cases": cases, "fallback": fallback}}
 
@@ -471,7 +539,7 @@ def main() -> int:
 # --------------------------------------------------------------------------- aperçu
 
 def apercu(out: Path):
-    """Chaque arme vue de profil et de trois quarts, au repos et bandée, sans lancer le jeu."""
+    """Chaque arme vue de trois quarts et de face (de profil pour un arc, au repos et bandé), sans lancer le jeu."""
     sys.path.insert(0, str(ROOT / "tools"))
     import pose_preview as pp
     out.mkdir(parents=True, exist_ok=True)
@@ -487,7 +555,8 @@ def apercu(out: Path):
                 im = im.crop((0, 0, im.width, 64))          # la première image d'une texture animée
             texs[key] = np.array(im)
         panels = []
-        for state in [name] + [f"{name}_tire_{i}" for i in range(len(TIRAGES))]:
+        arc = ARMES[name]["genre"] == "arc"
+        for state in [name] + ([f"{name}_tire_{i}" for i in range(len(TIRAGES))] if arc else []):
             els = json.loads((mod_dir / f"{state}.json").read_text()).get("elements", base["elements"])
             quads = []
             for el in els:
@@ -503,12 +572,20 @@ def apercu(out: Path):
                             m = {"x": rot_x, "y": rot_y, "z": rot_z}[rot["axis"]](rot["angle"])
                             o = np.array(rot["origin"], dtype=float)
                             q = o + m @ (q - o)
-                        # Vue de profil : la profondeur du modèle (z) devient la largeur de l'image.
-                        pts.append(np.array([(q[2] - 8), q[1] - 8, -(q[0] - 8)]) / 16 * 1.25 + np.array([0, 1.0, 0]))
+                        # Un arc, vu de profil : la profondeur du modèle (z) devient la largeur de l'image. Une épée,
+                        # mince en z, se voit de face.
+                        if arc:
+                            pts.append(np.array([(q[2] - 8), q[1] - 8, -(q[0] - 8)]) / 16 * 1.25 + np.array([0, 1.0, 0]))
+                        else:
+                            pts.append(np.array([q[0] - 8, q[1] + 2, q[2] - 8]) / 16 * 0.8)
                     u1, v1, u2, v2 = (x * k for x in f["uv"])
                     v2 = min(v2, tex.shape[0] / tex.shape[1] * 16 * k)
-                    quads.append((pts, [(u1, v1), (u2, v1), (u1, v2), (u2, v2)], tex))
-            for yaw in (0, 40):
+                    # FACES donne les coins haut-gauche, haut-droit, bas-gauche, bas-droit : les sommets 0, 3, 1, 2
+                    # de Minecraft, qui prennent les uv du coin (i + r) % 4 d'une face tournee.
+                    uvc = [(u1, v1), (u1, v2), (u2, v2), (u2, v1)]
+                    r = f.get("rotation", 0) // 90
+                    quads.append((pts, [uvc[(i + r) % 4] for i in (0, 3, 1, 2)], tex))
+            for yaw in ((0, 40) if arc else (0, 35, 90, 180)):
                 panels.append(Image.fromarray(pp.render(quads, yaw, size=(360, 560), scale=170)))
         w, h = panels[0].size
         sheet = Image.new("RGB", (w * len(panels), h), (40, 40, 48))

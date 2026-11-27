@@ -202,9 +202,16 @@ def write():
     items = OUT / "minecraft" / "items"
     items.mkdir(parents=True, exist_ok=True)
     for vanilla, mark in (("iron_sword", "falchion"), ("diamond_sword", "falchion_sainte")):
+        cases = [{"when": mark, "model": {"type": "minecraft:model", "model": f"crossfight:item/{mark}"}}]
+        # Les autres armes sur le même objet (tools/build_armes.py : l'Épée du Créateur, épée en diamant) restent.
+        path = items / f"{vanilla}.json"
+        if path.exists():
+            old = json.loads(path.read_text(encoding="utf-8")).get("model", {})
+            if old.get("type") == "minecraft:select":
+                cases = [c for c in old.get("cases", []) if c["when"] != mark] + cases
         definition = {"model": {
             "type": "minecraft:select", "property": "minecraft:custom_model_data", "index": 0,
-            "cases": [{"when": mark, "model": {"type": "minecraft:model", "model": f"crossfight:item/{mark}"}}],
+            "cases": cases,
             "fallback": {"type": "minecraft:model", "model": f"minecraft:item/{vanilla}"}}}
         (items / f"{vanilla}.json").write_text(json.dumps(definition, indent=1) + "\n", encoding="utf-8")
         made.append(items / f"{vanilla}.json")

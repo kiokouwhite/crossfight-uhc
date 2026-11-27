@@ -1161,6 +1161,7 @@ influence.yuki_snow.e
 influence.yuki_souffrante.e
 influence.yuki_ult.e
 influence.yuki_ult.e.s
+model.epee_createur
 model.falchion
 model.lootbox
 model.yumi_fujin

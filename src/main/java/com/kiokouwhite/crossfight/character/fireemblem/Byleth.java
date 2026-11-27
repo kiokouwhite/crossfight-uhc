@@ -60,7 +60,8 @@ public final class Byleth extends Character implements Listener {
     public ItemStack createWeapon() {
         ItemStack sword = Weapons.melee(Material.DIAMOND_SWORD, 8, "<gold><bold>Epee du Createur", List.of());
         Items.tag(sword, AbilityEngine.ABILITY_KEY, SWORD_ID);
-        return sword;
+        // Le modele 3D retouche dans Blockbench (tools/build_armes.py), si le pack le contient.
+        return com.kiokouwhite.crossfight.util.Models.mark(sword, "epee_createur");
     }
 
     @Override
