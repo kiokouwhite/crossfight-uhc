@@ -50,8 +50,8 @@ RECIPES = {
             ("Charisme", "marth_charisme", "Acolyte 26 bleu-fonce"),
             ("Esprit du Leader", "marth_leader", "Acolyte 9 bleu-fonce"),
             ("Coup Critique", "marth_ult", "Warrior 2 bleu-fonce"),
-            # L'objet de Lootbox de Marth (game/Lootbox.java) : une pierre ronde, orange et rouge, aux reflets de flamme.
-            ("Emblème de Feu (objet)", "marth_embleme", "Objets 7681"),
+            # L'objet de Lootbox de Marth (game/Lootbox.java) : une pierre ronde, rouge, au reflet orange.
+            ("Emblème de Feu (objet)", "marth_embleme", "Objets 568"),
         ],
         "Takumi": [
             ("Contre Rapproché", "takumi_contre", "Warrior 10 cramoisi"),
