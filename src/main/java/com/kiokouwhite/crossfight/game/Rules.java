@@ -60,6 +60,7 @@ public final class Rules {
         toggle("roche-en-cobble", "game.rock-to-cobble", true, "Sous terre, toute roche minee qui n'est pas un minerai donne de la pierre taillee, empilable par 99");
         add("lootbox", "game.events.lootbox", 20, 0, 600, "min", "Minute de l'evenement Lootbox");
         add("lootbox-nombre", "game.lootbox-count", 6, 1, 50, "", "Nombre de Lootbox qui apparaissent");
+        add("embleme-de-feu", "game.fire-emblem-chance", 10, 0, 100, "%", "Chances que Marth trouve l'Embleme de Feu (sa Falchion devient la Sainte-Falchion) dans une Lootbox qu'il ouvre le premier");
         add("regna-ferox", "game.events.regna-ferox", 30, 0, 600, "min", "Minute de l'evenement Regna Ferox");
         add("match-found", "game.events.match-found", 40, 0, 600, "min", "Minute de l'evenement Match Found");
         add("judgement", "game.events.judgement", 50, 0, 600, "min", "Minute de l'evenement Judgement");

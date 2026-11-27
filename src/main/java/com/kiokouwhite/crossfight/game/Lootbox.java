@@ -191,6 +191,14 @@ public final class Lootbox implements Listener {
     private final Map<Block, org.bukkit.block.data.BlockData> avant = new HashMap<>();
     private final Map<Block, Integer> usages = new HashMap<>();
 
+    /**
+     * L'Embleme de Feu : quand Marth ouvre une Lootbox le premier, il a "embleme-de-feu" % de chances (10 par defaut) d'y
+     * trouver en plus cet objet, pose au-dessus de l'objet gagne (case 4) a la fin des roulettes ; s'il n'a ni la
+     * Sainte-Falchion ni deja un Embleme. Utilise par Marth, il change sa Falchion en Sainte-Falchion.
+     */
+    private static final String EMBLEME = "embleme";
+    private static final int CASE_EMBLEME = 4;
+
     /** Les lootbox posees, par bloc. */
     private final Map<Block, Box> boxes = new HashMap<>();
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
@@ -828,6 +836,46 @@ public final class Lootbox implements Listener {
         return it;
     }
 
+    /** L'Embleme de Feu, avec son icone dans le pack complet (tools/build_icones.py : marth_embleme). */
+    public ItemStack embleme() {
+        // Sans le pack complet : une creme de magma, une pierre ronde couleur de feu.
+        ItemStack it = new ItemStack(Material.MAGMA_CREAM);
+        ItemMeta meta = it.getItemMeta();
+        meta.displayName(Msg.mm("<!italic><gold><bold>Embleme de Feu"));
+        meta.lore(List.of(Msg.mm("<!italic><gray>Utilise par Marth, il change sa Falchion"), Msg.mm("<!italic><gray>en Sainte-Falchion.")));
+        if (com.kiokouwhite.crossfight.util.Sounds.has("icone.marth_embleme")) {
+            meta.setItemModel(new NamespacedKey(com.kiokouwhite.crossfight.util.Sounds.NS, "icone/marth_embleme"));
+        }
+        meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, EMBLEME);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    private boolean estEmbleme(ItemStack it) {
+        return it != null && it.hasItemMeta() && EMBLEME.equals(it.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING));
+    }
+
+    private boolean estMarth(Player p) {
+        CfPlayer cf = plugin.players().get(p);
+        return cf != null && cf.character() != null && "marth".equals(cf.character().id());
+    }
+
+    /** Marth utilise l'Embleme de Feu : sa Falchion devient la Sainte-Falchion, l'Embleme disparait. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onEmbleme(PlayerInteractEvent e) {
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        ItemStack it = e.getItem();
+        if (!estEmbleme(it)) return;
+        e.setCancelled(true);
+        Player p = e.getPlayer();
+        if (!estMarth(p)) { Msg.send(p, "<gray>Seul Marth peut eveiller l'Embleme de Feu."); return; }
+        if (com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)) { Msg.send(p, "<gray>Ta Falchion est deja la Sainte-Falchion."); return; }
+        it.setAmount(it.getAmount() - 1);
+        com.kiokouwhite.crossfight.character.fireemblem.Marth.upgrade(p);
+        p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 1.2f);
+        p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 60, 0.4, 0.8, 0.4, 0.4);
+    }
+
     /** Le contenu d'une lootbox de ce tier, donne directement a un joueur (recompense de Regna Ferox). */
     public void reward(Player p, int tier) {
         ThreadLocalRandom r = ThreadLocalRandom.current();
@@ -964,6 +1012,12 @@ public final class Lootbox implements Listener {
         if (box.etat != FERMEE) return;
         box.etat = ROULETTE;
         Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[box.tier - 1] + ">Lootbox tier " + box.tier + "</" + TIER_COLOR[box.tier - 1] + "> !");
+        // Marth, s'il n'a pas encore la Sainte-Falchion ni d'Embleme, peut y trouver l'Embleme de Feu.
+        if (estMarth(p) && !com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)
+                && java.util.Arrays.stream(p.getInventory().getContents()).noneMatch(this::estEmbleme)
+                && ThreadLocalRandom.current().nextInt(100) < plugin.game().rules().value("embleme-de-feu")) {
+            box.prix.put(CASE_EMBLEME, embleme());
+        }
         Bukkit.getScheduler().runTask(plugin, () -> roulette(box));
     }
 
@@ -1095,10 +1149,15 @@ public final class Lootbox implements Listener {
         box.etat = OUVERTE;
         Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
         at.getWorld().playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
+        boolean embleme = box.prix.containsKey(CASE_EMBLEME);
         for (var v : box.inv.getViewers()) {
             if (!(v instanceof Player pl)) continue;
             if (box.tier >= 3) pl.playSound(pl, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1f);
             if (box.tier == 4) pl.playSound(pl, Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
+            if (embleme) {
+                pl.playSound(pl, Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.3f);
+                Msg.send(pl, "<gold><bold>L'Embleme de Feu brille dans la Lootbox !");
+            }
         }
     }
 

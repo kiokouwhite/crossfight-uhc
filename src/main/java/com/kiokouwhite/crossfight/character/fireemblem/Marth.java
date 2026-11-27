@@ -66,6 +66,11 @@ public final class Marth extends Character {
         return sword;
     }
 
+    /** Vrai si la Falchion de ce joueur est deja la Sainte-Falchion. */
+    public static boolean isHoly(Player marth) {
+        return plugin().abilities().state(marth, plugin().characters().character("marth").ability(FALCHION_ID)).get("holy", false);
+    }
+
     /** Transforme la Falchion de Marth en Sainte-Falchion (Embleme de Feu recupere). */
     public static void upgrade(Player marth) {
         var inv = marth.getInventory();

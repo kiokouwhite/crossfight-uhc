@@ -48,5 +48,6 @@ Les outils ne se jettent pas et ne se déplacent pas ; ils disparaissent au lanc
 | `blocage-epee` | non | Sur « oui », avec le combat 1.7 : le clic droit maintenu à l'épée pare la moitié des dégâts (sauf l'épée dont le clic droit lance une capacité) |
 | `lootbox`, `regna-ferox`, `match-found`, `judgement`, `omori` | 20 à 60 min | Minute de chaque événement |
 | `lootbox-nombre` | 6 | Nombre de Lootbox qui apparaissent |
+| `embleme-de-feu` | 10 % | Chances que Marth trouve l'Emblème de Feu dans une Lootbox qu'il ouvre le premier |
 
 La bordure se réduit maintenant d'elle-même : à sa minute, elle passe en `bordure-duree` minutes de son rayon de départ à son rayon final, avec une annonce cinq minutes avant.

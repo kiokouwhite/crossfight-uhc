@@ -405,9 +405,10 @@ public final class CfCommand implements TabExecutor {
                     case "loot" -> {
                         // /cf loot <objet|tous> : recevoir un objet de lootbox (test).
                         if (!(sender instanceof Player p)) return true;
-                        if (args.length < 2) { Msg.send(p, "<yellow>/cf loot <objet|tous> : " + String.join(", ", com.kiokouwhite.crossfight.game.Lootbox.ids())); return true; }
+                        if (args.length < 2) { Msg.send(p, "<yellow>/cf loot <objet|tous|embleme> : " + String.join(", ", com.kiokouwhite.crossfight.game.Lootbox.ids())); return true; }
                         for (String id : args[1].equalsIgnoreCase("tous") ? com.kiokouwhite.crossfight.game.Lootbox.ids() : List.of(args[1])) {
-                            org.bukkit.inventory.ItemStack it = plugin.lootbox().item(id);
+                            // L'Embleme de Feu de Marth (/cf loot embleme).
+                            org.bukkit.inventory.ItemStack it = id.equalsIgnoreCase("embleme") ? plugin.lootbox().embleme() : plugin.lootbox().item(id);
                             if (it == null) { Msg.send(p, "<red>Objet inconnu : " + id); continue; }
                             for (org.bukkit.inventory.ItemStack rest : p.getInventory().addItem(it).values()) p.getWorld().dropItemNaturally(p.getLocation(), rest);
                         }
@@ -1028,7 +1029,7 @@ public final class CfCommand implements TabExecutor {
                 case "regle", "regles", "rule", "rules", "config" -> { for (var r : com.kiokouwhite.crossfight.game.Rules.all()) out.add(r.name()); }
                 case "admin", "admins" -> { for (Player o : Bukkit.getOnlinePlayers()) out.add(o.getName()); }
                 case "scenario", "scenarios" -> { for (var s : com.kiokouwhite.crossfight.game.Scenarios.Scenario.values()) out.add(s.id()); }
-                case "loot" -> { out.add("tous"); out.addAll(com.kiokouwhite.crossfight.game.Lootbox.ids()); }
+                case "loot" -> { out.add("tous"); out.add("embleme"); out.addAll(com.kiokouwhite.crossfight.game.Lootbox.ids()); }
                 case "lootbox" -> out.addAll(List.of("1", "2", "3", "4", "vague"));
                 case "ferox" -> out.addAll(List.of("oui", "non", "lancer"));
                 case "omori" -> out.addAll(List.of("lancer", "fermer", "phase", "coups"));
