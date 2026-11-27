@@ -758,6 +758,11 @@ public final class Lootbox implements Listener {
      * fait face a la direction opposee au regard de {@code at} (devant un joueur : tourne vers lui).
      */
     public boolean place(Location at, int tier) {
+        return place(at, tier, false);
+    }
+
+    /** Pose une lootbox ; avec embleme, l'Embleme de Feu y est a coup sur (/cf demo embleme). */
+    public boolean place(Location at, int tier, boolean embleme) {
         if (tier < 1 || tier > 4) tier = rollTier();
         Block b = at.getBlock();
         if (!b.getType().isAir() && !b.isReplaceable()) b = b.getRelative(BlockFace.UP);
@@ -773,6 +778,7 @@ public final class Lootbox implements Listener {
         box.prix.put(OR, new ItemStack(Material.GOLD_INGOT, r.nextInt(6, 13)));
         // Un arc a Infinite a besoin d'une fleche dans l'inventaire : a cote de lui.
         if (loot.kind() == Kind.BOW && !loot.id().equals("stellaire")) box.prix.put(14, new ItemStack(Material.ARROW));
+        if (embleme) box.prix.put(CASE_EMBLEME, embleme());
         // Le coffre au centre du bloc (le modele, de 0 a 16 pixels, est centre sur l'affichage), tourne d'un quart de
         // tour exact. Le devant du coffre (le sud du modele, comme le coffre de Minecraft) se retrouve a l'oppose de la
         // direction ou regarde l'affichage : regarder comme le joueur le tourne vers lui.
@@ -1013,7 +1019,7 @@ public final class Lootbox implements Listener {
         box.etat = ROULETTE;
         Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[box.tier - 1] + ">Lootbox tier " + box.tier + "</" + TIER_COLOR[box.tier - 1] + "> !");
         // Marth, s'il n'a pas encore la Sainte-Falchion ni d'Embleme, peut y trouver l'Embleme de Feu.
-        if (estMarth(p) && !com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)
+        if (!box.prix.containsKey(CASE_EMBLEME) && estMarth(p) && !com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)
                 && java.util.Arrays.stream(p.getInventory().getContents()).noneMatch(this::estEmbleme)
                 && ThreadLocalRandom.current().nextInt(100) < plugin.game().rules().value("embleme-de-feu")) {
             box.prix.put(CASE_EMBLEME, embleme());

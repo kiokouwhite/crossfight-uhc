@@ -71,6 +71,20 @@ public final class Marth extends Character {
         return plugin().abilities().state(marth, plugin().characters().character("marth").ability(FALCHION_ID)).get("holy", false);
     }
 
+    /** Rend a Marth sa Falchion ordinaire (pour rejouer la demonstration de l'Embleme de Feu : /cf demo embleme). */
+    public static void downgrade(Player marth) {
+        var inv = marth.getInventory();
+        for (int i = 0; i < inv.getSize(); i++) {
+            ItemStack it = inv.getItem(i);
+            if (FALCHION_ID.equals(Items.tag(it, AbilityEngine.ABILITY_KEY))) {
+                ItemStack plain = falchion(false);
+                AbilityEngine.decorateWeapon(plain, plugin().characters().character("marth"));
+                inv.setItem(i, plain);
+            }
+        }
+        plugin().abilities().state(marth, plugin().characters().character("marth").ability(FALCHION_ID)).set("holy", false);
+    }
+
     /** Transforme la Falchion de Marth en Sainte-Falchion (Embleme de Feu recupere). */
     public static void upgrade(Player marth) {
         var inv = marth.getInventory();

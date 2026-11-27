@@ -59,14 +59,29 @@ public final class CfCommand implements TabExecutor {
                 else Msg.send(sp, "<yellow>/cf ferox oui|non");
             }
             case "demo" -> {
-                // /cf demo contre|falchion (admin) : un adversaire au skin aleatoire, pour filmer une capacite (game/DemoAdversaire) :
+                // /cf demo contre|falchion|embleme (admin) : un adversaire au skin aleatoire, pour filmer une capacite (game/DemoAdversaire) :
                 // contre, il frappe des que Marth lance son Contre ; falchion, il attaque des qu'on le frappe et s'arrete a 5 coeurs.
                 // La meme commande le retire.
                 if (!(sender instanceof Player sp)) return true;
                 if (!sender.hasPermission("crossfight.admin")) { Msg.send(sender, "<red>Tu n'as pas la permission."); return true; }
                 String what = args.length > 1 ? args[1].toLowerCase() : "";
-                if (!com.kiokouwhite.crossfight.game.DemoAdversaire.MODES.contains(what)) { Msg.send(sp, "<yellow>/cf demo contre|falchion"); return true; }
                 var cfp = plugin.players().get(sp);
+                // /cf demo embleme [tier] : une Lootbox devant soi, l'Embleme de Feu dedans a coup sur ; un Marth qui a
+                // deja la Sainte-Falchion retrouve sa Falchion, pour rejouer la transformation.
+                if (List.of("embleme", "emblem", "fire-emblem", "fireemblem", "fire_emblem").contains(what)) {
+                    int tier = 0;
+                    try { if (args.length > 2) tier = Integer.parseInt(args[2]); } catch (NumberFormatException ignored) { }
+                    boolean marth = cfp != null && cfp.character() != null && cfp.character().id().equals("marth");
+                    boolean reprise = marth && com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(sp);
+                    if (reprise) com.kiokouwhite.crossfight.character.fireemblem.Marth.downgrade(sp);
+                    var at = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(2));
+                    if (!plugin.lootbox().place(at, tier, true)) { Msg.send(sp, "<red>Impossible de poser une lootbox ici."); return true; }
+                    Msg.send(sp, "<green>Une Lootbox avec l'Embleme de Feu est posee devant toi : ouvre-la, prends l'Embleme"
+                            + (marth ? " et utilise-le." : ". <gray>(Seul Marth peut l'utiliser : /cf change marth.)")
+                            + (reprise ? " <gray>Ta Falchion est redevenue la Falchion." : ""));
+                    return true;
+                }
+                if (!com.kiokouwhite.crossfight.game.DemoAdversaire.MODES.contains(what)) { Msg.send(sp, "<yellow>/cf demo contre|falchion|embleme"); return true; }
                 if (what.equals("contre") && (cfp == null || cfp.character() == null || !cfp.character().id().equals("marth"))) {
                     Msg.send(sp, "<red>Incarne Marth d'abord (en mode test : /cf change marth).");
                     return true;
@@ -1050,7 +1065,7 @@ public final class CfCommand implements TabExecutor {
                 case "test" -> out.addAll(List.of("duo", "third-person", "duo-third-person", "selection", "arbre", "omori"));
                 case "passif", "passifs", "scoreboard", "tableau" -> out.addAll(List.of("show", "hide"));
                 case "hud" -> { if (sender.hasPermission("crossfight.admin")) out.add("demo"); }
-                case "demo" -> { if (sender.hasPermission("crossfight.admin")) out.addAll(com.kiokouwhite.crossfight.game.DemoAdversaire.MODES); }
+                case "demo" -> { if (sender.hasPermission("crossfight.admin")) { out.addAll(com.kiokouwhite.crossfight.game.DemoAdversaire.MODES); out.add("embleme"); } }
                 case "musique", "music" -> { out.add("stop"); out.addAll(com.kiokouwhite.crossfight.util.Music.tracks().keySet()); }
                 case "shoja" -> { out.addAll(List.of("liste", "tous", "raz")); out.addAll(com.kiokouwhite.crossfight.character.solo.ShojaTree.ids()); }
                 case "tome" -> { out.addAll(List.of("tous", "aleatoire", "arc")); for (var t : com.kiokouwhite.crossfight.character.earthdelta.Hano.tomeIds()) out.add(t); }
