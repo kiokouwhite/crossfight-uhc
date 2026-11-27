@@ -2,6 +2,7 @@
   "_": "Textes du HUD par capacite : 'vous' (dit au joueur, a gauche de l'ecran : l'effet seulement, sans decrire l'animation) et 'court' (reglage Textes courts de /cf hud, partout). PV = coeurs.",
 
   "marth_falchion": {"vous": "Vous régénérez 5 cœurs en 3 secondes, mais vous ne pouvez pas bouger.", "court": "Regen. 5 PV, immobilisat. 3 s"},
+  "marth_falchion_sainte": {"vous": "Vous régénérez 10 cœurs en 3 secondes, mais vous ne pouvez pas bouger.", "court": "Regen. 10 PV, immobilisat. 3 s"},
   "marth_contre": {"vous": "Pendant 1 seconde, immobile : si vous recevez un coup, vous ne subissez rien, renvoyez les dégâts, projetez l'adversaire et l'immobilisez 1 seconde.", "court": "Pare 1 s, renvoi + projection, stun 1 s"},
   "marth_charisme": {"vous": "Vous avez Vitesse. Vos alliés à moins de 10 blocs aussi.", "court": "Vitesse, alliés à 10 blocs aussi"},
   "marth_leader": {"vous": "Tant que vous avez plus de 5 cœurs, vos alliés ont Force.", "court": "> 5 PV : alliés Force"},

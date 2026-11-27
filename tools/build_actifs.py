@@ -69,8 +69,18 @@ def badge(im, x, y, seconds, small, edge=None):
                 d.rectangle([px, py, px + 1, py + 1], fill=(255, 240, 180, 255))
 
 
-def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant="", tv=""):
+# Les actifs dont la carte change selon l'etat du personnage : id -> variante (le suffixe du nom de l'image, apres le
+# code du texte) -> ce qui change (un autre id pour son texte dans tools/textes_hud.json, son nom, son objet). La
+# Falchion de Marth devenue Sainte-Falchion (character/fireemblem/Marth.hudActiveVariant). Seulement avec le texte.
+ACTIVE_VARIANTS = {
+    "marth_falchion": {"h": {"id": "marth_falchion_sainte", "name": "Sainte-Falchion", "icon": "diamond_sword"}},
+}
+
+
+def render(character, j, text, font, small, rec, slide=0.0, seconds=None, weapon=False, variant="", tv="", actif=""):
     a = bp.actives(character)[j]
+    if actif:
+        a = dict(a, **ACTIVE_VARIANTS[a["id"]][actif])
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
@@ -167,6 +177,16 @@ def main():
                         jobs.append((render, (c, j, text, font, small, rec), dict(kw, slide=f), f"{base}_{kind}{k}.png", bp.job_key(ing, j, text, weapon, v, tv, kind, k)))
                 for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
                     jobs.append((render, (c, j, text, font, small, rec), dict(kw, seconds=sec), f"{base}_s{sec}.png", bp.job_key(ing, j, text, weapon, v, tv, "s", sec)))
+                # Les variantes de la carte de cet actif (la Sainte-Falchion) : avec le texte seulement.
+                for av, change in ACTIVE_VARIANTS.get(bp.actives(c)[j]["id"], {}).items() if text else ():
+                    akw = dict(kw, actif=av)
+                    key = [ing, j, text, weapon, v, tv, "actif", av, change, bp.TEXTS.get(change["id"])]
+                    jobs.append((render, (c, j, text, font, small, rec), akw, f"{base}{av}.png", bp.job_key(*key)))
+                    for kind, steps in (("i", bp.SLIDE_IN), ("o", bp.SLIDE_OUT)):
+                        for k, f in enumerate(steps, 1):
+                            jobs.append((render, (c, j, text, font, small, rec), dict(akw, slide=f), f"{base}{av}_{kind}{k}.png", bp.job_key(*key, kind, k)))
+                    for sec in SECONDS if bp.actives(c)[j]["id"] in timed else ():
+                        jobs.append((render, (c, j, text, font, small, rec), dict(akw, seconds=sec), f"{base}{av}_s{sec}.png", bp.job_key(*key, "s", sec)))
                 # La petite case du second actif (actif2/), pour ceux qui ont un compte a rebours : sans texte, donc
                 # sans variante de texte (une seule image par code).
                 if bp.actives(c)[j]["id"] in timed and (not tv or tv == bp.text_variants(c)[0]):

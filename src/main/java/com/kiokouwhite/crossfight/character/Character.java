@@ -89,6 +89,13 @@ public abstract class Character {
     public String hudTextVariant(org.bukkit.entity.Player p) { return ""; }
 
     /**
+     * La variante de la carte d'un actif lance, sous les passifs ("" par defaut : celle des textes, hudTextVariant ;
+     * Marth : "h" pour la Falchion devenue Sainte-Falchion). Les images portent ce suffixe quand le texte est affiche
+     * (tools/build_actifs.py, ACTIVE_VARIANTS).
+     */
+    public String hudActiveVariant(org.bukkit.entity.Player p, String abilityId) { return hudTextVariant(p); }
+
+    /**
      * Des lignes propres au personnage dans le tableau de droite du joueur, sous son personnage (Eren : les
      * pseudos de ses cibles). Du vrai texte : ce que les cartes du HUD, des images dessinees a l'avance, ne peuvent pas dire.
      */

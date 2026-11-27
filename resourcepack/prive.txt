@@ -94,6 +94,7 @@ actif.livai.1.s
 actif.livai.4.s
 actif.marth
 actif.marth.2.s
+actif.marth.h
 actif.mikasa
 actif.mikasa.1.s
 actif.mikasa.2.s

@@ -212,6 +212,13 @@ def overlays(base: Path):
         names |= {"actif." + f.stem[:-len("_0_0")] for f in actifs.glob("*_0_0.png")}
         # "actif.<perso>.<j>.s" : cet actif a les images de son compte a rebours.
         names |= {"actif." + f.stem[:-len("_0_s1")].rsplit("_", 1)[0] + "." + f.stem[:-len("_0_s1")].rsplit("_", 1)[1] + ".s" for f in actifs.glob("*_0_s1.png")}
+        # "actif.<perso>.<variante>" : la carte d'un actif a une variante (tools/build_actifs.py, ACTIVE_VARIANTS : la
+        # Sainte-Falchion de Marth, "marth_0_1h").
+        import re
+        for f in actifs.glob("*.png"):
+            m = re.fullmatch(r"([a-z0-9]+)_\d+_[12]([a-z])", f.stem)
+            if m:
+                names.add(f"actif.{m.group(1)}.{m.group(2)}")
     # La petite case du second actif (actif2/) : "actif2.<perso>.<j>".
     seconds = base / "assets" / NS / "textures" / "actif2"
     if seconds.is_dir():

@@ -132,7 +132,7 @@ public final class InfluenceHud {
      */
     private static Influence own(Player p, Ability a) {
         CfPlayer cf = CrossfightPlugin.get().players().get(p);
-        String variant = cf == null || cf.character() == null ? "" : cf.character().hudTextVariant(p);
+        String variant = cf == null || cf.character() == null ? "" : cf.character().hudActiveVariant(p, a.id());
         Influence inf = SELF.computeIfAbsent(p.getUniqueId(), k -> new LinkedHashMap<>()).computeIfAbsent(a.id() + "#" + variant, k -> new Influence(a.id(), true));
         inf.variant = variant;
         return inf;

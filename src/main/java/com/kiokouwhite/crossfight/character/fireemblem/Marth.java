@@ -101,6 +101,12 @@ public final class Marth extends Character {
         marth.playSound(marth.getLocation(), Sound.BLOCK_BEACON_POWER_SELECT, 1f, 1.2f);
     }
 
+    /** La carte de la Falchion lancee, sous les passifs : celle de la Sainte-Falchion (10 coeurs) quand elle l'est devenue. */
+    @Override
+    public String hudActiveVariant(Player p, String abilityId) {
+        return FALCHION_ID.equals(abilityId) && isHoly(p) && com.kiokouwhite.crossfight.util.Sounds.has("actif.marth.h") ? "h" : "";
+    }
+
     @Override
     public List<String> summary() {
         return List.of(
