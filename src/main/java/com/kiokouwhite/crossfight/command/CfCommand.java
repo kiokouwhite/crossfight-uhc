@@ -76,8 +76,9 @@ public final class CfCommand implements TabExecutor {
                     if (reprise) com.kiokouwhite.crossfight.character.fireemblem.Marth.downgrade(sp);
                     var at = sp.getLocation().add(sp.getLocation().getDirection().setY(0).normalize().multiply(2));
                     if (!plugin.lootbox().place(at, tier, true)) { Msg.send(sp, "<red>Impossible de poser une lootbox ici."); return true; }
-                    Msg.send(sp, "<green>Une Lootbox avec l'Embleme de Feu est posee devant toi : ouvre-la, prends l'Embleme"
-                            + (marth ? " et utilise-le." : ". <gray>(Seul Marth peut l'utiliser : /cf change marth.)")
+                    Msg.send(sp, "<green>Une Lootbox avec l'Embleme de Feu est posee devant toi : ouvre-la"
+                            + (marth ? " : l'Embleme arrive dans ton inventaire et ta Falchion devient la Sainte-Falchion."
+                                    : ". <gray>(Seul Marth peut s'en servir : /cf change marth.)")
                             + (reprise ? " <gray>Ta Falchion est redevenue la Falchion." : ""));
                     return true;
                 }

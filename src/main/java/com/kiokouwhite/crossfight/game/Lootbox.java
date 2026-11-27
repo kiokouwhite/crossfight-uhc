@@ -59,9 +59,11 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -214,6 +216,8 @@ public final class Lootbox implements Listener {
         this.plugin = plugin;
         this.itemKey = new NamespacedKey(plugin, "loot");
         this.usesKey = new NamespacedKey(plugin, "loot_uses");
+        // L'Embleme de Feu arrive dans l'inventaire de Marth (ramasse, donne, sorti d'un coffre) : l'animation se lance.
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> { for (Player p : Bukkit.getOnlinePlayers()) eveiller(p); }, 40L, 10L);
     }
 
     public static List<String> ids() { return new ArrayList<>(LOOTS.keySet()); }
@@ -873,7 +877,7 @@ public final class Lootbox implements Listener {
         return cf != null && cf.character() != null && "marth".equals(cf.character().id());
     }
 
-    /** Marth utilise l'Embleme de Feu : sa Falchion devient la Sainte-Falchion, l'Embleme disparait. */
+    /** Un clic droit avec l'Embleme : chez Marth, l'animation (qui se lance d'elle-meme de toute facon) ; sinon, rien. */
     @EventHandler(priority = EventPriority.HIGH)
     public void onEmbleme(PlayerInteractEvent e) {
         if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
@@ -883,10 +887,79 @@ public final class Lootbox implements Listener {
         Player p = e.getPlayer();
         if (!estMarth(p)) { Msg.send(p, "<gray>Seul Marth peut eveiller l'Embleme de Feu."); return; }
         if (com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)) { Msg.send(p, "<gray>Ta Falchion est deja la Sainte-Falchion."); return; }
-        it.setAmount(it.getAmount() - 1);
-        com.kiokouwhite.crossfight.character.fireemblem.Marth.upgrade(p);
-        p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 1.2f);
-        p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 60, 0.4, 0.8, 0.4, 0.4);
+        eveiller(p);
+    }
+
+    /**
+     * L'animation de l'Emblème de Feu (tools/build_embleme_anim.py : ANIM_IMAGES images, une par tick, dans la police
+     * crossfight:embleme du pack complet) : en titre, la Falchion apparait, l'Embleme vient toucher sa garde, elle
+     * brille ; a l'image ANIM_ECLAIR, un eclair blanc, et la Sainte-Falchion apparait dans un halo bleu. Le sous-titre
+     * le dit. Sans le pack, seuls les textes.
+     */
+    private static final int ANIM_IMAGES = 72, ANIM_ECLAIR = 36;
+    /** Les Marth dont l'animation est en cours. */
+    private final Set<UUID> eveils = new HashSet<>();
+
+    /**
+     * Des que l'Embleme de Feu est dans l'inventaire de Marth (s'il n'a pas deja la Sainte-Falchion), l'animation se
+     * lance ; a l'eclair, l'Embleme disparait et la Falchion devient la Sainte-Falchion. S'il se deconnecte ou meurt
+     * avant, rien ne change et l'Embleme lui reste (l'animation repartira).
+     */
+    public void eveiller(Player p) {
+        if (eveils.contains(p.getUniqueId()) || p.isDead() || !estMarth(p)
+                || java.util.Arrays.stream(p.getInventory().getContents()).noneMatch(this::estEmbleme)
+                || com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)) return;
+        final UUID id = p.getUniqueId();
+        eveils.add(id);
+        final boolean images = com.kiokouwhite.crossfight.util.Sounds.has("font.embleme") && com.kiokouwhite.crossfight.util.Sounds.hasPackLoaded(p);
+        final net.kyori.adventure.key.Key police = net.kyori.adventure.key.Key.key("crossfight", "embleme");
+        final Component avant = Msg.mm("<gold>Au contact de l'Emblème de Feu, la Falchion brille !");
+        final Component apres = Msg.mm("<aqua><bold>La Falchion devient la Sainte-Falchion !");
+        // Chaque image reste 1,5 s si la suivante tarde (serveur ou client a la peine) : l'image suivante la remplace
+        // de toute facon, et l'animation ne clignote pas.
+        final var tick = net.kyori.adventure.title.Title.Times.times(java.time.Duration.ZERO, java.time.Duration.ofMillis(1500), java.time.Duration.ZERO);
+        new BukkitRunnable() {
+            int f = 0;
+
+            @Override public void run() {
+                if (!p.isOnline() || p.isDead()) {
+                    eveils.remove(id);
+                    if (p.isOnline()) p.clearTitle();
+                    cancel();
+                    return;
+                }
+                if (f == ANIM_ECLAIR) {
+                    // L'eclair : l'Embleme se fond dans la Falchion. S'il n'est plus la (jete entre-temps), tout s'arrete.
+                    ItemStack[] contenu = p.getInventory().getContents();
+                    int k = -1;
+                    for (int i = 0; i < contenu.length && k < 0; i++) if (estEmbleme(contenu[i])) k = i;
+                    if (k < 0) { eveils.remove(id); p.clearTitle(); cancel(); return; }
+                    contenu[k].setAmount(contenu[k].getAmount() - 1);
+                    p.getInventory().setItem(k, contenu[k].getAmount() > 0 ? contenu[k] : null);
+                    com.kiokouwhite.crossfight.character.fireemblem.Marth.upgrade(p);
+                    p.getWorld().playSound(p.getLocation(), Sound.ITEM_TOTEM_USE, 0.8f, 1.2f);
+                    p.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, p.getLocation().add(0, 1, 0), 60, 0.4, 0.8, 0.4, 0.4);
+                }
+                // Les sons : l'Embleme s'approche, il touche la garde, la lame brille, la Sainte-Falchion.
+                if (f == 8) p.playSound(p, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1.2f);
+                if (f == 19) p.playSound(p, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1f, 1.4f);
+                if (f == 20) p.playSound(p, Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.5f);
+                if (f == ANIM_ECLAIR + 6) p.playSound(p, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.6f, 1.2f);
+                Component sous = f < ANIM_ECLAIR ? avant : apres;
+                if (images) {
+                    // Une image par tick ; la derniere s'efface avec le sous-titre.
+                    var temps = f == ANIM_IMAGES - 1 ? net.kyori.adventure.title.Title.Times.times(java.time.Duration.ZERO,
+                            java.time.Duration.ofMillis(200), java.time.Duration.ofMillis(500)) : tick;
+                    p.showTitle(net.kyori.adventure.title.Title.title(Component.text(String.valueOf((char) (0xE000 + f))).font(police)
+                            .color(net.kyori.adventure.text.format.NamedTextColor.WHITE), sous, temps));
+                } else if (f == 0 || f == ANIM_ECLAIR) {
+                    p.showTitle(net.kyori.adventure.title.Title.title(Msg.mm(f == 0 ? "<gold><bold>Emblème de Feu" : "<aqua><bold>Sainte-Falchion"), sous,
+                            net.kyori.adventure.title.Title.Times.times(java.time.Duration.ofMillis(250), java.time.Duration.ofMillis(f == 0 ? 1800 : 1500), java.time.Duration.ofMillis(500))));
+                }
+                f++;
+                if (f >= ANIM_IMAGES) { eveils.remove(id); cancel(); }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     /** Le contenu d'une lootbox de ce tier, donne directement a un joueur (recompense de Regna Ferox). */
@@ -1204,6 +1277,7 @@ public final class Lootbox implements Listener {
         if (!reste.isEmpty()) Msg.send(p, "<gray>Inventaire plein : le reste du butin tombe a tes pieds.");
         p.playSound(p, Sound.ENTITY_ITEM_PICKUP, 0.8f, 1.1f);
         remove(box);
+        eveiller(p);
     }
 
     /** Pendant la roulette (et la seconde ou l'on voit la ligne gagnante), on ne prend ni ne pose rien. */

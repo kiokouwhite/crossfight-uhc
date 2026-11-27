@@ -456,6 +456,7 @@ actif2.yuki.1
 actif2.yuki.4
 font.bulle
 font.choix
+font.embleme
 font.enigme
 font.espace_blanc
 font.hud_texte
