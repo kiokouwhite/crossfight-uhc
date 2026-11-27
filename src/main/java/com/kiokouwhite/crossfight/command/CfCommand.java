@@ -59,8 +59,9 @@ public final class CfCommand implements TabExecutor {
                 else Msg.send(sp, "<yellow>/cf ferox oui|non");
             }
             case "demo" -> {
-                // /cf demo contre|falchion|embleme (admin) : un adversaire au skin aleatoire, pour filmer une capacite (game/DemoAdversaire) :
-                // contre, il frappe des que Marth lance son Contre ; falchion, il attaque des qu'on le frappe et s'arrete a 5 coeurs.
+                // /cf demo contre|falchion|charisme|embleme (admin) : un adversaire au skin aleatoire, pour filmer une capacite (game/DemoAdversaire) :
+                // contre, il frappe des que Marth lance son Contre ; falchion, il attaque des qu'on le frappe et s'arrete a 5 coeurs ;
+                // charisme, un Marth allie marche a cote de soi et son Charisme donne Vitesse.
                 // La meme commande le retire.
                 if (!(sender instanceof Player sp)) return true;
                 if (!sender.hasPermission("crossfight.admin")) { Msg.send(sender, "<red>Tu n'as pas la permission."); return true; }
@@ -82,16 +83,18 @@ public final class CfCommand implements TabExecutor {
                             + (reprise ? " <gray>Ta Falchion est redevenue la Falchion." : ""));
                     return true;
                 }
-                if (!com.kiokouwhite.crossfight.game.DemoAdversaire.MODES.contains(what)) { Msg.send(sp, "<yellow>/cf demo contre|falchion|embleme"); return true; }
+                if (!com.kiokouwhite.crossfight.game.DemoAdversaire.MODES.contains(what)) { Msg.send(sp, "<yellow>/cf demo contre|falchion|charisme|embleme"); return true; }
                 if (what.equals("contre") && (cfp == null || cfp.character() == null || !cfp.character().id().equals("marth"))) {
                     Msg.send(sp, "<red>Incarne Marth d'abord (en mode test : /cf change marth).");
                     return true;
                 }
                 if (com.kiokouwhite.crossfight.game.DemoAdversaire.toggle(sp, what))
-                    Msg.send(sp, what.equals("contre")
+                    Msg.send(sp, what.equals("charisme")
+                            ? "<green>Marth marche a cote de toi : a 10 blocs de lui ou moins, son Charisme te donne Vitesse. <gray>/cf demo charisme pour le retirer."
+                            : what.equals("contre")
                             ? "<green>Un adversaire t'attend : lance le Contre, il frappera aussitot. <gray>/cf demo contre pour le retirer."
                             : "<green>Un adversaire t'attend : frappe-le et il t'attaquera jusqu'a ce que tu n'aies plus que 5 coeurs. <gray>/cf demo falchion pour le retirer.");
-                else Msg.send(sp, "<gray>Adversaire de demonstration retire.");
+                else Msg.send(sp, what.equals("charisme") ? "<gray>Marth s'en va." : "<gray>Adversaire de demonstration retire.");
             }
             case "hud" -> {
                 // /cf hud : le menu des reglages d'affichage (passifs, actif, effets des autres, leurs textes).

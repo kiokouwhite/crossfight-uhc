@@ -34,12 +34,15 @@ import java.util.UUID;
  *   <li>falchion : immobile tant qu'on ne le frappe pas ; frappe-le et il te poursuit et te frappe, jusqu'a ce que tu
  *   n'aies plus que 5 coeurs (il s'arrete pile la) : de quoi filmer le soin de la Falchion. Frappe-le de nouveau pour
  *   qu'il reprenne.</li>
+ *   <li>charisme : un allie, cette fois. Marth (son skin, sa Falchion, un faux pseudo) marche a cote du joueur, a sa
+ *   droite, a son allure ; tant que le joueur est a 10 blocs de lui au plus, il a Vitesse, et la carte du Charisme de
+ *   Marth (allie) a droite de l'ecran, comme en partie (Marth.Charisme).</li>
  * </ul>
  */
 public final class DemoAdversaire implements Listener {
 
     public static final String TAG = "cf_demo_adversaire";
-    public static final List<String> MODES = List.of("contre", "falchion");
+    public static final List<String> MODES = List.of("contre", "falchion", "charisme");
 
     private static final Map<UUID, Demo> DEMOS = new HashMap<>();
     private static final Random RND = new Random();
@@ -53,12 +56,19 @@ public final class DemoAdversaire implements Listener {
      */
     private static final int CADENCE = 12;
     private static final double PERTE = 2.0, PLANCHER = 10.0;
+    /**
+     * Charisme : sa place a cote du joueur (A_DROITE blocs a sa droite, EN_AVANT devant), sa plus grande allure (blocs
+     * par tick : le joueur qui court avec Vitesse va a 0,4 environ), et la portee du Charisme (blocs).
+     */
+    private static final double A_DROITE = 1.6, EN_AVANT = 0.4, ALLURE_MAX = 0.6, PORTEE_CHARISME = 10.0, AVANCE = 4.0;
 
     private static final class Demo {
         final Mannequin corps;
         final String mode, perso, pseudo;
         boolean combat;
         int attente;
+        /** Charisme : ou etait le joueur au tick d'avant (son pas, que Marth reprend pour rester a sa hauteur). */
+        Location dernier;
         BukkitTask tache;
         Demo(Mannequin corps, String mode, String perso, String pseudo) { this.corps = corps; this.mode = mode; this.perso = perso; this.pseudo = pseudo; }
         void retirer() {
@@ -95,8 +105,14 @@ public final class DemoAdversaire implements Listener {
         List<String> avecModele = new ArrayList<>(ids);
         avecModele.removeIf(id -> !com.kiokouwhite.crossfight.util.Puppet.available(id));
         if (!avecModele.isEmpty()) ids = avecModele;
-        String perso = ids.isEmpty() ? null : ids.get(RND.nextInt(ids.size()));
-        Demo d = new Demo(spawn(p, perso), mode, perso, pseudo());
+        String perso = mode.equals("charisme") ? "marth" : ids.isEmpty() ? null : ids.get(RND.nextInt(ids.size()));
+        Demo d = new Demo(spawn(p, perso, mode.equals("charisme") ? cote(p) : place(p)), mode, perso, pseudo());
+        if (mode.equals("charisme")) {
+            // Marth tient sa Falchion (son modele 3D avec le pack prive).
+            var marth = CrossfightPlugin.get().characters().character("marth");
+            var eq = d.corps.getEquipment();
+            if (marth != null && eq != null) eq.setItemInMainHand(marth.createWeapon());
+        }
         afficher(d);
         d.tache = Bukkit.getScheduler().runTaskTimer(CrossfightPlugin.get(), () -> tick(p, d), 1L, 1L);
         DEMOS.put(p.getUniqueId(), d);
@@ -137,6 +153,58 @@ public final class DemoAdversaire implements Listener {
         Mannequin m = d.corps;
         if (!p.isOnline() || !m.isValid()) { d.retirer(); DEMOS.remove(p.getUniqueId(), d); return; }
         if (d.mode.equals("falchion")) combat(p, d);
+        if (d.mode.equals("charisme")) escorte(p, d);
+    }
+
+    /**
+     * Charisme : Marth reste a cote du joueur, a sa droite, et marche a son allure (il saute une marche, et revient d'un
+     * coup s'il est trop loin ou dans un autre monde). Le joueur a moins de 10 blocs de lui a Vitesse et la carte du
+     * Charisme, entretenues comme par le passif (elles tiennent un peu plus de 2 s quand il s'eloigne).
+     */
+    private static void escorte(Player p, Demo d) {
+        Mannequin m = d.corps;
+        // Le pas du joueur (ce qu'il a parcouru depuis le tick d'avant) : Marth le reprend pour marcher a sa hauteur.
+        Vector pas = d.dernier != null && d.dernier.getWorld() == p.getWorld()
+                ? p.getLocation().toVector().subtract(d.dernier.toVector()).setY(0) : new Vector();
+        d.dernier = p.getLocation().clone();
+        if (pas.lengthSquared() > ALLURE_MAX * ALLURE_MAX) pas = new Vector();      // un saut de position (teleportation)
+        // Sa place, la ou sera le joueur dans AVANCE ticks : chez celui qui regarde, la position d'une entite arrive et
+        // s'affiche avec quelques ticks de retard sur la sienne ; sans cela, Marth semble le suivre au lieu de marcher a
+        // cote de lui.
+        Location but = cote(p).add(pas.clone().multiply(AVANCE));
+        if (!m.getWorld().equals(p.getWorld())) { m.teleport(but); return; }
+        Vector ecart = but.toVector().subtract(m.getLocation().toVector());
+        double dy = ecart.getY();
+        ecart.setY(0);
+        double dist = ecart.length();
+        if (dist > 8.0 || Math.abs(dy) > 4.0) { m.teleport(but); return; }
+        // Le pas du joueur, plus de quoi rattraper l'ecart.
+        Vector v = pas.clone().add(ecart.multiply(0.5));
+        if (v.length() > ALLURE_MAX) v.normalize().multiply(ALLURE_MAX);
+        if (v.lengthSquared() < 0.0004) v = new Vector();
+        double vy = m.isOnGround() ? (dy > 0.5 && dist > 0.3 ? 0.42 : 0.0) : m.getVelocity().getY();
+        m.setVelocity(v.setY(vy));
+        // Il regarde ou il va, sinon dans la meme direction que le joueur.
+        float yaw = p.getLocation().getYaw();
+        if (dist > 0.4) { Location look = m.getLocation().clone(); look.setDirection(v.clone().setY(0)); yaw = look.getYaw(); }
+        m.setRotation(yaw, 0f);
+        if (!p.isDead() && m.getLocation().distanceSquared(p.getLocation()) <= PORTEE_CHARISME * PORTEE_CHARISME) {
+            com.kiokouwhite.crossfight.util.Effects.refresh(p, org.bukkit.potion.PotionEffectType.SPEED, 0, 45);
+            com.kiokouwhite.crossfight.hud.InfluenceHud.threat(p, "marth_charisme", true, 45);
+        }
+    }
+
+    /** La place de Marth en escorte : a droite du joueur, un peu devant, a sa hauteur, tourne comme lui. */
+    private static Location cote(Player p) {
+        Vector dir = p.getLocation().getDirection().setY(0);
+        if (dir.lengthSquared() < 1e-4) dir = new Vector(0, 0, 1);
+        dir.normalize();
+        Vector droite = new Vector(-dir.getZ(), 0, dir.getX());
+        Location at = p.getLocation().clone().add(droite.multiply(A_DROITE)).add(dir.clone().multiply(EN_AVANT));
+        at.setY(p.getLocation().getY());
+        at.setYaw(p.getLocation().getYaw());
+        at.setPitch(0f);
+        return at;
     }
 
     /** Falchion : s'il est en combat, il poursuit le joueur et le frappe, jusqu'a 5 coeurs. */
@@ -160,7 +228,7 @@ public final class DemoAdversaire implements Listener {
         }
     }
 
-    /** On frappe l'adversaire « falchion » : il entre en combat (si le joueur a plus de 5 coeurs). Il ne meurt jamais. */
+    /** On frappe l'adversaire « falchion » : il entre en combat (si le joueur a plus de 5 coeurs). Il ne meurt jamais (pas plus que Marth en escorte). */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getEntity() instanceof Mannequin m) || !m.getScoreboardTags().contains(TAG)) return;
@@ -246,8 +314,8 @@ public final class DemoAdversaire implements Listener {
         m.setVelocity(v.setY(m.isOnGround() ? 0.0 : m.getVelocity().getY()));
     }
 
-    private static Mannequin spawn(Player p, String perso) {
-        Mannequin m = (Mannequin) p.getWorld().spawnEntity(place(p), EntityType.MANNEQUIN);
+    private static Mannequin spawn(Player p, String perso, Location at) {
+        Mannequin m = (Mannequin) p.getWorld().spawnEntity(at, EntityType.MANNEQUIN);
         m.addScoreboardTag(TAG);
         m.setPersistent(false);
         m.setImmovable(false);
