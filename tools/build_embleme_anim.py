@@ -299,6 +299,13 @@ def ecrire(frames):
         old.unlink()
     providers = []
     for i, im in enumerate(frames):
+        # Minecraft prend pour largeur d'un caractère sa dernière colonne non transparente, et centre le titre sur
+        # cette largeur : un point presque invisible dans le coin haut droit donne à toutes les images la même
+        # largeur, et l'animation reste au milieu de l'écran.
+        im = im.copy()
+        r, g, b, a = im.getpixel((TAILLE - 1, 0))
+        if a == 0:
+            im.putpixel((TAILLE - 1, 0), (255, 255, 255, 1))
         im.save(dossier / f"f{i:02d}.png", optimize=True)
         providers.append({"type": "bitmap", "file": f"crossfight:font/embleme/f{i:02d}.png",
                           "height": HAUTEUR, "ascent": MONTEE, "chars": [chr(PREMIER + i)]})

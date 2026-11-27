@@ -159,7 +159,7 @@ def write():
             pass
     tex_dir.mkdir(parents=True, exist_ok=True)
     mod_dir.mkdir(parents=True, exist_ok=True)
-    for old in tex_dir.glob("*.png"):
+    for old in list(tex_dir.glob("*.png")) + list(tex_dir.glob("*.mcmeta")):
         old.unlink()
     if custom.exists():
         els, images = from_bbmodel(custom)
@@ -191,8 +191,13 @@ def write():
     model = {"credit": RETOUCHED if custom.exists() else "Crossfight UHC - Falchion low-poly", "gui_light": "front",
              "textures": names, "elements": els, "display": tilted(DISPLAY)}
     (mod_dir / "falchion.json").write_text(json.dumps(model, indent=1) + "\n", encoding="utf-8")
-    (mod_dir / "falchion_sainte.json").write_text(json.dumps(
-        {"parent": "crossfight:item/falchion", "textures": holy_names}, indent=1) + "\n", encoding="utf-8")
+    holy_model = {"parent": "crossfight:item/falchion", "textures": holy_names}
+    glow = lueur(els, uses, tex_dir)
+    if glow:
+        holy_model["elements"], extra, files = glow
+        holy_model["textures"] = dict(holy_names, **extra)
+        made += files
+    (mod_dir / "falchion_sainte.json").write_text(json.dumps(holy_model, indent=1) + "\n", encoding="utf-8")
     made += [mod_dir / "falchion.json", mod_dir / "falchion_sainte.json"]
     for stale in ("falchion.png", "falchion_sainte.png"):
         f = OUT / "crossfight" / "textures" / "item" / stale
@@ -216,6 +221,108 @@ def write():
         (items / f"{vanilla}.json").write_text(json.dumps(definition, indent=1) + "\n", encoding="utf-8")
         made.append(items / f"{vanilla}.json")
     return made
+
+
+# ---------------------------------------------------------------- la Sainte-Falchion brille
+
+HALO_MARGE = 0.6      # le halo dépasse de la lame de tant de pixels, de chaque côté
+HALO_IMAGES = 24      # images de l'animation du halo (2 ticks chacune : 2,4 s)
+
+
+def coins_rot(el):
+    """Les huit coins d'un pavé du modèle, sa rotation (un axe) appliquée."""
+    a, b = el["from"], el["to"]
+    pts = [[x, y, z] for x in (a[0], b[0]) for y in (a[1], b[1]) for z in (a[2], b[2])]
+    rot = el.get("rotation")
+    if not rot:
+        return pts
+    t = math.radians(rot["angle"])
+    o = rot["origin"]
+    i, j = {"x": (1, 2), "y": (2, 0), "z": (0, 1)}[rot["axis"]]
+    out = []
+    for p in pts:
+        q = list(p)
+        u, v = p[i] - o[i], p[j] - o[j]
+        q[i] = o[i] + u * math.cos(t) - v * math.sin(t)
+        q[j] = o[j] + u * math.sin(t) + v * math.cos(t)
+        out.append(q)
+    return out
+
+
+def lueur(els, uses, tex_dir):
+    """La Sainte-Falchion brille, en main comme dans l'inventaire : sa gouttière éclaire d'elle-même (même de nuit)
+    et respire (sa texture passe doucement à plus clair et revient) ; un halo bleu translucide entoure la lame, un
+    reflet le remonte de la garde à la pointe. Les pavés de la Falchion, plus le halo ; rien sans lame."""
+    lames = [e for e in els if e["name"].startswith("lame")]
+    if not lames:
+        return None
+    lame = max(lames, key=lambda e: e["to"][1] - e["from"][1])
+    haut = max(p[1] for e in els if e["name"].startswith(("lame", "pointe")) for p in coins_rot(e))
+    gout = next((i for i, u in uses.items() if "gouttiere" in u), None)
+    out = json.loads(json.dumps(els))
+    # La gouttière éclaire pleinement, la lame à moitié : elle reste claire la nuit.
+    lame_tex = next((i for i, u in uses.items() if "lame" in u), None)
+    for e in out:
+        textures = {f["texture"] for f in e["faces"].values()}
+        if gout is not None and f"#{gout}" in textures:
+            e["light_emission"] = 15
+        elif lame_tex is not None and f"#{lame_tex}" in textures:
+            e["light_emission"] = 8
+    m = HALO_MARGE
+    a, b = lame["from"], lame["to"]
+    out.append({"name": "halo", "from": [r2(a[0] - m), r2(a[1]), r2(a[2] - m)], "to": [r2(b[0] + m), r2(haut + 0.2), r2(b[2] + m)],
+                "shade": False, "light_emission": 15,
+                "faces": {k: {"uv": [0, 0, 16, 16], "texture": "#halo"} for k in ("north", "south", "east", "west")}})
+    files = []
+    # Le halo : bleu, plus dense le long de la lame, fondu vers ses bords et ses bouts ; un reflet blanc le remonte.
+    import numpy as np
+    n = 64
+    largeur = (b[0] - a[0]) + 2 * m
+    bord = m / largeur                                    # la part de chaque côté qui dépasse de la lame
+    u = (np.arange(n) + 0.5) / n
+    v = (np.arange(n) + 0.5) / n                          # 0 en haut (la pointe), 1 en bas (la garde)
+    # En travers : un voile sur la lame, plus dense juste au bord de la lame, qui s'éteint vers le bord du halo.
+    dehors = np.clip((np.abs(u - 0.5) - (0.5 - bord)) / bord, 0, 1)
+    travers = np.where(dehors <= 0, 0.34, 0.78 * (1 - dehors) ** 1.4)
+    long_ = np.clip(v / 0.14, 0, 1) * np.clip((1 - v) / 0.05, 0, 1)
+    frames = []
+    for k in range(HALO_IMAGES):
+        pouls = 0.8 + 0.2 * math.sin(k / HALO_IMAGES * 2 * math.pi)
+        alpha = np.outer(long_, travers) * pouls
+        rgb = np.zeros((n, n, 3))
+        # Clair : un voile translucide fonce ce qui est derrière lui s'il est sombre ; très clair, il se lit comme
+        # de la lumière, même sur le ciel de nuit.
+        rgb[...] = (165, 235, 255)
+        # Le reflet : pendant les deux tiers de la boucle, une bande claire monte de la garde vers la pointe.
+        t = k / (HALO_IMAGES * 2 / 3)
+        if t <= 1:
+            centre = 1.05 - 1.15 * t
+            bande = np.clip(1 - np.abs(v - centre) / 0.1, 0, 1) ** 1.5
+            bande = np.outer(bande, np.ones(n)) * np.outer(np.ones(n), np.clip(travers / 0.4, 0, 1))
+            alpha = alpha + 0.6 * bande * long_[:, None]
+            rgb = rgb + (np.array([255, 255, 255]) - rgb) * (bande[..., None] * 0.8)
+        img = np.dstack([rgb, np.clip(alpha, 0, 1) * 255]).astype(np.uint8)
+        frames.append(Image.fromarray(img, "RGBA"))
+    anim = Image.new("RGBA", (n, n * HALO_IMAGES))
+    for k, f in enumerate(frames):
+        anim.paste(f, (0, k * n))
+    anim.save(tex_dir / "sainte_halo.png")
+    (tex_dir / "sainte_halo.png.mcmeta").write_text(json.dumps({"animation": {"frametime": 2}}) + "\n", encoding="utf-8")
+    files += [tex_dir / "sainte_halo.png", tex_dir / "sainte_halo.png.mcmeta"]
+    # La gouttière respire : deux images, la seconde plus claire, et le jeu passe de l'une à l'autre en douceur.
+    if gout is not None:
+        path = tex_dir / f"sainte_t{gout}.png"
+        base = Image.open(path).convert("RGBA")
+        px = np.asarray(base).astype(np.float32)
+        clair = px.copy()
+        clair[..., :3] = px[..., :3] + (np.array([235, 250, 255]) - px[..., :3]) * 0.45
+        both = Image.new("RGBA", (base.width, base.height * 2))
+        both.paste(base, (0, 0))
+        both.paste(Image.fromarray(clair.astype(np.uint8), "RGBA"), (0, base.height))
+        both.save(path)
+        (tex_dir / f"sainte_t{gout}.png.mcmeta").write_text(json.dumps({"animation": {"frametime": 16, "interpolate": True}}) + "\n", encoding="utf-8")
+        files.append(tex_dir / f"sainte_t{gout}.png.mcmeta")
+    return out, {"halo": "crossfight:item/falchion/sainte_halo"}, files
 
 
 # ---------------------------------------------------------------- version droite (Blockbench)
