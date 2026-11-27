@@ -8,9 +8,11 @@ Ecrit <dossier>/<personnage>_fiche.png (1920 x 1080).
 
   - Le fond, l'illustration a droite, le logo, le signe de la voie et le nom a la verticale a gauche : comme l'overlay.
   - En haut, deux cartouches : « FICHE » a la couleur du personnage, puis son nom.
-  - Au milieu, une carte par element, deux par rangee : l'arme et ses variantes (tools/variantes.txt), les actifs et
-    l'ultime, puis les passifs. Sur le bord haut de chaque carte, son type (Arme, Actif, Passif, Ultime) et son nom ;
-    dedans, son icone (pour une arme en 3D du pack prive, son rendu : RENDUS) et sa description.
+  - Au milieu, trois bandes bien separees, chacune sous son titre (un cartouche a la couleur du personnage et un trait) :
+    ARME (l'arme et ses variantes, tools/variantes.txt), CAPACITES (les actifs puis les passifs, chacun avec son type
+    sur sa carte) et ULTIME (sur toute la largeur). Une carte par element, cote a cote dans sa bande : son nom sur son
+    bord haut, son icone (pour une arme en 3D du pack prive, son rendu : RENDUS) et sa description ; une carte etroite
+    a son icone en haut et le texte dessous.
   - La description : tools/descriptions.txt, la ligne <id>.recap si elle existe (un texte qui tient sur la carte), sinon
     <id>, sinon le guide.
 
@@ -30,24 +32,28 @@ import overlay_capacite as oc  # noqa: E402
 W, H = oc.W, oc.H
 K = 3                                 # un pixel du pack = 3 (boites des cartes)
 ZONE = (250, 1560)                    # les cartes, de gauche a droite (le nom vertical a gauche, l'illustration a droite)
-HAUT, BAS = 150, 1062                 # sous les cartouches du haut, jusqu'au bas de l'image
-ECART = 18                            # entre deux cartes
+HAUT, BAS = 122, 1066                 # sous les cartouches du haut, jusqu'au bas de l'image
+ECART = 18                            # entre deux cartes d'une bande
+TITRE = 52                            # la hauteur du titre d'une bande (cartouche et trait), avec l'espace sous lui
+ENTRE = 14                            # entre deux bandes
+# La part de la hauteur de chaque bande (les capacites, cote a cote sur des cartes etroites, ont besoin de plus).
+POIDS = {"ARME": 1.0, "CAPACITÉS": 1.35, "ULTIME": 0.62}
 # Les armes en 3D du pack prive, rendues comme l'animation de l'Embleme de Feu (tools/build_embleme_anim.py) : le
 # prefixe de leurs textures.
 RENDUS = {"marth_falchion": "t", "marth_sainte_falchion": "sainte_t"}
 TYPES = {"Actif": "ACTIF", "Passif": "PASSIF", "Ultime": "ULTIME"}
 
 
-def elements(ch):
-    """L'arme et ses variantes, les actifs, l'ultime, puis les passifs (sans les ultimes en duo ni les Synergies)."""
+def sections(ch):
+    """Les trois bandes : [(titre, elements)] : l'arme et ses variantes, les capacites (actifs puis passifs), l'ultime
+    (sans les ultimes en duo ni les Synergies). Une bande vide n'est pas montree."""
     abil = [a for a in ch["abilities"] if a.get("type") in TYPES]
     armes = [a for a in abil if a.get("weapon")]
-    ids = {a["id"] for a in armes}
-    variantes = [a for a in abil if a not in armes and any(a["id"] != b and a.get("icon") == b.get("icon") and a.get("weapon") for b in armes)]
+    variantes = [a for a in abil if a not in armes and any(a["id"] != b["id"] and a.get("icon") == b.get("icon") for b in armes)]
     reste = [a for a in abil if a not in armes and a not in variantes]
-    ordre = {"Actif": 0, "Ultime": 1, "Passif": 2}
-    reste.sort(key=lambda a: ordre[a["type"]])
-    return armes + variantes + reste
+    capacites = [a for a in reste if a["type"] == "Actif"] + [a for a in reste if a["type"] == "Passif"]
+    ultime = [a for a in reste if a["type"] == "Ultime"]
+    return [(t, l) for t, l in (("ARME", armes + variantes), ("CAPACITÉS", capacites), ("ULTIME", ultime)) if l]
 
 
 def rendu_arme(prefixe, taille):
@@ -78,23 +84,110 @@ def icone(a, taille):
 
 
 def cartouches(gauche, droite, k, bs, pp, rgb):
-    """Deux cartouches du HUD cote a cote : le premier a la couleur du personnage. Rend l'image (avec sa lueur) et le
-    decalage de la lueur."""
+    """Un ou deux cartouches du HUD cote a cote : le premier (s'il y en a deux) a la couleur du personnage. Rend l'image,
+    avec sa lueur (16 pixels autour)."""
     from build_menu_franuka import wide
     banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
     milieu = pp.interieur(bs, "BannerMedium_01B", k)
-    t1, m1 = oc.ligne_hud(gauche, k, bs, pp)
-    t2, m2 = oc.ligne_hud(droite, k, bs, pp)
-    p1 = oc.gros(oc.recolore(wide(banniere, max(48, math.ceil((t1.width / k + 36) / 16) * 16)), oc.FOND_CARTOUCHE, rgb), k)
-    p2 = oc.gros(wide(banniere, max(48, math.ceil((t2.width / k + 36) / 16) * 16)), k)
+    pieces = []
+    for n, mot in enumerate(m for m in (gauche, droite) if m):
+        t, m = oc.ligne_hud(mot, k, bs, pp)
+        plaque = wide(banniere, max(48, math.ceil((t.width / k + 36) / 16) * 16))
+        if n == 0 and gauche and droite:
+            plaque = oc.recolore(plaque, oc.FOND_CARTOUCHE, rgb)
+        pieces.append((oc.gros(plaque, k), t, m))
     chevauche = 6 * k
-    out = Image.new("RGBA", (p1.width + p2.width - chevauche + 32, max(p1.height, p2.height) + 32), (0, 0, 0, 0))
-    for plaque, texte, tm, x in ((p1, t1, m1, 0), (p2, t2, m2, p1.width - chevauche)):
+    largeur = sum(p.width for p, _, _ in pieces) - chevauche * (len(pieces) - 1)
+    out = Image.new("RGBA", (largeur + 32, max(p.height for p, _, _ in pieces) + 32), (0, 0, 0, 0))
+    x = 0
+    for plaque, texte, tm in pieces:
         el = oc.lueur(plaque, bs.NAVY_DARK, 8)
         el.alpha_composite(plaque, (16, 16))
         el.alpha_composite(texte, (round(16 + plaque.width / 2 - texte.width / 2), round(16 + milieu - tm)))
         out.alpha_composite(el, (x, 0))
+        x += plaque.width - chevauche
     return out
+
+
+def titre_bande(texte, largeur, bs, pp, rgb):
+    """Le titre d'une bande : un cartouche a la couleur du personnage, puis un trait creme qui va jusqu'au bout."""
+    from build_menu_franuka import wide
+    from PIL import ImageDraw
+    k = 2
+    banniere = bs.ui_sprite("Title banners", "BannerMedium_01B")
+    milieu = pp.interieur(bs, "BannerMedium_01B", k)
+    t, m = oc.ligne_hud(texte, k, bs, pp)
+    plaque = oc.gros(oc.recolore(wide(banniere, max(48, math.ceil((t.width / k + 40) / 16) * 16)), oc.FOND_CARTOUCHE, rgb), k)
+    out = Image.new("RGBA", (largeur + 32, plaque.height + 32), (0, 0, 0, 0))
+    trait = Image.new("RGBA", out.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(trait)
+    y = 16 + milieu
+    d.rectangle([16 + plaque.width - 8, y - 2, 16 + largeur, y + 1], fill=bs.CREAM + (200,))
+    d.rectangle([16 + plaque.width - 8, y + 2, 16 + largeur, y + 3], fill=rgb + (200,))
+    out.alpha_composite(oc.lueur(trait.crop((16, 0, out.width - 16, out.height)), rgb, 6), (4, -12))
+    out.alpha_composite(trait)
+    el = oc.lueur(plaque, bs.NAVY_DARK, 8)
+    el.alpha_composite(plaque, (16, 16))
+    el.alpha_composite(t, (round(16 + plaque.width / 2 - t.width / 2), round(16 + milieu - m)))
+    out.alpha_composite(el, (0, 0))
+    return out
+
+
+def mise_en_page(cw, chh):
+    """Ou vont l'icone et le texte d'une carte : etroite (moins de 520 pixels), l'icone en haut et le texte dessous ;
+    sinon l'icone a gauche. Rend (etroite, taille de l'icone, largeur et hauteur du texte, haut du texte)."""
+    haut_in = 30                                      # sous le cartouche du nom
+    if cw < 520:
+        place = min(136, round((chh - haut_in) * 0.42))
+        return True, place, cw - 40, chh - haut_in - place - 22, haut_in + place + 12
+    place = min(150, chh - 60)
+    return False, place, cw - 64 - place, chh - haut_in - 16, haut_in
+
+
+def texte_de(a, desc):
+    return desc.get(a["id"] + ".recap") or desc.get(a["id"]) or a.get("description", "")
+
+
+def taille_texte(a, cw, chh, desc, bs):
+    """Les gros pixels du texte de cette carte : x3 s'il tient, sinon x2."""
+    _, _, larg, haut_t, _ = mise_en_page(cw, chh)
+    for k in (3, 2):
+        if oc.paragraphe(texte_de(a, desc), bs.UI_TEXT, 12, larg, 11, bs.CREAM, bs.NAVY_DARK, k).height <= haut_t:
+            return k
+    return 2
+
+
+def carte(img, a, x0, y0, cw, chh, avec_type, desc, bs, pp, rgb, k_texte=None):
+    """Une carte : sa boite, son nom sur le bord haut, son icone et sa description (en gros pixels k_texte : toutes
+    les cartes d'une bande ont la meme taille de texte). avec_type : son type (Actif, Passif) dans le coin haut droit."""
+    from build_menu_franuka import nine
+    boite_px = bs.ui_sprite("Background boxes", "BGbox_01B")
+    bm = next(y for y in range(boite_px.height) if boite_px.getpixel((24, y))[3])
+    boite = oc.gros(oc.recolore(nine(boite_px, cw // K + 2 * bm, chh // K + 2 * bm), oc.FOND_BOITE, bs.NAVY), K)
+    img.alpha_composite(oc.lueur(boite, bs.NAVY_DARK, 8), (x0 - bm * K - 16, y0 - bm * K - 16))
+    img.alpha_composite(boite, (x0 - bm * K, y0 - bm * K))
+    etroite, place, larg, haut_t, ty = mise_en_page(cw, chh)
+    haut_in = 30
+    teinte = (110, 210, 255) if a["id"] == "marth_sainte_falchion" else rgb
+    ic = icone(a, place)
+    if ic:
+        el = oc.lueur(ic, teinte, 10)
+        el.alpha_composite(ic, (20, 20))
+        if etroite:
+            img.alpha_composite(el, (round(x0 + cw / 2 - ic.width / 2) - 20, round(y0 + haut_in + 4 + place / 2 - ic.height / 2) - 20))
+        else:
+            img.alpha_composite(el, (round(x0 + 24 + place / 2 - ic.width / 2) - 20, round(y0 + haut_in + (chh - haut_in) / 2 - ic.height / 2) - 20))
+    k = k_texte or taille_texte(a, cw, chh, desc, bs)
+    d = oc.paragraphe(texte_de(a, desc), bs.UI_TEXT, 12, larg, 11, bs.CREAM, bs.NAVY_DARK, k)
+    cx = x0 + cw / 2 if etroite else x0 + 40 + place + larg / 2
+    img.alpha_composite(d, (round(cx - d.width / 2), round(y0 + ty + haut_t / 2 - d.height / 2)))
+    if avec_type:
+        # Le type, dans le coin haut droit de la carte, a la couleur du personnage.
+        clair = tuple(min(255, round(c + (255 - c) * 0.45)) for c in rgb)
+        t = oc.texte_pixel(TYPES[a["type"]], bs.UI_TITLE, 17, clair, bs.NAVY_DARK, 2)
+        img.alpha_composite(t, (x0 + cw - t.width - 30, y0 + haut_in + 4))
+    nom_el = desc.get(a["id"] + ".nom", a["name"]).upper()
+    img.alpha_composite(cartouches("", nom_el, 2, bs, pp, rgb), (x0 + 6, y0 - 34))
 
 
 def fiche(cid):
@@ -155,41 +248,22 @@ def fiche(cid):
     tete = cartouches("FICHE", name.upper(), oc.K_UI, bs, pp, rgb)
     img.alpha_composite(tete, (round((ZONE[0] + ZONE[1]) / 2 - tete.width / 2), 10))
 
-    # Les cartes, deux par rangee.
-    liste = elements(ch)
-    rangees = math.ceil(len(liste) / 2)
-    cw = (ZONE[1] - ZONE[0] - ECART) // 2
-    chh = (BAS - HAUT - (rangees - 1) * ECART) // rangees
-    boite_px = bs.ui_sprite("Background boxes", "BGbox_01B")
-    bm = next(y for y in range(boite_px.height) if boite_px.getpixel((24, y))[3])
-    for n, a in enumerate(liste):
-        x0 = ZONE[0] + (n % 2) * (cw + ECART)
-        y0 = HAUT + (n // 2) * (chh + ECART)
-        boite = oc.gros(oc.recolore(nine(boite_px, cw // K + 2 * bm, chh // K + 2 * bm), oc.FOND_BOITE, bs.NAVY), K)
-        img.alpha_composite(oc.lueur(boite, bs.NAVY_DARK, 8), (x0 - bm * K - 16, y0 - bm * K - 16))
-        img.alpha_composite(boite, (x0 - bm * K, y0 - bm * K))
-        # L'icone (ou l'arme), a gauche, avec une lueur a la couleur du personnage ; la Sainte-Falchion, bleue.
-        place = min(150, chh - 70)
-        ic = icone(a, place)
-        gauche = 34 + place
-        if ic:
-            teinte = (110, 210, 255) if a["id"] == "marth_sainte_falchion" else rgb
-            el = oc.lueur(ic, teinte, 10)
-            el.alpha_composite(ic, (20, 20))
-            img.alpha_composite(el, (round(x0 + 24 + place / 2 - ic.width / 2) - 20, round(y0 + 30 + (chh - 30) / 2 - ic.height / 2) - 20))
-        # La description, a droite de l'icone, en gros pixels x3 si elle tient, sinon x2.
-        texte = desc.get(a["id"] + ".recap") or desc.get(a["id"]) or a.get("description", "")
-        larg, haut_t = cw - gauche - 30, chh - 58
-        for k in (3, 2):
-            d = oc.paragraphe(texte, bs.UI_TEXT, 12, larg, 11, bs.CREAM, bs.NAVY_DARK, k)
-            if d.height <= haut_t:
-                break
-        img.alpha_composite(d, (round(x0 + gauche + 6 + larg / 2 - d.width / 2), round(y0 + 34 + (chh - 34) / 2 - d.height / 2)))
-        # Sur le bord haut : le type et le nom.
-        typ = "ARME" if a.get("weapon") or a["id"] in RENDUS else TYPES[a["type"]]
-        nom_el = desc.get(a["id"] + ".nom", a["name"]).upper()
-        bandeau = cartouches(typ, nom_el, 2, bs, pp, rgb)
-        img.alpha_composite(bandeau, (x0 + 6, y0 - 34))
+    # Les trois bandes, chacune sous son titre, leurs cartes cote a cote.
+    bandes = sections(ch)
+    libre = BAS - HAUT - len(bandes) * TITRE - (len(bandes) - 1) * ENTRE
+    total = sum(POIDS.get(t, 1.0) for t, _ in bandes)
+    y = HAUT
+    for titre, liste in bandes:
+        img.alpha_composite(titre_bande(titre, ZONE[1] - ZONE[0], bs, pp, rgb), (ZONE[0] - 16, y - 16))
+        y += TITRE
+        bh = round(libre * POIDS.get(titre, 1.0) / total)
+        cw = (ZONE[1] - ZONE[0] - (len(liste) - 1) * ECART) // len(liste)
+        # Une meme taille de texte pour toute la bande : la plus grande qui tient sur chacune de ses cartes.
+        k_bande = min(taille_texte(a, cw, bh - 18, desc, bs) for a in liste)
+        for n, a in enumerate(liste):
+            # Le type sur la carte, seulement chez les capacites (Actif ou Passif) : ailleurs, la bande le dit.
+            carte(img, a, ZONE[0] + n * (cw + ECART), y + 18, cw, bh - 18, titre == "CAPACITÉS", desc, bs, pp, rgb, k_bande)
+        y += bh + ENTRE
     return img.convert("RGB")
 
 
