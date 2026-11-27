@@ -147,8 +147,9 @@ def quads(name, pose_name, private):
     return out
 
 
-def render(qs, view_yaw, size=(420, 460), scale=115):
-    """Vue orthographique : la camera tourne autour du personnage (0 = de face)."""
+def render(qs, view_yaw, size=(420, 460), scale=115, alpha=False):
+    """Vue orthographique : la camera tourne autour du personnage (0 = de face). alpha : une image RGBA, le fond
+    transparent."""
     w, h = size
     img = np.full((h, w, 3), 235, dtype=np.float32)
     zbuf = np.full((h, w), -1e9)
@@ -186,6 +187,8 @@ def render(qs, view_yaw, size=(420, 460), scale=115):
             ok = inside & (col[..., 3] > 25) & (z > zbuf[y0:y1 + 1, x0:x1 + 1])
             sub = img[y0:y1 + 1, x0:x1 + 1]; sub[ok] = col[..., :3][ok] * shade
             zb = zbuf[y0:y1 + 1, x0:x1 + 1]; zb[ok] = z[ok]
+    if alpha:
+        return np.dstack([img, np.where(zbuf > -1e9, 255, 0)]).astype(np.uint8)
     return img.astype(np.uint8)
 
 
