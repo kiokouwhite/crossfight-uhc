@@ -147,7 +147,10 @@ public final class Lootbox implements Listener {
         final Inventory inv;
         ItemDisplay look, chute;
         Interaction hit;
-        /** FERMEE jusqu'a la premiere ouverture, ROULETTE pendant la roulette, OUVERTE ensuite (on peut se servir). */
+        /**
+         * FERMEE jusqu'a la premiere ouverture, ROULETTE pendant la roulette (et la seconde ou l'on voit la ligne
+         * gagnante), OUVERTE si le butin n'a pas pu partir dans l'inventaire de celui qui l'a ouverte (chacun s'y sert).
+         */
         int etat = FERMEE;
         /** Le contenu (case, objet), devoile a la fin de la roulette. */
         final Map<Integer, ItemStack> prix = new LinkedHashMap<>();
@@ -155,6 +158,8 @@ public final class Lootbox implements Listener {
         int couleur;
         /** Les blocs de son faisceau (le socle de fer, la balise, le verre teinte), vides si elle n'en a pas. */
         final List<Block> faisceau = new ArrayList<>();
+        /** Celui qui l'a ouverte le premier : le butin va dans son inventaire a la fin de la roulette. */
+        UUID ouvreur;
 
         Box(Block block, int tier) {
             this.block = block;
@@ -180,6 +185,8 @@ public final class Lootbox implements Listener {
     private static final int CRANS_DIAMANTS = 14, CRANS_OR = 20, CRANS_OBJET = 28, ATTENTE = 7;
     /** La fenetre change de couleur au plus toutes les 6 ticks (pas plus de trois a quatre eclats par seconde). */
     private static final int ECLAT = 6;
+    /** Le temps de voir la ligne gagnante (en ticks) avant que le butin ne parte dans l'inventaire. */
+    private static final int RAMASSAGE = 20;
     /** La fenetre de chaque tier dans le pack (tools/build_menu_lootbox.py) : un espace qui recule, puis son image. */
     private static final char RECUL = '\uE2AF', FENETRE = '\uE2A0';
     /** Les couleurs des tiers en codes de texte, pour le titre sans le pack. */
@@ -1017,6 +1024,7 @@ public final class Lootbox implements Listener {
         // La premiere ouverture est annoncee, et lance la roulette.
         if (box.etat != FERMEE) return;
         box.etat = ROULETTE;
+        box.ouvreur = p.getUniqueId();
         Msg.broadcast("<gold>" + p.getName() + " ouvre une <" + TIER_COLOR[box.tier - 1] + ">Lootbox tier " + box.tier + "</" + TIER_COLOR[box.tier - 1] + "> !");
         // Marth, s'il n'a pas encore la Sainte-Falchion ni d'Embleme, peut y trouver l'Embleme de Feu.
         if (!box.prix.containsKey(CASE_EMBLEME) && estMarth(p) && !com.kiokouwhite.crossfight.character.fireemblem.Marth.isHoly(p)
@@ -1148,11 +1156,14 @@ public final class Lootbox implements Listener {
         }.runTaskTimer(plugin, 1L, 1L);
     }
 
-    /** La fin de la roulette : les roulettes se vident, il reste ce qui est sur la ligne gagnante (et la fleche d'un arc). */
+    /**
+     * La fin de la roulette : les roulettes se vident, il reste ce qui est sur la ligne gagnante (et la fleche d'un arc).
+     * Une seconde plus tard (RAMASSAGE), le tout part dans l'inventaire de celui qui l'a ouverte (ramasser).
+     */
     private void devoiler(Box box) {
         for (int col : new int[]{DIAMANTS, CENTRE, OR}) { box.inv.setItem(col - 9, null); box.inv.setItem(col + 9, null); }
         for (var e : box.prix.entrySet()) box.inv.setItem(e.getKey(), e.getValue());
-        box.etat = OUVERTE;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> ramasser(box), RAMASSAGE);
         Location at = box.block.getLocation().add(0.5, 0.5, 0.5);
         at.getWorld().playSound(at, Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
         boolean embleme = box.prix.containsKey(CASE_EMBLEME);
@@ -1167,7 +1178,35 @@ public final class Lootbox implements Listener {
         }
     }
 
-    /** Pendant la roulette, on ne prend ni ne pose rien. */
+    /**
+     * Le butin dans l'inventaire de celui qui a ouvert la Lootbox : l'objet d'abord (il prend la premiere case libre),
+     * puis l'Embleme, la fleche, les diamants et l'or ; ce qui n'y tient pas tombe a ses pieds. La Lootbox, videe,
+     * disparait. S'il n'est plus la (deconnecte, mort, spectateur, dans un autre monde), elle reste ouverte et chacun
+     * peut s'y servir.
+     */
+    private void ramasser(Box box) {
+        if (boxes.get(box.block) != box) return;
+        Player p = box.ouvreur == null ? null : Bukkit.getPlayer(box.ouvreur);
+        if (p == null || !p.isOnline() || p.isDead() || p.getGameMode() == org.bukkit.GameMode.SPECTATOR || p.getWorld() != box.block.getWorld()) {
+            box.etat = OUVERTE;
+            return;
+        }
+        List<ItemStack> butin = new ArrayList<>();
+        List<Integer> cases = new ArrayList<>(List.of(CENTRE, CASE_EMBLEME, 14, DIAMANTS, OR));
+        for (int i = 0; i < box.inv.getSize(); i++) if (!cases.contains(i)) cases.add(i);
+        for (int i : cases) {
+            ItemStack it = box.inv.getItem(i);
+            if (it != null && !it.getType().isAir()) butin.add(it);
+        }
+        box.inv.clear();
+        var reste = p.getInventory().addItem(butin.toArray(new ItemStack[0])).values();
+        for (ItemStack it : reste) p.getWorld().dropItemNaturally(p.getLocation(), it);
+        if (!reste.isEmpty()) Msg.send(p, "<gray>Inventaire plein : le reste du butin tombe a tes pieds.");
+        p.playSound(p, Sound.ENTITY_ITEM_PICKUP, 0.8f, 1.1f);
+        remove(box);
+    }
+
+    /** Pendant la roulette (et la seconde ou l'on voit la ligne gagnante), on ne prend ni ne pose rien. */
     @EventHandler(ignoreCancelled = true)
     public void onClick(InventoryClickEvent e) {
         if (e.getView().getTopInventory().getHolder() instanceof Box box && box.etat != OUVERTE) e.setCancelled(true);

@@ -1,7 +1,8 @@
 // Roulettes d'une Lootbox : le testeur (pack charge) pose une lootbox du tier donne et l'ouvre. Pendant les roulettes :
 // les titres recus (la fenetre du pack change de couleur), les objets des trois roulettes verticales (diamants, objet,
 // or), et le tier des objets de la roulette du milieu compare a la couleur de la fenetre a ce moment-la ; un clic sur
-// la case du centre (refuse). A la fin : la couleur finale, le contenu, puis il vide la lootbox, qui disparait.
+// la case du centre (refuse). A la fin : ce qui est arrive tout seul dans son inventaire, la fenetre fermee et la
+// lootbox disparue.
 // node lootbox_roulette.js [tier]
 const mineflayer = require('mineflayer');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -27,12 +28,14 @@ bot._client.on('open_window', d => {
 });
 bot._client.on('set_slot', d => vu(d.slot, d.item));
 bot._client.on('window_items', d => (d.items || []).forEach((it, i) => vu(i, it)));
+const compter = () => bot.inventory.items().reduce((m, i) => { m[i.name] = (m[i.name] || 0) + i.count; return m; }, {});
 bot.once('spawn', async () => {
   await sleep(3000);
   bot.chat('/cf test'); await sleep(9000);
   bot.chat('/tp @s 0.5 65 4.5 180 20'); await sleep(1200);
   bot.chat('/cf lootbox ' + tier); await sleep(1200);
   const zone = Object.values(bot.entities).find(e => e.name === 'interaction' && Math.abs(e.position.z - 2.5) < 0.6);
+  const avant = compter();
   t0.v = Date.now(); ouvert = true;
   bot.activateEntity(zone);
   await sleep(1500);
@@ -40,19 +43,18 @@ bot.once('spawn', async () => {
   const w = bot.currentWindow;
   if (w) { await bot.clickWindow(13, 0, 0).catch(() => {}); await sleep(300); }
   console.log('clic pendant la roulette, curseur :', bot.inventory.cursor ? bot.inventory.cursor.name : 'vide');
-  await sleep(4500);
+  await sleep(5500);
   ouvert = false;
   console.log('titres recus :', titres.length, '|', titres.map(t => t.split(' : ')[1].replace('fenetre ', '')).join(' '), '| derniere a', titres.length ? titres[titres.length - 1].split(' ')[0] : '-', 'ms');
   console.log('objets vus passer :', JSON.stringify(passages), '| diamants vus :', [...comptes.diamants].sort((a, b) => a - b).join(','), '| or vu :', [...comptes.or].sort((a, b) => a - b).join(','));
   console.log('roulette du milieu, objet du tier de la fenetre :', accord.oui, 'fois ; autrement :', accord.non.length, accord.non.slice(0, 6).join(' / '));
-  const fin = bot.currentWindow;
-  if (fin) {
-    console.log('contenu final :', fin.slots.slice(0, 27).map((s, i) => s ? `${i}:${s.name}x${s.count}` : null).filter(Boolean).join(' '));
-    for (const s of fin.slots.slice(0, 27).map((s, i) => s ? i : -1).filter(i => i >= 0)) { await bot.clickWindow(s, 0, 1); await sleep(250); }
-    bot.closeWindow(fin); await sleep(1200);
-    const b = bot.blockAt(V(0.5, 65, 2.5));
-    console.log('videe et refermee : bloc', b ? b.name : '?', '| affichages', Object.values(bot.entities).filter(e => e.name === 'item_display' && Math.abs(e.position.z - 2.5) < 0.6).length);
-  } else console.log('plus de fenetre ouverte');
+  // A la fin, le butin part tout seul dans l'inventaire, la fenetre se ferme et la lootbox disparait.
+  const apres = compter();
+  const gagne = Object.keys(apres).filter(k => (apres[k] || 0) > (avant[k] || 0)).map(k => `${k} +${apres[k] - (avant[k] || 0)}`);
+  console.log('fenetre encore ouverte :', !!bot.currentWindow, '| gagne dans l\'inventaire :', gagne.join(', ') || 'rien');
+  await sleep(1000);
+  const b = bot.blockAt(V(0.5, 65, 2.5));
+  console.log('lootbox : bloc', b ? b.name : '?', '| affichages', Object.values(bot.entities).filter(e => e.name === 'item_display' && Math.abs(e.position.z - 2.5) < 0.6).length);
   bot.chat('/cf clear'); await sleep(2500);
   bot.chat('/cf test'); await sleep(800);
   bot.quit(); process.exit(0);
