@@ -414,8 +414,9 @@ def construire(name, cfg):
         string = next(el for el in els if el["name"] == cfg["corde"])
         grips = [el for el in els if el["name"] == cfg["poignee"]]
         grip = np.mean([coins(el).mean(axis=0) for el in grips], axis=0)
-        used -= {int(f["texture"][1:]) for f in string["faces"].values()}
         body = [el for el in els if el is not string]
+        # La corde a sa propre texture : seules restent celles du bois (la corde peut partager la sienne avec lui).
+        used = {int(f["texture"][1:]) for el in body for f in el["faces"].values()}
         # Le bois de l'arc, épaissi (la corde reste fine) : chaque pavé s'élargit autour du plan de l'arc.
         wide = cfg.get("epaisseur", 1)
         for el in body:
