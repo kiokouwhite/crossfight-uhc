@@ -1520,3 +1520,12 @@ voice.yang_nom_ruby
 voice.yang_nom_weiss
 voice.yang_selection
 voice.yang_ult
+voice.yuki_burst
+voice.yuki_desesperee
+voice.yuki_insaisissable
+voice.yuki_insatiable
+voice.yuki_kill
+voice.yuki_mort
+voice.yuki_selection
+voice.yuki_snow
+voice.yuki_ult

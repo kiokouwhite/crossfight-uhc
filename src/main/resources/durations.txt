@@ -183,3 +183,12 @@ voice.yang_nom_ruby 677
 voice.yang_nom_weiss 949
 voice.yang_selection 2444
 voice.yang_ult 2138
+voice.yuki_burst 3720
+voice.yuki_desesperee 3160
+voice.yuki_insaisissable 630
+voice.yuki_insatiable 6060
+voice.yuki_kill 2380
+voice.yuki_mort 2440
+voice.yuki_selection 2390
+voice.yuki_snow 2240
+voice.yuki_ult 2520
