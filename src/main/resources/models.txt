@@ -1,6 +1,6 @@
 # Genere par tools/build_armes.py : les modeles 3D d'armes que le pantin des animations sait tenir.
 # <nom> <prise x y z, en pixels depuis le milieu du modele> <inclinaison : quaternion x y z w> <taille>
-epee_createur 0 -6.34 0 0.0 0.0 0.38268 0.92388 0.935
+epee_createur 0 -6.34 0 0.0 0.0 0.38268 0.92388 1.402
 falchion 0 -7.78 0 0.0 0.0 0.38268 0.92388 1.275
 falchion_sainte 0 -7.78 0 0.0 0.0 0.38268 0.92388 1.275
 yumi_fujin 0.01 -1.0 1.44 -0.2706 0.65328 0.2706 0.65328 1.05

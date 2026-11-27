@@ -58,7 +58,7 @@ ARMES = {
     "yumi_fujin": {"objet": "bow", "genre": "arc", "corde": "corde", "poignee": "poignee", "epaisseur": 2.5,
                    "tailles": {"tiers": 1.11, "premiere": 0.57, "inventaire": 0.62, "sol": 0.36, "cadre": 0.62}},
     # L'Épée du Créateur de Byleth (son épée en diamant) : 33 pixels de la pointe du pommeau à celle de la lame.
-    "epee_createur": {"objet": "diamond_sword", "genre": "epee", "poignee": ("poignee_bas", "poignee_haut"), "main": 1.1},
+    "epee_createur": {"objet": "diamond_sword", "genre": "epee", "poignee": ("poignee_bas", "poignee_haut"), "main": 1.65},
 }
 
 # Les modèles 3D faits par d'autres scripts (tools/build_falchion.py), que le pantin tient aussi : le modèle est
