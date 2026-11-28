@@ -137,10 +137,13 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
                         p.spawnParticle(Particle.DUST, dos, 18, 0.28, 0.32, 0.06, 0, new Particle.DustOptions(SANG_VIF, 1.5f));
                         p.spawnParticle(Particle.BLOCK, dos.clone().add(avant.clone().multiply(-0.1)), 10, 0.25, 0.3, 0.05, 0.05, Material.REDSTONE_BLOCK.createBlockData());
                         w.playSound(base, Sound.ENTITY_WARDEN_HEARTBEAT, 1.6f, 0.6f + 0.12f * i);
-                        w.playSound(base, Sound.ENTITY_PLAYER_HURT, 0.7f, 0.6f);
+                        w.playSound(base, Sound.ENTITY_PLAYER_HURT, 1f, 0.5f);
+                        w.playSound(base, Sound.ENTITY_EVOKER_FANGS_ATTACK, 0.9f, 0.7f + 0.1f * i);   // la lame mord
                         rouge = 0.95;
                     }
-                    if (t % ECART == 2 && t / ECART < POULS) w.playSound(base, Sound.ENTITY_GENERIC_DRINK, 1f, 0.5f);
+                    if (t % ECART == 2 && t / ECART < POULS) w.playSound(base, Sound.ENTITY_GENERIC_DRINK, 1f, 0.4f);
+                    // L'aspiration monte jusqu'a l'eclat de la fin.
+                    if (t == 0) w.playSound(base, Sound.ENTITY_WARDEN_SONIC_CHARGE, 1f, 1.3f);
 
                     // Les filets de sang : arraches du corps, de plus en plus vite, en spirale jusqu'a la lame.
                     if (t < FIN - 2) {
@@ -183,9 +186,10 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
                         autres(p, Particle.DUST_COLOR_TRANSITION, milieu, 40, 0.35, 0.15, 0.35, 0, new Particle.DustTransition(SANG_VIF, NEIGE, 1.4f));
                         autres(p, Particle.SNOWFLAKE, milieu, 45, 0.2, 0.2, 0.2, 0.18, null);
                         p.spawnParticle(Particle.SNOWFLAKE, milieu, 15, 0.2, 0.1, 0.2, 0.08);
+                        w.playSound(base, Sound.ENTITY_WARDEN_SONIC_BOOM, 0.7f, 1.4f);
+                        w.playSound(base, Sound.BLOCK_GLASS_BREAK, 1f, 0.5f);           // la glace vole en eclats
                         w.playSound(base, Sound.BLOCK_SNOW_BREAK, 1f, 0.6f);
-                        w.playSound(base, Sound.ENTITY_EVOKER_CAST_SPELL, 0.9f, 0.6f);
-                        w.playSound(base, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 0.7f);
+                        w.playSound(base, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 0.6f);
                     }
                     if (t > FIN && t <= FIN + 5) {
                         double r = (t - FIN) * 0.4;
