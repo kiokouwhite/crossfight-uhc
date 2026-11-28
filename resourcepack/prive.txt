@@ -32,6 +32,7 @@ ability.omori_porte
 ability.omori_rafale
 ability.omori_texte
 ability.omori_vaincu
+ability.yuki_snow
 actif.acura
 actif.acura.5.s
 actif.aida

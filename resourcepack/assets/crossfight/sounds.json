@@ -1810,13 +1810,6 @@
    "crossfight:sfx/dark/3"
   ]
  },
- "ability.yuki_snow": {
-  "sounds": [
-   "crossfight:sfx/dark/1",
-   "crossfight:sfx/dark/2",
-   "crossfight:sfx/dark/3"
-  ]
- },
  "ability.yuki_ult": {
   "sounds": [
    "crossfight:sfx/dark/1",

@@ -101,7 +101,8 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
          * L'epee boit la vie de Yuki : quatre pulsations (un demi-coeur chacune, le corps secoue, un battement de coeur),
          * a chacune du sang qui gicle de sa poitrine ; des filets de sang arraches de tout son corps tournoient jusqu'a la
          * lame, de plus en plus vite, et y blanchissent en neige. A la fin, la lame eclate en neige rouge et blanche.
-         * Pendant ce temps, un voile rouge bat sur l'ecran de Yuki ; elle ne voit pas le sang qui gicle de sa poitrine
+         * Le son (ability.yuki_snow, tools/son_bleeding_snow.py) est cale sur ces instants : battements, dechirures et
+         * giclees aux pulsations, aspiration qui monte, eclat a la fin. Pendant ce temps, un voile rouge bat sur l'ecran de Yuki ; elle ne voit pas le sang qui gicle de sa poitrine
          * (de si pres, il lui cacherait l'ecran), seulement celui qui arrive dans sa lame.
          */
         static void aspirer(Player p) {
@@ -136,14 +137,8 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
                         Location dos = local(base, droite, avant, 0, 1.2, -0.4);
                         p.spawnParticle(Particle.DUST, dos, 18, 0.28, 0.32, 0.06, 0, new Particle.DustOptions(SANG_VIF, 1.5f));
                         p.spawnParticle(Particle.BLOCK, dos.clone().add(avant.clone().multiply(-0.1)), 10, 0.25, 0.3, 0.05, 0.05, Material.REDSTONE_BLOCK.createBlockData());
-                        w.playSound(base, Sound.ENTITY_WARDEN_HEARTBEAT, 1.6f, 0.6f + 0.12f * i);
-                        w.playSound(base, Sound.ENTITY_PLAYER_HURT, 1f, 0.5f);
-                        w.playSound(base, Sound.ENTITY_EVOKER_FANGS_ATTACK, 0.9f, 0.7f + 0.1f * i);   // la lame mord
                         rouge = 0.95;
                     }
-                    if (t % ECART == 2 && t / ECART < POULS) w.playSound(base, Sound.ENTITY_GENERIC_DRINK, 1f, 0.4f);
-                    // L'aspiration monte jusqu'a l'eclat de la fin.
-                    if (t == 0) w.playSound(base, Sound.ENTITY_WARDEN_SONIC_CHARGE, 1f, 1.3f);
 
                     // Les filets de sang : arraches du corps, de plus en plus vite, en spirale jusqu'a la lame.
                     if (t < FIN - 2) {
@@ -186,10 +181,6 @@ public final class Yuki extends Character implements Listener, Solo.Burst {
                         autres(p, Particle.DUST_COLOR_TRANSITION, milieu, 40, 0.35, 0.15, 0.35, 0, new Particle.DustTransition(SANG_VIF, NEIGE, 1.4f));
                         autres(p, Particle.SNOWFLAKE, milieu, 45, 0.2, 0.2, 0.2, 0.18, null);
                         p.spawnParticle(Particle.SNOWFLAKE, milieu, 15, 0.2, 0.1, 0.2, 0.08);
-                        w.playSound(base, Sound.ENTITY_WARDEN_SONIC_BOOM, 0.7f, 1.4f);
-                        w.playSound(base, Sound.BLOCK_GLASS_BREAK, 1f, 0.5f);           // la glace vole en eclats
-                        w.playSound(base, Sound.BLOCK_SNOW_BREAK, 1f, 0.6f);
-                        w.playSound(base, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1f, 0.6f);
                     }
                     if (t > FIN && t <= FIN + 5) {
                         double r = (t - FIN) * 0.4;
